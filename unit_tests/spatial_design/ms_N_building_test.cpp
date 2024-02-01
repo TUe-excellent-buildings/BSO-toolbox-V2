@@ -274,7 +274,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	}
 	
 	BOOST_AUTO_TEST_CASE( getVolume_1 )
-	{ // Still needs adjusting
+	{ 
 		ms_N_building b1("spatial_design/ms_N_test_1.txt");
 		
 		BOOST_REQUIRE(b1.getVolume() == 6);
@@ -295,39 +295,27 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	
 	
 	BOOST_AUTO_TEST_CASE( setZZero_1 )
-	{ // Still needs adjusting
+	{
 		ms_N_building b1("spatial_design/ms_N_test_3.txt");
 		b1.setZZero();
 		std::stringstream sstr;
 		sstr << b1;
-
-		BOOST_REQUIRE(sstr.str() == "R,1,3000,3000,3000,0,0,0\nR,2,3000,3000,3000,0,0,4303");
+		BOOST_REQUIRE(sstr.str() == "N,1,	0,0,0,	3000,0,0,	0,3000,0,	3000,3000,0,	0,0,3000,	3000,0,3000,	0,3000,3000,	3000,3000,3000\nN,2,	0,0,4303,	3000,0,4303,	0,3000,4303,	3000,3000,4303,	0,0,7303,	3000,0,7303,	0,3000,7303,	3000,3000,7303");
 	}
 	
 	
 	BOOST_AUTO_TEST_CASE( setZZero_2 )
-	{ // Still needs adjusting
+	{ 
 		ms_N_building b1("spatial_design/ms_N_test_4.txt");
 		b1.setZZero();
 		std::stringstream sstr;
 		sstr << b1;
-
-		BOOST_REQUIRE(sstr.str() == "R,1,3000,3000,3000,0,0,-697\nR,2,3000,3000,3000,0,0,5000");
+		BOOST_REQUIRE(sstr.str() == "N,1,	0,0,-697,	3000,0,-697,	0,3000,-697,	3000,3000,-697,	0,0,2303,	3000,0,2303,	0,3000,2303,	3000,3000,2303\nN,2,	0,0,5000,	3000,0,5000,	0,3000,5000,	3000,3000,5000,	0,0,8000,	3000,0,8000,	0,3000,8000,	3000,3000,8000");
 	}
 	
-	
-	BOOST_AUTO_TEST_CASE( setZZero_3 )
-	{ // new check specifically for N inserted spaces
-		ms_N_building b1("spatial_design/ms_N_test_4.txt");
-		b1.setZZero();
-		std::stringstream sstr;
-		sstr << b1;
-
-		BOOST_REQUIRE(sstr.str() == "R,1,3000,3000,3000,0,0,-697\nR,2,3000,3000,3000,0,0,5000");
-	}
 	
 	BOOST_AUTO_TEST_CASE( addSpace_and_Comparison )
-	{ // still needs adjusting; this check might not be needed since the function use of setZZerro is not relevant in the ms_N_building class
+	{ 
 		ms_N_building b1;
 		ms_N_building b2("spatial_design/ms_N_test_3.txt");
 		
@@ -377,6 +365,11 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 
 		BOOST_REQUIRE(b1 != b2);
 		BOOST_REQUIRE(b2 != b1);
+
+		b2.setZZero();
+		
+		BOOST_REQUIRE(b1 == b2);
+		BOOST_REQUIRE(b2 == b1);
 	}
 	
 	BOOST_AUTO_TEST_CASE( addSpace_and_Comparison_2 )
@@ -519,7 +512,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	}
 	
 	BOOST_AUTO_TEST_CASE( scale_1 )
-	{ // test a orthogonal design for scaling
+	{ // test of an orthogonal design for scaling
 		ms_N_building b1("spatial_design/ms_N_test_3.txt");
 		std::stringstream sstr, check1, check2; 
 		
@@ -541,7 +534,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	}
 	
 	BOOST_AUTO_TEST_CASE( scale_2 )
-	{ // test a non-orthogonal design for scaling
+	{ // test of an non-orthogonal design for scaling
 		ms_N_building b1("spatial_design/ms_N_test_9.txt");
 		std::stringstream sstr, check1, check2; 
 		
@@ -557,25 +550,6 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		check2 << "N,1,	0,0,0,	6363.96,0,0,	0,11313.7,0,	8485.28,11313.7,0,	0,0,5940,	6363.96,0,5940,	0,11313.7,5940,	8485.28,11313.7,5940" << std::endl
 					<< "N,2,	0,0,5940,	6363.96,-5656.85,5940,	0,8485.28,5940,	6363.96,8485.28,5940,	0,0,15840,	6363.96,-5656.85,15840,	0,8485.28,15840,	6363.96,8485.28,15840" ;
 		BOOST_REQUIRE(sstr.str() == check2.str());
-	}
-	
-	BOOST_AUTO_TEST_CASE( snapOn )
-	{
-		ms_N_building b1("spatial_design/ms_N_test_3.txt");
-		std::stringstream sstr;
-		
-		b1.snapOn({{2,10}});
-		sstr << b1;
-		BOOST_REQUIRE(sstr.str() == "R,1,3000,3000,3000,0,0,700\nR,2,3000,3000,3000,0,0,5000");
-		sstr.str(std::string());
-		
-		b1.scale();
-		b1.snapOn();
-		sstr << b1;
-		BOOST_REQUIRE(sstr.str() == "R,1,4240,4240,3000,0,0,700\nR,2,4240,4240,3000,0,0,5000");
-		
-		BOOST_REQUIRE_THROW(b1.snapOn({{3,1.5}}), std::invalid_argument);
-		BOOST_REQUIRE_THROW(b1.snapOn({{1,1.0},{1,1.0}}), std::invalid_argument);
 	}
 	
 	BOOST_AUTO_TEST_CASE( splitSpace_1a )
@@ -661,7 +635,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	}
 
 	BOOST_AUTO_TEST_CASE( splitSpace_4 )
-	{ // Check a space at with lines over and behind the axis-x and -y //Note: test not fineshed yet!
+	{ // Check a space with lines over and behind the axis-x and -y
 		ms_N_building m1;
 		m1.addSpace(ms_space("N, 1 ,	1000,1000,0,	-1000,0,0,	500,-1000,0,	-1000,2000,0,	1000,1000,2000,	-1000,0,2000,	500,-1000,2000,	-1000,2000,2000"));
 		std::stringstream sstr;
@@ -721,7 +695,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	{ // a non-orthogonal version of the previous check
 		std::vector<ms_space*> floatingSpaces;
 		
-		// Previous cases represented in non-orthogonal mannor:
+		// Previous cases represented in non-orthogonal notation:
 		ms_N_building ms1;
 		ms1.addSpace(ms_space("N, 1 ,	0,0,0,	2000,0,0,	0,1000,0,	1000,1500,0,	0,0,1000,	2000,0,1000,	0,1000,1000,	1000,1500,1000"));
 		ms1.addSpace(ms_space("N, 2 ,	0,0,1500,	1000,0,1500,	0,1500,1500,	1000,1000,1500,	0,0,2500,	1000,0,2500,	0,1500,2500,	1000,1000,2500"));

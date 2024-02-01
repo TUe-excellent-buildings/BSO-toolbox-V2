@@ -185,7 +185,7 @@ BOOST_AUTO_TEST_SUITE( building_functions )
 		b1.setZZero();
 		std::stringstream sstr;
 		sstr << b1;
-
+		
 		BOOST_REQUIRE(sstr.str() == "R,1,3000,3000,3000,0,0,0\nR,2,3000,3000,3000,0,0,4303");
 	}
 	
