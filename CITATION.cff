@@ -1,4 +1,4 @@
-cff-version: 1.1.0
+cff-version: 1.1.1
 message: If you use this software, please cite it as below.
 authors:
   - family-names: Boonstra
@@ -7,17 +7,7 @@ authors:
   - family-names: Hofmeyer
     given-names: Hèrm
 title: "BSO Toolbox"
-version: 1.0
+version: 1.1.1
 doi: 10.5281/zenodo.3823893
-date-released: 2020-05-xx
-
-bibtex:
-@software{bso_toolbox,
-	title={BSO toolbox},
-	author={Boonstra, Sjonnie and Hofmeyer, H\`{e}rm},
-	version={v1.0},
-	publisher={Zenodo},
-	year={2020},
-	month={5},
-	doi={10.5281/zenodo.3823893}
-}
+date-released: 2022-12-15
+url: "https://github.com/TUe-excellent-buildings/BSO-toolbox"
