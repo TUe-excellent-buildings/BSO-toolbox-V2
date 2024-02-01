@@ -1,14 +1,14 @@
 # specify location of libraries
-BOOST   = /usr/include/boost
-EIGEN   = /usr/include/eigen
-FADE    = /home/tessa/Libaries/fadeRelease_v1.93/fadeRelease_v1.93
-BSO     = /usr/include/BSO-toolbox
+BOOST 	= /usr/include/boost
+EIGEN 	= /usr/include/eigen
+FADE  	= /usr/include/fadeRelease_v1.93/fadeRelease_v1.93															  
+BSO   	= /usr/include/BSO-toolbox
 ALL_LIB = -I$(BOOST) -I$(EIGEN) -I$(BSO)
 
 # compiler settings
-CPP = g++ -std=c++14
+CPP = g++ -std=c++17
 FLAGS = -O3 -march=native -lglut -lGL -lGLU -lpthread -lfade2d
-D_LIB  = -I${FADE}/include_fade2d
+D_LIB  = -I${FADE}/include_fade2d								 
 
 # specify file(s) to be compiled
 MAINFILE = main.cpp
