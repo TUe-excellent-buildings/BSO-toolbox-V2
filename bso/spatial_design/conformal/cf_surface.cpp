@@ -10,6 +10,23 @@ namespace bso { namespace spatial_design { namespace conformal {
 		mCFRectangles.push_back(mBuildingModel->addRectangle(*this));
 		mCFRectangles.back()->addSurface(this);
 	} // 
+	
+	cf_surface::cf_surface(const utilities::geometry::quadrilateral& rhs, cf_building_model* buildingModel, std::vector<utilities::geometry::triangle*> triOnSurface, std::vector<utilities::geometry::quadrilateral*> quadOnSurface)
+	: utilities::geometry::quadrilateral(rhs, buildingModel->tolerance())
+	{
+		mBuildingModel = buildingModel;
+		for(auto& i: triOnSurface)
+		{
+			mCFTriangles.push_back(mBuildingModel->addTriangle(*i));
+			mCFTriangles.back()->addSurface(this);
+		}
+		
+		for(auto& i: quadOnSurface)
+		{
+			mCFRectangles.push_back(mBuildingModel->addRectangle(*i));
+			mCFRectangles.back()->addSurface(this);
+		}
+	}
 
 	void cf_surface::checkVertex(cf_vertex* pPtr)
 	{ //

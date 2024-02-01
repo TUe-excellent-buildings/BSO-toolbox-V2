@@ -13,20 +13,26 @@ namespace bso { namespace spatial_design { namespace conformal {
 
 	public:
 		cf_edge(const utilities::geometry::line_segment& rhs, cf_building_model* geomModel);
+		cf_edge(const utilities::geometry::line_segment& rhs, cf_building_model* geomModel, std::vector<utilities::geometry::line_segment*> line);
 		
 		void checkVertex(cf_vertex* pPtr);
 		
-		void addRectangle			(cf_rectangle* 	recPtr) = delete;
+		void addRectangle			(cf_rectangle* 		recPtr) = delete;
+		void addTriangle			(cf_triangle* 		triPtr) = delete;
 		void addCuboid				(cf_cuboid* 		cubPtr) = delete;
-		void removeRectangle	(cf_rectangle* 	recPtr) = delete;
+		void addTriPrism			(cf_triPrism*		priPtr) = delete;
+		void removeRectangle		(cf_rectangle* 		recPtr) = delete;
 		void removeCuboid			(cf_cuboid* 		cubPtr) = delete;
-		void addPoint					(cf_point*			pPtr	) = delete;
-		void addEdge					(cf_edge*				ePtr	) = delete;
+		void removeTriangle			(cf_triangle* 		triPtr) = delete;													 
+		void removeTriPrism			(cf_triPrism*		priPtr)	= delete;
+		void addPoint				(cf_point*			pPtr) 	= delete;
+		void addEdge				(cf_edge*			ePtr) 	= delete;
 
 		const std::vector<cf_vertex*		>& cfVertices() 	const { return mCFVertices;}
-		const std::vector<cf_rectangle*	>& cfRectangles() const { return mCFRectangles;}
+		const std::vector<cf_rectangle*		>& cfRectangles() 	const { return mCFRectangles;}
 		const std::vector<cf_cuboid*		>& cfCuboids() 		const { return mCFCuboids;}
-		const std::vector<cf_edge*			>& cfEdges() 			const { return mCFEdges;}
+		const std::vector<cf_triPrism*		>& cfTriPrism()		const { return mCFTriPrisms;}
+		const std::vector<cf_edge*			>& cfEdges() 		const { return mCFEdges;}
 	};
 	
 } // conformal

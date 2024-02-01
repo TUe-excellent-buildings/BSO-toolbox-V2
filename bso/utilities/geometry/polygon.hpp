@@ -58,6 +58,7 @@ namespace bso { namespace utilities { namespace geometry {
 		auto end() const {return mVertices.end();}
 		
 		const auto& getLines() const {return mLineSegments;}
+		const int getMSize() const {return mSize;}
 
 		const vertex& operator [] (const unsigned int& index) const;
 		

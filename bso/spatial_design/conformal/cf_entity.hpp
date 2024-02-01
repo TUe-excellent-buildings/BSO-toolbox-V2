@@ -10,29 +10,37 @@ namespace bso { namespace spatial_design { namespace conformal {
 		std::vector<cf_line*> mCFLines;
 		std::vector<cf_rectangle*> mCFRectangles;
 		std::vector<cf_cuboid*> mCFCuboids;
+		std::vector<cf_triangle*> mCFTriangles;
+		std::vector<cf_triPrism*> mCFTriPrisms;
 		
 		std::vector<cf_point*> mCFPoints;
 		std::vector<cf_edge*> mCFEdges;
 		std::vector<cf_surface*> mCFSurfaces;
 		std::vector<cf_space*> mCFSpaces;
 	public:
-		void addLine					(cf_line* 			lPtr	);
-		void addRectangle			(cf_rectangle* 	recPtr);
-		void addCuboid				(cf_cuboid* 		cubPtr);
-		void removeLine				(cf_line* 			lPtr	);
-		void removeRectangle	(cf_rectangle* 	recPtr);
-		void removeCuboid			(cf_cuboid* 		cubPtr);
-		void addPoint					(cf_point*			pPtr	);
-		void addEdge					(cf_edge*				ePtr	);
-		void addSurface				(cf_surface*		srfPtr);
-		void addSpace					(cf_space*			spPtr	);
+		void addLine					(cf_line* 			lPtr);
+		void addRectangle				(cf_rectangle* 		recPtr);
+		void addTriangle				(cf_triangle* 		triPtr);
+		void addCuboid					(cf_cuboid* 		cubPtr);
+		void addTriPrism				(cf_triPrism*		priPtr);
+		void removeLine					(cf_line* 			lPtr);
+		void removeRectangle			(cf_rectangle* 		recPtr);
+		void removeTriangle				(cf_triangle* 		triPtr);
+		void removeCuboid				(cf_cuboid* 		cubPtr);
+		void removeTriPrism				(cf_triPrism*		triPtr);
+		void addPoint					(cf_point*			pPtr);
+		void addEdge					(cf_edge*			ePtr);
+		void addSurface					(cf_surface*		srfPtr);
+		void addSpace					(cf_space*			spPtr);
 		
 		const std::vector<cf_vertex*		>& cfVertices() 	const { return mCFVertices;}
-		const std::vector<cf_line*			>& cfLines() 			const { return mCFLines;}
-		const std::vector<cf_rectangle*	>& cfRectangles() const { return mCFRectangles;}
+		const std::vector<cf_line*			>& cfLines() 		const { return mCFLines;}
+		const std::vector<cf_rectangle*		>& cfRectangles() 	const { return mCFRectangles;}
+		const std::vector<cf_triangle*		>& cfTriangles() 	const { return mCFTriangles;}
 		const std::vector<cf_cuboid*		>& cfCuboids() 		const { return mCFCuboids;}
+		const std::vector<cf_triPrism*		>& cfTriPrism()		const { return mCFTriPrisms;}
 		const std::vector<cf_point*			>& cfPoints() 		const { return mCFPoints;}
-		const std::vector<cf_edge*			>& cfEdges() 			const { return mCFEdges;}
+		const std::vector<cf_edge*			>& cfEdges() 		const { return mCFEdges;}
 		const std::vector<cf_surface*		>& cfSurfaces() 	const { return mCFSurfaces;}
 		const std::vector<cf_space*			>& cfSpaces() 		const { return mCFSpaces;}
 	};

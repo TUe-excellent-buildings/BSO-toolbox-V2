@@ -158,14 +158,15 @@ namespace bso { namespace structural_design { namespace component {
 	
 	bool structure::checkBadRequest(std::string variable) const
 	{
-		bool check = (variable == "E" 				&& !mEAssigned 			 ||
+		bool badRequest = false;
+		if (variable == "E" 				&& !mEAssigned 			 ||
 				variable == "poisson" 	&& !mPoissonAssigned ||
 				variable == "A" 				&& !mAAssigned			 ||
 				variable == "width" 		&& !mWidthAssigned	 ||
 				variable == "height" 		&& !mHeightAssigned	 ||
-				variable == "thickness" && !mThicknessAssigned);
-		if (check)		
+				variable == "thickness" && !mThicknessAssigned)
 		{
+			badRequest = true;
 			std::stringstream errorMessage;
 			errorMessage << "\nBad request for variable: " << variable << "\n"
 									 << "From component with type: " << mType << "\n"
@@ -173,7 +174,7 @@ namespace bso { namespace structural_design { namespace component {
 									 << "(bso/structural_design/component/structure.cpp)" << std::endl;
 			throw std::runtime_error(errorMessage.str());
 		}
-	return check;
+		return badRequest;
 	} // badRequest()
 	
 	structure::structure()
@@ -253,7 +254,8 @@ namespace bso { namespace structural_design { namespace component {
 		mHeight 		*= sqrtFactor;
 		mThickness 	*= scaleFactor; 
 	}
-		
+	
+	
 } // namespace component
 } // namespace structural_design
 } // namespace bso

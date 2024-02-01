@@ -154,7 +154,14 @@ namespace bso { namespace visualization
         inline double intersect(const vect3d &p, const vect3d &v) const {
             double ndotv = dot(n,v);
             if (ndotv == 0.0)
-                throw std::string("plane::intersect : parallel ray"); //or should we return infinity?
+            {
+                std::stringstream errorMessage;
+				errorMessage << "\nError, the plane::intersect : parallel ray. \n"
+					 << "(bso/visualization/bsp/bsp)." << std::endl;
+				throw std::runtime_error(errorMessage.str());
+                // throw std::string("plane::intersect : parallel ray"); //or should we return infinity? Old error message providing unclear error
+            }
+               
             return -(dot(n,p) + D) / ndotv;
         }
     };
@@ -319,19 +326,14 @@ namespace bso { namespace visualization
     random_bsp::random_bsp(const std::list<polygon*> &polygons)
     {
         std::vector<poly_frag*> fragv;
-
         bsp_convert_objects(polygons, fragv);
-
         //randomize the vector
         std::random_shuffle(fragv.begin(), fragv.end());
-
         //turn it into list
         std::list<poly_frag*> polyfrags(fragv.begin(), fragv.end());
-
         //initialise stats
         stats = bsp_stats();
         stats.nobjects = polyfrags.size();
-
         proot = bsp_build_tree(polyfrags, stats, store, 0);
     }
 
@@ -519,52 +521,40 @@ namespace bso { namespace visualization
 
     void bsp_create_partition_plane(poly_frag *pfrag, plane &P)
     {
-        /*
-           be carefull because points can be colinear such
-           that no normal can be calculated
-           find two non-colinear vectors and a point in the
-           plane and construct a plane equation
+        /*          
+           In some cases, points can be colinear such
+           that no normal can be calculated.
+           However, since the BSO/utility/polygons as input are already 
+           checked acording to the BSO toolbox tolerances can
+           such a problem not occur. Furthermore,
+           the vertices are stored in a sorted manner.
 
-           find three vertices p0, p1 and p2 such that the
-           angle between (p1-p0) and (p2-p0) is at least
-           1 degree
+           Therefore, define three vertices p0, p1 and p2. 
+           Corosponding to the first, second, and third vertices 
+           of the polygons. These are used to define two vectors
+           defining a plane.
 
-           use the polygon instead of the polygon fragment,
+           Note: use the polygon instead of the polygon fragment,
            because fragments can become thin and long after
            splitting
          */
+
         const edge *pedge, *pbound;
             pedge = pbound = pfrag->ppoly->get_boundary();
-
+        
         //let p0 be the first vertex
         vect3d p0 = *pedge->pvert;
-
+        
         //let p1 be the second vertex, v1 = p1-p0
         pedge = pedge->pnext;
         vect3d v1 = *pedge->pvert - p0,
                v2;
         double v1len = v1.length();
-
-        //find a suitable p2
-        do {
-            pedge = pedge->pnext;
-            v2 = *pedge->pvert - p0;
-
-            //calculate the cosine of the angle
-            //between v1 and v2
-            double cos = dot(v1,v2) / (v1len * v2.length());
-
-            //cos(0) = 1, cos(1 degree) = 0.999...
-            if (fabs(cos) < 0.999)
-                break;
-
-        } while(pedge != pbound);
-
-        //maybe we should try different vertices for p0 and p1
-        //before throwing an exception
-        if (pedge == pbound)
-            throw std::string("bsp_create_partition_plane() : polygon too thin");
-
+        
+        //define p2
+        pedge = pedge->pnext;
+        v2 = *pedge->pvert - p0;
+           
         //create a plane
         vect3d n = cross(v1, v2).normalise();
         P = plane(n, dot(-n,p0));
@@ -655,21 +645,21 @@ namespace bso { namespace visualization
         //check if we can termintate the recursion
         if (nrfrags < 1)
             return NULL;
-
+        
         //add to recursion depth
         if (stats.maxdepth < depth)
             stats.maxdepth = depth;
-
+       
         if (nrfrags == 1) {
             //create a leaf node
             stats.nleafnodes++;
             return new bsp_node(frags);
         }
-
+        
         //create a partition plane from the first polygon fragment
         plane P;
         bsp_create_partition_plane(frags.front(), P);
-
+        
         //sort the fragments
         std::list<poly_frag*> uplist, downlist, onlist;
         std::list<poly_frag*>::iterator it;
@@ -724,13 +714,14 @@ namespace bso { namespace visualization
                 break;
             }
         }
-
+       
         //recurse on the up and down lists
         bsp_node *puptree    = bsp_build_tree(uplist, stats, store, depth+1);
         bsp_node *pdowntree  = bsp_build_tree(downlist, stats, store, depth+1);
-
+        
         //create a bsp split node and return it
         stats.nsplitnodes++;
+        
         return new bsp_node(P, puptree, pdowntree, onlist);
     }
 

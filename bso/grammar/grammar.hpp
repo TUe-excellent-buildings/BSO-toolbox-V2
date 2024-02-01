@@ -24,7 +24,9 @@ private:
 	std::map<spatial_design::conformal::cf_vertex*, rule_set::vertex_property*> mVertexProperties;
 	std::map<spatial_design::conformal::cf_line*, rule_set::line_property*> mLineProperties;
 	std::map<spatial_design::conformal::cf_rectangle*, rule_set::rectangle_property*> mRectangleProperties;
+	std::map<spatial_design::conformal::cf_triangle*, rule_set::triangle_property*> mTriangleProperties;
 	std::map<spatial_design::conformal::cf_cuboid*, rule_set::cuboid_property*> mCuboidProperties;
+	std::map<spatial_design::conformal::cf_triPrism*, rule_set::triprism_property*> mTriprismProperties;
 
 	std::map<spatial_design::conformal::cf_point*, rule_set::point_property*> mPointProperties;
 	std::map<spatial_design::conformal::cf_edge*, rule_set::edge_property*> mEdgeProperties;
@@ -35,7 +37,9 @@ private:
 	std::map<spatial_design::conformal::cf_vertex*, rule_set::sd_vertex_rule*> mSDVertexRules;
 	std::map<spatial_design::conformal::cf_line*, rule_set::sd_line_rule*> mSDLineRules;
 	std::map<spatial_design::conformal::cf_rectangle*, rule_set::sd_rectangle_rule*> mSDRectangleRules;
+	std::map<spatial_design::conformal::cf_triangle*, rule_set::sd_triangle_rule*> mSDTriangleRules;
 	std::map<spatial_design::conformal::cf_cuboid*, rule_set::sd_cuboid_rule*> mSDCuboidRules;
+	std::map<spatial_design::conformal::cf_triPrism*, rule_set::sd_triprism_rule*> mSDTriprismRules;
 
 	structural_design::sd_model mSDModel;
 	std::vector<structural_design::sd_model> mIntermediateSDModels;
@@ -48,12 +52,13 @@ private:
 	std::multimap<std::string, structural_design::component::load> mLoads;
 	unsigned int mMeshSize = 1;
 
-	void mReadSDSettings(const std::string& fileName);
+	void mReadSDSettings(const std::string& fileName); // see file grammar_sd_specifics.cpp for content of this function
 	#endif
 
 	#ifdef BSO_BP_MODEL_HPP
 	std::map<spatial_design::conformal::cf_space*, rule_set::bp_space_rule*> mBPSpaceRules;
 	std::map<spatial_design::conformal::cf_rectangle*, rule_set::bp_rectangle_rule*> mBPRectangleRules;
+	std::map<spatial_design::conformal::cf_triangle*, rule_set::bp_triangle_rule*> mBPTriangleRules;
 
 	boost::posix_time::time_duration mBPWarmUpDuration;
 	boost::posix_time::time_duration mBPTimeStepSize;
@@ -67,7 +72,7 @@ private:
 
 	building_physics::bp_model mBPModel;
 	std::vector<building_physics::bp_model> mIntermediateBPModels;
-	void mReadBPSettings(const std::string& fileName);
+	void mReadBPSettings(const std::string& fileName); // see file grammar_bp_specific.cpp for content of this function
 	#endif
 
 public:

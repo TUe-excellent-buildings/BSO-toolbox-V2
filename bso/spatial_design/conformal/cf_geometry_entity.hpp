@@ -18,8 +18,8 @@ namespace bso { namespace spatial_design { namespace conformal {
 		const bool& deletion() const {return mDeletion;}
 		cf_geometry_model* getGeometryModel() const {return mGeometryModel;}
 		
-		virtual void split(cf_vertex* pPtr) = 0;
-		virtual void checkAssociated(cf_vertex* pPtr) = 0;
+		//virtual void split(cf_vertex* pPtr) = 0;
+		//virtual void checkAssociated(cf_vertex* pPtr) = 0;
 	};
 	
 } // conformal

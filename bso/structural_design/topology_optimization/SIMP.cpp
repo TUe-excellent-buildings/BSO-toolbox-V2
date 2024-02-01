@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
-#include <iomanip>
 
 namespace bso { namespace structural_design { namespace topology_optimization {
 

@@ -10,6 +10,7 @@ namespace bso { namespace utilities { namespace geometry {
 	class tetrahedron; // 4 vertices {a,b,c,d}
 	class quadrilateral; // 4 vertices {a,b,c,d} see geometry quadrilateral for order specification
 	class quad_hexahedron; // 8 vertices {a,b,c,d} see geometry/quad_hexahedron for order specification
+	class triangular_prism; // 6 vertices {a,b,c} see geometry/triangular_prism for order specification
 
 } // namespace geometry
 } // namespace utilities
@@ -22,5 +23,6 @@ namespace bso { namespace utilities { namespace geometry {
 #include <bso/utilities/geometry/tetrahedron.hpp>
 #include <bso/utilities/geometry/quadrilateral.hpp>
 #include <bso/utilities/geometry/quad_hexahedron.hpp>
+#include <bso/utilities/geometry/triangular_prism.hpp>
 
 #endif // GEOMETRY_HPP

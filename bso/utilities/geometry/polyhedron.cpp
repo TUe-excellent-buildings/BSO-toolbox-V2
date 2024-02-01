@@ -31,7 +31,12 @@ namespace bso { namespace utilities { namespace geometry {
 			std::stringstream errorMessage;
 			errorMessage << "Cannot initialize polyhedron with less than four unique vertices.\n"
 									 << mSize << " vertices were provided.\n"
-									 << "(bso/utilities/geometry/polyhedron.cpp)" << std::endl;
+									 << "The provided vertices after removing duplicates were: " << std::endl;
+									 for (unsigned int i = 0; i < mSize ; ++i)
+									 {
+										errorMessage << mVertices[i];
+									 }
+									 errorMessage << "(bso/utilities/geometry/polyhedron.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
 		

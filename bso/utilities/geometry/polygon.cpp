@@ -63,7 +63,7 @@ namespace bso { namespace utilities {  namespace geometry {
 			errorMessage << "(bso/utilities/geometry/polygon.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
-		if (!this->isCoplanarItself())
+		if (!this->isCoplanarItself(tol))
 		{
 			std::stringstream errorMessage;
 			errorMessage << "Cannot initialize polygon with vertices that are out of plane.\n"
@@ -87,7 +87,7 @@ namespace bso { namespace utilities {  namespace geometry {
 				return false;
 			}
 		}
-		return true;;
+		return true;
 	} // isCoplanarItself()
 	
 	void polygon::sortPoints(const double& tol /*= 1e-3*/)

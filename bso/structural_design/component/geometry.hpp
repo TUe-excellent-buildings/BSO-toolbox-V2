@@ -19,7 +19,7 @@ namespace bso { namespace structural_design { namespace component {
 		std::vector<element::element*> mElements; // elements meshed to the FE model
 		
 		std::vector<structure> 	mStructures;
-		std::vector<load> 			mLoads;
+		std::vector<load> 		mLoads;
 		std::vector<constraint> mConstraints;
 		
 		bool mHasTruss = false;
@@ -28,6 +28,7 @@ namespace bso { namespace structural_design { namespace component {
 		bool mHasQuadHexahedron = false;
 		bool mIsLineSegment = false;
 		bool mIsQuadrilateral = false;
+		bool mIsTriangle = false;
 		bool mIsQuadHexahedron = false;
 
 	public:
@@ -51,6 +52,7 @@ namespace bso { namespace structural_design { namespace component {
 		virtual const bool& hasQuadHexahedron() const {return mHasQuadHexahedron;}
 		virtual const bool& isLineSegment() const {return mIsLineSegment;}
 		virtual const bool& isQuadrilateral() const {return mIsQuadrilateral;}
+		virtual const bool& isTriangle() const {return mIsTriangle;}
 		virtual const bool& isQuadHexahedron() const {return mIsQuadHexahedron;}
 		
 		const std::vector<point*>& getMeshedPoints() const {return mMeshedPoints;}

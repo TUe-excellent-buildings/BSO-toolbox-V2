@@ -5,7 +5,9 @@
 #include <bso/grammar/rule_set/vertex_property.hpp>
 #include <bso/grammar/rule_set/line_property.hpp>
 #include <bso/grammar/rule_set/rectangle_property.hpp>
+#include <bso/grammar/rule_set/triangle_property.hpp>
 #include <bso/grammar/rule_set/cuboid_property.hpp>
+#include <bso/grammar/rule_set/triprism_property.hpp>
 
 #include <bso/grammar/rule_set/point_property.hpp>
 #include <bso/grammar/rule_set/edge_property.hpp>

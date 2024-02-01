@@ -224,8 +224,7 @@ void model_base::addPolygon(std::list<polygon*> &plist, bso::utilities::geometry
 			indices[i*2]   = i;
 			indices[i*2+1] = 0;
 		}
-		plist.push_back(this->create_polygon(pprops,lprops,vertices,normals,
-																				 indices,orderedVertices.size()));
+		plist.push_back(this->create_polygon(pprops,lprops,vertices,normals, indices,orderedVertices.size()));
 	}
 	else 
 	{ // make a 3D polygon out of it
@@ -235,8 +234,16 @@ void model_base::addPolygon(std::list<polygon*> &plist, bso::utilities::geometry
 			thicknessVertices.push_back(i + pNormal * thickness / 2.0);
 			thicknessVertices.push_back(i - pNormal * thickness / 2.0);
 		}
-		bso::utilities::geometry::quad_hexahedron threeDGeometry(thicknessVertices);
-		this->addPolyhedron(plist,&threeDGeometry,pprops,lprops);
+		if(thicknessVertices.size() == 6)
+		{
+			bso::utilities::geometry::triangular_prism threeDGeometry(thicknessVertices);
+			this->addPolyhedron(plist,&threeDGeometry,pprops,lprops);
+		}
+		else
+		{
+			bso::utilities::geometry::quad_hexahedron threeDGeometry(thicknessVertices);
+			this->addPolyhedron(plist,&threeDGeometry,pprops,lprops);
+		}
 	}
 } // 
 

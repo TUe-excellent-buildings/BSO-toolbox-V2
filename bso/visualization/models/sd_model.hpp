@@ -153,19 +153,35 @@ SD_Model::SD_Model(const bso::structural_design::sd_model& sd,
 				}
 				else if (j.type() == "flat_shell")
 				{
-					auto quadComponentPtr = dynamic_cast<comp::quadrilateral*>(i);
-					double thickness = j.thickness();
-					if (j.isVisible())
+					if(i->isTriangle())
 					{
-						this->addPolygon(polygons,quadComponentPtr,&shellprops,&lprops,thickness);
+						auto triComponentPtr = dynamic_cast<comp::triangle*>(i);
+						double thickness = j.thickness();
+						if (j.isVisible())
+						{
+							this->addPolygon(polygons,triComponentPtr,&shellprops,&lprops,thickness);
+						}
+						else if (ghostly)
+						{
+							this->addPolygon(polygons,triComponentPtr,&shellprops_t,&lprops_t,thickness);
+						}
 					}
-					else if (ghostly)
+					else
 					{
-						this->addPolygon(polygons,quadComponentPtr,&shellprops_t,&lprops_t,thickness);
+						auto quadComponentPtr = dynamic_cast<comp::quadrilateral*>(i);
+						double thickness = j.thickness();
+						if (j.isVisible())
+						{
+							this->addPolygon(polygons,quadComponentPtr,&shellprops,&lprops,thickness);
+						}
+						else if (ghostly)
+						{
+							this->addPolygon(polygons,quadComponentPtr,&shellprops_t,&lprops_t,thickness);
+						}
 					}
 				}
 				else if (j.type() == "quad_hexahedron")
-				{
+				{			
 					auto quadHexComponentPtr = dynamic_cast<comp::quad_hexahedron*>(i);
 					if (j.isVisible())
 					{
@@ -331,7 +347,7 @@ SD_Model::SD_Model(const bso::structural_design::sd_model& sd,
 			else if (i->isFlatShell())
 			{
 				auto flatShellPtr = dynamic_cast<elem::flat_shell*>(i);
-				double thickness = flatShellPtr->getProperty("thickness");
+				double thickness = flatShellPtr->getProperty("thickness"); 
 				this->addPolygon(polygons,flatShellPtr,eleVisPProps,eleVisLProps,thickness);
 			}
 			else if (i->isQuadHexahedron())
@@ -340,7 +356,6 @@ SD_Model::SD_Model(const bso::structural_design::sd_model& sd,
 				this->addPolyhedron(polygons,quadHexPtr,eleVisPProps,eleVisLProps);
 			}
 		}
-		
 	}
 
 	pbsp = new random_bsp(polygons);

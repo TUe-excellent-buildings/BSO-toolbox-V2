@@ -71,13 +71,15 @@ void sd_rectangle_rule::apply(bso::structural_design::sd_model& sd) const
 	if (mRectangleProperty->isExternal() && mRectangleProperty->isAboveGroundSurface() && mLoads != nullptr)
 	{ // apply wind loading
 		for (const auto& i : *mLoads)
-		{
+		{ // all load cases are stored in their derived components x,y, or z. Thus, one, two or three mLoads may described one load of a load case defined in the input file.
 			if (!(i.first == "wind_pressure" || i.first == "wind_suction" ||
-						i.first == "wind_shear")) continue;
-			auto load = i.second;
+						i.first == "wind_shear")) continue; // only continue with load cases describing the wind load
+			auto load = i.second; // get the defined load in mLoads
 			utilities::geometry::vector rectangleOutwardOrientation = -1*mRectangleProperty->getOrientation();
 			rectangleOutwardOrientation.normalize();
-			utilities::geometry::vector loadOrientation;
+
+			utilities::geometry::vector loadOrientation; 
+			// load.DOF() is: Direction Of Force in either x/y/z defined as integer 0/1/2 corosponding to the assumed positive load direction (1,0,0)/(0,1,0)/(0,0,1).
 			if (load.DOF() == 0) loadOrientation = {1,0,0};
 			else if (load.DOF() == 1) loadOrientation = {0,1,0};
 			else if (load.DOF() == 2) loadOrientation = {0,0,1};
@@ -89,10 +91,12 @@ void sd_rectangle_rule::apply(bso::structural_design::sd_model& sd) const
 										 << "(bso/grammar/rule_set/sd_rule_set/sd_rectangle_rule.cpp)" << std::endl;
 				throw std::runtime_error(errorMessage.str());
 			}
+			// In case the magnitue < 0, then the direction of force is against the positive asumed direction.
 			if (load.magnitude() < 0) loadOrientation *= -1;
+			// beta = the angle between the load direction and the rectangleoutwardOrientation
 			double beta = abs(rectangleOutwardOrientation.getHeading().first - 
 												loadOrientation.getHeading().first);
-			if (beta > 180) beta = 360 - beta;
+			if (beta > 180) beta = 360 - beta; // Take the shortest beta angle posible
 
 			if (i.first == "wind_pressure" && (90 < beta && beta <= 180) && 
 				!rectangleOutwardOrientation.isVertical())
@@ -107,7 +111,7 @@ void sd_rectangle_rule::apply(bso::structural_design::sd_model& sd) const
 				// no need for division by norm product since they are both normalized
 			}
 			else if (i.first == "wind_shear" && ((90 <= beta && beta < 180) || 
-				rectangleOutwardOrientation.isVertical()))
+				rectangleOutwardOrientation.isVertical())) // NOTE: the shear force definition may need to be adjusted when non-horizontal roofs are considered.
 			{
 				load *= (1 - loadOrientation.dot(1*rectangleOutwardOrientation));
 				// no need for division by norm product since they are both normalized
