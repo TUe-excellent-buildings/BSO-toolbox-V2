@@ -37,7 +37,9 @@ BOOST_AUTO_TEST_CASE( initialization )
 	BOOST_REQUIRE(!sp1.isVertexProperty());
 	BOOST_REQUIRE(!sp1.isLineProperty());
 	BOOST_REQUIRE(!sp1.isRectangleProperty());
+	BOOST_REQUIRE(!sp1.isTriangleProperty());
 	BOOST_REQUIRE(!sp1.isCuboidProperty());
+	BOOST_REQUIRE(!sp1.isTriprismProperty());
 	BOOST_REQUIRE(!sp1.isPointProperty());
 	BOOST_REQUIRE(!sp1.isEdgeProperty());
 	BOOST_REQUIRE( sp1.isSurfaceProperty());

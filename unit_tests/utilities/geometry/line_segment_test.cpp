@@ -87,7 +87,8 @@ BOOST_AUTO_TEST_SUITE( line_segment_tests )
 		l1  = {{0,1,1e-4},{2,1,1e-4}};
 		BOOST_REQUIRE(l1.intersectsWith(l2,vCheck2));
 		BOOST_REQUIRE(l2.intersectsWith(l1,vCheck2));
-		BOOST_REQUIRE(vCheck2 == vertex({1,1,0}));
+		vertex k = {1,1,0};
+		BOOST_REQUIRE(vCheck2.isSameAs(k)); //Note: should not be exactly the same, otherwise, NOBSD can not be corectly approuched
 		
 		l1  = {{0,1,0.1},{2,1,0.1}};
 		BOOST_REQUIRE(!l1.intersectsWith(l2,vCheck3));
@@ -116,7 +117,7 @@ BOOST_AUTO_TEST_SUITE( line_segment_tests )
 		l2  = {{1,0.9999,0},{1,2,0}};
 		BOOST_REQUIRE(l1.intersectsWith(l2,vCheck8));
 		BOOST_REQUIRE(l2.intersectsWith(l1,vCheck8));
-		BOOST_REQUIRE(vCheck8 == vertex({1,1,0}));
+		BOOST_REQUIRE(vCheck8.isSameAs(k));//Note should not be excacly the same, otherwise, NOBSD can not be corectly approuched
 		
 		l2  = {{1,0,0},{1,0.9,0}};
 		BOOST_REQUIRE(!l1.intersectsWith(l2,vCheck9));

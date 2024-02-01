@@ -13,7 +13,9 @@
 #include <unit_tests/grammar/rule_set/vertex_property_test.cpp>
 #include <unit_tests/grammar/rule_set/line_property_test.cpp>
 #include <unit_tests/grammar/rule_set/rectangle_property_test.cpp>
+#include <unit_tests/grammar/rule_set/triangle_property_test.cpp>
 #include <unit_tests/grammar/rule_set/cuboid_property_test.cpp>
+#include <unit_tests/grammar/rule_set/triprism_property_test.cpp>
 
 #include <unit_tests/grammar/rule_set/point_property_test.cpp>
 #include <unit_tests/grammar/rule_set/edge_property_test.cpp>
@@ -23,8 +25,10 @@
 #include <unit_tests/grammar/rule_set/sd_rule_set/sd_vertex_rule_test.cpp>
 #include <unit_tests/grammar/rule_set/sd_rule_set/sd_line_rule_test.cpp>
 #include <unit_tests/grammar/rule_set/sd_rule_set/sd_rectangle_rule_test.cpp>
+#include <unit_tests/grammar/rule_set/sd_rule_set/sd_triangle_rule_test.cpp>
 
 #include <unit_tests/grammar/rule_set/bp_rule_set/bp_rectangle_rule_test.cpp>
+#include <unit_tests/grammar/rule_set/bp_rule_set/bp_triangle_rule_test.cpp>
 #include <unit_tests/grammar/rule_set/bp_rule_set/bp_space_rule_test.cpp>
 
 /*

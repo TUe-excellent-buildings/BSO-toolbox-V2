@@ -9,6 +9,7 @@
 #include <unit_tests/utilities/data_handling_test.cpp>
 #include <unit_tests/spatial_design/ms_space_test.cpp>
 #include <unit_tests/spatial_design/ms_building_test.cpp>
+#include <unit_tests/spatial_design/ms_N_building_test.cpp>
 #include <unit_tests/spatial_design/sc_building_test.cpp>
 #include <unit_tests/spatial_design/conformal_test.cpp>
 #include <unit_tests/spatial_design/xml/xml_test.cpp>

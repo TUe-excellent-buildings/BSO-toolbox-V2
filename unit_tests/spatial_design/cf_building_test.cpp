@@ -19,13 +19,13 @@ namespace spatial_design_test {
 using namespace bso::spatial_design;
 using namespace bso::spatial_design::conformal;
 
-BOOST_AUTO_TEST_SUITE( cf_building_tests )
-	
+BOOST_AUTO_TEST_SUITE( cf_building_tests_orthogonal_BSD )
+
 	BOOST_AUTO_TEST_CASE( cf_test_1_txt )
 	{
 		ms_building ms("spatial_design/cf_test_1.txt");
 		cf_building_model cf(ms);
-		
+
 		std::vector<bso::utilities::geometry::vertex> checkVertices = {
 			{0,0,0},{0,0,1000},{0,1000,1000},{0,1000,0},
 			{1000,0,0},{1000,0,1000},{1000,1000,1000},{1000,1000,0}
@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 			{{0,0,0},{0,0,1000},{0,1000,1000},{0,1000,0},
 			{1000,0,0},{1000,0,1000},{1000,1000,1000},{1000,1000,0}}
 		};
-		
+
 		BOOST_REQUIRE(checkVertices.size() == cf.cfVertices().size());
 		for (const auto& i : checkVertices)
 		{
@@ -60,10 +60,10 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 					break;
 				}
 			}
-			if (!found) std::cout << "Did not find vertex: " << i.transpose() << std::endl; 
+			if (!found) std::cout << "Did not find vertex: " << i.transpose() << std::endl;
 			BOOST_REQUIRE(found);
 		}
-		
+
 		BOOST_REQUIRE(checkLines.size() == cf.cfLines().size());
 		for (const auto& i : checkLines)
 		{
@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 					break;
 				}
 			}
-			if (!found) std::cout << "Did not find line: " << i << std::endl; 
+			if (!found) std::cout << "Did not find line: " << i << std::endl;
 			BOOST_REQUIRE(found);
 		}
 
@@ -92,10 +92,10 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 					break;
 				}
 			}
-			if (!found) std::cout << "Did not find rectangle: " << i << std::endl; 
+			if (!found) std::cout << "Did not find rectangle: " << i << std::endl;
 			BOOST_REQUIRE(found);
 		}
-		
+
 		BOOST_REQUIRE(checkCuboids.size() == cf.cfCuboids().size());
 		for (const auto& i : checkCuboids)
 		{
@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 					break;
 				}
 			}
-			if (!found) std::cout << "Did not find cuboid: " << i << std::endl; 
+			if (!found) std::cout << "Did not find cuboid: " << i << std::endl;
 			BOOST_REQUIRE(found);
 		}
 		std::stringstream typeAssignments;
@@ -117,12 +117,12 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 
 		BOOST_REQUIRE(typeAssignments.str() == "ADCBEGF");
 	}
-	
+
 	BOOST_AUTO_TEST_CASE( cf_test_2_txt )
 	{
 		ms_building ms("spatial_design/cf_test_2.txt");
 		cf_building_model cf(ms);
-		
+
 		std::vector<bso::utilities::geometry::vertex> checkVertices = {
 			{0,0,0},{1000,0,0},{1000,1000,0},{0,1000,0},
 			{0,0,1000},{1000,0,1000},{1000,1000,1000},{0,1000,1000},
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 			{{500,1000,0},{500,0,0},{500,0,1000},{500,1000,1000},{1000,1000,0},{1000,0,0},{1000,0,1000},{1000,1000,1000}},
 			{{500,1000,0},{500,0,0},{500,0,1000},{500,1000,1000},{0,1000,0},{0,0,0},{0,0,1000},{0,1000,1000}}
 		};
-		
+
 		BOOST_REQUIRE(checkVertices.size() == cf.cfVertices().size());
 		for (const auto& i : checkVertices)
 		{
@@ -181,10 +181,10 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 					break;
 				}
 			}
-			if (!found) std::cout << "Did not find vertex: " << i.transpose() << std::endl; 
+			if (!found) std::cout << "Did not find vertex: " << i.transpose() << std::endl;
 			BOOST_REQUIRE(found);
 		}
-		
+
 		BOOST_REQUIRE(checkLines.size() == cf.cfLines().size());
 		for (const auto& i : checkLines)
 		{
@@ -197,7 +197,7 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 					break;
 				}
 			}
-			if (!found) std::cout << "Did not find line: " << i << std::endl; 
+			if (!found) std::cout << "Did not find line: " << i << std::endl;
 			BOOST_REQUIRE(found);
 		}
 
@@ -213,10 +213,10 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 					break;
 				}
 			}
-			if (!found) std::cout << "Did not find rectangle: " << i << std::endl; 
+			if (!found) std::cout << "Did not find rectangle: " << i << std::endl;
 			BOOST_REQUIRE(found);
 		}
-		
+
 		BOOST_REQUIRE(checkCuboids.size() == cf.cfCuboids().size());
 		for (const auto& i : checkCuboids)
 		{
@@ -229,16 +229,16 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 					break;
 				}
 			}
-			if (!found) std::cout << "Did not find cuboid: " << i << std::endl; 
+			if (!found) std::cout << "Did not find cuboid: " << i << std::endl;
 			BOOST_REQUIRE(found);
 		}
 	}
-	
+
 	BOOST_AUTO_TEST_CASE( cf_test_3_txt )
 	{
 		ms_building ms("spatial_design/cf_test_3.txt");
 		cf_building_model cf(ms);
-		
+
 		std::vector<bso::utilities::geometry::vertex> checkVertices = {
 			{0,0,0},{1000,0,0},{1000,1000,0},{0,1000,0},{0,0,1000},
 			{1000,0,1000},{1000,1000,1000},{0,1000,1000},{1500,0,0},
@@ -385,7 +385,7 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 			{{2000,2000,1000},{2000,3000,1000},{2000,3000,1500},{2000,2000,1500},{1500,2000,1000},{1500,3000,1000},{1500,3000,1500},{1500,2000,1500}},
 			{{2000,2000,1000},{2000,3000,1000},{2000,3000,1500},{2000,2000,1500},{2500,2000,1000},{2500,3000,1000},{2500,3000,1500},{2500,2000,1500}}
 		};
-		
+
 		BOOST_REQUIRE(checkVertices.size() == cf.cfVertices().size());
 		for (const auto& i : checkVertices)
 		{
@@ -398,10 +398,10 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 					break;
 				}
 			}
-			if (!found) std::cout << "Did not find vertex: " << i.transpose() << std::endl; 
+			if (!found) std::cout << "Did not find vertex: " << i.transpose() << std::endl;
 			BOOST_REQUIRE(found);
 		}
-		
+
 		BOOST_REQUIRE(checkLines.size() == cf.cfLines().size());
 		for (const auto& i : checkLines)
 		{
@@ -414,7 +414,7 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 					break;
 				}
 			}
-			if (!found) std::cout << "Did not find line: " << i << std::endl; 
+			if (!found) std::cout << "Did not find line: " << i << std::endl;
 			BOOST_REQUIRE(found);
 		}
 
@@ -430,10 +430,10 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 					break;
 				}
 			}
-			if (!found) std::cout << "Did not find rectangle: " << i << std::endl; 
+			if (!found) std::cout << "Did not find rectangle: " << i << std::endl;
 			BOOST_REQUIRE(found);
 		}
-		
+
 		BOOST_REQUIRE(checkCuboids.size() == cf.cfCuboids().size());
 		for (const auto& i : checkCuboids)
 		{
@@ -446,10 +446,117 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests )
 					break;
 				}
 			}
-			if (!found) std::cout << "Did not find cuboid: " << i << std::endl; 
+			if (!found) std::cout << "Did not find cuboid: " << i << std::endl;
 			BOOST_REQUIRE(found);
 		}
 	}
-	
+
+
 BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE( cf_building_tests_non_orthogonal_BSD )
+
+	BOOST_AUTO_TEST_CASE( cf_test_301_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_301");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_302_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_302");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_303_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_303");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_304_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_304");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_305_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_305");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_308_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_308");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_309_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_309");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_311_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_311");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_314_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_314");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_316_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_316");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_317_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_317");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_325_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_326_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_326");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_327_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_327");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_328_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_328");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_329_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_329");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_337_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_337");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_343_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_343");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_344_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_344");
+		cf_building_model cf(ms);
+	}
+	BOOST_AUTO_TEST_CASE( cf_test_350_txt )
+	{
+		ms_N_building ms("spatial_design/NOBSD_test_suite/design_350");
+		cf_building_model cf(ms);
+	}
+
+BOOST_AUTO_TEST_SUITE_END()
+
 } // namespace spatial_design_test
