@@ -56,6 +56,23 @@ namespace bso { namespace spatial_design { namespace conformal {
 	
 	void cf_building_model::addSpaceD(const ms_space& msSpace, std::vector<utilities::geometry::triangular_prism>& triPrismPtr)
 	{
+		// Check if the minimun amound of triPrisms are inserted
+		if(triPrismPtr.size() < 2)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "The amound of triPrisms inserted in the addSpaceD() function is to litle to fill a space with triPrism cells.\n"
+									 << "The minumum required amound of triPrisms is 2 and the inserted amound is: " << triPrismPtr.size() << "\n"
+									 << "Meaning that there are triPrism(s) missing. \n"
+									 << "The inserted triPrism consist of the following: " << std::endl;
+										for(const auto i: triPrismPtr)
+										{
+											errorMessage << i << std::endl;
+										}
+						errorMessage << "the considered space is: " << *(mCFSpaces.back()) << "\n"
+									 << "(bso/utilities/geomtry/cf_building_model.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+		
 		mCFSpaces.push_back(new cf_space(msSpace.getGeometry(), this, triPrismPtr));
 		
 		mCFSpaces.back()->setSpaceID(msSpace.getID());
@@ -213,6 +230,12 @@ namespace bso { namespace spatial_design { namespace conformal {
 									 << "The space was not fully filled with the inserted cells. \n"
 									 << "Meaning that there are cells missing. \n"
 									 << "The diference between the space volume and the sum of all the cells is: " << (spaceVolume-cellVolume) << "\n"
+									 << "the amound of triPrism in the space is: " << triPrismPtr.size() << " and consist of the following: " << std::endl;
+										for(const auto i: triPrismPtr)
+										{
+											errorMessage << i << std::endl;
+										}
+						errorMessage << "the considered space is: " << *(mCFSpaces.back()) << "\n"
 									 << "(bso/utilities/geomtry/cf_building_model.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
@@ -336,13 +359,13 @@ namespace bso { namespace spatial_design { namespace conformal {
 			count++;
 		}
 		
-		//Sort allLevels for later use in triangular prism cell definition
+		// Sort allLevels for later use in triangular prism cell definition
 		sort(allLevels.begin(), allLevels.end());
 		
 		
 		// Declaration delauney variables
 		std::vector <utilities::geometry::vertex> delauneyPoints; // Points to be inserted into the delauney triangulation
-		// std::vector <utilities::geometry::line_segment> delauneyLines; //Lines where the delauney triangulation should constrain to; Declared in class
+		// std::vector <utilities::geometry::line_segment> delauneyLines; //Lines where the delauney triangulation should constrain to; Declared in class to support posible visualization by long time storage of variable
 		
 		//Find the apropriate information for the delauney triangulation
 		for(int i=0; i<count; i++)
@@ -355,7 +378,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 				bool doubleInsert = false;
 				for (const auto& m : delauneyPoints)
 				{// check if temp already exist in delauneyPoints
-					if (m.isSameAs(temp, mTol))
+					if (m == temp)
 					{
 						doubleInsert = true;
 					}
@@ -368,11 +391,9 @@ namespace bso { namespace spatial_design { namespace conformal {
 		}
 			
 		for(int i=0; i<count; i++)
-		{
+		{ 
 			for (const auto& k : spacesAtGround[i].getLines())
 			{
-				
-				//std::cout << "a vertex of ltemp to be a delaunayLine: " << k[0].x() << " ; " << k[0].y() << std::endl;
 				// Add the unique lines of each space to delauneyLines
 				utilities::geometry::vertex Ltemp1 = {k[0].x(),k[0].y(),0};
 				utilities::geometry::vertex Ltemp2 = {k[1].x(),k[1].y(),0};
@@ -432,7 +453,6 @@ namespace bso { namespace spatial_design { namespace conformal {
 		// Send all vertices and constrain lines to the delauney triangulation and receive all triangles
 		std::vector<utilities::geometry::triangle> delaunayTri = delaunay(delauneyPoints, delauneyLines);
 		
-		
 		// identify which triangles should be used to generate a triangular prism cell in the space and generate that space and acompaning geometric entities
 		int i = 0;
 		for(const auto& t : msNModel)
@@ -446,7 +466,12 @@ namespace bso { namespace spatial_design { namespace conformal {
 				{
 					if(!spacesAtGround[i].isInsideOrOn(k, mTol))
 					{
-						//additional check for prevention malfuntioning, which has been previously observed
+						//Additional checks for prevention malfuntioning, which has been previously observed
+						//Note; the tolerance of 0.001 is applied diferenly in each geometry check. 
+						//Meaning that in the isOnLine check, the considered vertices onLine are not by difinition within +0.001 and -0.001 from the line in distance.
+						//However, within the isSameAs check are the vertices within 0.001 from each other
+						//For this reason are all posible geometry checks applied.
+						
 						bool annyTrue = false;
 						for(const auto l: spacesAtGround[i].getLines())
 						{
@@ -455,6 +480,15 @@ namespace bso { namespace spatial_design { namespace conformal {
 								annyTrue = true;
 							}
 						}
+
+						for(const auto l : spacesAtGround[i])
+						{
+							if(l.isSameAs(k, mTol))
+							{
+								annyTrue = true;
+							}
+						}
+
 						if(!annyTrue)
 						{
 							allNodesInside = false;
@@ -467,7 +501,23 @@ namespace bso { namespace spatial_design { namespace conformal {
 				}
 			}
 			
-			//Are there anny midLevels and if yes, which are they?
+			if(triCell.size() < 2)
+			{
+				std::stringstream errorMessage;
+				errorMessage << "The amound of triCell found are to litle to form a space fully filled with triPrism cells.\n"
+										<< "The minumum required amound of triCells are 2 and the inserted amound is: " << triCell.size() << "\n"
+										<< "Meaning that there are tricell(s) missing. \n"
+										<< "The posibly found triCell consist of the following: " << std::endl;
+											for(const auto i: triCell)
+											{
+												errorMessage << i << std::endl;
+											}
+						   errorMessage << "the considered space at ground is: " << spacesAtGround[i] << "\n"
+										<< "(bso/utilities/geomtry/cf_building_model.cpp)" << std::endl;
+							throw std::invalid_argument(errorMessage.str());
+			}
+			
+			// Are there any midLevels and if yes, which are they?
 			std::vector<double> levelToConsider;			
 			
 			for(const double j: allLevels)
@@ -507,7 +557,6 @@ namespace bso { namespace spatial_design { namespace conformal {
 					triPrism.push_back(utilities::geometry::triangular_prism(triPrismV, mTol));
 					if(levelToConsider.size()>1)
 					{
-						//std::cout << "There are inbetween levels. " << std::endl;
 						for(int l=0; l<(levelToConsider.size()-1); l++)
 						{// inbetween row prisms
 							triPrismV.clear();
@@ -562,6 +611,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 				throw std::runtime_error(errorMessage.str());
 		}
 		
+		
 		//Check for duplicate vertices in the delaunay point variable
 		bool duplicates = false; 
 		std::vector<utilities::geometry::vertex> duplicatePoints;
@@ -577,15 +627,6 @@ namespace bso { namespace spatial_design { namespace conformal {
 				}
 			}
 		}
-		if(duplicates)
-		{
-			std::stringstream errorMessage;
-			errorMessage << "There are duplicate vertices found in the DelauneyPoints inserted in the delaunay method. \n" 
-						 << "The point(s) which has a duplicate are: " << std::endl;
-			for(const auto t: duplicatePoints){errorMessage << t;}
-			errorMessage << std::endl;
-			throw std::runtime_error(errorMessage.str());
-		}
 		
 		//Check the constrain lines
 		std::vector<utilities::geometry::vertex> noDelauneyPoint;
@@ -594,8 +635,13 @@ namespace bso { namespace spatial_design { namespace conformal {
 		for(auto t: delauneyLines)
 		{
 			for(const auto k: t)
-			{
-				if (std::find(delauneyPoints.begin(),delauneyPoints.end(),k) == delauneyPoints.end())
+			{				
+				bool found = false;
+				for(const auto u: delauneyPoints) 
+				{
+					if(u.isSameAs(k)) found = true;
+				}
+				if(!found)
 				{
 					noDelauneyPoint.push_back(k);
 				}
@@ -622,7 +668,11 @@ namespace bso { namespace spatial_design { namespace conformal {
 			std::stringstream errorMessage;
 			errorMessage << "The following vertices are end vertices of the constraint lines, but not a delauney points (Checked with tolerance): " << std::endl;
 			for(const auto t: noDelauneyPoint){errorMessage << t;}
-			errorMessage << std::endl;
+			errorMessage << std::endl	
+						 << "The following are the delauney points: " << std::endl;
+			for(const auto t: delauneyPoints){errorMessage << t << " ; ";}	
+			errorMessage << std::endl
+						 << "the following ms_N_building Model is inserted: " << mMSNModel << std::endl;		 
 			errorMessage << "(bso/spatial_design/conformal/cf_building_model)." << std::endl;
 			throw std::runtime_error(errorMessage.str());
 		}
@@ -665,10 +715,10 @@ namespace bso { namespace spatial_design { namespace conformal {
 			double minLen(0.1);
 			pCG->makeDelaunay(minLen);
 		}
+
 		// Draw; generate a Design.ps file for visualization in for example illustrator 
-		//dt.show("Design.ps",true);
-				
-		
+		// dt.show("Design.ps",true);		
+
 		// Export fade2D data to Toolbox information format
 		GEOM_FADE2D::FadeExport fadeExport;
 		bool bCustomIndices(false); // To retrieve custom indices also
@@ -692,60 +742,13 @@ namespace bso { namespace spatial_design { namespace conformal {
 			utilities::geometry::vertex C2 = {x1,y1,0};
 			utilities::geometry::vertex C3 = {x2,y2,0};
 			
-			if(C1.isSameAs(C2, mTol) || C2.isSameAs(C3, mTol) || C3.isSameAs(C1, mTol))
-			{
-				std::stringstream errorMessage;
-				errorMessage << "\nError, the delaunay traingulation (Fade_2D) generated a triangle with two the same vertices. \n"
-					 << "The specific coördinates inserted are: " <<  C1 << " ; " << C2 << " ; " << C3 << "\n"
-					 << "All the inserted vertices into the delaunay triangulation are: " << std::endl;
-					 for(const auto t: delauneyPoints){errorMessage << t;}
-					 errorMessage << std::endl;
-					 duplicates = false; 
-					 for(int t =0; t< delauneyPoints.size(); t++)
-					 {
-						for(int s=0; s<delauneyPoints.size(); s++)
-						{
-							if(s==t){continue;}
-							else if(delauneyPoints[t].isSameAs(delauneyPoints[s], 0.1))
-							{
-								duplicates = true;
-							}
-						}
-					 }
-					 errorMessage << "There are " << duplicates << " duplicate vertices (0 means false and 1 means true). \n" 
-							 << "The following lines are the constrain lines used during delauney: " << std::endl;
-							 for(const auto t: delauneyLines){errorMessage << t << std::endl;}
-				
-					 std::vector<utilities::geometry::vertex> noDelauneyPoint;
-					 for(auto t: delauneyLines)
-					 {
-						for(const auto k: t)
-						{
-							if (std::find(delauneyPoints.begin(),delauneyPoints.end(),k) == delauneyPoints.end())
-							{
-								noDelauneyPoint.push_back(k);
-							}
-						}
-					 }
-					 errorMessage << "The following vertices are end vertices of the constraint lines, but not a delauney points: " << std::endl;
-					 for(const auto t: noDelauneyPoint){errorMessage << t;}
-					 errorMessage << "\n (bso/spatial_design/conformal/cf_building_model)." << std::endl;
-					 throw std::runtime_error(errorMessage.str());
-			}
-			
-			// Skip trianlges wherefrom all vertices fall on one line acording to BSO Toolbox tolerences
-				// This is needed since FADE_2D calculates with a finer tolerance
-				// and may therefore create unlogical triangles from the BSO Toolbox perspective
-				// See paper automatic partitioning methods for more information
-			utilities::geometry::line_segment L1 = {{C1},{C2}};
-			utilities::geometry::line_segment L2 = {{C2},{C3}};
-			utilities::geometry::line_segment L3 = {{C3},{C1}};
-			if(L1.isOnLine(C3, mTol) || L2.isOnLine(C1, mTol) || L3.isOnLine(C2, mTol))
-			{
-				//std::cout << "This triangle is not added: {"<<x0<<","<<y0<<"; "<<x1<<","<<y1<<"; "<<x2<<","<<y2<< "}"<<std::endl;
-				continue;
-			}
-			
+			// Skip unviable trianlges for the BSO toolbox
+				// This is needed since FADE_2D calculates with a finer tolerance then the BSO toolbox allowes.
+				// Therefore, FADE_2D create unlogical triangles from the BSO Toolbox perspective regarding the BSO toolbox tolerances
+				// the main reasons to skip a triangle are as followes:
+				// - two cornerpoints of a single triangle are the same acording to the BSO toolbox tolerances.
+				// - the three points of the triangle are on the same line in acordance to the BSO toolbox tolerances.
+				// See paper automatic partitioning methods for more information.
 			try
 			{
 				utilities::geometry::triangle tri = {{C1},{C2},{C3}};
@@ -753,104 +756,8 @@ namespace bso { namespace spatial_design { namespace conformal {
 			}
 			catch(std::exception& e)
 			{
-				std::stringstream errorMessage;
-				errorMessage << "\nError, The triangle resulting from the Delauney triangulation Fade_2D was unviable for the Toolbox. \n"
-							 << "The specific coördinates inserted are: " <<  C1 << " ; " << C2 << " ; " << C3 << "\n"
-							 << "The following error message was provided: \n"
-							 << e.what() << "\n"
-							 
-							 << "The following information was profided to the Delauney triangulation: \n"
-							 << "All the inserted vertices into the delaunay triangulation are: " << std::endl;
-							 for(const auto t: delauneyPoints){errorMessage << t;}
-							 errorMessage << std::endl;
-							 
-							duplicates = false; 
-							duplicatePoints.clear();
-							for(int t =0; t< delauneyPoints.size(); t++)
-							{ //Check for duplicate vertices in the delaunay point variable
-								for(int s=0; s<delauneyPoints.size(); s++)
-								{
-									if(s==t){continue;}
-									else if(delauneyPoints[t].isSameAs(delauneyPoints[s], mTol))
-									{
-										duplicates = true;
-										duplicatePoints.push_back(delauneyPoints[s]);
-									}
-								}
-							}
-							
-							if(duplicates)
-							{
-								errorMessage << "There are duplicate vertices found in the DelauneyPoints inserted in the delaunay method. \n" 
-											 << "The point(s) which has a duplicate are: " << std::endl;
-								for(const auto t: duplicatePoints){errorMessage << t;}
-								errorMessage << std::endl;
-							}
-							else
-							{
-								errorMessage << "There are no duplicate vertices found in the delaunayPoints with a check containing a tolerance. " << std::endl;
-							}
-							
-							errorMessage << "The following lines are the constrain lines used during delauney: " << std::endl;
-							for(const auto t: delauneyLines){errorMessage << t << std::endl;}
-							errorMessage << std::endl;
-							noDelauneyPoint.clear();
-							pointOnConstraintLine.clear();
-							contrainLines.clear();
-							for(auto t: delauneyLines)
-							{
-								for(const auto k: t)
-								{
-									if (std::find(delauneyPoints.begin(),delauneyPoints.end(),k) == delauneyPoints.end())
-									{
-										noDelauneyPoint.push_back(k);
-									}
-									if(t.isOnLine(k))
-									{
-										pointOnConstraintLine.push_back(k);
-									}
-								}
-								for(auto k: delauneyLines)
-								{
-									if(k.isSameAs(t, mTol)){continue;}
-									for(const auto s: k)
-									{
-										if(t.isOnLine(s, mTol))
-										{
-											pointOnConstraintLine.push_back(s);
-											contrainLines.push_back(t);
-										}
-									}
-								}
-							}
-							
-							if(noDelauneyPoint.size() > 0)
-							{
-								errorMessage << "The following vertices are end vertices of the constraint lines, but not a delauney points (Checked with tolerance): " << std::endl;
-								for(const auto t: noDelauneyPoint){errorMessage << t;}
-								errorMessage << std::endl;
-							}
-							else
-							{
-								errorMessage << "All the end points of the constrain lines are provided in the DelauneyPoints." << std::endl;
-							}
-							
-							if(pointOnConstraintLine.size() > 0)
-							{
-								int counter=0;
-								errorMessage << "The following vertices are vertices on the constrain line, this is not allowed and should have been solved in the splitLines function. See the following vertices: " << std::endl;
-								for(const auto t: pointOnConstraintLine)
-								{
-									errorMessage << "vertex: " << t << " has been found on: " << contrainLines[counter] << std::endl;
-									counter++;
-								}
-							}
-							else
-							{
-								errorMessage << "There are no end vertices of the contrains lines on another constrain lines. " << std::endl;
-							}						
-							errorMessage << "(bso/spatial_design/conformal/cf_building_model)." << std::endl;
-				throw std::runtime_error(errorMessage.str());
+				//std::cout << "Triangle was unviable for BSO Toolbox" << std::endl;
+				continue;
 			}
 		}
 		
