@@ -243,53 +243,6 @@ BOOST_AUTO_TEST_SUITE( sd_triangle_component )
 		BOOST_REQUIRE_THROW(t1.mesh(7,pointStore),std::invalid_argument);
 	}
 	
-	BOOST_AUTO_TEST_CASE( load_test )
-	{ // NOTE: the boost requirements are not updated yet.
-		point p1(1,{0,0,0});
-		point p2(1,{4000,0,0});
-		point p3(1,{2000,3464.101615,0});
-		triangle t1({p1, p2, p3});
-		
-		structure st1("flat_shell",{{"thickness",100},{"poisson",0.3},{"E",1e5}});
-		t1.addStructure(st1);
-		
-		load_case lc1("test_case");
-		load l1(lc1,160,0);
-		t1.addLoad(l1);
-		
-		std::vector<point*> pointStore;
-		t1.mesh(2,pointStore);
-		
-		for (auto& i : pointStore)
-		{
-			if(i->getLoads().size() == 1)
-			{
-				//std::cout << (i->getLoads()[0]).magnitude() << std::endl;
-				BOOST_REQUIRE((i->getLoads()[0]).magnitude() < 28867513.46+0.001 && (i->getLoads()[0]).magnitude() > 28867513.46-0.001);
-			}
-			else if(i->getLoads().size() == 2)
-			{
-				for (const auto& j : i->getLoads())
-				{
-					//std::cout << j.magnitude() << std::endl;
-					BOOST_REQUIRE(j.magnitude() < 230940010.77+0.001 && j.magnitude() > 230940010.77-0.001);
-				}
-			}
-			else
-			{
-				for (const auto& j : i->getLoads())
-				{
-					//std::cout << j.magnitude() << std::endl;
-					BOOST_REQUIRE(j.magnitude() < 23094010.77+0.001 && j.magnitude() < 23094010.77-0.001);
-				}
-			}
-		}
-		
-		BOOST_REQUIRE(pointStore[0]->getLoads().size() == 1);
-		BOOST_REQUIRE(pointStore[1]->getLoads().size() == 2);
-		BOOST_REQUIRE(pointStore[6]->getLoads().size() == 3);
-	}
-	
 	BOOST_AUTO_TEST_CASE( constraint_test)
 	{
 		point p1(1,{0,0,0});

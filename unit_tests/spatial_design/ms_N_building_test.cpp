@@ -318,20 +318,17 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	{ 
 		ms_N_building b1;
 		ms_N_building b2("spatial_design/ms_N_test_3.txt");
-		
-		Eigen::Vector3d coord1(0,0,0), coord2(0,0,4303);
-		Eigen::Vector3d dim1(3000,3000,3000);
 
 		// space 1
 		std::vector <bso::utilities::geometry::vertex*> pVert;
 		bso::utilities::geometry::vertex v1 = {0,0,0};
 		bso::utilities::geometry::vertex v2 = {3000,0,0};
-		bso::utilities::geometry::vertex v3 = {3000,3000,0};
-		bso::utilities::geometry::vertex v4 = {0,3000,0};
+		bso::utilities::geometry::vertex v3 = {0,3000,0};
+		bso::utilities::geometry::vertex v4 = {3000,3000,0};
 		bso::utilities::geometry::vertex v5 = {0,0,3000};
 		bso::utilities::geometry::vertex v6 = {3000,0,3000};
-		bso::utilities::geometry::vertex v7 = {3000,3000,3000};
-		bso::utilities::geometry::vertex v8 = {0,3000,3000};
+		bso::utilities::geometry::vertex v7 = {0,3000,3000};
+		bso::utilities::geometry::vertex v8 = {3000,3000,3000};
 		pVert.push_back(&v1);
 		pVert.push_back(&v2);
 		pVert.push_back(&v3);
@@ -347,10 +344,10 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v22 = {3000,0,4303};
 		bso::utilities::geometry::vertex v32 = {0,3000,4303};
 		bso::utilities::geometry::vertex v42 = {3000,3000,4303};
-		bso::utilities::geometry::vertex v52 = {3000,0,7303};
-		bso::utilities::geometry::vertex v62 = {0,3000,7303};
-		bso::utilities::geometry::vertex v72 = {3000,3000,7303};
-		bso::utilities::geometry::vertex v82 = {0,0,7303};
+		bso::utilities::geometry::vertex v52 = {0,0,7303};
+		bso::utilities::geometry::vertex v62 = {3000,0,7303};
+		bso::utilities::geometry::vertex v72 = {0,3000,7303};
+		bso::utilities::geometry::vertex v82 = {3000,3000,7303};
 		pVert2.push_back(&v12);
 		pVert2.push_back(&v22);
 		pVert2.push_back(&v32);
@@ -368,6 +365,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 
 		b2.setZZero();
 		
+		// Check if setZZero() is functioning correctly
 		BOOST_REQUIRE(b1 == b2);
 		BOOST_REQUIRE(b2 == b1);
 	}
@@ -428,6 +426,92 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		
 		BOOST_REQUIRE(b1 == b2);
 		BOOST_REQUIRE(b2 == b1);
+	}
+
+		BOOST_AUTO_TEST_CASE( addSpace_and_Comparison_3 )
+	{ 
+		ms_N_building b1;
+		ms_N_building b2;
+		ms_N_building b3;
+		ms_N_building b4;
+
+		// space 1
+		std::vector <bso::utilities::geometry::vertex*> pVert;
+		bso::utilities::geometry::vertex v1 = {0,0,0};
+		bso::utilities::geometry::vertex v2 = {3000,0,0};
+		bso::utilities::geometry::vertex v3 = {0,3000,0};
+		bso::utilities::geometry::vertex v4 = {3000,3000,0};
+		bso::utilities::geometry::vertex v5 = {0,0,3000};
+		bso::utilities::geometry::vertex v6 = {3000,0,3000};
+		bso::utilities::geometry::vertex v7 = {0,3000,3000};
+		bso::utilities::geometry::vertex v8 = {3000,3000,3000};
+		pVert.push_back(&v1);
+		pVert.push_back(&v2);
+		pVert.push_back(&v3);
+		pVert.push_back(&v4);
+		pVert.push_back(&v5);
+		pVert.push_back(&v6);
+		pVert.push_back(&v7);
+		pVert.push_back(&v8);
+
+		// space 2
+		std::vector <bso::utilities::geometry::vertex*> pVert2;
+		bso::utilities::geometry::vertex v12 = {0,0,4303};
+		bso::utilities::geometry::vertex v22 = {3000,0,4303};
+		bso::utilities::geometry::vertex v32 = {0,3000,4303};
+		bso::utilities::geometry::vertex v42 = {3000,3000,4303};
+		bso::utilities::geometry::vertex v52 = {0,0,7303};
+		bso::utilities::geometry::vertex v62 = {3000,0,7303};
+		bso::utilities::geometry::vertex v72 = {0,3000,7303};
+		bso::utilities::geometry::vertex v82 = {3000,3000,7303};
+		pVert2.push_back(&v12);
+		pVert2.push_back(&v22);
+		pVert2.push_back(&v32);
+		pVert2.push_back(&v42);
+		pVert2.push_back(&v52);
+		pVert2.push_back(&v62);
+		pVert2.push_back(&v72);
+		pVert2.push_back(&v82);
+
+		// space 3; diferent order of vertices insertion
+		std::vector <bso::utilities::geometry::vertex*> pVert3;
+		bso::utilities::geometry::vertex v13 = {0,3000,7303};
+		bso::utilities::geometry::vertex v23 = {0,3000,4303};
+		bso::utilities::geometry::vertex v33 = {3000,0,4303};
+		bso::utilities::geometry::vertex v43 = {3000,3000,4303};
+		bso::utilities::geometry::vertex v53 = {0,0,7303};
+		bso::utilities::geometry::vertex v63 = {3000,0,7303};
+		bso::utilities::geometry::vertex v73 = {0,0,4303};
+		bso::utilities::geometry::vertex v83 = {3000,3000,7303};
+		pVert3.push_back(&v12);
+		pVert3.push_back(&v22);
+		pVert3.push_back(&v32);
+		pVert3.push_back(&v42);
+		pVert3.push_back(&v52);
+		pVert3.push_back(&v62);
+		pVert3.push_back(&v72);
+		pVert3.push_back(&v82);
+		
+		// base BSD to compare to
+		b1.addSpace(ms_space(1,pVert));
+		b1.addSpace(ms_space(2,pVert2));
+
+		// Exactly same spaces but inserted in a diferent order
+		b2.addSpace(ms_space(2,pVert2));
+		b2.addSpace(ms_space(1,pVert));
+		
+		// Exactly the same spaces in geometry and properties but the space ID is diferent
+		b3.addSpace(ms_space(2,pVert));
+		b3.addSpace(ms_space(1,pVert2));
+
+		// Exactly the same spaces in geometry but not in vertex order
+		b4.addSpace(ms_space(1,pVert));
+		b4.addSpace(ms_space(2,pVert3));
+
+		BOOST_REQUIRE(b1 == b2);
+		BOOST_REQUIRE(b2 == b1);
+		BOOST_REQUIRE(b1 != b3);
+		BOOST_REQUIRE(b1 == b4);
 	}
 	
 	BOOST_AUTO_TEST_CASE( deleteSpace )
