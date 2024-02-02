@@ -31,8 +31,11 @@ private:
 		polygon_props  pprops_rectangle;
 		polygon_props  pprops_cuboid;
 		polygon_props  pprops_cuboid_overlap;
+		polygon_props  pprops_poly_marked;
 
 		line_props     lprops;
+		line_props	   lprops_boundary;
+		line_props	   lprops_delaunay;
 		label_props    lbprops;
 		random_bsp     *pbsp;
 };
@@ -48,6 +51,8 @@ Conformal_Model::Conformal_Model(const bso::spatial_design::cf_building& cf,
 	pprops_rectangle.shininess = 60.0;
 	pprops_rectangle.translucent = true;
 	pprops_rectangle.twosided = true;
+	lprops_boundary.color = rgba(1.0f, 0.0f, 0.0f, 1.0f);
+	lprops_boundary.width = 2.0f;
 
 	pprops_cuboid.ambient = rgba(0.1f, 0.5f, 0.1f, 0.3f);
 	pprops_cuboid.diffuse = rgba(0.2f, 1.0f, 0.2f, 0.3f);
@@ -65,12 +70,19 @@ Conformal_Model::Conformal_Model(const bso::spatial_design::cf_building& cf,
 	pprops_cuboid_overlap.translucent = true;
 	pprops_cuboid_overlap.twosided = true;
 
-	double scale = 0.8;
+	double scale = 1.0; // cell scale factor; 0.8 for orthogonal BSDs
 	namespace geom = bso::utilities::geometry;
-	
-	for (const auto& i : cf.cfSpaces())
+
+	if(type == "space_at_ground" || type == "delaunay" || type == "boundarylines")
 	{
-		this->addLabel(labels,&lbprops,std::to_string(i->getSpaceID()),i->getCenter());
+		/*do not add the space labels*/
+	}
+	else
+	{
+		for (const auto& i : cf.cfSpaces())
+		{
+			this->addLabel(labels,&lbprops,std::to_string(i->getSpaceID()),i->getCenter());
+		}
 	}
 
 	if (type == "line_segment")
@@ -96,7 +108,71 @@ Conformal_Model::Conformal_Model(const bso::spatial_design::cf_building& cf,
 				rectangleVertices.push_back(i->getCenter() + scale*(j - i->getCenter()));
 			}
 			geom::quadrilateral rectangleGeometry(rectangleVertices);
-			this->addPolygon(polygons,&rectangleGeometry,&pprops_rectangle,&lprops,0.0);
+			if(i->markInVisualization == false)
+			{
+				this->addPolygon(polygons,&rectangleGeometry,&pprops_rectangle,&lprops,0.0);
+			}
+			else
+			{
+				this->addPolygon(polygons,&rectangleGeometry,&pprops_poly_marked,&lprops,0.0);
+			}
+		}
+	}
+	else if (type == "trirec") //combines both the triangles and rectangles defined in the geometry conformal model
+	{
+		for (const auto& i : cf.cfRectangles())
+		{
+			std::vector<geom::vertex> rectangleVertices;
+			for (const auto& j : *i)
+			{
+				rectangleVertices.push_back(i->getCenter() + scale*(j - i->getCenter()));
+			}
+			geom::quadrilateral rectangleGeometry(rectangleVertices);
+			if(i->markInVisualization == false)
+			{
+				this->addPolygon(polygons,&rectangleGeometry,&pprops_rectangle,&lprops,0.0);
+			}
+			else
+			{
+				this->addPolygon(polygons,&rectangleGeometry,&pprops_poly_marked,&lprops,0.0);
+			}
+		}
+		for (const auto& i : cf.cfTriangles())
+		{
+			std::vector<geom::vertex> triangleVertices;
+			for (const auto& j : *i)
+			{
+				triangleVertices.push_back(i->getCenter() + scale*(j - i->getCenter()));
+			}
+			geom::triangle triangleGeometry(triangleVertices);
+			if(i->markInVisualization == false)
+			{
+				this->addPolygon(polygons,&triangleGeometry,&pprops_rectangle,&lprops,0.0);
+			}
+			else
+			{
+				this->addPolygon(polygons,&triangleGeometry,&pprops_poly_marked,&lprops,0.0);
+			}
+		}
+	}
+	else if (type == "triangle")
+	{
+		for (const auto& i : cf.cfTriangles())
+		{
+			std::vector<geom::vertex> triangleVertices;
+			for (const auto& j : *i)
+			{
+				triangleVertices.push_back(i->getCenter() + scale*(j - i->getCenter()));
+			}
+			geom::triangle triangleGeometry(triangleVertices);
+			if(i->markInVisualization == false)
+			{
+				this->addPolygon(polygons,&triangleGeometry,&pprops_rectangle,&lprops,0.0);
+			}
+			else
+			{
+				this->addPolygon(polygons,&triangleGeometry,&pprops_poly_marked,&lprops,0.0);
+			}
 		}
 	}
 	else if (type == "cuboid")
@@ -119,7 +195,158 @@ Conformal_Model::Conformal_Model(const bso::spatial_design::cf_building& cf,
 			}
 		}
 	}
-
+	else if (type == "cuboid_intersec")
+	{
+		for (const auto& i : cf.cfCuboids())
+		{		
+			std::vector<geom::vertex> cuboidVertices;
+			for (const auto& j : *i)
+			{
+				cuboidVertices.push_back(i->getCenter() + scale*(j - i->getCenter()));
+			}
+			geom::quad_hexahedron cuboidGeometry(cuboidVertices);
+			
+			// Check for intersections
+			bool intersects = false;
+			for(const auto j : cf.cfVertices())
+			{
+				bool cornerVertex = false;
+				for(const auto k : (i->cfVertices()))
+				{
+					if(j->isSameAs(*k, cf.tolerance()))
+					{
+						cornerVertex = true;
+						break;
+					}
+				}
+				
+				if(i->isInsideOrOn(*j, cf.tolerance()) && cornerVertex == false)
+				{
+					intersects = true;
+					break;
+				}
+			}
+			
+			if (i->cfSpaces().size() > 1) // Give visual error if cell belongs to multiple spaces
+			{
+				if(i->markInVisualization == false)
+				{
+					this->addPolyhedron(polygons,&cuboidGeometry,&pprops_cuboid,&lprops);
+				}
+				else
+				{
+					this->addPolyhedron(polygons,&cuboidGeometry,&pprops_poly_marked,&lprops);
+				}
+			}
+			if(intersects == true) // Give visual error if a design is not conformal
+			{
+				if(i->markInVisualization == false)
+				{
+					this->addPolyhedron(polygons,&cuboidGeometry,&pprops_cuboid,&lprops);
+				}
+				else
+				{
+					this->addPolyhedron(polygons,&cuboidGeometry,&pprops_poly_marked,&lprops);
+				}
+			}
+			else // Give no visual error since none of the above is the case
+			{
+				if(i->markInVisualization == false)
+				{
+					this->addPolyhedron(polygons,&cuboidGeometry,&pprops_cuboid,&lprops);
+				}
+				else
+				{
+					this->addPolyhedron(polygons,&cuboidGeometry,&pprops_poly_marked,&lprops);
+				}
+			}
+		}
+	}
+	else if(type == "triangular_prism")
+	{
+		for (const auto& i : cf.cfTriPrism())
+		{
+			std::vector<geom::vertex> triPrismVertices;
+			for (const auto& j : *i)
+			{
+				triPrismVertices.push_back(i->getCenter() + scale*(j - i->getCenter()));
+			}
+			geom::triangular_prism triPrismGeometry(triPrismVertices);
+			// Check for intersections
+			bool intersects = false;
+			for(const auto j : cf.cfVertices())
+			{
+				bool cornerVertex = false;
+				for(const auto k : (i->cfVertices()))
+				{
+					if(j->isSameAs(*k, cf.tolerance()))
+					{
+						cornerVertex = true;
+						break;
+					}
+				}
+				
+				if(i->isInsideOrOn(*j, cf.tolerance()) && cornerVertex == false)
+				{
+					intersects = true;
+					break;
+				}
+			}
+			if (i->cfSpaces().size() > 1) // Give visual error if cell belongs to multiple spaces
+			{
+				this->addPolyhedron(polygons,&triPrismGeometry,&pprops_cuboid_overlap,&lprops);
+			}
+			if(intersects == true) // Give visual error if a design is not conformal
+			{
+				this->addPolyhedron(polygons,&triPrismGeometry,&pprops_cuboid_overlap,&lprops);	
+			}
+			else
+			{
+				this->addPolyhedron(polygons,&triPrismGeometry,&pprops_cuboid,&lprops);
+			}
+		}
+	}
+	else if(type == "delaunay")
+	{
+		for (const auto& i : cf.getDelaunayTri())
+		{
+			for(const auto& j: i.getLines())
+			{
+				bool noBoundaryLine = true;
+				for(const auto k: cf.getDelauneyLines())
+				{					
+					if(k.isSameAs(j,cf.tolerance()))
+					{
+						noBoundaryLine = false;
+					}
+				}
+				if(noBoundaryLine)
+				{
+					this->addLineSegment(polygons,&j,&pprops_rectangle,&lprops_delaunay);
+				}
+			}
+		}
+		
+		for (const auto& i : cf.getDelauneyLines())
+		{
+			this->addLineSegment(polygons,&i,&pprops_rectangle,&lprops_boundary);
+		}
+	}
+	else if(type == "boundarylines")
+	{
+		for (const auto& i : cf.getDelauneyLines())
+		{
+			this->addLineSegment(polygons,&i,&pprops_rectangle,&lprops_boundary);
+		}
+	}
+	else if(type == "space_at_ground")
+	{		
+		for (const auto& i : cf.getSpacesAtGround())
+		{			
+			this->addPolyhedron(polygons,&i,&pprops_cuboid,&lprops);
+		}
+	}
+	
 	pbsp = new random_bsp(polygons);
 }
 

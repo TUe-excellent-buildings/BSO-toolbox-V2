@@ -22,7 +22,7 @@ namespace bso { namespace utilities { namespace geometry {
 		
 		void round(const int& dec = 0);
 		
-		bool isSameAs(const vertex& rhs, const double& tol = 1e-9) const;
+		bool isSameAs(const vertex& rhs, const double& tol = 1e-3) const;
 		
 		bool operator < (const vertex& rhs) const; // for sorting purposes, order {x,y,z}
 		bool operator <= (const vertex& rhs) const;

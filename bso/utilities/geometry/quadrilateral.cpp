@@ -38,6 +38,8 @@ namespace bso { namespace utilities { namespace geometry {
 			std::stringstream errorMessage;
 			errorMessage << "When sorting the vertices of a quadrilateral,\n"
 									 << "the quadrilateral is not convex.\n"
+									 << "the following vertices were provided: \n" 
+									 << mVertices[0] << "; " << mVertices[1] << "; " << mVertices[2] << "; " << mVertices[3] << "\n"
 									 << "\n(bso/utilities/geometry/quadrilateral.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}

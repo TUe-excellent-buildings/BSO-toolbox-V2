@@ -4,6 +4,7 @@
 #include <bso/visualization/models/model_base.hpp>
 #include <bso/visualization/bsp/bsp.hpp>
 #include <bso/spatial_design/ms_building.hpp>
+#include <bso/spatial_design/ms_N_building.hpp>
 
 #ifdef SD_MODEL_HPP
 #include <bso/structural_design/sd_model.hpp>
@@ -33,6 +34,8 @@ private:
 	random_bsp     *pbsp;
 public:
 	MS_Model(const spatial_design::ms_building& ms, const std::string& type = "spaces",
+					 const std::string& title = "ms_building", const double& linewidth = 1.0);
+	MS_Model(const spatial_design::ms_N_building& msN, const std::string& type = "spaces",
 					 const std::string& title = "ms_building", const double& linewidth = 1.0);
 	~MS_Model();
 	
@@ -129,6 +132,102 @@ MS_Model::MS_Model(const spatial_design::ms_building& ms,
 			throw std::runtime_error(errorMessage.str());
 		}
 		
+		//Add the space indixes to the visualization models
+		this->addLabel(labels,&lbprops,centerLabel.str(),spaceGeometry.getCenter());
+	}
+
+	pbsp = new random_bsp(polygons);
+} //NEW
+
+MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
+						const std::string& type /*= "spaces"*/, const std::string& title /*= "ms_building"*/,
+						const double& linewidth /*= 1.0*/)
+{
+	lprops.width = linewidth;
+	mTitle = title;
+	pprops.ambient = rgba(0.1f, 0.5f, 0.1f, 0.3f);
+	pprops.diffuse = rgba(0.2f, 1.0f, 0.2f, 0.3f);
+	pprops.specular = rgba(0.2f, 1.0f, 0.2f, 0.3f);
+	pprops.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	pprops.shininess = 60.0f;
+	pprops.translucent = true;
+	pprops.twosided = true;
+
+	ppropsSurfaceType.ambient = rgba(1.0f, 1.0f, 0.04f, 0.4f);
+	ppropsSurfaceType.diffuse = rgba(1.0f, 1.0f, 0.04f, 0.4f);
+	ppropsSurfaceType.specular = rgba(0.04f, 0.04f, 0.04f, 1.0f);
+	ppropsSurfaceType.emission = rgba(0.04f, 0.04f, 0.04f, 1.0f);
+	ppropsSurfaceType.shininess = 60.0;
+	ppropsSurfaceType.translucent = true;
+	ppropsSurfaceType.twosided = true;
+	
+	for (const auto& i : msN)
+	{
+		namespace geom = bso::utilities::geometry;
+		geom::quad_hexahedron spaceGeometry = i->getGeometry();
+		std::stringstream centerLabel;
+		centerLabel << i->getID();
+		
+		if (type == "spaces" || type == "" )
+		{
+			this->addPolyhedron(polygons, &spaceGeometry, &pprops, &lprops);
+			if (type == "") centerLabel.str(std::string());
+		}
+		else if (type == "surface_type")
+		{
+			std::vector<std::string> surfaceTypes;
+			if (!(i->getSurfaceTypes(surfaceTypes)))
+			{
+				std::stringstream errorMessage;
+				errorMessage << "\nError in visualizing ms_N_buildings.\n"
+										 << "Could not get surface types from space."
+										 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
+				throw std::runtime_error(errorMessage.str());
+			}
+			std::swap(surfaceTypes[0],surfaceTypes[2]);
+			std::swap(surfaceTypes[4],surfaceTypes[5]);
+			for (unsigned int j = 0; j < 6; ++j)
+			{
+				centerLabel.str(std::string());
+				centerLabel << surfaceTypes[j];
+				auto tempSurface = spaceGeometry.getPolygons()[j];
+				auto surfaceCenter = tempSurface->getCenter();
+				std::vector<geom::vertex> surfaceVertices;
+				for (unsigned int k = 0; k < 4; ++k)
+				{
+					surfaceVertices.push_back((*tempSurface)[k] + 0.2*(surfaceCenter - (*tempSurface)[k]));
+				}
+				geom::quadrilateral surfaceGeometry(surfaceVertices);
+				this->addPolygon(polygons,&surfaceGeometry,&ppropsSurfaceType,&lprops,0.0);
+				this->addLabel(labels,&lbprops,centerLabel.str(),surfaceGeometry.getCenter());
+			}
+			centerLabel.str(std::string());
+		}
+		else if (type == "space_type")
+		{
+			this->addPolyhedron(polygons, &spaceGeometry, &ppropsSurfaceType, &lprops);
+			std::string spaceType;
+			if (!(i->getSpaceType(spaceType)))
+			{
+				std::stringstream errorMessage;
+				errorMessage << "\nError in visualizing ms_N_buildings.\n"
+										 << "Could not get space type from space."
+										 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
+				throw std::runtime_error(errorMessage.str());
+			}
+			centerLabel << " - " << spaceType;
+		}
+		else
+		{
+			std::stringstream errorMessage;
+			errorMessage << "\nError in visualizing ms_N_buildings.\n"
+									 << "Did not recognize type of visualization: " << type << "\n"
+									 << "Options are: spaces; surface_type; space_type\n" 
+									 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
+			throw std::runtime_error(errorMessage.str());
+		}
+		
+		//Add the space indixes to the visualization models
 		this->addLabel(labels,&lbprops,centerLabel.str(),spaceGeometry.getCenter());
 	}
 

@@ -28,16 +28,16 @@ rectangle_property::rectangle_property(bso::spatial_design::conformal::cf_rectan
 	else mIsWall = true;
 	
 	for (const auto& i : *mRectangle)
-	{
-		if (i(2) > 1e-9)
-		{
+	{ // Iterate trought all vertices of mRectangle
+		if (i(2) > 1e-9) // check z-value
+		{ 
 			mIsAboveGroundSurface = true;
 			break;
 		}
 	}
 	
 	if (mOrientation.isVertical())
-	{
+	{ 
 		if (mRectangle->getCenter()(2) > -1e-9 &&
 				mRectangle->getCenter()(2) <  1e-9) 
 		{

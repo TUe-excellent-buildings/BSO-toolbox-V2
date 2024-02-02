@@ -15,20 +15,28 @@ namespace bso { namespace spatial_design { namespace conformal {
 		void split(cf_vertex* pPtr);
 		void checkAssociated(cf_vertex* pPtr);
 		
-		void addLine					(cf_line* 			lPtr	) = delete ;
-		void addRectangle			(cf_rectangle* 	recPtr) = delete ;
+		void addLine				(cf_line* 			lPtr) 	= delete ;
+		void addRectangle			(cf_rectangle* 		recPtr) = delete ;
+		void addTriangle			(cf_triangle* 		triPtr) = delete ;
 		void addCuboid				(cf_cuboid* 		cubPtr) = delete ;
-		void removeLine				(cf_line* 			lPtr	) = delete ;
-		void removeRectangle	(cf_rectangle* 	recPtr) = delete ;
+		void addTriPrism			(cf_triPrism*		priPtr)	= delete ;
+		void removeLine				(cf_line* 			lPtr) 	= delete ;
+		void removeRectangle		(cf_rectangle* 		recPtr) = delete ;
+		void removeTriangle			(cf_triangle* 		triPtr) = delete ;
 		void removeCuboid			(cf_cuboid* 		cubPtr) = delete ;
-		void addPoint					(cf_point*			pPtr	) = delete ;
-		void addEdge					(cf_edge*				ePtr	) = delete ;
+		void removeTriPrism			(cf_triPrism*		priPtr)	= delete ;
+		void addPoint				(cf_point*			pPtr) 	= delete ;
+		void addEdge				(cf_edge*			ePtr) 	= delete ;
 		void addSurface				(cf_surface*		srfPtr) = delete ;
 		
-		const std::vector<cf_cuboid*		>& cfCuboids() 	= delete;
-		const std::vector<cf_point*			>& cfPoints() 	= delete;
+		const std::vector<cf_triangle*		>& cfTriangles()	= delete;
+		const std::vector<cf_cuboid*		>& cfCuboids() 		= delete;
+		const std::vector<cf_triPrism*		>& cfTriPrism()		= delete;
+		const std::vector<cf_point*			>& cfPoints() 		= delete;
 		const std::vector<cf_edge*			>& cfEdges() 		= delete;
-		const std::vector<cf_surface*		>& cfSurfaces() = delete;
+		const std::vector<cf_surface*		>& cfSurfaces() 	= delete;
+		
+		bool markInVisualization = false;
 	};
 	
 } // conformal

@@ -43,6 +43,11 @@ namespace bso { namespace structural_design {
 				auto quadPtr = dynamic_cast<utilities::geometry::quadrilateral*>(i);
 				newSDGeom = this->addGeometry(*quadPtr);
 			}
+			else if(i->isTriangle())
+			{
+				auto triPtr = dynamic_cast<utilities::geometry::triangle*>(i);
+				newSDGeom = this->addGeometry(*triPtr);
+			}
 			else if (i->isQuadHexahedron())
 			{
 				auto quadHexPtr = dynamic_cast<utilities::geometry::quad_hexahedron*>(i);
@@ -112,6 +117,20 @@ namespace bso { namespace structural_design {
 			}
 		}
 		mGeometries.push_back(new component::quadrilateral(g));
+		return mGeometries.back();
+	} // addGeometry(line_segment)
+
+	component::geometry* sd_model::addGeometry(const bso::utilities::geometry::triangle& g)
+	{
+		for (auto& i : mGeometries)
+		{
+			if (i->isTriangle())
+			{
+				component::triangle* temp = dynamic_cast<component::triangle*>(i);
+				if (temp->isSameAs(g)) return i;
+			}
+		}
+		mGeometries.push_back(new component::triangle(g));
 		return mGeometries.back();
 	} // addGeometry(line_segment)
 	
@@ -248,8 +267,8 @@ namespace bso { namespace structural_design {
 					{
 						std::stringstream errorMessage;
 						errorMessage << "\nWhen meshing a geometry of a structural model,\n"
-												 <<	"Could not find the node at:\n"
-												 << *k << "\n"
+												 <<	"Could not find the node at k.\n"
+												 //<< *k << "\n" // if there is no node then this part gives a segmentation error and no elaborate error message.
 												 << "(bso/structural_design/sd_model.cpp)" << std::endl;
 						throw std::runtime_error(errorMessage.str());
 					}

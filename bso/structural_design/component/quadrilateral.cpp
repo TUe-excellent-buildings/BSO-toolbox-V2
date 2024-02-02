@@ -57,7 +57,6 @@ namespace bso { namespace structural_design { namespace component {
 		mMeshedPoints.resize((n1+1)*(n2+1));
 		namespace geom = bso::utilities::geometry;
 		std::vector<unsigned int> indices = {v0Index, v1Index};
-
 		for (unsigned int i = 0; i < 4; ++i)
 		{
 			bool indexFound = false;
@@ -87,7 +86,6 @@ namespace bso { namespace structural_design { namespace component {
 		geom::vector v32 = mVertices[indices[2]] - mVertices[indices[3]];
 		std::vector<geom::vertex> meshPointsV01(n1+1);
 		std::vector<geom::vertex> meshPointsV32(n1+1);
-		
 		for (unsigned int i = 0; i < (n1 + 1); ++i)
 		{
 			meshPointsV01[i] = mVertices[indices[0]] + (v01 * ((double)i/((double)n1)));
@@ -101,9 +99,11 @@ namespace bso { namespace structural_design { namespace component {
 		for (unsigned int i = 0; i < (n1+1); ++i)
 		{
 			dirVector = meshPointsV32[i] - meshPointsV01[i];
+			
 			for (unsigned int j = 0; j < (n2+1); ++j)
 			{
 				meshPoint = meshPointsV01[i] + (dirVector * ((double)j/((double)n2)));
+				
 				pointFound = false;
 				for (const auto& k : pointStore)
 				{
@@ -113,7 +113,7 @@ namespace bso { namespace structural_design { namespace component {
 						pointFound = true;
 						break;
 					}
-					if (highestID < k->getID()) highestID = k->getID();
+					if (highestID < k->getID())	highestID = k->getID();
 				}
 				if (!pointFound)
 				{

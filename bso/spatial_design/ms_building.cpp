@@ -19,6 +19,7 @@ ms_building::ms_building()
 } // ms_building() (empty constructor)
 
 ms_building::ms_building(std::string fileName)
+:	insertFileName(fileName)
 { // initilization by string or text file
 	mLastSpaceID = 0;
 	std::ifstream input;
@@ -47,8 +48,16 @@ ms_building::ms_building(std::string fileName)
 			}
 			else if (line.substr(0,2) == "R," || line.substr(0,2) == "r,")
 			{
-				line.erase(0,2);
-				mSpaces.push_back(new ms_space(line));
+				mSpaces.push_back(new ms_space(line));																	  
+			}
+			else if (line.substr(0,2) == "N," || line.substr(0,2) == "n,")
+			{
+				std::stringstream errorMessage;
+				errorMessage << "Encountered a N indicator while parsing the following line of an MS input file:" << std::endl
+										<< line << std::endl
+										<< "This content can not be read for the ms_building class but is meant for the ms_N_building class"
+										<< "(bso/spatial_design/ms_building.cpp). Got the following error: " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
 			}
 			else
 			{
@@ -65,6 +74,14 @@ ms_building::ms_building(std::string fileName)
 			throw std::invalid_argument(errorMessage.str());
 		}
 	}
+	if (mSpaces.size() == 0)
+	{
+		std::stringstream errorMessage;
+		errorMessage << "Could not initialize an MS building spatial design with the following input file:" << std::endl
+								 << ((fileName.empty())? "the file did not contain a valid definition of a space" : fileName) << std::endl
+								 << "(bso/spatial_design/ms_building.cpp). " << std::endl;
+		throw std::invalid_argument(errorMessage.str());
+	}
 	
 	mLastSpaceID = this->getLastSpaceID();
 	this->checkValidity();
@@ -78,6 +95,7 @@ ms_building::ms_building(const ms_building& rhs)
 		mSpaces.push_back(new ms_space(*i));
 	}
 	
+	insertFileName = rhs.getInsertFileName();
 	this->checkValidity();
 } // ms_building() (copy constructor)
 

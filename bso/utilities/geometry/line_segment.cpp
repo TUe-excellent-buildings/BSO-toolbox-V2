@@ -105,7 +105,7 @@ namespace bso { namespace utilities { namespace geometry {
 					(s > 0.0-tol && s < 1.0+tol && t > 0.0+tol && t < 1.0-tol))
 			{ // if the scalars are smaller than one, the intersection point lies on both lines
 			pInt = (mVertices[0] + (s * v1));
-			pInt.round(dec);
+			//pInt.round(dec); // round can not be used in combination with NOBSD, since it leads to wrong intersection found
 			return true;
 			}
 			else return false;

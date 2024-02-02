@@ -9,8 +9,9 @@ namespace bso { namespace utilities { namespace geometry {
 		{
 			std::stringstream errorMessage;
 			errorMessage << "Cannot sort quadrilaterl faced hexahedron:\n"
-										<< "received " << mSize << "vertices, expected 8.\n"
-									 << "(bso/utilities/geoemtry/quad_hexahedron.cpp)" << std::endl;
+										<< "received " << mSize << "vertices, expected 8.\n";
+										for(const auto i: mVertices){errorMessage << i;}				  
+									 errorMessage << "(bso/utilities/geoemtry/quad_hexahedron.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
 		quadrilateral current, opposing;

@@ -19,6 +19,14 @@ namespace bso { namespace spatial_design { namespace conformal {
 		}
 	} // 
 
+	void cf_entity::addTriangle(cf_triangle* triPtr)
+	{ // 
+		if (std::find(mCFTriangles.begin(),mCFTriangles.end(),triPtr) == mCFTriangles.end())
+		{
+			mCFTriangles.push_back(triPtr);
+		}
+	} // 
+	
 	void cf_entity::addCuboid(cf_cuboid* cubPtr)
 	{ // 
 		if (std::find(mCFCuboids.begin(),mCFCuboids.end(),cubPtr) == mCFCuboids.end())
@@ -26,6 +34,14 @@ namespace bso { namespace spatial_design { namespace conformal {
 			mCFCuboids.push_back(cubPtr);
 		}
 	} // 
+	
+	void cf_entity::addTriPrism(cf_triPrism*		priPtr)
+	{ // 
+		if (std::find(mCFTriPrisms.begin(),mCFTriPrisms.end(),priPtr) == mCFTriPrisms.end())
+		{
+			mCFTriPrisms.push_back(priPtr);
+		}
+	} //
 
 	void cf_entity::removeLine(cf_line* lPtr)
 	{ // 
@@ -37,9 +53,19 @@ namespace bso { namespace spatial_design { namespace conformal {
 		mCFRectangles.erase(std::remove(mCFRectangles.begin(),mCFRectangles.end(),recPtr), mCFRectangles.end());
 	} // 
 
+	void cf_entity::removeTriangle(cf_triangle* triPtr)
+	{ // 
+		mCFTriangles.erase(std::remove(mCFTriangles.begin(),mCFTriangles.end(),triPtr), mCFTriangles.end());
+	} // 
+	
 	void cf_entity::removeCuboid(cf_cuboid* cubPtr)
 	{ // 
 		mCFCuboids.erase(std::remove(mCFCuboids.begin(),mCFCuboids.end(),cubPtr), mCFCuboids.end());
+	} // 
+	
+	void cf_entity::removeTriPrism(cf_triPrism*	triPtr)
+	{ // 
+		mCFTriPrisms.erase(std::remove(mCFTriPrisms.begin(),mCFTriPrisms.end(),triPtr), mCFTriPrisms.end());
 	} // 
 
 	void cf_entity::addPoint(cf_point* pPtr)

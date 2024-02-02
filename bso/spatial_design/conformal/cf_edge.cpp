@@ -10,6 +10,16 @@ namespace bso { namespace spatial_design { namespace conformal {
 		mCFLines.push_back(mBuildingModel->addLine(*this));
 		mCFLines.back()->addEdge(this);
 	} // 
+	cf_edge::cf_edge(const utilities::geometry::line_segment& rhs, cf_building_model* buildingModel, std::vector<utilities::geometry::line_segment*> line)
+	: utilities::geometry::line_segment(rhs)
+	{ // 
+		mBuildingModel = buildingModel;
+		for(const auto& i: line)
+		{
+			mCFLines.push_back(mBuildingModel->addLine(*i));
+			mCFLines.back()->addEdge(this);
+		}		
+	} // 
 
 	void cf_edge::checkVertex(cf_vertex* pPtr)
 	{ // 

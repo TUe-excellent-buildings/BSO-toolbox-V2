@@ -15,6 +15,7 @@
 #include <unit_tests/structural_design/component/point_test.cpp>
 #include <unit_tests/structural_design/component/line_segment_test.cpp>
 #include <unit_tests/structural_design/component/quadrilateral_test.cpp>
+#include <unit_tests/structural_design/component/triangle_test.cpp>
 #include <unit_tests/structural_design/component/quad_hexahedron_test.cpp>
 #include <unit_tests/structural_design/fea_test.cpp>
 #include <unit_tests/structural_design/sd_model_test.cpp>

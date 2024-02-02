@@ -7,6 +7,7 @@
 #include <bso/structural_design/component/point.hpp>
 #include <bso/structural_design/component/line_segment.hpp>
 #include <bso/structural_design/component/quadrilateral.hpp>
+#include <bso/structural_design/component/triangle.hpp>
 #include <bso/structural_design/component/quad_hexahedron.hpp>
 
 namespace bso { namespace structural_design {
@@ -34,6 +35,7 @@ namespace bso { namespace structural_design {
 		component::point* addPoint(bso::utilities::geometry::vertex p);
 		component::geometry* addGeometry(const bso::utilities::geometry::line_segment& g);
 		component::geometry* addGeometry(const bso::utilities::geometry::quadrilateral& g);
+		component::geometry* addGeometry(const bso::utilities::geometry::triangle& g);
 		component::geometry* addGeometry(const bso::utilities::geometry::quad_hexahedron& g);
 		
 		void setMeshSize(const unsigned int& n);

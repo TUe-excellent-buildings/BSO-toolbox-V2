@@ -13,7 +13,9 @@ protected:
 	bool mIsVertexProperty = false;
 	bool mIsLineProperty = false;
 	bool mIsRectangleProperty = false;
+	bool mIsTriangleProperty = false;
 	bool mIsCuboidProperty = false;
+	bool mIsTriprismProperty = false;
 	bool mIsPointProperty = false;
 	bool mIsEdgeProperty = false;
 	bool mIsSurfaceProperty = false;
@@ -28,7 +30,9 @@ public:
 	virtual const bool& isVertexProperty() const {return mIsVertexProperty;}
 	virtual const bool& isLineProperty() const {return mIsLineProperty;}
 	virtual const bool& isRectangleProperty() const {return mIsRectangleProperty;}
+	virtual const bool& isTriangleProperty() const {return mIsTriangleProperty;}
 	virtual const bool& isCuboidProperty() const {return mIsCuboidProperty;}
+	virtual const bool& isTriprismProperty() const {return mIsTriprismProperty;}
 	virtual const bool& isPointProperty() const {return mIsPointProperty;}
 	virtual const bool& isEdgeProperty() const {return mIsEdgeProperty;}
 	virtual const bool& isSurfaceProperty() const {return mIsSurfaceProperty;}

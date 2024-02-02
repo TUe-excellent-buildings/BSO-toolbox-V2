@@ -120,8 +120,8 @@ void grammar::mReadSDSettings(const std::string& fileName)
 
 			for (unsigned int i = 0; i < 3; ++i)
 			{
-				if (abs(direction(i)) > 1e-9)
-				{
+				if (abs(direction(i)) > 1e-9) // if any x/y/z direction has a large enough component, then add only that component of the load (either x, y, or z) to mLoads.
+				{// therefore, a load with multiple components is stored at minimum at two diferent mLoads.
 					mLoads.insert({loadType,structural_design::component::load(
 						lc,magnitude*direction(i),i)});
 				}

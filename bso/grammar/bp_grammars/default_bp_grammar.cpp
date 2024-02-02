@@ -149,13 +149,88 @@ bso::building_physics::bp_model grammar::bp_grammar<DEFAULT_BP_GRAMMAR>(const st
 		}
 	}
 
+	// create triangle rules
+	for (const auto& i : mTriangleProperties)
+	{
+		if (i.second->isSpaceSeparating())
+		{
+			// get the space or surface types, depending on the settings
+			std::pair<std::string, std::string> usedTypes = i.second->getSpaceTypes();
+			if (useSurfaceTypeInsteadOfSpaceType) usedTypes = i.second->getSurfaceTypes();
+
+			// determine the structural type and properties of the triangle
+			bool constructionFound = false;
+			auto constuctionSearch = mBPFloorConstructions.find(usedTypes);
+			bool glazingFound = false;
+			auto glazingSearch = mBPFloorGlazings.find(usedTypes);
+			if (i.second->isFloor())
+			{
+				if (constuctionSearch != mBPFloorConstructions.end())
+				{
+					constructionFound = true;
+				}
+				if (glazingSearch != mBPFloorGlazings.end())
+				{
+					glazingFound = true;
+				}
+			}
+			else if (i.second->isWall())
+			{
+				constuctionSearch = mBPWallConstructions.find(usedTypes);
+				glazingSearch = mBPWallGlazings.find(usedTypes);
+				if (constuctionSearch != mBPWallConstructions.end())
+				{
+					constructionFound = true;
+				}
+				if (glazingSearch != mBPWallGlazings.end())
+				{
+					glazingFound = true;
+				}
+			}
+			if (!constructionFound && ! glazingFound)
+			{
+				std::stringstream errorMessage;
+				errorMessage << "\nError, in default bp grammar could not find the specified\n"
+										 << "type settings: \"" << usedTypes.first << "\" - \"" 
+										 << usedTypes.second << "\" ("
+										 << ((i.second->isFloor())? "floor" : "wall") << ")\n"
+										 << "Has this type set been specified in the inputfile?: \""
+										 << fileName << "\"\n(bso/grammar/bp_grammars/default_bp_grammar.cpp)" 
+										 << std::endl;
+				throw std::runtime_error(errorMessage.str());
+			}
+
+			// create a triangle rule set
+			auto triangleRuleSet = new rule_set::bp_triangle_rule(i.second);
+			if (constructionFound)
+			{
+				triangleRuleSet->assignConstruction(constuctionSearch->second);
+			}
+			if (glazingFound)
+			{
+				triangleRuleSet->assignGlazing(glazingSearch->second);
+			}
+			// assign space ptr map
+			triangleRuleSet->assignSpaceStatesMap(&spaceStates);
+
+			// assign ground profile
+			triangleRuleSet->assignGroundProfile(groundProfile);
+
+			// assign weather profile
+			triangleRuleSet->assignWeatherProfile(weatherProfile);
+			mBPTriangleRules[i.first] = triangleRuleSet;
+		}
+	}
+
 	// apply rules
 	for (const auto& i : mBPSpaceRules) i.second->apply(mBPModel);
 	for (const auto& i : mBPRectangleRules) i.second->apply(mBPModel);
+	for (const auto& i : mBPTriangleRules) i.second->apply(mBPModel);
 
 	// delete the rules
 	for (auto& i : mBPSpaceRules) delete i.second;
 	for (auto& i : mBPRectangleRules) delete i.second;
+	for (auto& i : mBPTriangleRules) delete i.second;
 
 	return mBPModel;
 } // default_bp_grammar

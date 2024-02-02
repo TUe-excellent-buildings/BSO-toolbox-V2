@@ -162,6 +162,11 @@ void visualize(const spatial_design::ms_building& ms, const std::string& type = 
 	vpmanager.addviewport(new viewport(new MS_Model(ms, type, title,lineWidth)));
 }
 
+void visualize(const spatial_design::ms_N_building& msN, const std::string& type = "spaces", const std::string& title = "ms_N_building", const double& lineWidth = 1.0)
+{
+	vpmanager.addviewport(new viewport(new MS_Model(msN, type, title,lineWidth)));
+}
+
 void visualize(const spatial_design::sc_building& sc_building, const std::string& title = "sc_building")
 {
 	vpmanager.addviewport(new viewport(new SC_Model(sc_building, title)));

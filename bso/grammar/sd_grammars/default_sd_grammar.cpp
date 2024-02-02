@@ -44,7 +44,7 @@ bso::structural_design::sd_model grammar::sd_grammar<DEFAULT_SD_GRAMMAR>(const s
 			if (!structureFound)
 			{
 				std::stringstream errorMessage;
-				errorMessage << "\nError, in default grammar could not find the specified\n"
+				errorMessage << "\nError, in default grammar at rectangle could not find the specified\n"
 										 << "type settings: \"" << usedTypes.first << "\" - \"" 
 										 << usedTypes.second << "\" ("
 										 << ((i.second->isFloor())? "floor" : "wall") << ")\n"
@@ -65,11 +65,75 @@ bso::structural_design::sd_model grammar::sd_grammar<DEFAULT_SD_GRAMMAR>(const s
 			sdRectangleRuleSet->addLoads(&mLoads);
 		}
 	}
+	
+	for (const auto& i : mTriangleProperties)
+	{
+		if (i.second->isSpaceSeparating())
+		{
+			// get the space or surface types, depending on the settings
+			std::pair<std::string, std::string> usedTypes = i.second->getSpaceTypes();
+			if (useSurfaceTypeInsteadOfSpaceType) usedTypes = i.second->getSurfaceTypes();
+			
+			// determine the structural type and properties of the triangle
+			bool structureFound = false;
+			auto structureSearch = mSDFloorProperties.find(usedTypes);
+			if (i.second->isFloor())
+			{
+				if (structureSearch != mSDFloorProperties.end())
+				{
+					structureFound = true;
+				}
+			}
+			else if (i.second->isWall())
+			{
+				structureSearch = mSDWallProperties.find(usedTypes);
+				if (structureSearch != mSDWallProperties.end())
+				{
+					structureFound = true;
+				}
+			}
+			if (!structureFound)
+			{
+				std::stringstream errorMessage;
+				errorMessage << "\nError, in default grammar at triangle could not find the specified\n"
+										 << "type settings: \"" << usedTypes.first << "\" - \"" 
+										 << usedTypes.second << "\" ("
+										 << ((i.second->isFloor())? "floor" : "wall") << ")\n"
+										 << "Has this type set been specified in the inputfile?: \""
+										 << fileName << "\"\n(bso/grammar/sd_grammars/default_sd_grammar.cpp)" 
+										 << std::endl;
+				throw std::runtime_error(errorMessage.str());
+			}
+
+			// create a triangle rule set
+			auto sdTriangleRuleSet = new rule_set::sd_triangle_rule(i.second);
+			mSDTriangleRules[i.first] = sdTriangleRuleSet;
+			if (structureSearch->second.type() != "none")
+			{
+				sdTriangleRuleSet->assignStructure(structureSearch->second);
+			}
+			sdTriangleRuleSet->assignLoadPanel(mLoadPanel);
+			sdTriangleRuleSet->addLoads(&mLoads);
+		}
+	}
+	
 	// find each line that is associated to a rectangle that has a rectangle rule set
 	for (const auto& i : mSDRectangleRules)
 	{ // for each sd rectangle rule
 		for (const auto& j : i.first->cfLines())
 		{ // for each line associated to the rectangle associated to the rectangle rule
+			if (mSDLineRules.find(j) == mSDLineRules.end());
+			{ // if it has not yet been added to the vector, add it
+				mSDLineRules[j] = new rule_set::sd_line_rule(mLineProperties[j]);
+			}
+		}
+	}
+
+	// find each line that is associated to a triangle that has a triangle rule set
+	for (const auto& i : mSDTriangleRules)
+	{ // for each sd triangle rule
+		for (const auto& j : i.first->cfLines())
+		{ // for each line associated to the triangle associated to the triangle rule
 			if (mSDLineRules.find(j) == mSDLineRules.end());
 			{ // if it has not yet been added to the vector, add it
 				mSDLineRules[j] = new rule_set::sd_line_rule(mLineProperties[j]);
@@ -105,12 +169,14 @@ bso::structural_design::sd_model grammar::sd_grammar<DEFAULT_SD_GRAMMAR>(const s
 	for (const auto& i : mSDVertexRules) i.second->apply(mSDModel);
 	for (const auto& i : mSDLineRules) i.second->apply(mSDModel);
 	for (const auto& i : mSDRectangleRules) i.second->apply(mSDModel);
+	for (const auto& i : mSDTriangleRules) i.second->apply(mSDModel);
 	mSDModel.setMeshSize(mMeshSize);
 	
 	// delete the rules
 	for (auto& i : mSDVertexRules) delete i.second;
 	for (auto& i : mSDLineRules) delete i.second;
 	for (auto& i : mSDRectangleRules) delete i.second;
+	for (auto& i : mSDTriangleRules) delete i.second;
 	
 	return mSDModel;
 } // default_sd_grammar
