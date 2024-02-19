@@ -39,6 +39,15 @@ namespace bso { namespace spatial_design { namespace conformal {
 			}
 		}
 	} // ctor
+
+	void cf_triPrism::setAreas(double side1, double side2, double side3){
+		// Set the values of the private variables with the provided values
+		areaSide1 = side1;
+		areaSide2 = side2;
+		areaSide3 = side3;
+		// Calculate the total area of the triangular prism
+		totalArea = areaSide1 + areaSide2 + areaSide3;
+	}
 	
 	cf_triPrism::~cf_triPrism()
 	{ //function still needs to be updated
@@ -47,6 +56,24 @@ namespace bso { namespace spatial_design { namespace conformal {
 		for (const auto& i : mCFTriangles) i->removeTriPrism(this);
 		for (const auto& i : mCFRectangles) i->removeTriPrism(this);
 	} // dtor
+
+	// bool cf_triPrism::operator == (const cf_triPrism& rhs) const
+	// {
+	// 	auto sizeLeft = mCFVertices.size();
+	// 	auto sizeRight = rhs.mCFVertices.size();
+	// 	if (sizeLeft != sizeRight) return false;
+	// 	for (int z = 0; z < sizeLeft; z++)
+	// 	{	
+	// 		if ((*(mCFVertices[i])) != (*(rhs.mCFVertices[i]))) return false;
+	// 	}
+
+	// 	return true;
+	// }
+
+	// bool cf_triPrism::operator != (const cf_triPrism& rhs) const
+	// {
+	// 	return !(*this == rhs);
+	// }
 
 } // conformal
 } // spatial_design

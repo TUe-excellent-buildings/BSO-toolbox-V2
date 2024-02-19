@@ -2,7 +2,6 @@
 #define CF_BUILDING_MODEL_HPP
 
 #include <bso/spatial_design/ms_building.hpp>
-#include <bso/spatial_design/ms_N_building.hpp>
 
 namespace bso { namespace spatial_design { namespace conformal {
 	
@@ -27,11 +26,14 @@ namespace bso { namespace spatial_design { namespace conformal {
 		void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL); // used during the delaunay method to avoid the inserting of overlapping and duplicate constrain lines
 		void addSpaceD(const ms_space& msSpace, std::vector<utilities::geometry::triangular_prism>& triPrismPtr); // Generates the final buiding- and geometry-conformal model after partitioning.
 		
-		// safe it, in case of an intrem visualisation the Triangulation partitioning method is required
+		// safe it, in case of a intrem visualisation the Triangulation partitioning method
 		std::vector<utilities::geometry::quad_hexahedron> spacesAtGround; // spaces representation used to find intersection and constrain lines on the z=0 plane for 2D constrained delaunay aplication
 		std::vector<utilities::geometry::line_segment> delauneyLines; //Lines where the constrained delauney triangulation should constrain to
 		std::vector<utilities::geometry::triangle> delaunayTri; //resulting delaunay triangles at z=0 for triPrism definition in the geometry conformal model
-		
+
+		//std::vector<utilities::geometry::vertex> constructBoundary(std::vector<utilities::geometry::triangle>& delauneyPoints); 
+		//std::vector<utilities::geometry::vertex> boundary; // rectangle around building
+
 		cf_building_model& operator = (cf_building_model& rhs) = default;
 		friend class cf_geometry_entity;
 	public:
@@ -46,12 +48,13 @@ namespace bso { namespace spatial_design { namespace conformal {
 		const std::vector<cf_space*			>& cfSpaces() 		const { return mCFSpaces;}
 		
 		void writeToFile(std::string fileName) const;
-
+		//void deleteInnerBoundaryPrisms(cf_building_model& building);
+		
 		//Functions used to allow for visualization of the interim stages of the Delaunay method
 		const std::vector<utilities::geometry::quad_hexahedron> getSpacesAtGround() const {return spacesAtGround;} 
 		const std::vector<utilities::geometry::line_segment> getDelauneyLines() const {return delauneyLines;} 
 		const std::vector<utilities::geometry::triangle> getDelaunayTri() const {return delaunayTri;} 
-
+		//std::vector<utilities::geometry::vertex> getBoundary() const {return boundary;} 
 		friend std::ostream& operator<< (std::ostream& stream, const cf_building_model& building);
 	};
 	

@@ -396,6 +396,31 @@ bool Conformal_Model::key_pressed(int key)
 
 			return true;
 		};
+
+		switch (key)
+		{
+		case 'r':
+		case 'R':
+			//toggle geometry translucency
+			if(pprops_rectangle.ambient == rgba(0.5f, 0.5f, 0.05f, 0.3f)){
+				pprops_rectangle.ambient = rgba(0.5f, 0.5f, 0.05f, 0.0f);
+				pprops_rectangle.diffuse = rgba(1.0f, 1.0f, 0.1f, 0.0f);
+				pprops_rectangle.specular = rgba(1.0f, 1.0f, 0.2f, 0.0f);
+
+				pprops_cuboid.ambient = rgba(0.1f, 0.5f, 0.1f, 0.0f);
+				pprops_cuboid.diffuse = rgba(0.2f, 1.0f, 0.2f, 0.0f);
+				pprops_cuboid.specular = rgba(0.2f, 1.0f, 0.2f, 0.0f);
+			} else {
+				pprops_rectangle.ambient = rgba(0.5f, 0.5f, 0.05f, 0.3f);
+				pprops_rectangle.diffuse = rgba(1.0f, 1.0f, 0.1f, 0.3f);
+				pprops_rectangle.specular = rgba(1.0f, 1.0f, 0.2f, 0.3f);
+
+				pprops_cuboid.ambient = rgba(0.1f, 0.5f, 0.1f, 0.3f);
+				pprops_cuboid.diffuse = rgba(0.2f, 1.0f, 0.2f, 0.3f);
+				pprops_cuboid.specular = rgba(0.2f, 1.0f, 0.2f, 0.3f);
+			}
+			return true;
+		};
 	return false;
 }
 

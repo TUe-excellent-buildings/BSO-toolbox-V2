@@ -58,7 +58,7 @@ namespace bso { namespace utilities { namespace geometry {
 		for (auto& i : *this) i = std::round(mult * i) / mult;
 	}
 	
-	bool vertex::isSameAs(const vertex& rhs, const double& tol /*= 1e-3*/) const
+	bool vertex::isSameAs(const vertex& rhs, const double& tol /*= 1e-9*/) const
 	{
 		return ((*this)-rhs).isZero(tol);
 	}

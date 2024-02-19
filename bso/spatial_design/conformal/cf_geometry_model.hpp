@@ -39,7 +39,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		const std::vector<cf_rectangle*		>& cfRectangles() 	const { return mCFRectangles;}
 		const std::vector<cf_triangle*		>& cfTriangles() 	const { return mCFTriangles;}
 		const std::vector<cf_cuboid*		>& cfCuboids() 		const { return mCFCuboids;}
-		const std::vector<cf_triPrism*		>&	cfTriPrism()	const { return mCFTriPrisms;}
+		const std::vector<cf_triPrism*		>& cfTriPrism()	const { return mCFTriPrisms;}
 	};
 	
 } // conformal

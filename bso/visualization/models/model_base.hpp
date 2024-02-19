@@ -61,7 +61,7 @@ protected:
 									polygon_props* pprops, line_props* lprops,
 									const double& thickness = 0);
 	void addPolyhedron(std::list<polygon*> &plist, bso::utilities::geometry::polyhedron const* p,
-										 polygon_props* pprops, line_props* lprops);
+										 polygon_props* pprops, line_props* lprops, polygon_props* pprops2 = nullptr);
 
 	void addLabel(std::list<label*>& llist, label_props* lbprops, const std::string &text,
 											const bso::utilities::geometry::vertex& pos);
@@ -248,11 +248,16 @@ void model_base::addPolygon(std::list<polygon*> &plist, bso::utilities::geometry
 } // 
 
 void model_base::addPolyhedron(std::list<polygon*> &plist, bso::utilities::geometry::polyhedron const* p,
-									 polygon_props* pprops, line_props* lprops)
+									 polygon_props* pprops, line_props* lprops, polygon_props* pprops2)
 {
+	// DELETE
+	int whatever = 0;
 	for (const auto& i : p->getPolygons())
 	{
-		this->addPolygon(plist, i, pprops, lprops, 0.0);
+		if(whatever % 5 != 0) this->addPolygon(plist, i, pprops, lprops, 0.0);
+		else this->addPolygon(plist, i, pprops2, lprops, 0.0);
+		// this->addPolygon(plist, i, pprops, lprops, 0.0);
+		whatever++;
 	}
 	for (const auto& i : mCuttingPlanes)
 	{
@@ -301,43 +306,6 @@ void model_base::addPolyhedron(std::list<polygon*> &plist, bso::utilities::geome
 		{ // error
 			
 		}
-		
-		/*bso::utilities::geometry::vertex center = {0,0,0};
-		for (const auto& j : unOrderedVertices) center += j;
-		center /= unOrderedVertices.size();
-		bso::utilities::geometry::vector refx = *(unOrderedVertices.begin()) - center;
-		refx.normalize();
-		bso::utilities::geometry::vector refy = cutNormal.cross(refx);
-		refy.normalize();
-		
-		std::map<double,bso::utilities::geometry::vertex> orderedVertices;
-		
-		for (const auto& j : unOrderedVertices)
-		{
-			bso::utilities::geometry::vector centerVect = j - center;
-			centerVect.normalize();
-			double angle = atan2(refy.dot(centerVect),refx.dot(centerVect));
-			orderedVertices[angle] = j;
-		}
-		
-		vertex vertices[orderedVertices.size()];
-		unsigned int vertexCounter = 0;
-		for (const auto& j : orderedVertices)
-		{
-			vertices[vertexCounter] = j.second;
-			++vertexCounter;
-		}
-		bso::utilities::geometry::vector viewNormal = -1 * cutNormal;
-		normal normals[] = {viewNormal};
-		int indices[2*orderedVertices.size()];
-		for (unsigned int j = 0; j < orderedVertices.size(); ++j)
-		{
-			indices[j*2]   = j;
-			indices[j*2+1] = 0;
-		}
-		plist.push_back(this->create_polygon(pprops,lprops,vertices,normals,
-																				 indices,orderedVertices.size()));
-		*/
 	}
 } // 
 

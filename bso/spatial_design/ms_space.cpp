@@ -557,46 +557,25 @@ double ms_space::getFloorArea() const
 	}
 	else
 	{
-		std::vector<bso::utilities::geometry::vertex> pVertex = this->getGeometry().getVertices();
-		if(pVertex.size() != 8)
+		bso::utilities::geometry::vertex center;
+		for(const auto i: this->getGeometry().getPolygons())
 		{
-			std::stringstream errorMessage;
-			errorMessage << std::endl
-									 << "Did not recieve eight vertices. Therefore, the area calculation of the space can not be performed." << std::endl
-									 << "(bso/spatial_design/ms_space.hpp)" << std::endl;
-			throw std::invalid_argument(errorMessage.str());
-		}
-
-		std::vector<bso::utilities::geometry::vertex> VertexH1;
-		std::vector<bso::utilities::geometry::vertex> VertexH2;
-		VertexH1.push_back(pVertex[0]);
-		for(int i=1; i < 8; i++)
-		{
-			if(VertexH1[0].z() == pVertex[i].z())
-			{
-				VertexH1.push_back(pVertex[i]);
+			if(i->getNormal().isVertical())
+			{ // find the lowest of the two horizontal surfaces and assing area to return
+				if(area == 0)
+				{
+					center = i->getCenter();
+					area = i->getArea();
+				}
+				else
+				{
+					if(i->getCenter().z() < center.z())
+					{
+						area = i->getArea();
+					}
+					break;
+				}
 			}
-			else VertexH2.push_back(pVertex[i]);
-		}
-		if(VertexH1.size() != 4 || VertexH2.size() != 4)
-		{
-			std::stringstream errorMessage;
-			errorMessage << std::endl
-									 << "Could not find four vertices on the same z level to calculate the area of the horizontal polygon" << std::endl
-									 << "the following was found: the first plane had " << VertexH1.size() << " amound of vertices and the" << std::endl
-									 << "second plane had " << VertexH2.size() << " amound of vertices" << std::endl
-									 << "(bso/spatial_design/ms_space.hpp)" << std::endl;
-			throw std::invalid_argument(errorMessage.str());
-		}
-
-		// Define the area of the space on the lowest horizontal polygon (ref for area calculation: https://www.themathdoctors.org/polygon-coordinates-and-areas/)
-		if(VertexH1[0].z() < VertexH2[0].z())
-		{
-			area = 0.5*(abs((VertexH1[0].x()*VertexH1[1].y()-VertexH1[1].x()*VertexH1[0].y())+(VertexH1[1].x()*VertexH1[2].y()-VertexH1[2].x()*VertexH1[1].y())+(VertexH1[2].x()*VertexH1[3].y()-VertexH1[3].x()*VertexH1[2].y())+(VertexH1[3].x()*VertexH1[0].y()-VertexH1[0].x()*VertexH1[3].y())));
-		}
-		else
-		{
-			area = 0.5*(abs((VertexH2[0].x()*VertexH2[1].y()-VertexH2[1].x()*VertexH2[0].y())+(VertexH2[1].x()*VertexH2[2].y()-VertexH2[2].x()*VertexH2[1].y())+(VertexH2[2].x()*VertexH2[3].y()-VertexH2[3].x()*VertexH2[2].y())+(VertexH2[3].x()*VertexH2[0].y()-VertexH2[0].x()*VertexH2[3].y())));
 		}
 	}
 	return area;
@@ -610,10 +589,7 @@ bool ms_space::operator == (const ms_space& rhs) const
 	if (pVertex.size() != rhs.pVertex.size()) return false;
 	for (unsigned int i = 0; i < pVertex.size(); i++)
 	{	
-		if (!(*(pVertex[i])).isSameAs(*(rhs.pVertex[i]))) 
-		{
-			return false;
-		}
+		if ((*(pVertex[i])) != (*(rhs.pVertex[i]))) return false;
 	}
 	if (sDefMethod != rhs.sDefMethod) return false;
 	if (mSpaceType != rhs.mSpaceType) return false;

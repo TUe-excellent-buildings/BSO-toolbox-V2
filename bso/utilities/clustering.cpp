@@ -59,8 +59,7 @@ void clustering::mMakeClustering()
 			{
 				std::stringstream errorMessage;
 				errorMessage << "\nError, could not successfully complete any k means algorithm\n"
-										 << "for a cluster size of: " << i << "\n"
-										 << "the successfulKMeansRuns value was: " << successfulKMeansRuns << "\n"
+										 << "for a cluster size of: " << i
 										 << "(bso/utilities/clustering.cpp)" << std::endl;
 				throw std::runtime_error(errorMessage.str());
 			}

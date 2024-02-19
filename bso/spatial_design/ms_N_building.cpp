@@ -144,14 +144,7 @@ ms_space* ms_N_building::getSpacePtr(const ms_space& space) const
 	std::stringstream errorMessage;
 	errorMessage << "Could not find the following space in an ms_N building spatial design:" << std::endl
 							 << space << std::endl
-							 << " " << std::endl 
-							 << "The following spaces are in the model: " << std::endl;
-							 for(auto i: mSpaces)
-							 {
-								errorMessage << *i << std::endl;
-							 }
-
-	errorMessage <<	"(bso/spatial_design/ms_N_building.cpp). " << std::endl;
+							 << "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
 	throw std::runtime_error(errorMessage.str());
 } // getSpacePtr()
 
@@ -184,6 +177,36 @@ double ms_N_building::getFloorArea() const
 	return area;
 }
 
+/*
+std::vector<ms_space*> ms_N_building::selectSpacesGeometrically(
+		const bso::utilities::geometry::vertex& location,
+		const bso::utilities::geometry::vector& direction,
+		const bool includePartialSpaces) const
+{
+	std::vector<ms_space*> spaceSelection;
+	for (const auto& i : mSpaces)
+	{
+		bool allVerticesSelected = true;
+		bool oneOrMoreVerticesSelected = false;
+		for (const auto& j : i->getGeometry())
+		{
+			double checkValue = direction.dot(j - location);
+			if (checkValue >= -1e-3)
+			{ // check if point j lies behind the plane defined by the location and the direction
+				if (checkValue >= 1e-3) oneOrMoreVerticesSelected = true;
+			}
+			else
+			{
+				allVerticesSelected = false;
+			}
+		}
+		if (allVerticesSelected) spaceSelection.push_back(i);
+		else if (oneOrMoreVerticesSelected && includePartialSpaces) spaceSelection.push_back(i);
+	}
+	return spaceSelection;
+}
+*/
+
 void ms_N_building::setZZero()
 {
 	this->resetOrigin({2});
@@ -191,18 +214,19 @@ void ms_N_building::setZZero()
 
 void ms_N_building::resetOrigin(const std::vector<unsigned int>& indices /*= {0,1,2}*/)
 {
+	/*
 	utilities::geometry::vector coordDifference = {0,0,0};
 	for (const auto& index : indices)
 	{
-		utilities::geometry::vertex initalV = (*(mSpaces[0]->getVertices())[0]);
-		double min = initalV(index); // set an initial value to the minimum
+		double min = (*((mSpaces[0]->getVertices())[0]))(index); // set an initial value to the minimum
 	
-		// find the minimum value of the x,y, or z-coordinates in the building
+		// find the minimum value of the z-coordinates in the building
 		for (auto i : mSpaces) 
 		{
-			for (auto j : i->getVertices())
+			std::vector <utilities::geometry::vertex*> vertices = i->getVertices();
+			for(const auto j: i->getVertices())
 			{
-				if(min > (*j)(index)) min = (*j)(index);
+				if (min > (*j)(index)) min = (*j)(index);
 			}
 		}			
 
@@ -211,18 +235,40 @@ void ms_N_building::resetOrigin(const std::vector<unsigned int>& indices /*= {0,
 	
 	if (coordDifference(2) > 0) coordDifference(2) = 0;
 	
-	utilities::geometry::vertex temp;
-	for (auto i : mSpaces)
+	for (auto i : mSpaces) 
 	{
-		std::vector<utilities::geometry::vertex*> newVP;
-		for (int j=0; j<8; j++)
+		// Define space new coördinates
+		std::vector <utilities::geometry::vertex*> vertices = i->getVertices();
+		for(int j=0; j< vertices.size(); j++)
 		{
-			newVP.push_back(new utilities::geometry::vertex);
-			temp = 	*((i->getVertices())[j]) + coordDifference;	
-			*newVP[j] = temp;
+			*vertices[j] = *vertices[j] + coordDifference;
 		}
-		i->setPVertex(newVP);
-	} 
+
+		// Set space vertices
+		i->setPVertex(vertices);
+	}
+	*/
+	// ms_building origonal code for resertOrgin:
+	utilities::geometry::vector coordDifference = {0,0,0};
+	for (const auto& index : indices)
+	{
+		double min = mSpaces[0]->getCoordinates()(index); // set an initial value to the minimum
+	
+		// find the minimum value of the z-coordinates in the building
+		for (auto i : mSpaces) 
+		{
+			double coord = i->getCoordinates()(index);
+			if (min > coord) min = coord;
+		}			
+
+		coordDifference(index) -= min;
+	}
+	
+	if (coordDifference(2) > 0) coordDifference(2) = 0;
+	
+	for (auto i : mSpaces) i->setCoordinates(i->getCoordinates() + coordDifference);
+	//this->snapOn({{0,1},{1,1},{2,1}});
+	
 } // resetOrigin()
 
 void ms_N_building::addSpace(const ms_space& space)
@@ -277,8 +323,128 @@ void ms_N_building::deleteSpace(ms_space& space)
 	this->deleteSpace(this->getSpacePtr(space));
 }
 
+/*
+void ms_N_building::cutOff(const bso::utilities::geometry::vertex& location,
+		const bso::utilities::geometry::vector& direction, const double& tol)
+{
+	// normalize the direction for convenience of later use
+	auto n = direction.normalized();
+	// check if the cutting plane is orhtogonal
+	bool isOrthogonal = false;
+	for (unsigned int i = 0; i < 3; ++i)
+	{
+		bso::utilities::geometry::vector check = {0,0,0};
+		check(i) = 1;
+		if (check.isParallel(n, tol))
+		{
+			isOrthogonal = true;
+			break;
+		}
+	}
+	if (!isOrthogonal)
+	{
+		std::stringstream errorMessage;
+		errorMessage << "\nError, could not cut-off part of the building in following location:\n"
+								 << location << ", and the following direction:\n"
+								 << direction << ". Direction is not orthogonal.\n"
+								 << "(bso/spatial_design/ms_N_building.cpp)" << std::endl;
+		throw std::invalid_argument(errorMessage.str());
+	}
+	
+	// remove spaces that are completely included by the cut-off plane
+	auto selection = this->selectSpacesGeometrically(location,n,false);
+	for (auto& i : selection) this->deleteSpace(i);
+	
+	// select spaces that are cut by the cut-off plane
+	selection = this->selectSpacesGeometrically(location,n,true);
+	for (auto& i : selection)
+	{// cut each space at the cutting plane
+		bso::utilities::geometry::vertex coords = i->getCoordinates();
+		bso::utilities::geometry::vector tempSum = coords + i->getDimensions();
+		bso::utilities::geometry::vector vec1 = coords - location;
+
+		if (n.dot(vec1) < 0)
+		{
+			vec1 = tempSum - location;
+			double distance = n.dot(vec1);
+			tempSum -= n* distance;
+		}
+		else
+		{
+			double distance = n.dot(vec1);
+			coords -= n * distance;
+		}
+		
+		i->setCoordinates(coords);
+		i->setDimensions(tempSum - coords);
+	}
+}
+*/
+/*
+void ms_N_building::sweep(const bso::utilities::geometry::vertex& location,
+		const std::vector<std::pair<unsigned int, double> >& distances 
+		, const double& tol)
+{
+	bso::utilities::geometry::vertex coords;
+	bso::utilities::geometry::vector tempSum;
+	
+	unsigned int axis;
+	double distance;
+	bool checkDouble[3] = {false};
+	
+	for (auto i : distances)
+	{
+		axis = i.first;
+		if (axis != 0 && axis != 1 && axis != 2)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Trying to sweep an ms_N building spatial design over the \n"
+									 << "following non-existent axis: " << axis << std::endl
+									 << "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+		
+		if (checkDouble[axis])
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Defined a scaling factor to scale and ms_N building \n"
+									 << "spatial design twice for the same axis, axis: " << axis << std::endl
+									 << "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+		else checkDouble[axis] = true;
+	}
+	
+	for (auto i : mSpaces)
+	{
+		coords = i->getCoordinates();
+		tempSum = coords + i->getDimensions();
+
+		for (auto j : distances)
+		{
+			axis = j.first;
+			distance = j.second;
+			
+			if (distance < 0)
+			{
+				if (coords(axis)  + tol < location(axis)) coords(axis)  += distance;
+				if (tempSum(axis) + tol < location(axis)) tempSum(axis) += distance;
+			}
+			else 
+			{
+				if (coords(axis)  - tol > location(axis)) coords(axis)  += distance;
+				if (tempSum(axis) - tol > location(axis)) tempSum(axis) += distance;
+			}
+		}
+
+		i->setCoordinates(coords);
+		i->setDimensions(tempSum - coords);
+	}
+} // sweep()
+*/
+
 void ms_N_building::scale(const std::vector<std::pair<unsigned int, double> >& scales /*= {{0,sqrt(2.0)},{1,sqrt(2.0)}}*/)
-{ 
+{ // Seems to be up to date however the unit test for this one is not correct yet.
 	std::vector<utilities::geometry::vertex*> vertices;
 	
 	unsigned int axis;
@@ -327,207 +493,81 @@ void ms_N_building::scale(const std::vector<std::pair<unsigned int, double> >& s
 } // scale()
 
 void ms_N_building::splitSpace(ms_space* spacePtr, const std::vector<std::pair<unsigned int, unsigned int> >& splits /*= {{0,2},{1,2}}*/)
-{ 
-	//Gather information
-	this->getLastSpaceID(); // this statement make sure that an error 
-	bso::utilities::geometry::quad_hexahedron geometry = spacePtr->getGeometry();
+{ // note not up to date yet	
+	this->getLastSpaceID();
+	utilities::geometry::vertex coords  = spacePtr->getCoordinates();
+	utilities::geometry::vector tempSum = coords + spacePtr->getDimensions();
 	
-	// Initiate value's to be used for new space definition
-	bool firstFloorDone = false;
-	std::vector<unsigned int> splitsdiv; // store the split value's in order of axis x,y, and z
-	splitsdiv.resize(3);
-	splitsdiv[0] = 1;//1 is the minimum value of splits since it will uphold the origonal space
-	splitsdiv[1] = 1;//1 is the minimum value of splits since it will uphold the origonal space
-	splitsdiv[2] = 1;//1 is the minimum value of splits since it will uphold the origonal space
-	bso::utilities::geometry::vector heightV; //heigh vector for definition of vertices in the z-direction
-	std::vector<bso::utilities::geometry::line_segment> axisL; // stores the x-axis first and y-axis as second
-	axisL.resize(2);
-	axisL[0] = {{0,0,0},{0,1,1}}; // to be as close to axis {1,0,0}; hence this far off initiation is used to check if the axis is found
-	axisL[1] = {{0,0,0},{1,0,1}}; // to be as close to axis {0,1,0}; hence this far off initiation is used to check if the axis is found
-	std::vector<bso::utilities::geometry::line_segment> axisLOposite; // stores the opposite to the first found x-axis first and same for the y-axis as second
-	axisLOposite.resize(2);
-
-	// Determine ground and top floor
-	for (auto i: geometry.getPolygons())
+	std::vector<double> splitValues[3];
+	for (unsigned int i = 0; i < 3; i++)
 	{
-		if(!i->getNormal().isVertical()) continue; // skip non floors
+		splitValues[i] = std::vector<double>();
+		splitValues[i].push_back(coords(i));
+		splitValues[i].push_back(tempSum(i));
+	}
+	
+	unsigned int axis, div;
+	bool checkDouble[3] = {false};
+	
+	for (auto i : splits)
+	{
+		axis = i.first;
+		div = i.second;
 		
-		// Only find the heightV of the second found floor then break for the rest of the for-loop
-		if(firstFloorDone == true)
-		{
-			for(int j=0; j < 4; j++)
-			{
-				if(axisL[0][0].x()==((*i)[j]).x() && axisL[0][0].y()==((*i)[j]).y())
-				{
-					heightV = ((*i)[j]) - axisL[0][0];
-				}
-			}
-			break;
-		}
-		firstFloorDone = true;
-		
-		//find axis 0 and axis 1
-		bso::utilities::geometry::vector axis0v = (axisL[0]).getVector(), axis1v = (axisL[1]).getVector();
-		for(auto j: i->getLines())
-		{
-			std::pair<double,double> heading = (j.getVector()).getHeading();
-
-			if(abs((heading.first)-90) < abs(((axis0v.getHeading()).first)-90) && abs((heading.first)-90) < abs(((axis0v.getHeading()).first)-270) || abs((heading.first)-270) < abs(((axis0v.getHeading()).first)-270) && abs((heading.first)-270) < abs(((axis0v.getHeading()).first)-90)) 
-			{
-				axisL[0] = j;
-				axis0v = j.getVector();
-				continue;
-			}			
-			else if(abs((heading.first)) < abs(((axis1v.getHeading()).first)) && abs((heading.first)) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)) < abs(((axis1v.getHeading()).first)-360)|| abs((heading.first)-180) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)-180) < abs(((axis1v.getHeading()).first)) && abs((heading.first)-180) < abs(((axis1v.getHeading()).first)-360) || abs((heading.first)-360) < abs(((axis1v.getHeading()).first)-360) && abs((heading.first)-360) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)-360) < abs(((axis1v.getHeading()).first)))
-			{
-				axisL[1] = j;
-				axis1v = j.getVector();
-				continue;
-			}
-			else{/*do nothing*/}	
-		}
-
-		// check if axis are found
-		bso::utilities::geometry::line_segment axis0check = {{0,0,0},{0,1,1}}, axis1check = {{0,0,0},{1,0,1}};
-		if (axisL[0] == axis0check || axisL[1] == axis1check)
+		if (axis != 0 && axis != 1 && axis != 2)
 		{
 			std::stringstream errorMessage;
-				errorMessage << "Trying to find the axis 0 and 1 of space \"" << spacePtr->getID() << "\" however, this was not found" << std::endl
-										<< "the found axis0 is: " <<axisL[0] << " axis1 is: " << axisL[1] << std::endl
-										<< "the space is: " << *spacePtr << std::endl
-										<< "the lines and its headings of space " << spacePtr->getID() << " are as follows: " << std::endl;
-										for(auto j: i->getLines())
-										{
-											errorMessage << j << " heading: <" << (j.getVector()).getHeading().first << " : " << (j.getVector()).getHeading().second << ">" << std::endl;
-										}
-						   errorMessage << "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
-				throw std::invalid_argument(errorMessage.str());
+			errorMessage << "Trying to split space \"" << spacePtr->getID() << "\" over a non-existing axis: " << axis << std::endl
+									 << "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+			throw std::invalid_argument(errorMessage.str());
 		}
-
-		// find opposite line to axis0 and axis1 on the considered floor
-		for(auto j: i->getLines())
-		{
-			if((axisL[0])[0] != j[0] && (axisL[0])[1] != j[0] && (axisL[0])[0] != j[1] && (axisL[0])[1] != j[1]) axisLOposite[0] = j;
-			else if((axisL[1])[0] != j[0] && (axisL[1])[1] != j[0] && (axisL[1])[0] != j[1] && (axisL[1])[1] != j[1]) axisLOposite[1] = j;
-			else {/*do nothing*/}
-		}
-
-		// make sure the axisL and axisLoposite are in the x+ and y+ direction of their vector definition
-		if((axisL[0]).getVector().x() <= 0) axisL[0] = {{(axisL[0])[1]},(axisL[0])[0]};
-		if((axisLOposite[0]).getVector().x() <= 0) axisLOposite[0] = {{(axisLOposite[0])[1]},(axisLOposite[0])[0]};
-		if((axisL[1]).getVector().y() <= 0) axisL[1] = {{(axisL[1])[1]},(axisL[1])[0]};
-		if((axisLOposite[1]).getVector().y() <= 0) axisLOposite[1] = {{(axisLOposite[1])[1]},(axisLOposite[1])[0]};
 		
-		// make sure the first vertex (with index 0) of the x-axis is the same as the first vertex (with index 0) of the y-axis; Hence this allows for consistend definition of vertices at the space definition stage.
-		if((axisL[0])[0] != (axisL[1])[0])
+		if (div < 2)
 		{
-			if((axisL[0])[0] == (axisL[1])[1])
-			{
-				axisL[1] = {{(axisL[1])[1]},(axisL[1])[0]}; // flip y-axis
-				axisLOposite[1] = {{(axisLOposite[1])[1]},(axisLOposite[1])[0]}; // flip opposite y-axis as well
-			}
-			else // switch axisL with axisLOposite
-			{ 
-				bso::utilities::geometry::line_segment switchL = axisL[1];
-				axisL[1] = axisLOposite[1];
-				axisLOposite[1] = switchL;
-				if((axisL[0])[0] == (axisL[1])[1]) 
-				{
-					axisL[1] = {{(axisL[1])[1]},(axisL[1])[0]}; // flip y-axis
-					axisLOposite[1] = {{(axisLOposite[1])[1]},(axisLOposite[1])[0]}; // flip opposite y-axis as well
-				}
-			}
+			std::stringstream errorMessage;
+			errorMessage << "Trying to split space \"" << spacePtr->getID() << "\" into less than two new spaces: n_split = " << div << std::endl
+									 << "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+			throw std::invalid_argument(errorMessage.str());
 		}
-
-
-		// check inserted split values and store them in order of axis x-,y-, and z-
-		unsigned int axis, div;
-		bool checkDouble[3] = {false};
-		for (auto i : splits)
+		
+		if (checkDouble[axis])
 		{
-			axis = i.first;
-			div = i.second;
-			
-			// First check if the inserted split values are viable
-			if (axis != 0 && axis != 1 && axis != 2)
-			{
-				std::stringstream errorMessage;
-				errorMessage << "Trying to split space \"" << spacePtr->getID() << "\" over a non-existing axis: " << axis << std::endl
-										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
-				throw std::invalid_argument(errorMessage.str());
-			}
-			if (div < 2)
-			{
-				std::stringstream errorMessage;
-				errorMessage << "Trying to split space \"" << spacePtr->getID() << "\" into less than two new spaces: n_split = " << div << std::endl
-										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
-				throw std::invalid_argument(errorMessage.str());
-			}
-			if (checkDouble[axis])
-			{
-				std::stringstream errorMessage;
-				errorMessage << "Defined a split for space \"" << spacePtr->getID() << "\" twice for the same axis, axis: " << axis << std::endl
-										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
-				throw std::invalid_argument(errorMessage.str());
-			}
-			else checkDouble[axis] = true;
-			
-			splitsdiv[axis] = div; // store split values in order of axis x-,y-,z- by position index of the vector container
+			std::stringstream errorMessage;
+			errorMessage << "Defined a split for space \"" << spacePtr->getID() << "\" twice for the same axis, axis: " << axis << std::endl
+									 << "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+		else checkDouble[axis] = true;
+		
+		double delta = floor((splitValues[axis][1] - splitValues[axis][0])/div);
+
+		for (unsigned int i = 0; i < div-1; i++)
+		{
+			double nextCoord;
+			nextCoord = splitValues[axis][i] + delta;
+			splitValues[axis].insert(splitValues[axis].begin() + i + 1,nextCoord);
 		}
 	}
-
-	// Define a matrix of vertices in the x-y-z direction of the new spaces; Note: these value's are calculated ones, thereby ensures exactly the same vertices for defining the new spaces
-	std::vector<std::vector<std::vector<bso::utilities::geometry::vertex>>> Vmatrix;
-	Vmatrix.resize(splitsdiv[0]+1);
-	for(int i=0; i<splitsdiv[0]+1; i++) //x-axis
-	{
-		Vmatrix[i].resize(splitsdiv[1]+1); //resize to fit the amound of vertixes to be found in the next for-loop
-		
-		bso::utilities::geometry::vertex tempV1, tempV2;
-		tempV1 = (axisL[0])[0] + (((axisL[0]).getVector())/(splitsdiv[0]))*i;
-		tempV2 = (axisLOposite[0])[0] + (((axisLOposite[0]).getVector())/(splitsdiv[0]))*i;
-		bso::utilities::geometry::line_segment xL = {tempV1,tempV2};
-
-		for(int j=0; j<splitsdiv[1]+1; j++) // y-axis
-		{
-			Vmatrix[i][j].resize(splitsdiv[2]+1); //resize to fit the amound of vertixes to be found in the next for-loop
-
-			for(int k=0; k<splitsdiv[2]+1; k++) // z-axis
-			{
-				Vmatrix[i][j][k] = xL[0] + ((xL).getVector())/(splitsdiv[1])*j + heightV/(splitsdiv[2])*k;
-			}
-		}
-	}
-
-	// Generate and add the new spaces
+	
 	ms_space* temp;
-	for(int i=0; i<splitsdiv[0]; i++) //x-axis
+	for (unsigned int i = 0; i < splitValues[0].size() - 1; i++)
 	{
-		for(int j=0; j<splitsdiv[1]; j++) // y-axis
+		for (unsigned int j = 0; j < splitValues[1].size() - 1; j++)
 		{
-			for(int k=0; k<splitsdiv[2]; k++) // z-axis
+			for (unsigned int k = 0; k < splitValues[2].size() - 1; k++)
 			{
 				temp = new ms_space(*spacePtr);
 				temp->setID(++mLastSpaceID);
-				
-				std::vector <utilities::geometry::vertex*> vertexes;
-				for(int t=0; t<8; t++) vertexes.push_back(new utilities::geometry::vertex);
-
-				*vertexes[0] = Vmatrix[i][j][k];
-				*vertexes[1] = Vmatrix[i+1][j][k];
-				*vertexes[2] = Vmatrix[i][j+1][k];
-				*vertexes[3] = Vmatrix[i+1][j+1][k];
-				*vertexes[4] = Vmatrix[i][j][k+1];
-				*vertexes[5] = Vmatrix[i+1][j][k+1];
-				*vertexes[6] = Vmatrix[i][j+1][k+1];
-				*vertexes[7] = Vmatrix[i+1][j+1][k+1];
-				
-				temp->setPVertex(vertexes);
+				coords << splitValues[0][i], splitValues[1][j], splitValues[2][k];
+				temp->setCoordinates(coords);
+				tempSum << splitValues[0][i+1], splitValues[1][j+1], splitValues[2][k+1];
+				temp->setDimensions(tempSum - coords);
 				mSpaces.push_back(temp);
 			}
 		}
 	}
-	deleteSpace(spacePtr); // Delete the origonal space
+	
+	deleteSpace(spacePtr);
 } // splitSpace()
 
 void ms_N_building::splitSpace(ms_space& space, const std::vector<std::pair<unsigned int, unsigned int> >& splits /*= {{0,2},{1,2}}*/)
@@ -535,160 +575,97 @@ void ms_N_building::splitSpace(ms_space& space, const std::vector<std::pair<unsi
 	this->splitSpace(this->getSpacePtr(space), splits);
 } // splitSpace()
 
-void ms_N_building::splitSpace(ms_space* spacePtr, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit) //split inserted line of space into 'splitamount'of section wherefrom splitamount of spaces are defined
+void ms_N_building::snapOn(const std::vector<std::pair<unsigned int, double> >& snaps /*= {{0,10},{1,10}}*/)
 {
-	// The inserted line may be closes to a centain axis. 
-	// However, it does not mean that the found axisL in the splitSpace function is the same as the axis of the inserted line since another line of the space may be closer to this axis. 
-	// Therefore, this function will make sure the inserted line is split and not another line which is find closer to the axis of the inserted line
+	utilities::geometry::vertex coords;
+	utilities::geometry::vector tempSum;
 	
-	std::pair<double,double> heading = lineToSplit.getVector().getHeading();
-	int axis;
-	if(heading.first >= 45 && heading.first < 135 || heading.first >= 225 && heading.first < 315) axis = 0;
-	else axis = 1;
+	unsigned int axis;
+	double n;
+	bool checkDouble[3] = {false};
 	
-	bso::utilities::geometry::quad_hexahedron geometry = spacePtr->getGeometry();
-	std::vector<bso::utilities::geometry::line_segment> axisL; // stores the x-axis first and y-axis as second
-	axisL.resize(2);
-	axisL[0] = {{0,0,0},{0,1,1}}; // to be as close to axis {1,0,0}; hence this far off initiation is used to check if the axis is found
-	axisL[1] = {{0,0,0},{1,0,1}}; // to be as close to axis {0,1,0}; hence this far off initiation is used to check if the axis is found
-
-
-	int count = 0;
-	for (auto i: geometry.getPolygons())
+	for (auto i : snaps)
 	{
-		if(!i->getNormal().isVertical()) continue; // skip non floors
-
-		bool correctFloor = false;
-		for(auto j: i->getLines()) 
-		{
-			if(j == lineToSplit)
-			{
-				correctFloor = true;
-			}
-		}
-		if(correctFloor == false)
-		{
-			count++;
-			if(count == 2)
-			{
-				std::stringstream errorMessage;
-				errorMessage << "The inserted line has not been found to be part of either the top or botum floor. " << std::endl
-										<< "Therefore, the inserted line has been found invalid. "<< std::endl
-										<< "The inserted line was: " << lineToSplit << std::endl
-										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
-				throw std::invalid_argument(errorMessage.str());
-			}
-			continue;
-		}
-
-		//find axis 0 and axis 1 as it would be in the splitSpace function
-		bso::utilities::geometry::vector axis0v = (axisL[0]).getVector(), axis1v = (axisL[1]).getVector();
-		for(auto j: i->getLines())
-		{
-			heading = (j.getVector()).getHeading();
-
-			if(abs((heading.first)-90) < abs(((axis0v.getHeading()).first)-90) && abs((heading.first)-90) < abs(((axis0v.getHeading()).first)-270) || abs((heading.first)-270) < abs(((axis0v.getHeading()).first)-270) && abs((heading.first)-270) < abs(((axis0v.getHeading()).first)-90)) 
-			{
-				axisL[0] = j;
-				axis0v = j.getVector();
-				continue;
-			}			
-			else if(abs((heading.first)) < abs(((axis1v.getHeading()).first)) && abs((heading.first)) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)) < abs(((axis1v.getHeading()).first)-360)|| abs((heading.first)-180) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)-180) < abs(((axis1v.getHeading()).first)) && abs((heading.first)-180) < abs(((axis1v.getHeading()).first)-360) || abs((heading.first)-360) < abs(((axis1v.getHeading()).first)-360) && abs((heading.first)-360) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)-360) < abs(((axis1v.getHeading()).first)))
-			{
-				axisL[1] = j;
-				axis1v = j.getVector();
-				continue;
-			}
-			else{/*do nothing*/}	
-		}
-
-		// check if axis are found
-		bso::utilities::geometry::line_segment axis0check = {{0,0,0},{0,1,1}}, axis1check = {{0,0,0},{1,0,1}};
-		if (axisL[0] == axis0check || axisL[1] == axis1check)
+		axis = i.first;
+		if (axis != 0 && axis != 1 && axis != 2)
 		{
 			std::stringstream errorMessage;
-				errorMessage << "Trying to find the axis 0 and 1 of space \"" << spacePtr->getID() << "\" however, this was not found" << std::endl
-										<< "the found axis0 is: " <<axisL[0] << " axis1 is: " << axisL[1] << std::endl
-										<< "the space is: " << *spacePtr << std::endl
-										<< "the lines and its headings of space " << spacePtr->getID() << " are as follows: " << std::endl;
-										for(auto j: i->getLines())
-										{
-											errorMessage << j << " heading: <" << (j.getVector()).getHeading().first << " : " << (j.getVector()).getHeading().second << ">" << std::endl;
-										}
-						   errorMessage << "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
-				throw std::invalid_argument(errorMessage.str());
+			errorMessage << "Trying to snap-on an ms_N building spatial to a grid over the following non-existent axis: " << axis << std::endl
+									 << "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+			throw std::invalid_argument(errorMessage.str());
 		}
-
-		// Check if the inserted line is already found as an axis. If so, adjust the axis variable acordingly
-		if(axisL[axis] == lineToSplit) break;
-		else if(axis == 0)
+		
+		if (checkDouble[axis])
 		{
-			if(axisL[1] == lineToSplit)
-			{
-				axis = 1;
-				break;
-			}
-		}
-		else if (axis == 1)
-		{
-			if(axisL[0] == lineToSplit)
-			{
-				axis = 0;
-				break;
-			}
-		}
-
-		std::vector<bso::utilities::geometry::line_segment> axisLOposite; // stores the opposite to the first found x-axis first and same for the y-axis as second
-		axisLOposite.resize(2);
-
-		// find opposite line to axis0 and axis1 on the considered floor as it would be in the splitSpace function
-		for(auto j: i->getLines())
-		{
-			if((axisL[0])[0] != j[0] && (axisL[0])[1] != j[0] && (axisL[0])[0] != j[1] && (axisL[0])[1] != j[1]) axisLOposite[0] = j;
-			else if((axisL[1])[0] != j[0] && (axisL[1])[1] != j[0] && (axisL[1])[0] != j[1] && (axisL[1])[1] != j[1]) axisLOposite[1] = j;
-			else {/*do nothing*/}
-		}
-
-		// Check if the inserted line is found as an axisLOposite. If so, adjust the axis variable acordingly
-		if(axisLOposite[axis] == lineToSplit) break;
-		else if(axis == 0)
-		{
-			if(axisLOposite[1] == lineToSplit)
-			{
-				axis = 1;
-				break;
-			}
-		}
-		else if (axis == 1)
-		{
-			if(axisLOposite[0] == lineToSplit)
-			{
-				axis = 0;
-				break;
-			}
-		}
-		else
-		{
-			/*This option should not be reached since it should already be picked up the first error message of checking the considere line if it is part of either floors*/
 			std::stringstream errorMessage;
-				errorMessage << "The inserted line has not been found in the axis determination phase. " << std::endl
-										<< "The inserted line was: " << lineToSplit << std::endl
-										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
-				throw std::invalid_argument(errorMessage.str());
+			errorMessage << "Defined a snap-on for an ms_N building spatial design twice for the same axis, axis: " << axis << std::endl
+									 << "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+			throw std::invalid_argument(errorMessage.str());
 		}
+		else checkDouble[axis] = true;
 	}
+	
+	for (auto i : mSpaces)
+	{
+		coords = i->getCoordinates();
+		tempSum = coords + i->getDimensions();
+		
+		for (auto j : snaps)
+		{
+			axis = j.first;
+			n = j.second;
 
-	// Send the correct variables to the splitSpace function
-	std::vector<std::pair<unsigned int, unsigned int> > splits;
-	std::pair<unsigned int, unsigned int> inputSplits = {axis,splitAmount};
-	splits.push_back(inputSplits);
-	this->splitSpace(spacePtr, splits);
-} // splitSpace()
+			coords(axis)  = round(coords(axis)  / n) * n;
+			tempSum(axis) = round(tempSum(axis) / n) * n;
+		}
+		
+		i->setCoordinates(coords);
+		i->setDimensions(tempSum - coords);
+	}
+} // snapOn()
 
-void ms_N_building::splitSpace(ms_space& space, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit) //split the longests line of the space in two
-{
-	this->splitSpace(this->getSpacePtr(space), splitAmount, lineToSplit);
-} // splitSpace()
+int ms_N_building::addBoundary() {
+	double min_x, min_y, max_x, max_y, min_z, max_z = 0.0;
+	int i = 0;
+	std::string msBoundary;
+	// Look through each pre-existing space
+	std::for_each(mSpaces.begin(),mSpaces.end(),[&](const auto& elem) { 
+		// Get bounding vertices of a given space
+		std::vector<utilities::geometry::vertex*> v = elem->getVertices();
+	
+		
+		// Iterate over each vertex (point)
+		std::for_each(v.begin(),v.end(),[&](const auto& vert) {
+			// Set a counter
+			i=0;
+			std::for_each(vert->begin(),vert->end(),[&](double coordinate) {
+				if(!i && coordinate < min_x) min_x = coordinate;
+				if(!i && coordinate > max_x) max_x = coordinate;
+
+				if(i==1 && coordinate < min_y) min_y = coordinate;
+				if(i==1 && coordinate > max_y) max_y = coordinate;
+
+				if(i==2 && coordinate < min_z) min_z = coordinate;
+				if(i==2 && coordinate > max_z) max_z = coordinate;
+
+				i++;
+			});
+		});
+
+	});
+	msBoundary = "N,0," + 
+			std::to_string(min_x) + "," + std::to_string(min_y) + "," + std::to_string(min_z) + "," +
+			std::to_string(min_x) + "," + std::to_string(min_y) + "," + std::to_string(max_z) + "," +
+			std::to_string(min_x) + "," + std::to_string(max_y) + "," + std::to_string(min_z) + "," +
+			std::to_string(min_x) + "," + std::to_string(max_y) + "," + std::to_string(max_z) + "," +
+			std::to_string(max_x) + "," + std::to_string(min_y) + "," + std::to_string(min_z) + "," +
+			std::to_string(max_x) + "," + std::to_string(min_y) + "," + std::to_string(max_z) + "," +
+			std::to_string(max_x) + "," + std::to_string(max_y) + "," + std::to_string(min_z) + "," +
+			std::to_string(max_x) + "," + std::to_string(max_y) + "," + std::to_string(max_z);
+	mSpaces.push_back(new ms_space(msBoundary));
+
+	return 0;
+}
 
 bool ms_N_building::hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 	const double tol /*= 1e-3*/) const

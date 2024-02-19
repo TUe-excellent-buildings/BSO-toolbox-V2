@@ -44,14 +44,15 @@ polygon_props* BP_Model::getPProps(const std::pair<std::string,Eigen::Vector4d>&
 	if (ppropSearch == pplist.end())
 	{
 		auto newPPropPtr = new polygon_props();
-
-		newPPropPtr->ambient     = rgba((visProps.second)(0),(visProps.second)(1),(visProps.second)(2),(visProps.second)(3));
-		newPPropPtr->diffuse     = rgba((visProps.second)(0),(visProps.second)(1),(visProps.second)(2),(visProps.second)(3));
+		auto v = visProps.second;
+		
+		newPPropPtr->ambient     = rgba(v(0),v(1),v(2),v(3));
+		newPPropPtr->diffuse     = rgba(v(0),v(1),v(2),v(3));
 		newPPropPtr->specular    = rgba(0.1,0.1,0.1,1);
 		newPPropPtr->shininess   = 60;
-		newPPropPtr->translucent = ((visProps.second)(3) < 1);
+		newPPropPtr->translucent = (v(3) < 1);
 		newPPropPtr->twosided    = true;
-		
+
 		return newPPropPtr;
 	}
 	else return ppropSearch->second;
@@ -75,6 +76,7 @@ BP_Model::BP_Model(const bso::building_physics::bp_model& bp,
 		auto ppropsPtr = getPProps(i->getVisualizationProperties());
 		this->addPolygon(polygons,i->getGeometry(),ppropsPtr,&lprops);
 	}
+
 	pbsp = new random_bsp(polygons);
 }
 

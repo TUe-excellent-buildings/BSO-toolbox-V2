@@ -4,7 +4,6 @@
 #include <vector>
 #include <Eigen/Dense>
 #include <initializer_list>
-#include <bso/spatial_design/ms_space.hpp>
 
 namespace bso { namespace utilities {
 	
@@ -12,8 +11,7 @@ class data_point
 {
 private:
 	Eigen::VectorXd mData;
-	std::vector<std::string> mLabels; //Note, the inserted doubles in the label only have 6 digets left from the posible more digets it ones had. Keep this in mind while using the label variable
-	std::vector<bso::spatial_design::ms_space*> mSpacePtrs; 
+	std::vector<std::string> mLabels;
 	
 	void mCheckValidDimensions(const data_point& pCheck) const;
 	template <class CONTAINER>
@@ -49,10 +47,8 @@ public:
 	
 	auto begin() {return mData.data();}
 	auto end() {return mData.data() + mData.size();}
-	void addLabel(const std::string& label) {mLabels.push_back(label);} //Note, when inserting a double with more then 6 digets, it will get round-off by the transation from double to string content. Meaning that the inserted data will be changed in these cases.
-	void addSpacePtr(bso::spatial_design::ms_space* spacePtr) {mSpacePtrs.push_back(spacePtr);}
-	const std::vector<std::string>& getLabels() const {return mLabels;} //Note, the inserted doubles in the label only have 6 digets left from the posible more digets it ones had. Keep this in mind while using the label variable
-	const std::vector<bso::spatial_design::ms_space*> getMSpacePtrs() const {return mSpacePtrs;}
+	void addLabel(const std::string& label) {mLabels.push_back(label);}
+	const std::vector<std::string>& getLabels() const {return mLabels;}
 	unsigned int size() const {return mData.size();}
 	
 	const double& operator()(const unsigned int& n) const {return mData(n);}

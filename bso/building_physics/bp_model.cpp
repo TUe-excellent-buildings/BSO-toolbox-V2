@@ -32,6 +32,7 @@ void bp_model::mPrintObserverHead(std::ostream& out)
 	out << std::endl;
 } // mPrintObserverHead()
 
+
 void bp_model::mPrintSystemState(std::ostream& out)
 {
 	out << mSystem.getCurrentTime();

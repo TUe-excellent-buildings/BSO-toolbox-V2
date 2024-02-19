@@ -31,12 +31,12 @@ void bp_rectangle_rule::assignSpaceStatesMap(std::map<bso::spatial_design::confo
 		bso::building_physics::state::space*>* spaceStates)
 {
 	mSpaceStates = spaceStates;
-} // assignSpaceStatesMap()
+} // assignWeatherProfile()
 
 void bp_rectangle_rule::assignGroundProfile(bso::building_physics::state::ground_profile* gp)
 {
 	mGroundProfile = gp;
-} // assignGroundProfile()
+} // assignWeatherProfile()
 
 
 void bp_rectangle_rule::assignWeatherProfile(bso::building_physics::state::weather_profile* wp)
