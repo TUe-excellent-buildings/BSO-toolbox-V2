@@ -419,6 +419,8 @@ int main(int argc, char* argv[])
 			if (visOption == "tr") visualization::visualize(cf,"trirec");
 			if (visOption == "tp") visualization::visualize(cf,"triangular_prism");
 			if (visOption == "sd") visualization::visualize(sdModels.back());
+			if (visOption == "sdC") visualization::visualize(sdModels.back(), "component");
+			if (visOption == "sdD") visualization::visualize(sdModels.back(), "density");
 			if (visOption == "fe") visualization::visualize(sdModels.back(), "element");
 			if (visOption == "fe") visualization::visualize(sdModels.back(), "strain_energy");
 			if (visOption == "bp") visualization::visualize(bpModels.back());
