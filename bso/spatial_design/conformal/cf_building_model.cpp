@@ -517,7 +517,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 							throw std::invalid_argument(errorMessage.str());
 			}
 			
-			// Are there any midLevels and if yes, which are they?
+			// Are there anny midLevels and if yes, which are they?
 			std::vector<double> levelToConsider;			
 			
 			for(const double j: allLevels)
@@ -896,9 +896,6 @@ namespace bso { namespace spatial_design { namespace conformal {
 				stream << *j;
 			}
 		}
-		
-		//boost::erase_all(stream, "{");
-		//boost::erase_all(stream, "}");
 
 		return stream;
 	} // << operator

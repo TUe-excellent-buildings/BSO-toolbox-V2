@@ -29,42 +29,6 @@ void out(const T& t, const bool& e = false,
 
 using namespace bso;
 
-// void deleteInnerBoundaryPrisms(bso::spatial_design::conformal::cf_building_model building)
-// { 
-// 	std::vector<bso::spatial_design::conformal::cf_triPrism> prism_to_deletion;
-// 	//vector<utilities::geometry::quad_hexahedron> cudoid_to_deletion;
-// 	for (auto i : building.cfSpaces())
-// 	{
-// 		int space = i->getSpaceID();
-// 		if(space == 0){
-// 			for(auto j: i->cfTriPrism())
-// 			{
-// 				prism_to_deletion.push_back(*j);
-// 			}
-// 			// for(auto j: i->cfCuboids())
-// 			// {
-// 			// 	cuboid_to_deletion.push_back(j);
-// 			// }
-// 		} else {
-// 			for(auto j: i->cfTriPrism())
-// 			{
-// 				auto index_prism = std::find(prism_to_deletion.begin(), prism_to_deletion.end(), *j);
-// 				if(*index_prism != *prism_to_deletion.end()){
-// 					prism_to_deletion.erase(index_prism);
-// 					std::cout << "found" << std::endl;
-// 				}
-// 			}
-// 			// for(auto j: i->cfCuboids())
-// 			// {
-// 			// }					cuboid_to_deletion.push_back(j);
-// 		}
-// 	}
-// 	// for_each(prism_to_deletion.begin(),prism_to_deletion.end(),[](const auto& elem) {
-// 	// 	delete elem;
-// 	// });
-	
-// } // deleteInnerBoundaryPrisms
-
 int main(int argc, char* argv[])
 {
 	std::string inputFile = "";
@@ -76,7 +40,7 @@ int main(int argc, char* argv[])
 	bool ms_files = false;
 	bool verbose = false;
 	bool bounded = false;
-	bool save = false;
+	bool run = false;
 	
 	// Handle the given input arguments
 	std::vector<std::string> args(argv+1, argv+argc);
@@ -102,7 +66,8 @@ int main(int argc, char* argv[])
 			std::cout << "-o\t" << "or --output, to specify the diferent outputs:\n"
 								<<   "\t" << "\'result_file\' output a file containing \n"
 								<<   "\t" << "the file name, Structural Design model analysis results, \n"
-								<<   "\t" << "and Building Physics model analysis results \n"
+								<<   "\t" << "and Building Physics model analysis results. \n"
+								<<   "\t" << "Note option -r should be on to obtain the file. \n"
 								<<   "\t" << "\'verbose\' prints a descriptive outline of the process \n"
 								<<   "\t" << "to the console during running \n";
 			std::cout << "-v\t" << "or --visualization, to specify which models are\n"
@@ -117,7 +82,7 @@ int main(int argc, char* argv[])
 								<<   "\t" << "and \'bp\' for the \'Building Physics model\'.\n"
 								<<   "\t" << "More than one can be specified.\n";
 			std::cout << "-b\t" << "or --bounded, to obtain a model with boundaries.\n";
-			std::cout << "-s\t" << "or --save, to save the output from triangulation.\n";
+			std::cout << "-r\t" << "or --run, to run the sd and bps simulation of the building spatial design.\n";
 			std::cout << "\n\n" << "Press ENTER to continue..." << std::endl;
 			std::cin.get();
 			return 0;
@@ -181,8 +146,8 @@ int main(int argc, char* argv[])
 		} else if (*arg == "-b" || *arg == "--bounded") {
 			bounded = true;
 			++arg;
-		} else if (*arg == "-s" || *arg == "--save") {
-			save = true;
+		} else if (*arg == "-r" || *arg == "--run") {
+			run = true;
 			++arg;
 		}
 		else
@@ -207,54 +172,27 @@ int main(int argc, char* argv[])
 		throw std::invalid_argument(errorMessage.str());
 	}
 	
-
-	// Generate the Movable and Sizable (MS) building model
-	bso::spatial_design::ms_N_building MS_bounded(inputFile);
+	// start executing the options:
 	
+	// start visualization:
+	if (!visualizations.empty()) 
+	{
+		visualization::initVisualization(argc,argv);
+		out("Initialized visualization", true, true, verbose);
+	}
 
-	MS_bounded.addBoundary();
-	
-	// Generate the conformal model based on MS
-	bso::spatial_design::cf_building CM_bounded(MS_bounded, 0.001);
-	
-
-	// Regular MS building model
-	bso::spatial_design::ms_N_building MS(inputFile);
-	out("Created a Movable and Sizable (MS) building model", true, true, verbose);
-	bso::spatial_design::cf_building CM(MS, 0.001);
-	out("Created a Conformal Model (CM)",true,true,verbose);
-
-	// Initialize the grammer to specify basic properties per geometry
-	bso::grammar::grammar gram(CM);
-	out("Initialized grammar (gram)",true,true,verbose);
-	
-	// Generate the SD model based on the grammer specified basic properties per geometry
-	bso::structural_design::sd_model SD = gram.sd_grammar<bso::grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"));
-	out("Generated Structural Design (SD) model ",true,true,verbose);
-	
-	// Analyse the SD model
-	SD.analyze();
-	out("Evaluated SD: ",false,false,verbose);
-	double SDResult = SD.getTotalResults().mTotalStrainEnergy;
-	out(SDResult,true,true,verbose);
-
-	std::cout << "SDResult: " << SDResult << std::endl;
-
-	// Generate the BP model based on the grammer specified basic properties per geometry
-	bso::building_physics::bp_model BP = gram.bp_grammar<bso::grammar::DEFAULT_BP_GRAMMAR>(std::string("settings/bp_settings.txt"));
-	out("Created a Building Physics (BP) model",true,true,verbose);
-	
-	// Analyse the BP model
-	BP.simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
-	double BPResult = BP.getTotalResults().mTotalEnergy;
-	out("Evaluated BP: ",false,false,verbose);
-	out(BPResult,true,true,verbose);
-
-	std::cout << "BPResult: " << BPResult << std::endl;
-
-
+	// Execute and obtain a file containing the bounded conformal model for Leiden representation
 	if (bounded)
 	{
+		// Generate the Movable and Sizable (MS) building model
+		bso::spatial_design::ms_N_building MS_bounded(inputFile);
+		MS_bounded.addBoundary();
+		out("Created a bounded Movable and Sizable (MS) building model", true, true, verbose);
+		
+		// Generate the conformal model based on MS
+		bso::spatial_design::cf_building CM_bounded(MS_bounded, 0.001);
+		out("Created a bounded Conformal Model (CM)",true,true,verbose);
+		
 		// Define file name
 		std::stringstream fileNameStream;
 			fileNameStream << designName << "_PN";
@@ -275,86 +213,92 @@ int main(int argc, char* argv[])
 		
 		CM_bounded.writeToFile(fileName);
 		out("Print PN version of MS_N_building to file", true, true, verbose);
-	}
-	
-	// Print results to file
-	if (result_file)
-	{
-		// Define file name
-		std::stringstream fileNameStream;
-			fileNameStream << designName << "_results";
-			std::string fileName = fileNameStream.str();
-		
-		// Write to file
-		std::ofstream output;
-		if (!fileName.empty()) output.open(fileName.c_str());
-		
-		if (fileName.empty() || !output.is_open())
-		{
-			std::stringstream errorMessage;
-			errorMessage << "Could not open the following file to write an MS building spatial design to:" << std::endl
-									 << ((fileName.empty())? "no input file given" : designName) << std::endl
-									 << "(bso/spatial_design/ms_building.cpp). " << std::endl;
-			throw std::invalid_argument(errorMessage.str());
-		}
-		
-		output << designName << std::endl;
-		output << "SDResult, " << SDResult << std::endl;
-		output << "BPResult, " << BPResult << std::endl;
-	}
-	
-	if(save) {
-		for (const auto& i : CM.cfTriPrism())
-		{
-			std::vector<bso::utilities::geometry::vertex> triPrismVertices;
-			for (const auto& j : *i)
-			{
-				triPrismVertices.push_back(i->getCenter() + (j - i->getCenter()));
-			}
-			bso::utilities::geometry::triangular_prism triPrismGeometry(triPrismVertices);
-			// Check for intersections
-			bool intersects = false;
-			for(const auto j : CM.cfVertices())
-			{
-				bool cornerVertex = false;
-				for(const auto k : (i->cfVertices()))
-				{
-					if(j->isSameAs(*k, CM.tolerance()))
-					{
-						cornerVertex = true;
-						break;
-					}
-				}
-				
-				if(i->isInsideOrOn(*j, CM.tolerance()) && cornerVertex == false)
-				{
-					intersects = true;
-					break;
-				}
-			}
-		}
-	}
 
-	if (!visualizations.empty()) 
-	{
-		visualization::initVisualization(argc,argv);
-		out("Initialized visualization", true, true, verbose);
+		// send visualization of bounded conformal model
+		for (const auto& visOption : visualizations)
+		{
+			if (visOption == "tb") visualization::visualize(CM_bounded,"triangular_prism_no_errors");
+			//if (visOption == "tb") visualization::visualize(CM_bounded,"delaunay");
+			//if (visOption == "tb") visualization::visualize(CM_bounded,"boundarylines");
+			//if (visOption == "tb") visualization::visualize(CM_bounded,"space_at_ground");
+		}
+		if (!visualizations.empty()) out("Sent bounded conformal model to visualization",true,true,verbose);
 	}
 	
-	if (!visualizations.empty()) for (const auto& visOption : visualizations)
+	// Run and posibly print results to file
+	if (run)
 	{
-		if (visOption == "ms") bso::visualization::visualize(MS);
-		if (visOption == "rc") visualization::visualize(CM,"rectangle");
-		if (visOption == "cb") visualization::visualize(CM,"cuboid");
-		if (visOption == "tr") visualization::visualize(CM,"trirec");
-		if (visOption == "tp") visualization::visualize(CM,"triangular_prism");
-		if (visOption == "sd") visualization::visualize(SD);
-		if (visOption == "fe") visualization::visualize(SD, "element");
-		if (visOption == "bp") visualization::visualize(BP);
+		// Regular MS building model
+		bso::spatial_design::ms_N_building MS(inputFile);
+		out("Created a Movable and Sizable (MS) building model", true, true, verbose);
+		bso::spatial_design::cf_building CM(MS, 0.001);
+		out("Created a Conformal Model (CM)",true,true,verbose);
 
-		if (bounded && visOption == "tb") visualization::visualize(CM_bounded,"triangular_prism");
+		// Initialize the grammer to specify basic properties per geometry
+		bso::grammar::grammar gram(CM);
+		out("Initialized grammar (gram)",true,true,verbose);
+		
+		// Generate the SD model based on the grammer specified basic properties per geometry
+		bso::structural_design::sd_model SD = gram.sd_grammar<bso::grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"));
+		out("Generated Structural Design (SD) model ",true,true,verbose);
+		
+		// Analyse the SD model
+		SD.analyze();
+		out("Evaluated SD: ",false,false,verbose);
+		double SDResult = SD.getTotalResults().mTotalStrainEnergy;
+		out(SDResult,true,true,verbose);
+
+		// Generate the BP model based on the grammer specified basic properties per geometry
+		bso::building_physics::bp_model BP = gram.bp_grammar<bso::grammar::DEFAULT_BP_GRAMMAR>(std::string("settings/bp_settings.txt"));
+		out("Created a Building Physics (BP) model",true,true,verbose);
+		
+		// Analyse the BP model
+		BP.simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
+		double BPResult = BP.getTotalResults().mTotalEnergy;
+		out("Evaluated BP: ",false,false,verbose);
+		out(BPResult,true,true,verbose);
+
+		// Visualize the simulations:
+		if (!visualizations.empty()) for (const auto& visOption : visualizations)
+		{
+			if (visOption == "ms") bso::visualization::visualize(MS);
+			if (visOption == "rc") visualization::visualize(CM,"rectangle");
+			if (visOption == "cb") visualization::visualize(CM,"cuboid");
+			if (visOption == "tr") visualization::visualize(CM,"trirec");
+			if (visOption == "tp") visualization::visualize(CM,"triangular_prism");
+			if (visOption == "sd") visualization::visualize(SD);
+			if (visOption == "fe") visualization::visualize(SD, "element");
+			if (visOption == "bp") visualization::visualize(BP);
+		}
+		if (!visualizations.empty()) out("Sent models to visualization",true,true,verbose);
+		
+		if(result_file)
+		{
+			// Define file name
+			std::stringstream fileNameStream;
+				fileNameStream << designName << "_results";
+				std::string fileName = fileNameStream.str();
+			
+			// Write to file
+			std::ofstream output;
+			if (!fileName.empty()) output.open(fileName.c_str());
+			
+			if (fileName.empty() || !output.is_open())
+			{
+				std::stringstream errorMessage;
+				errorMessage << "Could not open the following file to write an MS building spatial design to:" << std::endl
+										<< ((fileName.empty())? "no input file given" : designName) << std::endl
+										<< "(bso/spatial_design/ms_building.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+			}
+			
+			output << designName << std::endl;
+			output << "SDResult, " << SDResult << std::endl;
+			output << "BPResult, " << BPResult << std::endl;
+		}
 	}
-	if (!visualizations.empty()) out("Sent models to visualization",true,true,verbose);
+	
+	// End the visualizations:
 	if (!visualizations.empty()) visualization::endVisualization();
 
 	return 0;

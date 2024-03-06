@@ -31,6 +31,8 @@ public:
 	unsigned int getLastSpaceID() const;
 	double getVolume() const;
 	double getFloorArea() const;
+	bool hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
+		const double tol = 1e-3) const; 
 
 	// Representation adjustment functions
 	void setZZero(); 
@@ -47,8 +49,8 @@ public:
 	const auto begin() const {return mSpaces.begin();}
 	const auto end() const {return mSpaces.end();}
 	
-	bool hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
-		const double tol = 1e-3) const; 
+	// Translational function to Leiden
+	void addBoundary();
 	
 	bool operator == (const ms_N_building& rhs);
 	bool operator != (const ms_N_building& rhs);
