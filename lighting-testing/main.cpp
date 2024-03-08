@@ -74,77 +74,84 @@ double areaRectangle(const std::vector<bso::utilities::geometry::vertex>& vertic
 // Output: 2 bases and 3 sides of the prism
 void printPrism(bso::spatial_design::conformal::cf_triPrism *prism)
 {
-	std::vector<bso::utilities::geometry::vertex> vertices;
-	// Print the vertices of each surface, use std::cout to print to console
-	for (const auto& j : prism->cfVertices())
-	{
-		std::cout << *j << " ";
-		vertices.push_back(*j);
-	}
-	std::vector<bso::utilities::geometry::vertex> base1;
-	std::vector<bso::utilities::geometry::vertex> base2;
-	std::vector<bso::utilities::geometry::vertex> side1;
-	std::vector<bso::utilities::geometry::vertex> side2;
-	std::vector<bso::utilities::geometry::vertex> side3;
-
-	double totalArea = 0.0;
-
-    double z1 = vertices[0][2];
-    double z2 = z1;
-
-    // Find a different z-coordinate for the second base
-    for (const auto& vertex : vertices) {
-        if (vertex[2] != z1) {
-            z2 = vertex[2];
-            break;
-        }
-    }
-
-    for (const auto& vertex : vertices) {
-        if (vertex[2] == z1) {
-            base1.push_back(vertex);
-        } else if (vertex[2] == z2) {
-            base2.push_back(vertex);
-        }
-    }
-
-	side1 = {base1[0], base1[1], base2[1], base2[0]};
-    side2 = {base1[1], base1[2], base2[2], base2[1]};
-    side3 = {base1[2], base1[0], base2[0], base2[2]};
-	
-	prism->setAreas(areaRectangle(side1), areaRectangle(side2), areaRectangle(side3));
-
 	std::cout << "Areas: ";
-	for (const auto& area : prism->getAreas()) {
+	for (const auto& area : prism->getQuadAreas()) {
 		std::cout << area << " ";
 	}
 	std::cout << std::endl;
+	
+	
+	// std::vector<bso::utilities::geometry::vertex> vertices;
+	// // Print the vertices of each surface, use std::cout to print to console
+	// for (const auto& j : prism->cfVertices())
+	// {
+	// 	std::cout << *j << " ";
+	// 	vertices.push_back(*j);
+	// }
+	// std::vector<bso::utilities::geometry::vertex> base1;
+	// std::vector<bso::utilities::geometry::vertex> base2;
+	// std::vector<bso::utilities::geometry::vertex> side1;
+	// std::vector<bso::utilities::geometry::vertex> side2;
+	// std::vector<bso::utilities::geometry::vertex> side3;
+
+	// double totalArea = 0.0;
+
+    // double z1 = vertices[0][2];
+    // double z2 = z1;
+
+    // // Find a different z-coordinate for the second base
+    // for (const auto& vertex : vertices) {
+    //     if (vertex[2] != z1) {
+    //         z2 = vertex[2];
+    //         break;
+    //     }
+    // }
+
+    // for (const auto& vertex : vertices) {
+    //     if (vertex[2] == z1) {
+    //         base1.push_back(vertex);
+    //     } else if (vertex[2] == z2) {
+    //         base2.push_back(vertex);
+    //     }
+    // }
+
+	// side1 = {base1[0], base1[1], base2[1], base2[0]};
+    // side2 = {base1[1], base1[2], base2[2], base2[1]};
+    // side3 = {base1[2], base1[0], base2[0], base2[2]};
+	
+	// prism->setAreas(areaRectangle(side1), areaRectangle(side2), areaRectangle(side3));
+
+	// std::cout << "Areas: ";
+	// for (const auto& area : prism->getAreas()) {
+	// 	std::cout << area << " ";
+	// }
+	// std::cout << std::endl;
 }
 
 double calculateRatio(bso::spatial_design::conformal::cf_space *space)
 {
-	double totalArea = 0.0001;
+	double totalQuadArea = 0.0001;
 	double totalOpenArea = 0.0000000001;
 
 	// Iterate over all triPrisms in the space
-	for (const auto& triPrism : space->triPrisms()) {
+	for (const auto& triPrism : space->cfTriPrism()) {
 		// Check if the type of the triPrism is greater than 0
-		std::vector<double> types = triPrism->getTypes();
-		std::vector<double> areas = triPrism->getAreas();
+		//std::vector<double> types = triPrism->getTypes();
+		std::vector<double> quadAreas = triPrism->getQuadAreas();
 
-		totalArea += triPrism->getTotalArea();
-
-		for(int i = 0; i < types.size(); i++)
+		for(const auto j: quadAreas) totalQuadArea += j;
+		
+		for(int i = 0; i < 3; i++)
 		{
-			if(types[i] > 0)
+			if(/*types[i]*/ 0 > 0)
 			{
-				totalOpenArea += areas[i];
+				totalOpenArea += quadAreas[i];
 			}
 		}
 	}
 
 	// Calculate the ratio of all side and base areas of type>0 in the triPrisms in that space to the sum of all areas between all prisms in that space
-	return totalOpenArea / totalArea;
+	return totalOpenArea / totalQuadArea;
 }
 
 
