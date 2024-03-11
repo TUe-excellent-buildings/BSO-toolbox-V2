@@ -13,10 +13,23 @@ namespace bso { namespace spatial_design { namespace conformal {
 		std::vector<cf_edge*> mCFEdges;
 		std::vector<cf_surface*> mCFSurfaces;
 		std::vector<cf_space*> mCFSpaces;
-		ms_building mMSModel; // safe it, in case copy consttructor is called
-		ms_N_building mMSNModel; // safe it, in case copy consttructor is called
+		ms_building mMSModel; // safe it, in case copy constructor is called
+		ms_N_building mMSNModel; // safe it, in case copy constructor is called
 		double mTol;
 		
+		// safe it, in case of an iterm visualization the Triangulation partitioning method is required
+		std::vector<utilities::geometry::quad_hexahedron> spacesAtGround; // spaces representation used to find intersection and constrain lines on the z=0 plane for 2D constrained delaunay aplication
+		std::vector<utilities::geometry::line_segment> delauneyLines; //Lines where the constrained delauney triangulation should constrain to
+		std::vector<utilities::geometry::triangle> delaunayTri; //resulting delaunay triangles at z=0 for triPrism definition in the geometry conformal model
+		
+		cf_building_model& operator = (cf_building_model& rhs) = default;
+		friend class cf_geometry_entity;
+	public:
+		cf_building_model(const cf_building_model& rhs); //copy constructor
+		cf_building_model(const ms_building& msModel, const double& tol = 1e-3);
+		cf_building_model(const ms_N_building& msModel, const double& tol = 1e-3, bool makeConformal = true);
+		~cf_building_model();
+
 		// Iterative partition method functions for orthogonal cuboid BSDs
 		void addSpace(const ms_space& msSpace); // defines an initial geometry conformal model to partition and a finished building conformal model
 		void makeConformal(); // orthogonal BSD partitioning method
@@ -25,20 +38,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		void makeConformalND(const ms_N_building& msModel); // Initiates the triangulation partitioning method
 		std::vector<utilities::geometry::triangle> delaunay(const std::vector <utilities::geometry::vertex> delauneyPoints, const std::vector <utilities::geometry::line_segment> delauneyLines); // Constrained Delaunay triangulation performed with the help of the FADE_2D libary
 		void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL); // used during the delaunay method to avoid the inserting of overlapping and duplicate constrain lines
-		void addSpaceD(const ms_space& msSpace, std::vector<utilities::geometry::triangular_prism>& triPrismPtr); // Generates the final buiding- and geometry-conformal model after partitioning.
-		
-		// safe it, in case of an intrem visualisation the Triangulation partitioning method is required
-		std::vector<utilities::geometry::quad_hexahedron> spacesAtGround; // spaces representation used to find intersection and constrain lines on the z=0 plane for 2D constrained delaunay aplication
-		std::vector<utilities::geometry::line_segment> delauneyLines; //Lines where the constrained delauney triangulation should constrain to
-		std::vector<utilities::geometry::triangle> delaunayTri; //resulting delaunay triangles at z=0 for triPrism definition in the geometry conformal model
-		
-		cf_building_model& operator = (cf_building_model& rhs) = default;
-		friend class cf_geometry_entity;
-	public:
-		cf_building_model(const cf_building_model& rhs);
-		cf_building_model(const ms_building& msModel, const double& tol = 1e-3);
-		cf_building_model(const ms_N_building& msModel, const double& tol = 1e-3);
-		~cf_building_model();
+		void addSpaceD(const ms_space& msSpace, std::vector<utilities::geometry::triangular_prism>& triPrismPtr); // Generates the final building- and geometry-conformal model after partitioning.
 
 		const std::vector<cf_point*			>& cfPoints() 		const { return mCFPoints;}
 		const std::vector<cf_edge*			>& cfEdges() 			const { return mCFEdges;}

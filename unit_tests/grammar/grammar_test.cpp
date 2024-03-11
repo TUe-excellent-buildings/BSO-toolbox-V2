@@ -62,6 +62,12 @@ BOOST_AUTO_TEST_SUITE( grammar_test )
 	
 	BOOST_AUTO_TEST_CASE( run_compare )
 	{
+		// This boost test is meant to verify the generation and results of the sd and bp simulations
+		// for NOBSD representation with the already proven orthogonal BSD.
+		// The importaint diference between the two representations are the generation of the conformal geometry where the simulation is based oppon.
+		// Although the inserted design is orthogonal, the non-orthogonal conformal model and the orthogonal conformal model are compared for this design.
+		// Meaning that if the result of the simulations for the sd and bp simulation are the same in either representation the simulations for the NOBSD is setup correctly.
+		
 		// Setup for conformal geometry diference
 		bso::spatial_design::ms_building ms1("grammar/design_1");
 		bso::spatial_design::cf_building cf1(ms1);

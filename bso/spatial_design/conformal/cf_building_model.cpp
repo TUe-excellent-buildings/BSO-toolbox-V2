@@ -836,10 +836,11 @@ namespace bso { namespace spatial_design { namespace conformal {
 		this->makeConformal();
 	} // 
 
-	cf_building_model::cf_building_model(const ms_N_building& msNModel, const double& tol /*= 1e-3*/)
+	cf_building_model::cf_building_model(const ms_N_building& msNModel, const double& tol /*= 1e-3*/, bool makeConformal)
 	:	cf_geometry_model(tol), mMSNModel(msNModel), mTol(tol)
 	{ // 
-		makeConformalND(msNModel);
+		if(makeConformal) makeConformalND(msNModel);
+		else /*Do Nothing*/;
 	} // 
 	
 	cf_building_model::~cf_building_model()
