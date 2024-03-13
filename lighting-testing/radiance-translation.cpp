@@ -195,7 +195,7 @@ void generateRadianceScene(const Point& minBounds, const Point& maxBounds, const
     sceneFile << groundMin.x << " " << groundMax.y << " " << groundMin.z << "\n";
 
     // Include the building design
-    sceneFile << "!xform " << buildingFilePath << "\n";
+    sceneFile << "!./radiance/xform " << buildingFilePath << "\n"; //  
 
     // Close the file
     sceneFile.close();
@@ -206,29 +206,29 @@ void runRadianceSetup(const std::string& gridFilename, const std::string& output
     generateRadianceScene(minBounds, maxBounds, outputFilename);
 
     // Generate sky
-    std::string command = "gensky 6 21 10:00 +s -a 37.7749 -o 122.4194 -m -120 > sky.rad";
+    std::string command = "./radiance/gensky 6 21 10:00 +s -a 37.7749 -o 122.4194 -m -120 > sky.rad";
     std::cout << "Running command: " << command << "\n";
     system(command.c_str());
 
     // Compile the scene
-    command = "oconv scene.rad sky.rad > scene.oct";
+    command = "./radiance/oconv scene.rad sky.rad > scene.oct";
     std::cout << "Running command: " << command << "\n";
     system(command.c_str());
 
 
-    command = "rtrace -I -h -w -ab 2 -ad 512 -as 256 -ar 128 -aa 0.1 scene.oct < " + gridFilename + " > results.txt";
+    command = "./radiance/rtrace -I -h -w -ab 2 -ad 512 -as 256 -ar 128 -aa 0.1 scene.oct < " + gridFilename + " > results.txt";
     std::cout << "Running command: " << command << "\n";
     system(command.c_str());
 
-    command = "rpict -vp 0 0 10 -vd 0 1 0 -vu 0 0 1 -vh 60 -vv 60 -ab 2 scene.oct > scene.hdr";
+    command = "./radiance/rpict -vp 0 0 10 -vd 0 1 0 -vu 0 0 1 -vh 60 -vv 60 -ab 2 scene.oct > scene.hdr";
     std::cout << "Running command: " << command << "\n";
     system(command.c_str());
 
-    command = "pfilt -h scene.hdr > scene.hdr";
+    command = "./radiance/pfilt -h scene.hdr > scene.hdr";
     std::cout << "Running command: " << command << "\n";
     system(command.c_str());
 
-    command = "ra_tiff scene.hdr scene.tif";
+    command = "./radiance/ra_tiff scene.hdr scene.tif";
     std::cout << "Running command: " << command << "\n";
     system(command.c_str());
 }
@@ -269,7 +269,7 @@ int main(int argc, char *argv[]) {
     }
 
     std::cout << "Writing Grid file...\n";
-    float resolution = 50.0f; // Change this value as needed
+    float resolution = 1000.0f; // Change this value as needed
     generateGrid(minBounds, maxBounds, resolution, gridFile, prisms);
     gridFile.close();
     std::cout<<"Grid file written\n";
