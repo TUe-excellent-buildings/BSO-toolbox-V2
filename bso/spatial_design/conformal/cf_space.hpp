@@ -12,6 +12,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 	public:
 		cf_space(const utilities::geometry::quad_hexahedron& rhs, cf_building_model* buildingModel);
 		cf_space(const utilities::geometry::quad_hexahedron& rhs, cf_building_model* buildingModel, std::vector<utilities::geometry::triangular_prism> triPrism);
+		cf_space(const utilities::geometry::quad_hexahedron& rhs, cf_building_model* buildingModel, std::vector<utilities::geometry::quad_hexahedron> quadHexa);
 		
 		void checkVertex(cf_vertex* pPtr);
 		

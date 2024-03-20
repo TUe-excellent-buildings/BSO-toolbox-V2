@@ -6,7 +6,7 @@ BSO     = ..
 ALL_LIB = -I$(BOOST) -I$(EIGEN) -I$(BSO)
 
 #compiler settings
-CPP   = g++ -g -std=c++14
+CPP   = g++ -std=c++14
 FLAGS  = -O -march=native -lboost_unit_test_framework -lglut -lGL -lGLU -lpthread -lfade2d
 D_LIB  = -I${FADE}/include_fade2d
 
