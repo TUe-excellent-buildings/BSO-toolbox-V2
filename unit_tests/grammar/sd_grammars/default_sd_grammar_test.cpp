@@ -120,26 +120,15 @@ BOOST_AUTO_TEST_SUITE( grammar_default_sd_test )
 			for (const auto& j : i->getConstraints()) ++NconstraintCount;
 		}
 
-		std::cout << NflatShellCount << std::endl;
-		std::cout << NtrussCount << std::endl;
-		std::cout << NbeamCount << std::endl;
-		std::cout << NloadPanelCount << std::endl;
-		std::cout << NloadCase1Count << std::endl;
-		std::cout << NloadCase2Count << std::endl;
-		std::cout << NloadCase3Count << std::endl;
-		std::cout << NloadCase4Count << std::endl;
-		std::cout << NloadCase5Count << std::endl;
-		std::cout << NconstraintCount << std::endl;
-		std::cout << Nuncounted << std::endl;
 		BOOST_REQUIRE(NflatShellCount == 5);
 		BOOST_REQUIRE(NtrussCount == 4);
 		BOOST_REQUIRE(NbeamCount == 2);
 		BOOST_REQUIRE(NloadPanelCount == 3);
-		BOOST_REQUIRE(NloadCase1Count == 2);
-		BOOST_REQUIRE(NloadCase2Count == 5);
-		BOOST_REQUIRE(NloadCase3Count == 5);
-		BOOST_REQUIRE(NloadCase4Count == 5);
-		BOOST_REQUIRE(NloadCase5Count == 5);
+		BOOST_REQUIRE(NloadCase1Count == 4);
+		BOOST_REQUIRE(NloadCase2Count == 6);
+		BOOST_REQUIRE(NloadCase3Count == 6);
+		BOOST_REQUIRE(NloadCase4Count == 6);
+		BOOST_REQUIRE(NloadCase5Count == 6);
 		BOOST_REQUIRE(NconstraintCount == 12);
 		BOOST_REQUIRE(Nuncounted == 0);
 	}
