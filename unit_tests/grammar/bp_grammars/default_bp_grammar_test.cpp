@@ -46,12 +46,12 @@ BOOST_AUTO_TEST_SUITE( grammar_default_bp_test )
 		bso::grammar::grammar gram(cf);
 		bso::building_physics::bp_model bp = gram.bp_grammar<>(std::string("grammar/bp_settings_1.txt"),true);
 		
-		BOOST_REQUIRE(bp.getStates().size() == 9);
+		BOOST_REQUIRE(bp.getStates().size() == 11);
 		BOOST_REQUIRE(bp.getIndependentStates().size() == 2);
-		BOOST_REQUIRE(bp.getDependentStates().size() == 7);
+		BOOST_REQUIRE(bp.getDependentStates().size() == 9);
 		BOOST_REQUIRE(bp.getSpaces().size() == 1);
 		BOOST_REQUIRE(bp.getWalls().size() == 3);
-		BOOST_REQUIRE(bp.getFloors().size() == 2);
+		BOOST_REQUIRE(bp.getFloors().size() == 4);
 		BOOST_REQUIRE(bp.getWindows().size() == 1);
 	}
 
