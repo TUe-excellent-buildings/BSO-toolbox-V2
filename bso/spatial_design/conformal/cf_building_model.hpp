@@ -35,7 +35,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		
 		// safe it, in case of an iterm visualization the Triangulation partitioning method is required
 		std::vector<utilities::geometry::quad_hexahedron> spacesAtGround; // spaces representation used to find intersection and constrain lines on the z=0 plane for 2D constrained delaunay aplication
-		std::vector<utilities::geometry::line_segment> delauneyLines; //Lines where the constrained delauney triangulation should constrain to
+		std::vector<utilities::geometry::line_segment> delauneyLines; //Lines where the constrained delaney triangulation should constrain to
 		std::vector<utilities::geometry::triangle> delaunayTri; //resulting delaunay triangles at z=0 for triPrism definition in the geometry conformal model
 		
 		cf_building_model& operator = (cf_building_model& rhs) = default;
@@ -57,14 +57,14 @@ namespace bso { namespace spatial_design { namespace conformal {
 		const std::vector<cf_surface*		>& cfSurfaces() 	const { return mCFSurfaces;}
 		const std::vector<cf_space*			>& cfSpaces() 		const { return mCFSpaces;}
 		
-		void writeToFile(std::string fileName) const;
+		void writeToFile(std::string fileName, int writeOption = 1) const;
 
 		// Functions used to allow for visualization of the interim stages of the Delaunay method
 		const std::vector<utilities::geometry::quad_hexahedron> getSpacesAtGround() const {return spacesAtGround;} 
 		const std::vector<utilities::geometry::line_segment> getDelauneyLines() const {return delauneyLines;} 
 		const std::vector<utilities::geometry::triangle> getDelaunayTri() const {return delaunayTri;} 
 
-		friend std::ostream& operator<< (std::ostream& stream, const cf_building_model& building);
+		friend std::ostream& operator << (std::ostream& stream, const cf_building_model& building);
 	};
 	
 } // conformal

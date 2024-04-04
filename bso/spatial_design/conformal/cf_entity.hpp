@@ -43,6 +43,8 @@ namespace bso { namespace spatial_design { namespace conformal {
 		const std::vector<cf_edge*			>& cfEdges() 		const { return mCFEdges;}
 		const std::vector<cf_surface*		>& cfSurfaces() 	const { return mCFSurfaces;}
 		const std::vector<cf_space*			>& cfSpaces() 		const { return mCFSpaces;}
+
+		void writeGeometryToFile(std::ofstream& output);
 	};
 	
 } // conformal

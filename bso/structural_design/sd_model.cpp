@@ -61,7 +61,7 @@ namespace bso { namespace structural_design {
 										 << "(bso/structural_design/sd_model.cpp)" << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 			}
-			// add the possible structure, loads, and constraints to the geoemtry
+			// add the possible structure, loads, and constraints to the geometry
 			for (const auto& j : i->getStructures()) newSDGeom->addStructure(j);
 			for (const auto& j : i->getLoads()) newSDGeom->addLoad(j);
 			for (const auto& j : i->getConstraints()) newSDGeom->addConstraint(j);

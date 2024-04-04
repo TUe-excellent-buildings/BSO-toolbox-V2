@@ -18,7 +18,7 @@ private:
 	std::string insertFileName;
 public:
 	ms_N_building(); // empty constructor
-	ms_N_building(std::string fileName); // initilization by string or text file
+	ms_N_building(std::string fileName); // initialization by string or text file
 	ms_N_building(const ms_N_building& rhs); // copy constructor
 	~ms_N_building(); // destructor
 	

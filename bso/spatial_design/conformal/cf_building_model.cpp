@@ -56,11 +56,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 
 	void cf_building_model::addSpace(const ms_space& msSpace, std::vector<utilities::geometry::quad_hexahedron> quadHexa)
 	{
-		// Store inputs for copy constructor
-		msSpaceInput.push_back(msSpace);
-		quadHexaInput.push_back(quadHexa);
-		
-		// Check if the minimum amount of quadHexa are inserted
+		// Check prerequisite for this function
 		if(quadHexa.size() < 1)
 		{
 			std::stringstream errorMessage;
@@ -76,6 +72,19 @@ namespace bso { namespace spatial_design { namespace conformal {
 									 << "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
+		if(mCFTriPrisms.size() > 0)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "The addSpace function is not allowed to be used when mCFTriPrisms contains content in the geometry conformal model. \n"
+									 << "The mCFTriPrisms consist of: " << mCFTriPrisms.size() << " amount of triangular prisms \n"
+									 << "the considered space is: " << *(mCFSpaces.back()) << "\n"
+									 << "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+		
+		// Store inputs for copy constructor
+		msSpaceInput.push_back(msSpace);
+		quadHexaInput.push_back(quadHexa);
 		
 		// Add and store the space with its according properties
 		mCFSpaces.push_back(new cf_space(msSpace.getGeometry(), this, quadHexa));
@@ -233,10 +242,6 @@ namespace bso { namespace spatial_design { namespace conformal {
 	
 	void cf_building_model::addSpaceD(const ms_space& msSpace, std::vector<utilities::geometry::triangular_prism> triPrismPtr)
 	{
-		// Store inputs for copy constructor
-		msSpaceInput.push_back(msSpace);
-		triPrismInput.push_back(triPrismPtr);
-		
 		// Check if the minimum amount of triPrisms are inserted
 		if(triPrismPtr.size() < 2)
 		{
@@ -253,6 +258,19 @@ namespace bso { namespace spatial_design { namespace conformal {
 									 << "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
+		if(mCFCuboids.size() > 0)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "The addSpace function is not allowed to be used when mCFCuboids contains content in the geometry conformal model. \n"
+									 << "The mCFCuboids consist of: " << mCFCuboids.size() << " amount of triangular prisms \n"
+									 << "the considered space is: " << *(mCFSpaces.back()) << "\n"
+									 << "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+
+		// Store inputs for copy constructor
+		msSpaceInput.push_back(msSpace);
+		triPrismInput.push_back(triPrismPtr);
 		
 		mCFSpaces.push_back(new cf_space(msSpace.getGeometry(), this, triPrismPtr));
 		
@@ -1063,7 +1081,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		for (auto& i : mCFPoints) delete i;
 	} // 
 
-	void cf_building_model::writeToFile(std::string fileName) const
+	void cf_building_model::writeToFile(std::string fileName, int writeOption) const
 	{
 		std::ofstream output;
 		if (!fileName.empty()) output.open(fileName.c_str());
@@ -1076,8 +1094,88 @@ namespace bso { namespace spatial_design { namespace conformal {
 									<< "(bso/spatial_design/conformal/cf_building_model.cpp). " << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
-		
-		output << *this;
+
+		if(writeOption == 1)
+		{
+			output << *this;
+		}
+		else if(writeOption == 2)
+		{
+			output << "\n\n The conformal model contains the following geometry: \n"
+				   << "\n The building conformal model contains the following geometry: \n"
+				<< "	The cf_space of size()= "<< mCFSpaces.size() << " are: \n";
+				for(const auto i: mCFSpaces) 
+				{
+					output << i->getSpaceID() << " : " << *i << "\n";
+					i->writeGeometryToFile(output);
+				}
+				output << "		The cf_surfaces of size()= "<< mCFSurfaces.size() << " are: \n";
+				for(const auto i: mCFSurfaces) 
+				{
+					output << "		Surface = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				}
+				output << "		The cf_edges of size()= "<< mCFEdges.size() << " are: \n";
+				for(const auto i: mCFEdges) 
+				{
+					output << "		Edges = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				}
+				output << "		The cf_points of size()= "<< mCFPoints.size() << " are: \n";
+				for(const auto i: mCFPoints)
+				{
+					output << "		Points = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				} 
+
+				output << "\n The geometry conformal model contains the following geometry: \n";
+				output << "		The cf_triPrisms of size()= "<< mCFTriPrisms.size() << " are: \n";
+				for(const auto i: mCFTriPrisms) 
+				{
+					output << "		Triangular prisms = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				}
+				output << "		The cf_triangles of size()= "<< mCFTriangles.size() << " are: \n";
+				for(const auto i: mCFTriangles) 
+				{
+					output << "		Triangles = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				}
+				output << "		The cf_rectangles of size()= "<< mCFRectangles.size() << " are: \n";
+				for(const auto i: mCFRectangles) 
+				{
+					output << "		Rectangles = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				}
+				output << "		The cf_lines of size()= "<< mCFLines.size() << " are: \n";
+				for(const auto i: mCFLines) 
+				{
+					output << "		Lines = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				}
+				output << "		The cf_vertices of size()= "<< mCFVertices.size() << " are: \n";
+				for(const auto i: mCFVertices) 
+				{
+					output << "		Vertices = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				}
+		}
+		else if (writeOption == 3)
+		{
+			output << "\n\n The conformal model contains the following geometry: \n"
+				   << "\n The building conformal model contains the following geometry: \n"
+				<< "	The cf_space of size()= "<< mCFSpaces.size() << "  \n"
+				<< "	The cf_surfaces of size()= "<< mCFSurfaces.size() << "  \n"
+				<< "	The cf_edges of size()= "<< mCFEdges.size() << "  \n"
+				<< "	The cf_points of size()= "<< mCFPoints.size() << "  \n"
+				<< "\n The geometry conformal model contains the following geometry: \n"
+				<< "	The cf_triPrisms of size()= "<< mCFTriPrisms.size() << "  \n"
+				<< "	The cf_triangles of size()= "<< mCFTriangles.size() << "  \n"
+				<< "	The cf_rectangles of size()= "<< mCFRectangles.size() << "  \n"
+				<< "	The cf_lines of size()= "<< mCFLines.size() << "  \n"
+				<< "	The cf_vertices of size()= "<< mCFVertices.size() << "  \n";
+		}
+		else /*do nothing*/;
 	} // writeToFile()
 
 	std::ostream& operator <<(std::ostream& stream, const cf_building_model& building)

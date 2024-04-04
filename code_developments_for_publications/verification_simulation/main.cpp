@@ -33,37 +33,37 @@ std::vector<bso::utilities::geometry::triangular_prism> pTP(bso::utilities::geom
 	std::vector<bso::utilities::geometry::vertex> rib3; // top two opposing ribs
 	std::vector<bso::utilities::geometry::vertex> rib4; // top two opposing ribs
 
-	rib1.push_back(verticesQH[0]); 
+	rib1.push_back(verticesQH[1]); 
 	for(int j=1; j<= nrPartitions; j++)
 	{
-		bso::utilities::geometry::vertex tempv = verticesQH[0] + ((verticesQH[1]-verticesQH[0]) / (nrPartitions+1)) * j;
+		bso::utilities::geometry::vertex tempv = verticesQH[1] + ((verticesQH[0]-verticesQH[1]) / (nrPartitions+1)) * j;
 		rib1.push_back(tempv); 
 	}
-	rib1.push_back(verticesQH[1]); 
+	rib1.push_back(verticesQH[0]); 
 
-	rib2.push_back(verticesQH[3]); 
+	rib2.push_back(verticesQH[2]); 
 	for(int j=1; j<= nrPartitions; j++)
 	{
-		bso::utilities::geometry::vertex tempv = verticesQH[3] + ((verticesQH[2]-verticesQH[3]) / (nrPartitions+1)) * j;
+		bso::utilities::geometry::vertex tempv = verticesQH[2] + ((verticesQH[3]-verticesQH[2]) / (nrPartitions+1)) * j;
 		rib2.push_back(tempv); 
 	}
-	rib2.push_back(verticesQH[2]); 
+	rib2.push_back(verticesQH[3]); 
 
-	rib3.push_back(verticesQH[4]); 
+	rib3.push_back(verticesQH[5]); 
 	for(int j=1; j<= nrPartitions; j++)
 	{
-		bso::utilities::geometry::vertex tempv = verticesQH[4] + ((verticesQH[5]-verticesQH[4]) / (nrPartitions+1)) * j;
+		bso::utilities::geometry::vertex tempv = verticesQH[5] + ((verticesQH[4]-verticesQH[5]) / (nrPartitions+1)) * j;
 		rib3.push_back(tempv); 
 	}
-	rib3.push_back(verticesQH[5]); 
+	rib3.push_back(verticesQH[4]); 
 
-	rib4.push_back(verticesQH[7]); 
+	rib4.push_back(verticesQH[6]); 
 	for(int j=1; j<= nrPartitions; j++)
 	{
-		bso::utilities::geometry::vertex tempv = verticesQH[7] + ((verticesQH[6]-verticesQH[7]) / (nrPartitions+1)) * j;
+		bso::utilities::geometry::vertex tempv = verticesQH[6] + ((verticesQH[7]-verticesQH[6]) / (nrPartitions+1)) * j;
 		rib4.push_back(tempv); 
 	}
-	rib4.push_back(verticesQH[6]); 
+	rib4.push_back(verticesQH[7]); 
 
 	// Add triangular prisms to pQuadHexahedron
 	for(int i=0; i<= nrPartitions; i++)
@@ -131,208 +131,907 @@ std::vector<bso::utilities::geometry::quad_hexahedron> pQH(bso::utilities::geome
 	return pQuadHexahedron;
 }
 
-/*
 // Function to subdivide a quad-hexahedron into multiple quad-hexahedrons
-std::vector<bso::utilities::geometry::quad_hexahedron> pQHbase(bso::utilities::geometry::quad_hexahedron QH, int nrPartitions)
+std::vector<bso::utilities::geometry::quad_hexahedron> pQHbase(bso::utilities::geometry::quad_hexahedron QH, int nrPartitions1, int nrPartitions2)
 {	
 	std::vector<bso::utilities::geometry::quad_hexahedron> pQuadHexahedron; 
 	std::vector<bso::utilities::geometry::vertex> verticesQH = QH.getVertices();
 
-	// Define all relevant vertices of future quad-hexahedrons along the four opposing ribs
-	std::vector<bso::utilities::geometry::vertex> rib1; // lower two opposing ribs
-	std::vector<bso::utilities::geometry::vertex> rib2; // lower two opposing ribs
-	std::vector<bso::utilities::geometry::vertex> rib3; // top two opposing ribs
-	std::vector<bso::utilities::geometry::vertex> rib4; // top two opposing ribs
-	std::vector<bso::utilities::geometry::vertex> rib5; // lower two opposing ribs
-	std::vector<bso::utilities::geometry::vertex> rib6; // lower two opposing ribs
-	std::vector<bso::utilities::geometry::vertex> rib7; // top two opposing ribs
-	std::vector<bso::utilities::geometry::vertex> rib8; // top two opposing ribs
-
-	rib1.push_back(verticesQH[0]); 
-	for(int j=1; j<= nrPartitions; j++)
-	{
-		bso::utilities::geometry::vertex tempv = verticesQH[0] + ((verticesQH[1]-verticesQH[0]) / (nrPartitions+1)) * j;
-		rib1.push_back(tempv); 
-	}
-	rib1.push_back(verticesQH[1]); 
-
-	rib2.push_back(verticesQH[3]); 
-	for(int j=1; j<= nrPartitions; j++)
-	{
-		bso::utilities::geometry::vertex tempv = verticesQH[3] + ((verticesQH[2]-verticesQH[3]) / (nrPartitions+1)) * j;
-		rib2.push_back(tempv); 
-	}
-	rib2.push_back(verticesQH[2]); 
-
-	rib3.push_back(verticesQH[4]); 
-	for(int j=1; j<= nrPartitions; j++)
-	{
-		bso::utilities::geometry::vertex tempv = verticesQH[4] + ((verticesQH[5]-verticesQH[4]) / (nrPartitions+1)) * j;
-		rib3.push_back(tempv); 
-	}
-	rib3.push_back(verticesQH[5]); 
-
-	rib4.push_back(verticesQH[7]); 
-	for(int j=1; j<= nrPartitions; j++)
-	{
-		bso::utilities::geometry::vertex tempv = verticesQH[7] + ((verticesQH[6]-verticesQH[7]) / (nrPartitions+1)) * j;
-		rib4.push_back(tempv); 
-	}
-	rib4.push_back(verticesQH[6]); 
-
 	// Add quad-hexahedrons to pQuadHexahedron
-	for(int i=0; i<= nrPartitions; i++)
+	for(int i=0; i<= nrPartitions1; i++)
 	{
-		bso::utilities::geometry::quad_hexahedron temp1 = {{rib1[i]},{rib1[i+1]},{rib2[i]},{rib2[i+1]},{rib3[i]},{rib3[i+1]},{rib4[i]},{rib4[i+1]}};
-		pQuadHexahedron.push_back(temp1);
+		for(int j=0; j<= nrPartitions2; j++)
+		{
+			bso::utilities::geometry::vertex temp1 = verticesQH[0] + ((verticesQH[1]-verticesQH[0]) / (nrPartitions1+1)) * i + ((verticesQH[3]-verticesQH[0]) / (nrPartitions2+1)) * j;
+			bso::utilities::geometry::vertex temp2 = verticesQH[0] + ((verticesQH[1]-verticesQH[0]) / (nrPartitions1+1)) * (i+1) + ((verticesQH[3]-verticesQH[0]) / (nrPartitions2+1)) * (j);
+			bso::utilities::geometry::vertex temp3 = verticesQH[0] + ((verticesQH[1]-verticesQH[0]) / (nrPartitions1+1)) * (i+1) + ((verticesQH[3]-verticesQH[0]) / (nrPartitions2+1)) * (j+1);
+			bso::utilities::geometry::vertex temp4 = verticesQH[0] + ((verticesQH[1]-verticesQH[0]) / (nrPartitions1+1)) * (i) + ((verticesQH[3]-verticesQH[0]) / (nrPartitions2+1)) * (j+1);
+			bso::utilities::geometry::vertex temp5 = verticesQH[4] + ((verticesQH[5]-verticesQH[4]) / (nrPartitions1+1)) * i + ((verticesQH[7]-verticesQH[4]) / (nrPartitions2+1)) * j;
+			bso::utilities::geometry::vertex temp6 = verticesQH[4] + ((verticesQH[5]-verticesQH[4]) / (nrPartitions1+1)) * (i+1) + ((verticesQH[7]-verticesQH[4]) / (nrPartitions2+1)) * (j);
+			bso::utilities::geometry::vertex temp7 = verticesQH[4] + ((verticesQH[5]-verticesQH[4]) / (nrPartitions1+1)) * (i+1) + ((verticesQH[7]-verticesQH[4]) / (nrPartitions2+1)) * (j+1);
+			bso::utilities::geometry::vertex temp8 = verticesQH[4] + ((verticesQH[5]-verticesQH[4]) / (nrPartitions1+1)) * (i) + ((verticesQH[7]-verticesQH[4]) / (nrPartitions2+1)) * (j+1);
+			bso::utilities::geometry::quad_hexahedron tempQuadHexa = {temp1,temp2,temp3,temp4,temp5,temp6,temp7,temp8};
+			pQuadHexahedron.push_back(tempQuadHexa);
+		}
 	}
 
 	return pQuadHexahedron;
 }
-*/
+
 
 using namespace bso;
 int main(int argc, char* argv[])
 {
 	std::cout.precision(17); //this precision only counts with cout not with the error message handling used in the toolbox
 
+	// Toggle which results are requested:
+	bool partitionIncreaseResult = false;
+	bool partitionIncreaseResultRec = false;
+	bool baseLineResults = false;
+	bool meshConvergencePerPartitionSizeTP = false;
+	bool meshConvergencePerPartitionSizeQH = false;
+	bool partitionShift = false;
+	bool fullBuilding = true;
+	bool NOBSDbuilding = false;
+	
+	// Set variables used for studies
 	int nrPartitions = 5; // Partitions subdivided to opposing sides with the generation of triangular prisms in between
+	int nrMeshSteps = 15; // Amount of steps taken in mesh studies
+	int nrMeshStepsFullBuilding = 8; // Amount of steps taken in mesh studies
+	double tol = 0.001;	
+	std::vector<int> nrPartitionsSteps = {{0},{3},{5},{10},{20},{30}};
+	std::vector<int> nrPartitionsStepsRec = {{0},{1},{2},{3},{4}};
+	std::vector<int> ratioSteps = {{1},{3},{5},{10},{20},{30}};
 
-	// Generate triangular prism conformal models
-	std::vector<bso::spatial_design::cf_building*> CFTP;
+	// Initialize visualization for future different models
+	bso::visualization::initVisualization(argc, argv);
+	out("Started visualizations",true,true,true);
+
+	// Generate base ms model for NOBSD 
 	bso::spatial_design::ms_N_building ms1("design_1");
+	bso::visualization::visualize(ms1);
 	out("Created an MS model",true,true,true);
-	for(int i=0; i< nrPartitions; i++)
+
+	// Setup the data stream:
+	std::ofstream allFile;
+
+
+	if(partitionIncreaseResult)
+	{
+		std::vector<bso::spatial_design::cf_building*> CFTP;
+		for(int i=0; i< nrPartitions; i++)
+		{	
+			// get triangular prism within space
+			bso::spatial_design::ms_space* space = (ms1.getSpacePtrs())[0];
+			bso::utilities::geometry::quad_hexahedron quadToPartition = space->getGeometry();
+			std::vector<bso::utilities::geometry::triangular_prism> tempTP = pTP(quadToPartition, i);
+			out("Get triangular prisms within space",true,true,true);
+
+			// Generate conformal geometry
+			CFTP.push_back(new bso::spatial_design::cf_building(ms1, tol, false));
+			out("Created an CF model",true,true,true);
+			CFTP.back()->addSpaceD((*(ms1.getSpacePtrs())[0]), tempTP);
+			out("Added all spaces with triangular prisms to CF model",true,true,true);
+		}
+		bso::spatial_design::cf_building* lastCFTP = CFTP.back();
+		bso::visualization::visualize(*lastCFTP,"triangular_prism");
+		
+		// Setup the data files:
+		allFile.open ("TP_SD_mesh_4", std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "ConformalGeom nrPartitions SDResult" << std::endl;
+			allFile.close();
+
+		allFile.open ("TP_SD_mesh_12", std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "ConformalGeom nrPartitions SDResult" << std::endl;
+			allFile.close();
+
+		// Write data to files:
+		std::cout << "TP conformal geometry results: " << std::endl;
+		for(int i=0; i<CFTP.size(); i++)
+		{
+			bso::grammar::grammar gram1(*(CFTP[i]));
+			out("Created an TP GRAM model",true,true,true);
+			bso::structural_design::sd_model SDTP = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string("settings/sd_settings.txt"));
+			out("Created an TP SD model",true,true,true);
+			SDTP.analyze();
+			out("Analyzed an TP SD model",true,true,true);
+			std::cout << "Structural compliance: " << SDTP.getTotalResults().mTotalStrainEnergy << "iteration i: " << i << std::endl;
+
+			allFile.open ("TP_SD_mesh_4", std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "TP " << i << " " << std::setprecision(16) << SDTP.getTotalResults().mTotalStrainEnergy << std::endl;
+			allFile.close();
+
+			if(i == 0) 
+			{
+				bso::visualization::visualize(SDTP,"component");
+				bso::visualization::visualize(SDTP,"element");
+			}
+			if(i == CFTP.size()-1) 
+			{
+				bso::visualization::visualize(SDTP,"component");
+				bso::visualization::visualize(SDTP,"element");	
+			}
+		}
+
+		// Write data to files:
+		std::cout << "TP conformal geometry results: " << std::endl;
+		for(int i=0; i<CFTP.size(); i++)
+		{
+			bso::grammar::grammar gram1(*(CFTP[i]));
+			out("Created an TP mesh GRAM model",true,true,true);
+			bso::structural_design::sd_model SDTPMesh12 = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string("settings/sd_settings_5.txt"));
+			out("Created an TP mesh SD model",true,true,true);
+			SDTPMesh12.analyze();
+			out("Analyzed an TP mesh SD model",true,true,true);
+			std::cout << "Structural compliance: " << SDTPMesh12.getTotalResults().mTotalStrainEnergy << "iteration i: " << i << std::endl;
+
+			allFile.open ("TP_SD_mesh_12", std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "TP " << i << " " << std::setprecision(16) << SDTPMesh12.getTotalResults().mTotalStrainEnergy << std::endl;
+			allFile.close();
+
+			if(i == 0) 
+			{
+				bso::visualization::visualize(SDTPMesh12,"component");
+				bso::visualization::visualize(SDTPMesh12,"element");
+			}
+			if(i == CFTP.size()-1) 
+			{
+				bso::visualization::visualize(SDTPMesh12,"component");
+				bso::visualization::visualize(SDTPMesh12,"element");	
+			}
+		}
+	}
+
+	if(baseLineResults)
 	{	
-		// get triangular prism within space
+		bso::spatial_design::cf_building cfTpBase(ms1,tol); //Generate the basic conformal geometry
+		out("Generated base CF model",true,true,true);
+		bso::visualization::visualize(cfTpBase,"triangular_prism");
+		out("Visualized base CF model",true,true,true);
+		
+		// Setup data file
+		allFile.open ("TP_SD_mesh_dif", std::fstream::in | std::fstream::out | std::fstream::app);
+		allFile << "ConformalGeom meshSize SDResult" << std::endl;
+		allFile.close();
+
+		// Write data to files:
+		std::cout << "TP mesh size difference results: " << std::endl;
+		for(int i=0; i<nrMeshSteps; i++)
+		{
+			bso::grammar::grammar gram1(cfTpBase);
+			out("Created an TP mesh dif GRAM model",true,true,true);
+
+			std::string base = "settings/sd_settings_";
+			std::string integer = std::to_string(i);
+			std::string end = ".txt";
+			std::string settingFile = base + integer +end;	
+
+			bso::structural_design::sd_model SDTPmesh = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string(settingFile));
+			out("Created an TP mesh dif SD model",true,true,true);
+			SDTPmesh.analyze();
+			out("Analyzed an TP mesh dif SD model",true,true,true);
+			std::cout << "Structural compliance: " << SDTPmesh.getTotalResults().mTotalStrainEnergy << "iteration i: " << i  << std::endl;
+
+			allFile.open ("TP_SD_mesh_dif", std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "TP " << 2+i*2 << " " << std::setprecision(16) << SDTPmesh.getTotalResults().mTotalStrainEnergy << std::endl;
+			allFile.close();
+
+
+			if(i == 0) 
+			{
+				bso::visualization::visualize(SDTPmesh,"component");
+				bso::visualization::visualize(SDTPmesh,"element");
+			}
+			if(i == nrMeshSteps-1) 
+			{
+				bso::visualization::visualize(SDTPmesh,"component");
+				bso::visualization::visualize(SDTPmesh,"element");	
+			}	
+		}
+	}
+	
+	if(meshConvergencePerPartitionSizeTP)
+	{
+		for(const int i: nrPartitionsSteps)
+		{
+			// Generate conformal geometry
+			bso::spatial_design::ms_space* space = (ms1.getSpacePtrs())[0];
+			bso::utilities::geometry::quad_hexahedron quadToPartition = space->getGeometry();
+			std::vector<bso::utilities::geometry::triangular_prism> tempTP = pTP(quadToPartition, i);
+			out("Get triangular prisms within space",true,true,true);
+
+			// Generate conformal geometry
+			bso::spatial_design::cf_building CFTP(ms1, tol, false);
+			out("Created an CF model",true,true,true);
+			CFTP.addSpaceD((*(ms1.getSpacePtrs())[0]), tempTP);
+			out("Added all spaces with triangular prisms to CF model",true,true,true);
+			bso::visualization::visualize(CFTP,"triangular_prism");
+			out("Visualized CF model",true,true,true);
+			
+			// Generate result file name
+			std::string file = "TP_SD_mesh_dif_partition";
+			std::string integer = std::to_string(i);
+			std::string fileName = file + integer;	
+
+			// Setup result file
+			allFile.open (fileName, std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "ConformalGeom meshSize SDResult" << std::endl;
+			allFile.close();
+			
+			// Generate convergence study results
+			for(int i=0; i<nrMeshSteps; i++)
+			{
+				bso::grammar::grammar gram1(CFTP);
+				out("Created an TP GRAM model",true,true,true);
+
+				std::string base = "settings/sd_settings_";
+				std::string integer = std::to_string(i);
+				std::string end = ".txt";
+				std::string settingFile = base + integer +end;	
+
+				bso::structural_design::sd_model SDTPmesh = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string(settingFile));
+				out("Created an TP SD model",true,true,true);		
+				
+				SDTPmesh.analyze();
+				out("Analyzed an TP SD model",true,true,true);
+				std::cout << "Structural compliance: " << SDTPmesh.getTotalResults().mTotalStrainEnergy << "iteration i: " << i << std::endl;
+
+				allFile.open (fileName, std::fstream::in | std::fstream::out | std::fstream::app);
+				allFile << "TP " << 2+i*2 << " " << std::setprecision(16) << SDTPmesh.getTotalResults().mTotalStrainEnergy << std::endl;
+				allFile.close();
+
+				if(true) //always visualize
+				{
+					bso::visualization::visualize(SDTPmesh,"component");
+					bso::visualization::visualize(SDTPmesh,"element");
+					continue;
+				}
+				if(i == 0) 
+				{
+					bso::visualization::visualize(SDTPmesh,"component");
+					bso::visualization::visualize(SDTPmesh,"element");
+				}
+				if(i == nrMeshSteps-1) 
+				{
+					bso::visualization::visualize(SDTPmesh,"component");
+					bso::visualization::visualize(SDTPmesh,"element");	
+				}
+			}
+		}
+	}
+
+	if(partitionShift)
+	{
+		// Generate conformal geometry
 		bso::spatial_design::ms_space* space = (ms1.getSpacePtrs())[0];
 		bso::utilities::geometry::quad_hexahedron quadToPartition = space->getGeometry();
-		std::vector<bso::utilities::geometry::triangular_prism> tempTP = pTP(quadToPartition, i);
-		out("Get triangular prisms within space",true,true,true);
+		std::vector<bso::utilities::geometry::vertex> verticesQH = quadToPartition.getVertices();
+		
+		for(const int i: ratioSteps)
+		{
+			int nrPartitions1 = i;
+			int nrPartitions2 = 0;
+			int j = 0;
+			bso::utilities::geometry::vertex temp1 = verticesQH[0] + ((verticesQH[1]-verticesQH[0]) / (nrPartitions1+1)) * i + ((verticesQH[3]-verticesQH[0]) / (nrPartitions2+1)) * j;
+			bso::utilities::geometry::vertex temp4 = verticesQH[0] + ((verticesQH[1]-verticesQH[0]) / (nrPartitions1+1)) * (i) + ((verticesQH[3]-verticesQH[0]) / (nrPartitions2+1)) * (j+1);
+			bso::utilities::geometry::vertex temp5 = verticesQH[4] + ((verticesQH[5]-verticesQH[4]) / (nrPartitions1+1)) * i + ((verticesQH[7]-verticesQH[4]) / (nrPartitions2+1)) * j;
+			bso::utilities::geometry::vertex temp8 = verticesQH[4] + ((verticesQH[5]-verticesQH[4]) / (nrPartitions1+1)) * (i) + ((verticesQH[7]-verticesQH[4]) / (nrPartitions2+1)) * (j+1);
+			bso::utilities::geometry::quad_hexahedron tempQuadHexa1 = {temp1,verticesQH[0],verticesQH[3],temp4,temp5,verticesQH[4],verticesQH[7],temp8};
+			bso::utilities::geometry::quad_hexahedron tempQuadHexa2 = {temp1,verticesQH[1],verticesQH[2],temp4,temp5,verticesQH[5],verticesQH[6],temp8};
+			
+			std::vector<bso::utilities::geometry::triangular_prism> tempTP1 = pTP(tempQuadHexa1, j);
+			std::vector<bso::utilities::geometry::triangular_prism> tempTP2 = pTP(tempQuadHexa2, j);
+			std::vector<bso::utilities::geometry::triangular_prism> tempTP;
+			for(const auto k: tempTP1) tempTP.push_back(k);
+			for(const auto k: tempTP2) tempTP.push_back(k);
+			out("Get triangular prisms within space",true,true,true);
 
-		// Generate conformal geometry
-		double tol = 0.001;		
-		CFTP.push_back(new bso::spatial_design::cf_building(ms1, tol, false));
-		out("Created an CF model",true,true,true);
-		CFTP.back()->addSpaceD((*(ms1.getSpacePtrs())[0]), tempTP);
-		out("Added all spaces with triangular prisms to CF model",true,true,true);
+			// Generate conformal geometry
+			bso::spatial_design::cf_building CFTP(ms1, tol, false);
+			out("Created an CF model",true,true,true);
+			CFTP.addSpaceD((*(ms1.getSpacePtrs())[0]), tempTP);
+			out("Added all spaces with triangular prisms to CF model",true,true,true);
+			bso::visualization::visualize(CFTP,"triangular_prism");
+			out("Visualized CF model",true,true,true);
+			
+			// Generate result file name
+			std::string file = "TP_SD_mesh_dif_ratioStep";
+			std::string integer = std::to_string(i);
+			std::string fileName = file + integer;	
+
+			// Setup result file
+			allFile.open (fileName, std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "ConformalGeom meshSize SDResult" << std::endl;
+			allFile.close();
+			
+			// Generate convergence study results
+			for(int i=0; i<nrMeshSteps; i++)
+			{
+				bso::grammar::grammar gram1(CFTP);
+				out("Created an TP GRAM model",true,true,true);
+
+				std::string base = "settings/sd_settings_";
+				std::string integer = std::to_string(i);
+				std::string end = ".txt";
+				std::string settingFile = base + integer +end;	
+
+				bso::structural_design::sd_model SDTPmesh = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string(settingFile));
+				out("Created an TP SD model",true,true,true);		
+				
+				SDTPmesh.analyze();
+				out("Analyzed an TP SD model",true,true,true);
+				std::cout << "Structural compliance: " << SDTPmesh.getTotalResults().mTotalStrainEnergy << "iteration i: " << i << std::endl;
+
+				allFile.open (fileName, std::fstream::in | std::fstream::out | std::fstream::app);
+				allFile << "TP " << 2+i*2 << " " << std::setprecision(16) << SDTPmesh.getTotalResults().mTotalStrainEnergy << std::endl;
+				allFile.close();
+
+				if(true) //always visualize
+				{
+					bso::visualization::visualize(SDTPmesh,"component");
+					bso::visualization::visualize(SDTPmesh,"element");
+					continue;
+				}
+				if(i == 0) 
+				{
+					bso::visualization::visualize(SDTPmesh,"component");
+					bso::visualization::visualize(SDTPmesh,"element");
+				}
+				if(i == nrMeshSteps-1) 
+				{
+					bso::visualization::visualize(SDTPmesh,"component");
+					bso::visualization::visualize(SDTPmesh,"element");	
+				}
+			}
+		}
 	}
 
 	// Generate quad-hexahedron conformal models
 	bso::spatial_design::ms_building ms2("design_2");
-	std::vector<bso::spatial_design::cf_building*> CFQH;
+	bso::visualization::visualize(ms2);
 	out("Created an MS model",true,true,true);
-	for(int i=0; i< nrPartitions; i++)
-	{	
-		// get quad-hexahedrons within space
+
+	if(partitionIncreaseResult)
+	{
+		std::vector<bso::spatial_design::cf_building*> CFQH;
+		for(int i=0; i< nrPartitions; i++)
+		{	
+			// get quad-hexahedrons within space
+			bso::spatial_design::ms_space* space = (ms2.getSpacePtrs())[0];
+			bso::utilities::geometry::quad_hexahedron quadToPartition = space->getGeometry();
+			std::vector<bso::utilities::geometry::quad_hexahedron> tempQH = pQH(quadToPartition, i);
+			out("get quad-hexahedrons within space",true,true,true);
+
+			// Generate conformal geometry		
+			CFQH.push_back(new bso::spatial_design::cf_building(ms2, tol, false));
+			out("Created an CF model",true,true,true);
+			CFQH.back()->addSpace((*(ms2.getSpacePtrs())[0]), tempQH);
+			out("Added all spaces with cuboids to CF model",true,true,true);
+		}
+		bso::spatial_design::cf_building* lastCFQH = CFQH.back();
+		bso::visualization::visualize(*lastCFQH,"cuboid");
+		
+		// Setup the data files:
+		allFile.open ("QH_SD_mesh_4", std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "ConformalGeom nrPartitions SDResult" << std::endl;
+			allFile.close();
+
+		allFile.open ("QH_SD_mesh_12", std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "ConformalGeom nrPartitions SDResult" << std::endl;
+			allFile.close();
+
+		// Write data to files:
+		std::cout << "QH conformal geometry results: " << std::endl;
+		for(int i=0; i<CFQH.size(); i++)
+		{
+			bso::grammar::grammar gram1(*(CFQH[i]));
+			out("Created an QH GRAM model",true,true,true);
+			bso::structural_design::sd_model SDQH = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string("settings/sd_settings.txt"));
+			out("Created an QH SD model",true,true,true);
+			SDQH.analyze();
+			out("Analyzed an QH SD model",true,true,true);
+			std::cout << "Structural compliance: " << SDQH.getTotalResults().mTotalStrainEnergy << "iteration i: " << i << std::endl;
+
+			allFile.open ("QH_SD_mesh_4", std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "QH " << i << " " << std::setprecision(16) << SDQH.getTotalResults().mTotalStrainEnergy <<  std::endl;
+			allFile.close();
+
+			if(i == 0) 
+			{
+				bso::visualization::visualize(SDQH,"component");
+				bso::visualization::visualize(SDQH,"element");
+			}
+			if(i == CFQH.size()-1) 
+			{
+				bso::visualization::visualize(SDQH,"component");
+				bso::visualization::visualize(SDQH,"element");	
+			}	
+		}
+
+		// Write data to files:
+		std::cout << "QH conformal geometry results: " << std::endl;
+		for(int i=0; i<CFQH.size(); i++)
+		{
+			bso::grammar::grammar gram1(*(CFQH[i]));
+			out("Created an QH mesh GRAM model",true,true,true);
+			bso::structural_design::sd_model SDQHMesh12 = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string("settings/sd_settings_5.txt"));
+			out("Created an QH mesh SD model",true,true,true);
+			SDQHMesh12.analyze();
+			out("Analyzed an QH mesh SD model",true,true,true);
+			std::cout << "Structural compliance: " << SDQHMesh12.getTotalResults().mTotalStrainEnergy << "iteration i: " << i << std::endl;
+
+			allFile.open ("QH_SD_mesh_12", std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "QH " << i << " " << std::setprecision(16) << SDQHMesh12.getTotalResults().mTotalStrainEnergy <<  std::endl;
+			allFile.close();
+
+			if(i == 0) 
+			{
+				bso::visualization::visualize(SDQHMesh12,"component");
+				bso::visualization::visualize(SDQHMesh12,"element");
+			}
+			if(i == CFQH.size()-1) 
+			{
+				bso::visualization::visualize(SDQHMesh12,"component");
+				bso::visualization::visualize(SDQHMesh12,"element");	
+			}
+		}
+	}
+
+	if(partitionIncreaseResultRec)
+	{
+		for(const int i: nrPartitionsStepsRec)
+		{
+			// Generate conformal geometry
+			bso::spatial_design::ms_space* space = (ms2.getSpacePtrs())[0];
+			bso::utilities::geometry::quad_hexahedron quadToPartition = space->getGeometry();
+			std::vector<bso::utilities::geometry::quad_hexahedron> tempQH = pQHbase(quadToPartition, i, i);
+			out("Get triangular prisms within space",true,true,true);
+
+			// Generate conformal geometry
+			bso::spatial_design::cf_building CFQH(ms2, tol, false);
+			out("Created an CF model",true,true,true);
+			CFQH.addSpace((*(ms2.getSpacePtrs())[0]), tempQH);
+			out("Added all spaces with triangular prisms to CF model",true,true,true);
+			bso::visualization::visualize(CFQH,"cuboids");
+			out("Visualized CF model",true,true,true);
+			
+			// Generate result file name
+			std::string file = "QH_SD_mesh_dif_RecPartition";
+			std::string integer = std::to_string(i);
+			std::string fileName = file + integer;	
+
+			// Setup result file
+			allFile.open (fileName, std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "ConformalGeom meshSize SDResult" << std::endl;
+			allFile.close();
+			
+			// Generate convergence study results
+			for(int i=-1; i<nrMeshSteps; i++)
+			{
+				bso::grammar::grammar gram1(CFQH);
+				out("Created an QH GRAM model",true,true,true);
+
+				std::string base = "settings/sd_settings_";
+				std::string integer = std::to_string(i);
+				std::string end = ".txt";
+				std::string settingFile = base + integer +end;	
+
+				bso::structural_design::sd_model SDQH = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string(settingFile));
+				out("Created an QH SD model",true,true,true);		
+				
+				SDQH.analyze();
+				out("Analyzed an QH SD model",true,true,true);
+				std::cout << "Structural compliance: " << SDQH.getTotalResults().mTotalStrainEnergy << "iteration i: " << i << std::endl;
+
+				allFile.open (fileName, std::fstream::in | std::fstream::out | std::fstream::app);
+				allFile << "QH " << 2+i*2 << " " << std::setprecision(16) << SDQH.getTotalResults().mTotalStrainEnergy << std::endl;
+				allFile.close();
+
+				if(i == -1) 
+				{
+					bso::visualization::visualize(SDQH,"component");
+					bso::visualization::visualize(SDQH,"element");
+				}
+				if(i == nrMeshSteps-1) 
+				{
+					bso::visualization::visualize(SDQH,"component");
+					bso::visualization::visualize(SDQH,"element");	
+				}
+			}
+		}
+	}
+
+	if(baseLineResults)
+	{
+		bso::spatial_design::cf_building cfQHBase(ms2,tol); //Generate the basic conformal geometry
+		out("Generated base CF model",true,true,true);
+		bso::visualization::visualize(cfQHBase,"cuboid");
+		out("Visualized base CF model",true,true,true);
+		
+		// Setup the data files:
+		allFile.open ("QH_SD_mesh_dif", std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "ConformalGeom meshSize SDResult" << std::endl;
+			allFile.close();
+
+		// Write data to files:
+		std::cout << "QH mesh size difference results: " << std::endl;
+		for(int i=0; i<nrMeshSteps; i++)
+		{
+			bso::grammar::grammar gram1(cfQHBase);
+			out("Created an QH mesh dif GRAM model",true,true,true);
+
+			std::string base = "settings/sd_settings_";
+			std::string integer = std::to_string(i);
+			std::string end = ".txt";
+			std::string settingFile = base + integer +end;	
+
+			bso::structural_design::sd_model SDQHmesh = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string(settingFile));
+			out("Created an QH mesh dif SD model",true,true,true);
+			SDQHmesh.analyze();
+			out("Analyzed an QH mesh dif SD model",true,true,true);
+			std::cout << "Structural compliance: " << SDQHmesh.getTotalResults().mTotalStrainEnergy << "iteration i: " << i << std::endl;
+
+			allFile.open ("QH_SD_mesh_dif", std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "QH " << 2+i*2 << " " << std::setprecision(16) << SDQHmesh.getTotalResults().mTotalStrainEnergy << std::endl;
+			allFile.close();
+
+			if(i == 0) 
+			{
+				bso::visualization::visualize(SDQHmesh,"component");
+				bso::visualization::visualize(SDQHmesh,"element");
+			}
+			if(i == nrMeshSteps-1) 
+			{
+				bso::visualization::visualize(SDQHmesh,"component");
+				bso::visualization::visualize(SDQHmesh,"element");	
+			}
+		}
+	}
+
+	if(meshConvergencePerPartitionSizeQH)
+	{
+		for(const int i: nrPartitionsSteps)
+		{
+			// Generate conformal geometry
+			bso::spatial_design::ms_space* space = (ms2.getSpacePtrs())[0];
+			bso::utilities::geometry::quad_hexahedron quadToPartition = space->getGeometry();
+			std::vector<bso::utilities::geometry::quad_hexahedron> tempQH = pQH(quadToPartition, i);
+			out("Get triangular prisms within space",true,true,true);
+
+			// Generate conformal geometry
+			bso::spatial_design::cf_building CFQH(ms2, tol, false);
+			out("Created an CF model",true,true,true);
+			CFQH.addSpace((*(ms2.getSpacePtrs())[0]), tempQH);
+			out("Added all spaces with quad-hexahedrons to CF model",true,true,true);
+			bso::visualization::visualize(CFQH,"cuboids");
+			out("Visualized CF model",true,true,true);
+			
+			// Generate result file name
+			std::string file = "QH_SD_mesh_dif_partition";
+			std::string integer = std::to_string(i);
+			std::string fileName = file + integer;	
+
+			// Setup result file
+			allFile.open (fileName, std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "ConformalGeom meshSize SDResult" << std::endl;
+			allFile.close();
+			
+			// Generate convergence study results
+			for(int i=-1; i<nrMeshSteps; i++)
+			{
+				bso::grammar::grammar gram1(CFQH);
+				out("Created an QH GRAM model",true,true,true);
+
+				std::string base = "settings/sd_settings_";
+				std::string integer = std::to_string(i);
+				std::string end = ".txt";
+				std::string settingFile = base + integer +end;	
+
+				bso::structural_design::sd_model SDQH = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string(settingFile));
+				out("Created an QH SD model",true,true,true);		
+				
+				SDQH.analyze();
+				out("Analyzed an QH SD model",true,true,true);
+				std::cout << "Structural compliance: " << SDQH.getTotalResults().mTotalStrainEnergy << "iteration i: " << i << std::endl;
+
+				allFile.open (fileName, std::fstream::in | std::fstream::out | std::fstream::app);
+				allFile << "QH " << 2+i*2 << " " << std::setprecision(16) << SDQH.getTotalResults().mTotalStrainEnergy << std::endl;
+				allFile.close();
+
+				if(true) //always visualize
+				{
+					bso::visualization::visualize(SDQH,"component");
+					bso::visualization::visualize(SDQH,"element");
+					continue;
+				}
+				if(i == -1) 
+				{
+					bso::visualization::visualize(SDQH,"component");
+					bso::visualization::visualize(SDQH,"element");
+				}
+				if(i == nrMeshSteps-1) 
+				{
+					bso::visualization::visualize(SDQH,"component");
+					bso::visualization::visualize(SDQH,"element");	
+				}
+			}
+		}
+	}
+
+	if(partitionShift)
+	{
+		// Generate conformal geometry
 		bso::spatial_design::ms_space* space = (ms2.getSpacePtrs())[0];
 		bso::utilities::geometry::quad_hexahedron quadToPartition = space->getGeometry();
-		std::vector<bso::utilities::geometry::quad_hexahedron> tempQH = pQH(quadToPartition, i);
-		out("get quad-hexahedrons within space",true,true,true);
+		std::vector<bso::utilities::geometry::vertex> verticesQH = quadToPartition.getVertices();
 
-		// Generate conformal geometry		
-		double tol = 0.001;
-		CFQH.push_back(new bso::spatial_design::cf_building(ms2, tol, false));
+		for(const int i: ratioSteps)
+		{
+			int nrPartitions1 = i;
+			int nrPartitions2 = 0;
+			int j = 0;
+			bso::utilities::geometry::vertex temp1 = verticesQH[0] + ((verticesQH[1]-verticesQH[0]) / (nrPartitions1+1)) * i + ((verticesQH[3]-verticesQH[0]) / (nrPartitions2+1)) * j;
+			bso::utilities::geometry::vertex temp4 = verticesQH[0] + ((verticesQH[1]-verticesQH[0]) / (nrPartitions1+1)) * (i) + ((verticesQH[3]-verticesQH[0]) / (nrPartitions2+1)) * (j+1);
+			bso::utilities::geometry::vertex temp5 = verticesQH[4] + ((verticesQH[5]-verticesQH[4]) / (nrPartitions1+1)) * i + ((verticesQH[7]-verticesQH[4]) / (nrPartitions2+1)) * j;
+			bso::utilities::geometry::vertex temp8 = verticesQH[4] + ((verticesQH[5]-verticesQH[4]) / (nrPartitions1+1)) * (i) + ((verticesQH[7]-verticesQH[4]) / (nrPartitions2+1)) * (j+1);
+			bso::utilities::geometry::quad_hexahedron tempQuadHexa1 = {temp1,verticesQH[0],verticesQH[3],temp4,temp5,verticesQH[4],verticesQH[7],temp8};
+			bso::utilities::geometry::quad_hexahedron tempQuadHexa2 = {temp1,verticesQH[1],verticesQH[2],temp4,temp5,verticesQH[5],verticesQH[6],temp8};
+			
+			std::vector<bso::utilities::geometry::quad_hexahedron> tempQH;
+			tempQH.push_back(tempQuadHexa1);
+			tempQH.push_back(tempQuadHexa2);
+			out("Get triangular prisms within space",true,true,true);
+
+			// Generate conformal geometry
+			bso::spatial_design::cf_building CFQH(ms2, tol, false);
+			out("Created an CF model",true,true,true);
+			CFQH.addSpace((*(ms2.getSpacePtrs())[0]), tempQH);
+			out("Added all spaces with quad-hexahedrons to CF model",true,true,true);
+			bso::visualization::visualize(CFQH,"triangular_prism");
+			out("Visualized CF model",true,true,true);
+			
+			// Generate result file name
+			std::string file = "QH_QH_mesh_dif_ratioStep";
+			std::string integer = std::to_string(i);
+			std::string fileName = file + integer;	
+
+			// Setup result file
+			allFile.open (fileName, std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "ConformalGeom meshSize SDResult" << std::endl;
+			allFile.close();
+			
+			// Generate convergence study results
+			for(int i=-1; i<nrMeshSteps; i++)
+			{
+				bso::grammar::grammar gram1(CFQH);
+				out("Created an QH GRAM model",true,true,true);
+
+				std::string base = "settings/sd_settings_";
+				std::string integer = std::to_string(i);
+				std::string end = ".txt";
+				std::string settingFile = base + integer +end;	
+
+				bso::structural_design::sd_model SDQHmesh = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string(settingFile));
+				out("Created an QH SD model",true,true,true);		
+				
+				SDQHmesh.analyze();
+				out("Analyzed an QH SD model",true,true,true);
+				std::cout << "Structural compliance: " << SDQHmesh.getTotalResults().mTotalStrainEnergy << "iteration i: " << i << std::endl;
+
+				allFile.open (fileName, std::fstream::in | std::fstream::out | std::fstream::app);
+				allFile << "QH " << 2+i*2 << " " << std::setprecision(16) << SDQHmesh.getTotalResults().mTotalStrainEnergy << std::endl;
+				allFile.close();
+
+				if(true) //always visualize
+				{
+					bso::visualization::visualize(SDQHmesh,"component");
+					bso::visualization::visualize(SDQHmesh,"element");
+					continue;
+				}
+				if(i == 0) 
+				{
+					bso::visualization::visualize(SDQHmesh,"component");
+					bso::visualization::visualize(SDQHmesh,"element");
+				}
+				if(i == nrMeshSteps-1) 
+				{
+					bso::visualization::visualize(SDQHmesh,"component");
+					bso::visualization::visualize(SDQHmesh,"element");	
+				}
+			}
+		}
+	}
+
+
+	// Mesh convergence study of a full building
+	if(fullBuilding)
+	{
+		// Generate conformal models
+		// TP method
+		bso::spatial_design::ms_N_building ms3("design_3");
+		bso::visualization::visualize(ms3);
+		out("Created an MS model",true,true,true);
+		bso::spatial_design::cf_building CFTP(ms3, tol);
 		out("Created an CF model",true,true,true);
-		CFTP.back()->addSpace((*(ms2.getSpacePtrs())[0]), tempQH);
-		out("Added all spaces with cuboids to CF model",true,true,true);
+
+		// QH method
+		bso::spatial_design::ms_building ms4("design_4");
+		bso::visualization::visualize(ms4);
+		out("Created an MS model",true,true,true);
+		bso::spatial_design::cf_building CFQH(ms4, tol);
+		out("Created an CF model",true,true,true);
+
+		// Generate result file name
+		std::string fileName1 = "TP_mesh_dif_full_building";
+
+		// Setup result file
+		allFile.open (fileName1, std::fstream::in | std::fstream::out | std::fstream::app);
+		allFile << "ConformalGeom meshSize SDResult" << std::endl;
+		allFile.close();
+		
+		// Generate convergence study results
+		for(int i=0; i<nrMeshStepsFullBuilding; i++)
+		{
+			bso::grammar::grammar gram1(CFTP);
+			out("Created an TP GRAM model",true,true,true);
+
+			std::string base = "settings/sd_settings_";
+			std::string integer = std::to_string(i);
+			std::string end = ".txt";
+			std::string settingFile = base + integer + end;	
+			
+			bso::structural_design::sd_model SDTPmesh = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string(settingFile));
+			out("Created an TP SD model",true,true,true);		
+			
+			SDTPmesh.analyze();
+			out("Analyzed an TP SD model",true,true,true);
+			std::cout << "Structural compliance: " << SDTPmesh.getTotalResults().mTotalStrainEnergy << "iteration i: " << i << std::endl;
+
+			allFile.open (fileName1, std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "TP " << 2+i*2 << " " << std::setprecision(16) << SDTPmesh.getTotalResults().mTotalStrainEnergy << std::endl;
+			allFile.close();
+
+			if(false) //always visualize
+			{
+				bso::visualization::visualize(SDTPmesh,"component");
+				bso::visualization::visualize(SDTPmesh,"element");
+				continue;
+			}
+			if(i == 0) 
+			{
+				bso::visualization::visualize(SDTPmesh,"component");
+				bso::visualization::visualize(SDTPmesh,"element");
+			}
+			if(i == nrMeshStepsFullBuilding-1) 
+			{
+				bso::visualization::visualize(SDTPmesh,"component");
+				bso::visualization::visualize(SDTPmesh,"element");	
+			}
+		}
+
+		// Generate result file name
+		std::string fileName2 = "QH_mesh_dif_full_building";
+
+		// Setup result file
+		allFile.open (fileName2, std::fstream::in | std::fstream::out | std::fstream::app);
+		allFile << "ConformalGeom meshSize SDResult" << std::endl;
+		allFile.close();
+		
+		// Generate convergence study results
+		for(int i=0; i<nrMeshStepsFullBuilding; i++)
+		{
+			bso::grammar::grammar gram1(CFQH);
+			out("Created an QH GRAM model",true,true,true);
+
+			std::string base = "settings/sd_settings_";
+			std::string integer = std::to_string(i);
+			std::string end = ".txt";
+			std::string settingFile = base + integer + end;	
+
+			bso::structural_design::sd_model SDQHmesh = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string(settingFile));
+			out("Created an QH SD model",true,true,true);		
+			
+			SDQHmesh.analyze();
+			out("Analyzed an QH SD model",true,true,true);
+			std::cout << "Structural compliance: " << SDQHmesh.getTotalResults().mTotalStrainEnergy << "iteration i: " << i << std::endl;
+
+			allFile.open (fileName2, std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "QH " << 2+i*2 << " " << std::setprecision(16) << SDQHmesh.getTotalResults().mTotalStrainEnergy << std::endl;
+			allFile.close();
+
+			if(false) //always visualize
+			{
+				bso::visualization::visualize(SDQHmesh,"component");
+				bso::visualization::visualize(SDQHmesh,"element");
+				continue;
+			}
+			if(i == 0) 
+			{
+				bso::visualization::visualize(SDQHmesh,"component");
+				bso::visualization::visualize(SDQHmesh,"element");
+			}
+			if(i == nrMeshStepsFullBuilding-1) 
+			{
+				bso::visualization::visualize(SDQHmesh,"component");
+				bso::visualization::visualize(SDQHmesh,"element");	
+			}
+		}
 	}
 
-	// // Generate quad-hexahedron conformal models for baseline SD approach
-	// bso::spatial_design::ms_building ms2("design_2");
-	// std::vector<bso::spatial_design::cf_building*> CFQHbase;
-	// for(int i=0; i< nrPartitions; i++)
-	// {	
-	// 	// get quad-hexahedrons within space
-	// 	bso::spatial_design::ms_space* space = (ms1.getSpacePtrs())[0];
-	// 	bso::utilities::geometry::quad_hexahedron quadToPartition = space->getGeometry();
-	// 	std::vector<bso::utilities::geometry::quad_hexahedron> tempQH = pQH(quadToPartition, i);
 
-	// 	// Generate conformal geometry		
-	// 	CFQHbase.push_back(new bso::spatial_design::cf_building(ms2));
-	// 	for(const auto j: tempQH)
-	// 	{
-	// 		CFQHbase.back()->addCuboid(j);
-	// 	}
-	// }
-
-	// Setup the data files:
-	std::ofstream allFile;
-	allFile.open ("TP_SD", std::fstream::in | std::fstream::out | std::fstream::app);
-		allFile << "ConformalGeom nrPartitions SDResult" << std::endl;
-		allFile.close();
-
-	allFile.open ("QH_SD", std::fstream::in | std::fstream::out | std::fstream::app);
-		allFile << "ConformalGeom nrPartitions SDResult" << std::endl;
-		allFile.close();
-
-	/*
-	// Write data to files:
-	std::cout << "TP conformal geometry results: " << std::endl;
-	std::vector<bso::structural_design::sd_model> SDTP;
-	for(int i=0; i<CFTP.size(); i++)
+	// Mesh convergence study of NOBSD
+	if(NOBSDbuilding)
 	{
-		*(CFTP[i]);
-		bso::grammar::grammar gram1(*(CFTP[i]));
-		out("Created an GRAM model",true,true,true);
-		SDTP.push_back(gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string("settings/sd_settings.txt")));
-		out("Created an SD model",true,true,true);
-		SDTP.back().analyze();
-		out("Analyzed an SD model",true,true,true);
-		std::cout << "Structural compliance: " << SDTP.back().getTotalResults().mTotalStrainEnergy << std::endl;
+		for(int i=301; i<=350; i++)
+		{
+			std::string name = "NOBSD/design_";
+			std::string integerdesign = std::to_string(i);
+			std::string designName = name + integerdesign;	
+			
+			bso::spatial_design::ms_N_building ms;
+			try
+			{
+				// Generate ms building
+				ms = bso::spatial_design::ms_N_building("NOBSD/design_3");
+				bso::visualization::visualize(ms);
+			}
+			catch(const std::exception& e)
+			{
+				continue;
+			}
 
-		allFile.open ("TP_SD", std::fstream::in | std::fstream::out | std::fstream::app);
-		allFile << "TP " << i << " " << std::setprecision(16) << SDTP.back().getTotalResults().mTotalStrainEnergy << std::endl;
-		allFile.close();
+			out("Created an MS model",true,true,true);
+			
+			// Generate conformal model
+			bso::spatial_design::cf_building CF(ms, tol);
+			out("Created an CF model",true,true,true);
+
+			// Generate result file name
+			std::string file = "mesh_dif_design_";
+			std::string integer = std::to_string(i);
+			std::string fileName = file + integer;	
+
+			// Setup result file
+			allFile.open (fileName, std::fstream::in | std::fstream::out | std::fstream::app);
+			allFile << "ConformalGeom meshSize SDResult" << std::endl;
+			allFile.close();
+			
+			// Generate convergence study results
+			for(int i=-1; i<nrMeshStepsFullBuilding; i++)
+			{
+				bso::grammar::grammar gram1(CF);
+				out("Created an TP GRAM model",true,true,true);
+
+				std::string base = "settings/sd_settings_";
+				std::string integer = std::to_string(i);
+				std::string end = ".txt";
+				std::string settingFile = base + integer +end;	
+
+				bso::structural_design::sd_model SDTP = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string(settingFile));
+				out("Created an TP SD model",true,true,true);		
+				
+				SDTP.analyze();
+				out("Analyzed an TP SD model",true,true,true);
+				std::cout << "Structural compliance: " << SDTP.getTotalResults().mTotalStrainEnergy << "iteration i: " << i << std::endl;
+
+				allFile.open (fileName, std::fstream::in | std::fstream::out | std::fstream::app);
+				allFile << "TP " << 2+i*2 << " " << std::setprecision(16) << SDTP.getTotalResults().mTotalStrainEnergy << std::endl;
+				allFile.close();
+
+				if(i == -1) 
+				{
+					bso::visualization::visualize(SDTP,"component");
+					bso::visualization::visualize(SDTP,"element");
+				}
+				if(i == nrMeshStepsFullBuilding-1) 
+				{
+					bso::visualization::visualize(SDTP,"component");
+					bso::visualization::visualize(SDTP,"element");	
+				}
+			}
+		}
 	}
-	
-	
-	std::cout << "QH conformal geometry results: " << std::endl;
-	std::vector<bso::structural_design::sd_model> SDQH;
-	for(int i=0; i<CFQH.size(); i++)
-	{
-		bso::grammar::grammar gram1(*(CFQH[i]));
-		out("Created an GRAM model",true,true,true);
-		SDQH.push_back(gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string("settings/sd_settings.txt")));
-		out("Created an SD model",true,true,true);
-		SDQH.back().analyze();
-		out("Analyzed an SD model",true,true,true);
-		std::cout << "Structural compliance: " << SDQH.back().getTotalResults().mTotalStrainEnergy << std::endl;
 
-		allFile.open ("QH_SD", std::fstream::in | std::fstream::out | std::fstream::app);
-		allFile << "QH " << i << " " << std::setprecision(16) << SDQH.back().getTotalResults().mTotalStrainEnergy << std::endl;
-		allFile.close();
-	}
-	*/
-
-	// visualize the different models
-	bso::visualization::initVisualization(argc, argv);
-	out("Started visualizations",true,true,true);
-	bso::visualization::visualize(ms1);
-	bso::visualization::visualize(ms2);
-	for(int i=0; i<CFTP.size(); i++) bso::visualization::visualize(*(CFTP[i]),"triangular_prism");
-	//for(int i=0; i<CFQH.size(); i++) bso::visualization::visualize(*(CFQH[i]),"cuboid");
-	//for(const auto i: SDTP) bso::visualization::visualize(i,"component");
-	//for(const auto i: SDQH) bso::visualization::visualize(i,"component");
-	//for(const auto i: SDTP) bso::visualization::visualize(i,"element");
-	//for(const auto i: SDQH) bso::visualization::visualize(i,"element");
-	out("Created all CF visualizations",true,true,true);
-
-	//bso::visualization::visualize(*(CFTP.back()),"triangular_prism");
-	//bso::grammar::grammar gram1(*(CFTP.back()));
-	//bso::structural_design::sd_model SD1 = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string("settings/sd_settings.txt"));
-	//bso::visualization::visualize(SD1,"component");
-	//out("Created SD1 component visualizations",true,true,true);
-	//bso::visualization::visualize(SD1,"element");
-	//out("Created SD1 element visualizations",true,true,true);
-
-	//bso::visualization::visualize(*(CFQH.back()),"cuboid");
-	//bso::grammar::grammar gram2(*(CFQH.back()));
-	//bso::structural_design::sd_model SD2 = gram2.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string("settings/sd_settings.txt"));
-	//bso::visualization::visualize(SD2,"component");
-	//out("Created SD1 component visualizations",true,true,true);
-	//bso::visualization::visualize(SD2,"element");
-	//out("Created SD1 element visualizations",true,true,true);
 
 	//bso::visualization::visualize(BP);
 	bso::visualization::endVisualization();
