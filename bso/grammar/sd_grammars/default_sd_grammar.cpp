@@ -154,14 +154,6 @@ bso::structural_design::sd_model grammar::sd_grammar<DEFAULT_SD_GRAMMAR>(const s
 				potentialStructures.push_back(SDRectangleRuleSearch->second->getStructure());
 			}
 		}
-		for (const auto& j : i.first->cfTriangles())
-		{ // for each rectangle that this line is associated with
-			auto SDTriangleRuleSearch = mSDTriangleRules.find(j);
-			if (SDTriangleRuleSearch != mSDTriangleRules.end())
-			{ // if that rectangle is associated with an sd rectangle rule, store its structural type
-				potentialStructures.push_back(SDTriangleRuleSearch->second->getStructure());
-			}
-		}
 
 		for (const auto& j : i.first->cfTriangles())
 		{ // for each triangle that this line is associated with
