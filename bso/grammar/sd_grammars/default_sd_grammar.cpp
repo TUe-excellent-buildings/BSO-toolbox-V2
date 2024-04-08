@@ -50,7 +50,7 @@ bso::structural_design::sd_model grammar::sd_grammar<DEFAULT_SD_GRAMMAR>(const s
 										 << ((i.second->isFloor())? "floor" : "wall") << ")\n"
 										 << "Has this type set been specified in the input file?: \""
 										 << fileName 
-										 << "Or is the design file incorrectly defined with an addition value? \""
+										 << "\nOr is the design file incorrectly defined with an addition value? \""
 										 <<"\"\n(bso/grammar/sd_grammars/default_sd_grammar.cpp)" 
 										 << std::endl;
 				throw std::runtime_error(errorMessage.str());
@@ -101,9 +101,9 @@ bso::structural_design::sd_model grammar::sd_grammar<DEFAULT_SD_GRAMMAR>(const s
 										 << "type settings: \"" << usedTypes.first << "\" - \"" 
 										 << usedTypes.second << "\" ("
 										 << ((i.second->isFloor())? "floor" : "wall") << ")\n"
-										 << "Has this type set been specified in the inputfile?: \""
+										 << "Has this type set been specified in the input file?: \""
 										 << fileName 
-										 << "Or is the design file incorrectly defined with an addition value? \""
+										 << "\nOr is the design file incorrectly defined with an addition value? \""
 										 << "\"\n(bso/grammar/sd_grammars/default_sd_grammar.cpp)" 
 										 << std::endl;
 				throw std::runtime_error(errorMessage.str());
