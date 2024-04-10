@@ -165,14 +165,14 @@ int main(int argc, char* argv[])
 	std::cout.precision(17); //this precision only counts with cout not with the error message handling used in the toolbox
 
 	// Toggle which results are requested:
-	bool partitionIncreaseResult = false;
-	bool partitionIncreaseResultRec = false;
-	bool baseLineResults = false;
-	bool meshConvergencePerPartitionSizeTP = false;
-	bool meshConvergencePerPartitionSizeQH = false;
-	bool partitionShift = false;
+	bool partitionIncreaseResult = true;
+	bool partitionIncreaseResultRec = true;
+	bool baseLineResults = true;
+	bool meshConvergencePerPartitionSizeTP = true;
+	bool meshConvergencePerPartitionSizeQH = true;
+	bool partitionShift = true;
 	bool fullBuilding = true;
-	bool NOBSDbuilding = false;
+	bool NOBSDbuilding = true;
 	
 	// Set variables used for studies
 	int nrPartitions = 5; // Partitions subdivided to opposing sides with the generation of triangular prisms in between
@@ -965,21 +965,17 @@ int main(int argc, char* argv[])
 		for(int i=301; i<=350; i++)
 		{
 			std::string name = "NOBSD/design_";
-			std::string integerdesign = std::to_string(i);
-			std::string designName = name + integerdesign;	
+			std::string integerDesign = std::to_string(i);
+			std::string designName = name + integerDesign;	
 			
-			bso::spatial_design::ms_N_building ms;
-			try
-			{
-				// Generate ms building
-				ms = bso::spatial_design::ms_N_building("NOBSD/design_3");
-				bso::visualization::visualize(ms);
-			}
-			catch(const std::exception& e)
-			{
-				continue;
-			}
-
+			// Check if design exist
+			std::ifstream input;
+			if (!designName.empty()) input.open(designName.c_str());
+			if (designName.empty() || !input.is_open()){continue;}
+			
+			// Generate Movable and Sizable model
+			bso::spatial_design::ms_N_building ms(designName);
+			bso::visualization::visualize(ms);
 			out("Created an MS model",true,true,true);
 			
 			// Generate conformal model
@@ -997,7 +993,7 @@ int main(int argc, char* argv[])
 			allFile.close();
 			
 			// Generate convergence study results
-			for(int i=-1; i<nrMeshStepsFullBuilding; i++)
+			for(int i=0; i<nrMeshStepsFullBuilding; i++)
 			{
 				bso::grammar::grammar gram1(CF);
 				out("Created an TP GRAM model",true,true,true);

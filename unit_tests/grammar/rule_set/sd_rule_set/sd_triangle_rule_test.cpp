@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE( apply_rule_1 )
 }
 
 BOOST_AUTO_TEST_CASE( apply_rule_3 )
-{ // no structure but with load i.a. loadcases are correctly assinged
+{ // no structure but with load i.a. load cases are correctly assigned
 	namespace cf = bso::spatial_design::conformal;
 	bso::spatial_design::ms_N_building msModel("grammar/ms_N_test_2.txt");
 	bso::spatial_design::cf_building cfModel(msModel);
