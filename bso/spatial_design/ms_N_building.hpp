@@ -47,7 +47,7 @@ public:
 	// New functions:
 	//void splitBuilding(double minimumHeight, double minimumWidth, double minimumDepth);
 	//void enforceSpaceSize(double minimumHeight, double minimumWidth, double minimumDepth);
-	void duplicateElevation(double atZFromGround = 0, double elevationHeight = 3000);
+	void duplicateElevation(double atZFromGround = 0, double elevationHeight = 3000, bool duplicateBelowZLevel = true);
 	//void stretchAt();
 	//void duplicateSplitSetSpace(std::vector<ms_space*> spaces)
 

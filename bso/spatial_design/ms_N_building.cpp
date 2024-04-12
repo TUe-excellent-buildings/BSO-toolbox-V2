@@ -690,7 +690,7 @@ void ms_N_building::splitSpace(ms_space& space, int splitAmount, bso::utilities:
 	this->splitSpace(this->getSpacePtr(space), splitAmount, lineToSplit);
 } // splitSpace()
 
-void ms_N_building::duplicateElevation(double atZFromGround, double elevationHeight)
+void ms_N_building::duplicateElevation(double atZFromGround, double elevationHeight, bool duplicateBelowZLevel)
 {
 	if(elevationHeight <= 0)
 	{
@@ -705,6 +705,7 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 	// or need to be shifted to be able to add an elevation
 	std::vector<int> intersectedSpaces;
 	std::vector<int> connectedSpaces;
+	std::vector<int> connectedSpacesTop;
 	std::vector<int> toShiftSpaces;
 	for (int i=0; i<mSpaces.size(); i++)
 	{
@@ -716,15 +717,20 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 			intersectedSpaces.push_back(i);
 			continue;
 		}
-		else if(spaceGeom.isInsideOrOn(checkVertex) && center.z() < atZFromGround) // only consider the spaces bellow the atZFromGround lever as a connected space
+		else if(spaceGeom.isInsideOrOn(checkVertex)) // only consider the spaces bellow the atZFromGround lever as a connected space
 		{
-			connectedSpaces.push_back(i);
+			if(center.z() < atZFromGround){connectedSpaces.push_back(i);} // store connected spaces bellow which is default setting
+			else{connectedSpacesTop.push_back(i);} // store connected spaces above
 		}
-		else if(center.z() > atZFromGround)
+		if(center.z() > atZFromGround)
 		{
 			toShiftSpaces.push_back(i);
 		}
 	}
+
+	// switch connectedSpaces content since this is used for duplication depending on if the space above or bellow the Z line needs to be duplicated.
+	if(!duplicateBelowZLevel){connectedSpaces = connectedSpacesTop;}
+	else if(connectedSpaces.size() == 0 && connectedSpacesTop.size() > 0){connectedSpaces = connectedSpacesTop;} // this ensure that at least one of the two is used if the default setting was not sufficient to avoid the error message
 
 	// Error message if the inserted atZFromGround is invalid
 	if(intersectedSpaces.size() == 0 && connectedSpaces.size() == 0)

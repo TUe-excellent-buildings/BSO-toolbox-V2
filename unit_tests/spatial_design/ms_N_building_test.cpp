@@ -741,6 +741,128 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 
 		BOOST_REQUIRE(sstr.str() == check.str());
 	}
+
+	BOOST_AUTO_TEST_CASE( duplicateElevation_1 )
+	{
+		ms_N_building ms1;
+		ms1.addSpace(ms_space("N, 1 ,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
+		
+		ms1.duplicateElevation(1000,1000);
+		BOOST_REQUIRE(ms1.getSpacePtrs().size()==2);
+
+		std::vector<ms_space> checkSpaces;
+		checkSpaces.push_back(ms_space("N, 1 ,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
+		checkSpaces.push_back(ms_space("N,2,	0,0,1000,	0,0,2000,	1000,0,1000,	1000,0,2000,	1000,1000,1000,	1000,1000,2000,	0,1000,1000,	0,1000,2000"));
+		
+		bool checked = true;
+		int i=0;
+		for(const auto j: ms1)
+		{
+			if(checkSpaces[i] != *j){checked = false;}
+			i++;
+		}
+
+		BOOST_REQUIRE(checked);
+	}
+
+	BOOST_AUTO_TEST_CASE( duplicateElevation_2 )
+	{
+		ms_N_building ms1;
+		ms1.addSpace(ms_space("N, 1 ,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
+		
+		ms1.duplicateElevation(500,2000);
+		BOOST_REQUIRE(ms1.getSpacePtrs().size()==2);
+
+		std::vector<ms_space> checkSpaces;
+		checkSpaces.push_back(ms_space("N,1,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
+		checkSpaces.push_back(ms_space("N,2,	0,0,1000,	0,0,3000,	1000,0,1000,	1000,0,3000,	1000,1000,1000,	1000,1000,3000,	0,1000,1000,	0,1000,3000"));
+		
+		bool checked = true;
+		int i=0;
+		for(const auto j: ms1)
+		{
+			if(checkSpaces[i] != *j){checked = false;}
+			i++;
+		}
+
+		BOOST_REQUIRE(checked);
+	}
+
+	BOOST_AUTO_TEST_CASE( duplicateElevation_3 )
+	{
+		ms_N_building ms1;
+		ms1.addSpace(ms_space("N, 1 ,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
+		ms_N_building ms2;
+		ms2.addSpace(ms_space("N, 1 ,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
+		
+		ms1.duplicateElevation(0,2000);
+		BOOST_REQUIRE(ms1.getSpacePtrs().size()==2);
+		ms2.duplicateElevation(0,2000,false);
+		BOOST_REQUIRE(ms2.getSpacePtrs().size()==2);
+
+		std::vector<ms_space> checkSpaces;
+		checkSpaces.push_back(ms_space("N, 1 ,	0,0,2000,	1000,0,2000,	0,1000,2000,	1000,1000,2000,	0,0,3000,	1000,0,3000,	0,1000,3000,	1000,1000,3000"));
+		checkSpaces.push_back(ms_space("N,2,	0,0,0,	0,0,2000,	1000,0,0,	1000,0,2000,	1000,1000,0,	1000,1000,2000,	0,1000,0,	0,1000,2000"));
+		
+		bool checked1 = true;
+		bool checked2 = true;
+		int i=0;
+		for(const auto j: ms1)
+		{
+			if(checkSpaces[i] != *j){checked1 = false;}
+			i++;
+		}
+		i=0;
+		for(const auto j: ms2)
+		{
+			if(checkSpaces[i] != *j){checked2 = false;}
+			i++;
+		}
+
+		BOOST_REQUIRE(checked1);
+		BOOST_REQUIRE(checked2);
+	}
+
+	BOOST_AUTO_TEST_CASE( duplicateElevation_4 )
+	{
+		ms_N_building ms1;
+		ms1.addSpace(ms_space("N, 1 ,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
+		ms1.addSpace(ms_space("N, 2 ,	500,0,1000,	1000,0,1000,	500,1000,1000,	1000,1000,1000,	500,0,2000,	1000,0,2000,	500,1000,2000,	1000,1000,2000"));
+		ms_N_building ms2(ms1);
+		
+		ms1.duplicateElevation(1000,2000,true);
+		BOOST_REQUIRE(ms1.getSpacePtrs().size()==3);
+		ms2.duplicateElevation(1000,2000,false);
+		BOOST_REQUIRE(ms2.getSpacePtrs().size()==3);
+
+		std::vector<ms_space> checkSpaces1;
+		checkSpaces1.push_back(ms_space("N,1,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
+		checkSpaces1.push_back(ms_space("N,2,	500,0,3000,	1000,0,3000,	500,1000,3000,	1000,1000,3000,	500,0,4000,	1000,0,4000,	500,1000,4000,	1000,1000,4000"));
+		checkSpaces1.push_back(ms_space("N,3,	0,0,1000,	0,0,3000,	1000,0,1000,	1000,0,3000,	1000,1000,1000,	1000,1000,3000,	0,1000,1000,	0,1000,3000"));
+
+		std::vector<ms_space> checkSpaces2;
+		checkSpaces2.push_back(ms_space("N,1,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
+		checkSpaces2.push_back(ms_space("N,2,	500,0,3000,	1000,0,3000,	500,1000,3000,	1000,1000,3000,	500,0,4000,	1000,0,4000,	500,1000,4000,	1000,1000,4000"));
+		checkSpaces2.push_back(ms_space("N,3,	500,0,1000,	500,0,3000,	1000,0,1000,	1000,0,3000,	1000,1000,1000,	1000,1000,3000,	500,1000,1000,	500,1000,3000"));
+		
+		bool checked1 = true;
+		bool checked2 = true;
+		int i=0;
+		for(const auto j: ms1)
+		{
+			if(checkSpaces1[i] != *j){checked1 = false;}
+			i++;
+		}
+		i=0;
+		for(const auto j: ms2)
+		{
+			if(checkSpaces2[i] != *j){checked2 = false;}
+			i++;
+		}
+
+		BOOST_REQUIRE(checked1);
+		BOOST_REQUIRE(checked2);
+	}
 	
 	BOOST_AUTO_TEST_CASE( has_floating_spaces )
 	{
