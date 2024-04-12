@@ -53,7 +53,7 @@ namespace bso { namespace utilities { namespace geometry {
 		vertex getCenter() const;
 		const vertex& center() const;
 		
-		// only allow const accessers because we dont allow geometric member variables to be changed, to prevent sortings to be distorted
+		// only allow const accesses because we dont allow geometric member variables to be changed, to prevent sorting to be distorted
 		auto begin() const {return mVertices.begin();}
 		auto end() const {return mVertices.end();}
 		

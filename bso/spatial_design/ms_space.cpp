@@ -385,6 +385,7 @@ void ms_space::setPVertex(const std::vector <utilities::geometry::vertex*> verte
 {
 	try
 	{
+		sDefMethod = "N";
 		pVertex = vertexes;
 		checkValidity();
 	}
@@ -448,7 +449,7 @@ void ms_space::setDimensions(const utilities::geometry::vector& dims)
 	else
 	{
 		std::stringstream errorMessage;
-			errorMessage << "This function can not be used in combination with anny other insertion method then R/r." << std::endl
+			errorMessage << "This function can not be used in combination with any other insertion method then R/r." << std::endl
 									<< "(bso/spatial_design/ms_space.hpp). " << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 	}

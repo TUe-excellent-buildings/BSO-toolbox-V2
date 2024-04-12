@@ -20,7 +20,7 @@ ms_N_building::ms_N_building()
 
 ms_N_building::ms_N_building(std::string fileName)
 :	insertFileName(fileName)
-{ // initilization by string or text file
+{ // initialization by string or text file
 	mLastSpaceID = 0;
 	std::ifstream input;
 	if (!fileName.empty()) input.open(fileName.c_str());
@@ -527,7 +527,7 @@ void ms_N_building::splitSpace(ms_space* spacePtr, const std::vector<std::pair<u
 			}
 		}
 	}
-	deleteSpace(spacePtr); // Delete the origonal space
+	deleteSpace(spacePtr); // Delete the original space
 } // splitSpace()
 
 void ms_N_building::splitSpace(ms_space& space, const std::vector<std::pair<unsigned int, unsigned int> >& splits /*= {{0,2},{1,2}}*/)
@@ -537,7 +537,7 @@ void ms_N_building::splitSpace(ms_space& space, const std::vector<std::pair<unsi
 
 void ms_N_building::splitSpace(ms_space* spacePtr, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit) //split inserted line of space into 'splitamount'of section wherefrom splitamount of spaces are defined
 {
-	// The inserted line may be closes to a centain axis. 
+	// The inserted line may be closes to a certain axis. 
 	// However, it does not mean that the found axisL in the splitSpace function is the same as the axis of the inserted line since another line of the space may be closer to this axis. 
 	// Therefore, this function will make sure the inserted line is split and not another line which is find closer to the axis of the inserted line
 	
@@ -685,10 +685,164 @@ void ms_N_building::splitSpace(ms_space* spacePtr, int splitAmount, bso::utiliti
 	this->splitSpace(spacePtr, splits);
 } // splitSpace()
 
-void ms_N_building::splitSpace(ms_space& space, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit) //split the longests line of the space in two
+void ms_N_building::splitSpace(ms_space& space, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit) //split the longest line of the space in two
 {
 	this->splitSpace(this->getSpacePtr(space), splitAmount, lineToSplit);
 } // splitSpace()
+
+void ms_N_building::duplicateElevation(double atZFromGround, double elevationHeight)
+{
+	if(elevationHeight <= 0)
+	{
+		std::stringstream errorMessage;
+				errorMessage << "Can not add an elevation of height zero or a negative value." << std::endl
+										<< "The inserted elevationHeight is: " << elevationHeight << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+	}
+	
+	// Find spaces which gets intersected, connected (a horizontal Quad of space coincides with atZFromGround),
+	// or need to be shifted to be able to add an elevation
+	std::vector<int> intersectedSpaces;
+	std::vector<int> connectedSpaces;
+	std::vector<int> toShiftSpaces;
+	for (int i=0; i<mSpaces.size(); i++)
+	{
+		bso::utilities::geometry::quad_hexahedron spaceGeom = mSpaces[i]->getGeometry();
+		bso::utilities::geometry::vertex center = spaceGeom.getCenter();
+		bso::utilities::geometry::vertex checkVertex = {center.x(),center.y(),atZFromGround};
+		if(spaceGeom.isInside(checkVertex))
+		{
+			intersectedSpaces.push_back(i);
+			continue;
+		}
+		else if(spaceGeom.isInsideOrOn(checkVertex) && center.z() < atZFromGround) // only consider the spaces bellow the atZFromGround lever as a connected space
+		{
+			connectedSpaces.push_back(i);
+		}
+		else if(center.z() > atZFromGround)
+		{
+			toShiftSpaces.push_back(i);
+		}
+	}
+
+	// Error message if the inserted atZFromGround is invalid
+	if(intersectedSpaces.size() == 0 && connectedSpaces.size() == 0)
+	{
+		std::stringstream errorMessage;
+				errorMessage << "The inserted elevation is not at a height where any spaces are currently defined." << std::endl
+										<< "The inserted z-coordinate at where the elevation should be added is: " << atZFromGround << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+	}
+
+	// Shift the to shift spaces
+	for(const int i: toShiftSpaces)
+	{
+		// Define the new pVertex vector of considered space
+		std::vector <utilities::geometry::vertex*> pVert;
+		utilities::geometry::vertex temp;
+		for(const auto j: mSpaces[i]->getVertices())
+		{
+			pVert.push_back(new utilities::geometry::vertex);							
+			temp(0) = j->x();
+			temp(1) = j->y();
+			temp(2) = j->z() + elevationHeight;
+			*pVert.back() = temp;
+		}
+		// Replace the pVertex of the considered space
+		mSpaces[i]->setPVertex(pVert);
+	}
+
+	// Define the new to add spaces regarding connected spaces to the atZFromGround level
+	for(const int i: connectedSpaces)
+	{
+		bso::utilities::geometry::quad_hexahedron spaceGeom = mSpaces[i]->getGeometry();
+		for(const utilities::geometry::quadrilateral j: spaceGeom.getQuadrilateral())
+		{
+			// Define new space with horizontal Quad from the original connected space which is located bellow the atZFromGround level
+			if(j.getNormal().isVertical())
+			{
+				// Define ID of new space
+				int newID = mSpaces.back()->getID();
+				newID++;
+
+				// Define all vertices of new space
+				std::vector <utilities::geometry::vertex*> pVert;
+				utilities::geometry::vertex temp;
+				for(const auto k: j)
+				{
+					pVert.push_back(new utilities::geometry::vertex);							
+					temp(0) = k.x();
+					temp(1) = k.y();
+					temp(2) = atZFromGround;
+					*pVert.back() = temp;		
+					
+					pVert.push_back(new utilities::geometry::vertex);
+					temp(2) = atZFromGround + elevationHeight;
+					*pVert.back() = temp;
+				}
+
+				// Add new space
+				mSpaces.push_back(new ms_space());
+				mSpaces.back()->setID(newID);
+				mSpaces.back()->setPVertex(pVert);
+				break;
+			}
+		}
+	}
+
+	// Duplicate the layer of spaces which is intersected above the intersected space with space height of elevationHeight
+	for(const int i: intersectedSpaces)
+	{
+		int count = 0;
+		utilities::geometry::quadrilateral horizontalQuad1;
+		bso::utilities::geometry::quad_hexahedron spaceGeom = mSpaces[i]->getGeometry();
+		for(const auto j: spaceGeom.getQuadrilateral())
+		{
+			// Define new space with horizontal Quad original space
+			if(j.getNormal().isVertical())
+			{
+				if(count == 0) // store the first found floor and then find the second
+				{
+					horizontalQuad1 = j;
+					count++;
+					continue;
+				}
+
+				utilities::geometry::quadrilateral topFloor;
+				if(horizontalQuad1[0].z() > j[0].z()) {topFloor = horizontalQuad1;}
+				else topFloor = j;
+
+				// Define ID of new space
+				int newID = mSpaces.back()->getID();
+				newID++;
+
+				// Define all vertices of new space
+				std::vector <utilities::geometry::vertex*> pVert;
+				utilities::geometry::vertex temp;
+				for(const auto k: topFloor)
+				{
+					pVert.push_back(new utilities::geometry::vertex);							
+					temp(0) = k.x();
+					temp(1) = k.y();
+					temp(2) = k.z();
+					*pVert.back() = temp;		
+					
+					pVert.push_back(new utilities::geometry::vertex);
+					temp(2) = k.z() + elevationHeight;
+					*pVert.back() = temp;
+				}
+
+				// Add new space
+				mSpaces.push_back(new ms_space());
+				mSpaces.back()->setID(newID);
+				mSpaces.back()->setPVertex(pVert);
+				break;
+			}
+		}
+	}
+} //duplicateElevation()
 
 bool ms_N_building::hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 	const double tol /*= 1e-3*/) const

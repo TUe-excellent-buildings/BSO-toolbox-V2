@@ -394,7 +394,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		pVert.push_back(&v7);
 		pVert.push_back(&v8);
 
-		// space 2; the same as space 1 however with diferent definition order of vertices
+		// space 2; the same as space 1 however with different definition order of vertices
 		std::vector <bso::utilities::geometry::vertex*> pVert2;
 		bso::utilities::geometry::vertex v12 = {3000,3000,3000};
 		bso::utilities::geometry::vertex v22 = {3000,3000,0};

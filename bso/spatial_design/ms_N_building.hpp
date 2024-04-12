@@ -43,6 +43,13 @@ public:
 	void splitSpace(ms_space& space, const std::vector<std::pair<unsigned int, unsigned int> >& splits = {{0,2},{1,2}}); // split perpendicular to inserted axis; x-axis=0, y-axis=1, and z-axis=2
 	void splitSpace(ms_space* spacePtr, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit); //split perpendicular to inserted line of space
 	void splitSpace(ms_space& space, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit); //split perpendicular to inserted line of space
+	
+	// New functions:
+	//void splitBuilding(double minimumHeight, double minimumWidth, double minimumDepth);
+	//void enforceSpaceSize(double minimumHeight, double minimumWidth, double minimumDepth);
+	void duplicateElevation(double atZFromGround = 0, double elevationHeight = 3000);
+	//void stretchAt();
+	//void duplicateSplitSetSpace(std::vector<ms_space*> spaces)
 
 	const auto begin() const {return mSpaces.begin();}
 	const auto end() const {return mSpaces.end();}
