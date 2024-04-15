@@ -243,6 +243,12 @@ namespace bso { namespace spatial_design { namespace conformal {
 	
 	void cf_building_model::makeConformal()
 	{ // 
+		std::vector<utilities::geometry::vertex> addConstrainVertexes; // generate empty vertex for input
+		this -> makeConformal(addConstrainVertexes);	
+	} //  makeConformal()
+
+	void cf_building_model::makeConformal(std::vector<utilities::geometry::vertex> addConstrainVertexes)
+	{ // 
 		// check for line line intersections, and add the found vertex to the geometry model
 		utilities::geometry::vertex pIntersection;
 		for (unsigned int i = 0; i < mCFLines.size(); ++i)
@@ -276,6 +282,13 @@ namespace bso { namespace spatial_design { namespace conformal {
 			{
 				this->addVertex(pIntersection);
 			}
+		}
+
+		// add the additional vertices where the conformal model needs to adhere to 
+		for(const auto j: addConstrainVertexes)
+		{
+			constrainVertexes.push_back(j); // store in object variable for copy constructor
+			this->addVertex(j);
 		}
 		
 		// check each vertex if it intersects with any space
@@ -821,7 +834,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		int spaceCount2 = 0;
 		for (const auto& i : rhs.mMSModel) spaceCount1++;
 		for (const auto& i : rhs.mMSNModel) spaceCount2++;
-		if(spaceCount1 > 0) newPtr = new cf_building_model(rhs.mMSModel, rhs.mTol);
+		if(spaceCount1 > 0) newPtr = new cf_building_model(rhs.mMSModel, rhs.constrainVertexes, rhs.mTol);
 		if(spaceCount2 > 0) newPtr = new cf_building_model(rhs.mMSNModel, rhs.mTol);
 		*this = *newPtr;
 	} // copy ctor()
@@ -834,6 +847,16 @@ namespace bso { namespace spatial_design { namespace conformal {
 			addSpace(*i);
 		}
 		this->makeConformal();
+	} // 
+
+	cf_building_model::cf_building_model(const ms_building& msModel, std::vector<bso::utilities::geometry::vertex> addConstrainVertexes, const double& tol /*= 1e-3*/)
+	:	cf_geometry_model(tol), mMSModel(msModel), mTol(tol), constrainVertexes(addConstrainVertexes)
+	{ // 
+		for (const auto& i : mMSModel)
+		{
+			addSpace(*i);
+		}
+		this->makeConformal(addConstrainVertexes);
 	} // 
 
 	cf_building_model::cf_building_model(const ms_N_building& msNModel, const double& tol /*= 1e-3*/)

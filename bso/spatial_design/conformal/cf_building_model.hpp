@@ -15,11 +15,13 @@ namespace bso { namespace spatial_design { namespace conformal {
 		std::vector<cf_space*> mCFSpaces;
 		ms_building mMSModel; // safe it, in case copy consttructor is called
 		ms_N_building mMSNModel; // safe it, in case copy consttructor is called
+		std::vector<bso::utilities::geometry::vertex> constrainVertexes; // safe it, in case copy constructor is called
 		double mTol;
 		
 		// Iterative partition method functions for orthogonal cuboid BSDs
 		void addSpace(const ms_space& msSpace); // defines an initial geometry conformal model to partition and a finished building conformal model
 		void makeConformal(); // orthogonal BSD partitioning method
+		void makeConformal(std::vector<utilities::geometry::vertex> addConstrainVertexes); // orthogonal BSD partitioning method
 		
 		// Triangulation partitioning method functions for non-orthogonal BSDs
 		void makeConformalND(const ms_N_building& msModel); // Initiates the triangulation partitioning method
@@ -37,6 +39,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 	public:
 		cf_building_model(const cf_building_model& rhs);
 		cf_building_model(const ms_building& msModel, const double& tol = 1e-3);
+		cf_building_model(const ms_building& msModel, std::vector<bso::utilities::geometry::vertex> addConstrainVertexes, const double& tol = 1e-3);
 		cf_building_model(const ms_N_building& msModel, const double& tol = 1e-3);
 		~cf_building_model();
 
