@@ -606,7 +606,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 					}
 				}
 				if(Ltemp1.isSameAs(Ltemp2, mTol))
-				{//Check if line has diferent end points
+				{//Check if line has different end points
 					doubleInsert = true;
 				}
 				if(doubleInsert == false)
@@ -614,7 +614,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 					delauneyLines.push_back(Ltemp);
 				}
 				
-				//Find line-line intersections, note: no line-rectangle intersection check needed since these are acounted for by the addition of the cornerpoints
+				//Find line-line intersections, note: no line-rectangle intersection check needed since these are accounted for by the addition of the cornerpoints
 				utilities::geometry::vertex pIntersection;
 				for(int j=i+1; j<count; j++)
 				{
