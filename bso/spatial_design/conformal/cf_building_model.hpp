@@ -27,7 +27,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL); // used during the delaunay method to avoid the inserting of overlapping and duplicate constrain lines
 		void addSpaceD(const ms_space& msSpace, std::vector<utilities::geometry::triangular_prism>& triPrismPtr); // Generates the final buiding- and geometry-conformal model after partitioning.
 		
-		// safe it, in case of an intrem visualisation the Triangulation partitioning method is required
+		// safe it, in case of a intrem visualisation the Triangulation partitioning method is required
 		std::vector<utilities::geometry::quad_hexahedron> spacesAtGround; // spaces representation used to find intersection and constrain lines on the z=0 plane for 2D constrained delaunay aplication
 		std::vector<utilities::geometry::line_segment> delauneyLines; //Lines where the constrained delauney triangulation should constrain to
 		std::vector<utilities::geometry::triangle> delaunayTri; //resulting delaunay triangles at z=0 for triPrism definition in the geometry conformal model
