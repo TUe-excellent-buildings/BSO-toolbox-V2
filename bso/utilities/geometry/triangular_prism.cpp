@@ -308,6 +308,28 @@ namespace bso { namespace utilities { namespace geometry {
 		double volume = 0;	
 		for (const auto& i : mTetrahedrons) volume += i.getVolume();
 		return volume;
+	} // 
+
+	double triangular_prism::getTotalArea() const
+	{ // 
+		double totalArea = 0;	
+		for (const auto& i : mTriangles) totalArea += i.getArea();
+		for (const auto& i : mQuad) totalArea += i.getArea();
+		return totalArea;
+	} // 
+
+	std::vector<double> triangular_prism::getQuadAreas() const
+	{ //
+		std::vector<double> quadArea;	
+		for (const auto& i : mQuad) quadArea.push_back(i.getArea());
+		return quadArea;
+	} //
+
+	std::vector<double> triangular_prism::getTriAreas() const
+	{ //
+		std::vector<double> triArea;	
+		for (const auto& i : mTriangles) triArea.push_back(i.getArea());
+		return triArea;
 	} //
 
 	bool triangular_prism::isInside(const vertex& p1, const double& tol /*= 1e-3*/) const

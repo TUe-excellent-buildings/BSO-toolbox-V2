@@ -789,6 +789,48 @@ bool ms_N_building::hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces,
 	return (floatingSpaces.size() != 0);
 } // hasFloatingSpaces()
 
+void ms_N_building::addBoundary() 
+{
+	double min_x, min_y, max_x, max_y, min_z, max_z = 0.0;
+	int i = 0;
+	std::string msBoundary;
+	// Look through each pre-existing space
+	std::for_each(mSpaces.begin(),mSpaces.end(),[&](const auto& elem) { 
+		// Get bounding vertices of a given space
+		std::vector<utilities::geometry::vertex*> v = elem->getVertices();
+	
+		
+		// Iterate over each vertex (point)
+		std::for_each(v.begin(),v.end(),[&](const auto& vert) {
+			// Set a counter
+			i=0;
+			std::for_each(vert->begin(),vert->end(),[&](double coordinate) {
+				if(!i && coordinate < min_x) min_x = coordinate;
+				if(!i && coordinate > max_x) max_x = coordinate;
+
+				if(i==1 && coordinate < min_y) min_y = coordinate;
+				if(i==1 && coordinate > max_y) max_y = coordinate;
+
+				if(i==2 && coordinate < min_z) min_z = coordinate;
+				if(i==2 && coordinate > max_z) max_z = coordinate;
+
+				i++;
+			});
+		});
+
+	});
+	msBoundary = "N,0," + 
+			std::to_string(min_x) + "," + std::to_string(min_y) + "," + std::to_string(min_z) + "," +
+			std::to_string(min_x) + "," + std::to_string(min_y) + "," + std::to_string(max_z) + "," +
+			std::to_string(min_x) + "," + std::to_string(max_y) + "," + std::to_string(min_z) + "," +
+			std::to_string(min_x) + "," + std::to_string(max_y) + "," + std::to_string(max_z) + "," +
+			std::to_string(max_x) + "," + std::to_string(min_y) + "," + std::to_string(min_z) + "," +
+			std::to_string(max_x) + "," + std::to_string(min_y) + "," + std::to_string(max_z) + "," +
+			std::to_string(max_x) + "," + std::to_string(max_y) + "," + std::to_string(min_z) + "," +
+			std::to_string(max_x) + "," + std::to_string(max_y) + "," + std::to_string(max_z);
+	mSpaces.push_back(new ms_space(msBoundary));
+} // addBoundary() 
+
 bool ms_N_building::operator == (const ms_N_building& rhs)
 {
 	if (mSpaces.size() != rhs.mSpaces.size()) return false;

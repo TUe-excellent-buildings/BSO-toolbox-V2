@@ -262,6 +262,19 @@ Conformal_Model::Conformal_Model(const bso::spatial_design::cf_building& cf,
 			}
 		}
 	}
+	else if(type == "triangular_prism_no_errors")
+	{
+		for (const auto& i : cf.cfTriPrism())
+		{
+			std::vector<geom::vertex> triPrismVertices;
+			for (const auto& j : *i)
+			{
+				triPrismVertices.push_back(i->getCenter() + scale*(j - i->getCenter()));
+			}
+			geom::triangular_prism triPrismGeometry(triPrismVertices);
+			this->addPolyhedron(polygons,&triPrismGeometry,&pprops_cuboid,&lprops);
+		}
+	}
 	else if(type == "triangular_prism")
 	{
 		for (const auto& i : cf.cfTriPrism())
