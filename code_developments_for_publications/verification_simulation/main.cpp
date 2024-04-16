@@ -208,10 +208,8 @@ int main(int argc, char* argv[])
 			out("Get triangular prisms within space",true,true,true);
 
 			// Generate conformal geometry
-			CFTP.push_back(new bso::spatial_design::cf_building(ms1, tol, false));
+			CFTP.push_back(new bso::spatial_design::cf_building(ms1, tempTP, tol));
 			out("Created an CF model",true,true,true);
-			CFTP.back()->addSpaceD((*(ms1.getSpacePtrs())[0]), tempTP);
-			out("Added all spaces with triangular prisms to CF model",true,true,true);
 		}
 		bso::spatial_design::cf_building* lastCFTP = CFTP.back();
 		bso::visualization::visualize(*lastCFTP,"triangular_prism");
@@ -341,10 +339,8 @@ int main(int argc, char* argv[])
 			out("Get triangular prisms within space",true,true,true);
 
 			// Generate conformal geometry
-			bso::spatial_design::cf_building CFTP(ms1, tol, false);
+			bso::spatial_design::cf_building CFTP(ms1, tempTP, tol);
 			out("Created an CF model",true,true,true);
-			CFTP.addSpaceD((*(ms1.getSpacePtrs())[0]), tempTP);
-			out("Added all spaces with triangular prisms to CF model",true,true,true);
 			bso::visualization::visualize(CFTP,"triangular_prism");
 			out("Visualized CF model",true,true,true);
 			
@@ -427,10 +423,8 @@ int main(int argc, char* argv[])
 			out("Get triangular prisms within space",true,true,true);
 
 			// Generate conformal geometry
-			bso::spatial_design::cf_building CFTP(ms1, tol, false);
+			bso::spatial_design::cf_building CFTP(ms1, tempTP, tol);
 			out("Created an CF model",true,true,true);
-			CFTP.addSpaceD((*(ms1.getSpacePtrs())[0]), tempTP);
-			out("Added all spaces with triangular prisms to CF model",true,true,true);
 			bso::visualization::visualize(CFTP,"triangular_prism");
 			out("Visualized CF model",true,true,true);
 			
@@ -503,10 +497,8 @@ int main(int argc, char* argv[])
 			out("get quad-hexahedrons within space",true,true,true);
 
 			// Generate conformal geometry		
-			CFQH.push_back(new bso::spatial_design::cf_building(ms2, tol, false));
+			CFQH.push_back(new bso::spatial_design::cf_building(ms2, tempQH, tol));
 			out("Created an CF model",true,true,true);
-			CFQH.back()->addSpace((*(ms2.getSpacePtrs())[0]), tempQH);
-			out("Added all spaces with cuboids to CF model",true,true,true);
 		}
 		bso::spatial_design::cf_building* lastCFQH = CFQH.back();
 		bso::visualization::visualize(*lastCFQH,"cuboid");
@@ -588,10 +580,8 @@ int main(int argc, char* argv[])
 			out("Get triangular prisms within space",true,true,true);
 
 			// Generate conformal geometry
-			bso::spatial_design::cf_building CFQH(ms2, tol, false);
+			bso::spatial_design::cf_building CFQH(ms2, tempQH, tol);
 			out("Created an CF model",true,true,true);
-			CFQH.addSpace((*(ms2.getSpacePtrs())[0]), tempQH);
-			out("Added all spaces with triangular prisms to CF model",true,true,true);
 			bso::visualization::visualize(CFQH,"cuboids");
 			out("Visualized CF model",true,true,true);
 			
@@ -699,10 +689,8 @@ int main(int argc, char* argv[])
 			out("Get triangular prisms within space",true,true,true);
 
 			// Generate conformal geometry
-			bso::spatial_design::cf_building CFQH(ms2, tol, false);
+			bso::spatial_design::cf_building CFQH(ms2, tempQH, tol);
 			out("Created an CF model",true,true,true);
-			CFQH.addSpace((*(ms2.getSpacePtrs())[0]), tempQH);
-			out("Added all spaces with quad-hexahedrons to CF model",true,true,true);
 			bso::visualization::visualize(CFQH,"cuboids");
 			out("Visualized CF model",true,true,true);
 			
@@ -735,7 +723,8 @@ int main(int argc, char* argv[])
 				std::cout << "Structural compliance: " << SDQH.getTotalResults().mTotalStrainEnergy << "iteration i: " << i << std::endl;
 
 				allFile.open (fileName, std::fstream::in | std::fstream::out | std::fstream::app);
-				allFile << "QH " << 2+i*2 << " " << std::setprecision(16) << SDQH.getTotalResults().mTotalStrainEnergy << std::endl;
+				if(i==-1) allFile << "QH " << 1 << " " << std::setprecision(16) << SDQH.getTotalResults().mTotalStrainEnergy << std::endl;
+				else allFile << "QH " << 2+i*2 << " " << std::setprecision(16) << SDQH.getTotalResults().mTotalStrainEnergy << std::endl;
 				allFile.close();
 
 				if(true) //always visualize
@@ -783,10 +772,8 @@ int main(int argc, char* argv[])
 			out("Get triangular prisms within space",true,true,true);
 
 			// Generate conformal geometry
-			bso::spatial_design::cf_building CFQH(ms2, tol, false);
+			bso::spatial_design::cf_building CFQH(ms2, tempQH, tol);
 			out("Created an CF model",true,true,true);
-			CFQH.addSpace((*(ms2.getSpacePtrs())[0]), tempQH);
-			out("Added all spaces with quad-hexahedrons to CF model",true,true,true);
 			bso::visualization::visualize(CFQH,"triangular_prism");
 			out("Visualized CF model",true,true,true);
 			
@@ -819,7 +806,8 @@ int main(int argc, char* argv[])
 				std::cout << "Structural compliance: " << SDQHmesh.getTotalResults().mTotalStrainEnergy << "iteration i: " << i << std::endl;
 
 				allFile.open (fileName, std::fstream::in | std::fstream::out | std::fstream::app);
-				allFile << "QH " << 2+i*2 << " " << std::setprecision(16) << SDQHmesh.getTotalResults().mTotalStrainEnergy << std::endl;
+				if(i==-1) allFile << "QH " << 1 << " " << std::setprecision(16) << SDQHmesh.getTotalResults().mTotalStrainEnergy << std::endl;
+				else allFile << "QH " << 2+i*2 << " " << std::setprecision(16) << SDQHmesh.getTotalResults().mTotalStrainEnergy << std::endl;
 				allFile.close();
 
 				if(true) //always visualize

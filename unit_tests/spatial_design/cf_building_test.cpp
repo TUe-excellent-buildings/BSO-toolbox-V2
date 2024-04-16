@@ -454,8 +454,7 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests_orthogonal_BSD )
 	BOOST_AUTO_TEST_CASE( cf_N_test_1_txt )
 	{
 		ms_N_building ms("spatial_design/cf_N_test_1.txt");
-		cf_building_model cf(ms, 0.001, false);
-
+		
 		std::vector<bso::utilities::geometry::triangular_prism> TP;
 		bso::utilities::geometry::triangular_prism temp1 = {{0,0,0},{5000,0,0},{0,10000,0},{0,0,10000},{5000,0,10000},{0,10000,10000}};
 		bso::utilities::geometry::triangular_prism temp2 = {{5000,0,0},{5000,10000,0},{0,10000,0},{5000,0,10000},{5000,10000,10000},{0,10000,10000}};
@@ -465,7 +464,8 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests_orthogonal_BSD )
 		TP.push_back(temp2);
 		TP.push_back(temp3);
 		TP.push_back(temp4);
-		cf.addSpaceD((*(ms.getSpacePtrs())[0]), TP);
+
+		cf_building_model cf(ms, TP, 0.001);
 
 		std::vector<bso::utilities::geometry::vertex> checkVertices = {
 			{0,0,0},{0,0,10000},{0,10000,10000},{0,10000,0},
@@ -598,8 +598,7 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests_orthogonal_BSD )
 	BOOST_AUTO_TEST_CASE( cf_N_test_2_txt )
 	{
 		ms_N_building ms("spatial_design/cf_N_test_2.txt");
-		cf_building_model cf(ms, 0.001, false);
-
+		
 		std::vector<bso::utilities::geometry::triangular_prism> TP;
 		bso::utilities::geometry::triangular_prism temp1 = {{0,0,0},{5000,0,0},{0,10000,0},{0,0,10000},{5000,0,10000},{0,10000,10000}};
 		bso::utilities::geometry::triangular_prism temp2 = {{5000,0,0},{5000,10000,0},{0,10000,0},{5000,0,10000},{5000,10000,10000},{0,10000,10000}};
@@ -617,7 +616,8 @@ BOOST_AUTO_TEST_SUITE( cf_building_tests_orthogonal_BSD )
 		TP.push_back(temp6);
 		TP.push_back(temp7);
 		TP.push_back(temp8);
-		cf.addSpaceD((*(ms.getSpacePtrs())[0]), TP);
+
+		cf_building_model cf(ms, TP, 0.001);
 
 		std::vector<bso::utilities::geometry::vertex> checkVertices = {
 			{0,0,0},{0,0,10000},{0,10000,10000},{0,10000,0},
