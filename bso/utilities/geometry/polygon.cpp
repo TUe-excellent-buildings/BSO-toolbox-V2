@@ -58,13 +58,13 @@ namespace bso { namespace utilities {  namespace geometry {
 		{
 			std::stringstream errorMessage;
 			errorMessage << "Cannot initialize polygon with vertices that are all on one line.\n"
-									 << "The following verticeswere argument: \n";
+									 << "The following vertices were argument: \n";
 			for (const auto& i : mVertices) errorMessage << i.transpose() << std::endl;
 			errorMessage << "(bso/utilities/geometry/polygon.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
 		if (!this->isCoplanarItself(tol))
-		{
+		{			
 			std::stringstream errorMessage;
 			errorMessage << "Cannot initialize polygon with vertices that are out of plane.\n"
 									 << "The following points were argument: \n";

@@ -12,7 +12,7 @@ class ms_space
 private:
 	utilities::geometry::vertex mCoordinates; // {x,y,z}; is only in use with the R-insertion method
 	utilities::geometry::vector mDimensions; // {width,depth,height}; is only in use with the R-insertion method
-	std::vector <utilities::geometry::vertex*> pVertex; //Contains all eight vertixes to represent the non-orthogonal space in {x,y,z}. Note: is not in use during R-definition of space.
+	std::vector <utilities::geometry::vertex*> pVertex; //Contains all eight vertices to represent the non-orthogonal space in {x,y,z}. Note: is not in use during R-definition of space.
 	
 	unsigned int mID; // Identification number of the space
 	std::string sDefMethod; // A space definition method; orthogonal ('R' or 'r') or non-orthogonal ('N' or 'n')
@@ -34,13 +34,13 @@ public:
 	void setID(const unsigned int& id);
 	
 	unsigned int getID() const; // returns the ID of the space
-	utilities::geometry::vertex getCoordinates() const; // return the coodinates of the space
+	utilities::geometry::vertex getCoordinates() const; // return the coordinates of the space
 	utilities::geometry::vector getDimensions() const; // return the dimensions of the space
 	std::vector<utilities::geometry::vertex*> getVertices() const; // return the vertices of the space
 	const std::string getSDefMethod() const { return sDefMethod;}										
 	utilities::geometry::quad_hexahedron getGeometry() const; // return the geometry of the space
 	bool getSpaceType(std::string& spaceType) const; // returns TRUE if space type is assigned FALSE if not. Assigns the space type to the argument that is passed by reference
-	bool getSurfaceTypes(std::vector<std::string>& surfaceTypes) const; // returns TRUE is surface types are asssigned FALSE if not. Assigns the surface types to the argument that is passed by reference
+	bool getSurfaceTypes(std::vector<std::string>& surfaceTypes) const; // returns TRUE is surface types are assigned FALSE if not. Assigns the surface types to the argument that is passed by reference
 	double getVolume() const;
 	double getFloorArea() const;
 	

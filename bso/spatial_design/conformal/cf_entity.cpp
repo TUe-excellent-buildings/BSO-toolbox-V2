@@ -100,6 +100,33 @@ namespace bso { namespace spatial_design { namespace conformal {
 		}
 	} // 
 
+	void cf_entity::writeGeometryToFile(std::ofstream& output)
+    {
+        output << "containing the following geometry: \n";
+        // Building conformal model:
+        output << "cf_spaces: \n";
+        for(const auto j: cfSpaces()) output << *j << "\n";
+        output << "cf_surfaces: \n";
+        for(const auto j: cfSurfaces()) output << *j << "\n";
+        output << "cf_edges: \n";
+        for(const auto j: cfEdges()) output << *j << "";
+        output << "cf_points: \n";
+        for(const auto j: cfPoints()) output << *j << "";
+
+        // Geometry conformal model:
+        output << "cf_cuboids: \n";
+        for(const auto j: cfCuboids()) output << *j << "\n";
+        output << "cf_TriPrism: \n";
+        for(const auto j: cfTriPrism()) output << *j << "\n";
+        output << "cf_triangles: \n";
+        for(const auto j: cfTriangles()) output << *j << "\n";
+        output << "cf_rectangles: \n";
+        for(const auto j: cfRectangles()) output << *j << "\n";
+        output << "cf_Lines: \n";
+        for(const auto j: cfLines()) output << *j << "";
+        output << "cf_Vertices: \n";
+        for(const auto j: cfVertices()) output << *j << "";
+    } //logGeometry
 
 } // conformal
 } // spatial_design

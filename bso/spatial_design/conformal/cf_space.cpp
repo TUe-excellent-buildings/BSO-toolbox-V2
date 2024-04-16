@@ -21,6 +21,17 @@ namespace bso { namespace spatial_design { namespace conformal {
 			mCFTriPrisms.back()->addSpace(this);
 		}
 	} // 
+
+	cf_space::cf_space(const utilities::geometry::quad_hexahedron& rhs, cf_building_model* buildingModel, std::vector<utilities::geometry::quad_hexahedron> quadHexa)
+	:  utilities::geometry::quad_hexahedron(rhs,buildingModel->tolerance())
+	{ // 
+		mBuildingModel = buildingModel;
+		for(const auto i : quadHexa)
+		{
+			mCFCuboids.push_back(mBuildingModel->addCuboid(i));
+			mCFCuboids.back()->addSpace(this);
+		}
+	} // 
 	
 	void cf_space::checkVertex(cf_vertex* pPtr)
 	{ // 

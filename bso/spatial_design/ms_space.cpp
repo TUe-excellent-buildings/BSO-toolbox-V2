@@ -107,7 +107,7 @@ ms_space::ms_space(std::string line)
 	--number_of_tokens; // This removes the insertion method indication token for the later on switch statements
 	
 	try
-	{//Check for a corrent insertion method, if correct define sDefMethod.
+	{//Check for a correct insertion method, if correct define sDefMethod.
 		sDefMethod = utilities::trim_and_cast_char(*(token));
 		if(sDefMethod != "N" && sDefMethod != "n" && sDefMethod != "R" && sDefMethod != "r")
 		{
@@ -124,7 +124,7 @@ ms_space::ms_space(std::string line)
 									 << "Could not parse the following line to initialize an ms_space:" << std::endl
 									 << line << std::endl
 									 << "since there is no valid insertion method defined at the start of the line. " << std::endl
-									 << "This should either be a 'R', 'r', 'N', or 'n', saporated by a ',' from the vectors or coordinates and dimentions. " << std::endl
+									 << "This should either be a 'R', 'r', 'N', or 'n', separated by a ',' from the vectors or coordinates and dimensions. " << std::endl
 									 << e.what() << std::endl
 									 << "(bso/spatial_design/ms_space.cpp). " << std::endl;
 			throw std::invalid_argument(errorMessage.str());
@@ -191,7 +191,7 @@ ms_space::ms_space(std::string line)
 				{
 				std::stringstream errorMessage;
 				errorMessage << std::endl
-										 << "An invalid amount of input argument was encoutered when trying to initialize the " << sDefMethod << " method defined space with ID " << mID << "." << std::endl
+										 << "An invalid amount of input argument was encountered when trying to initialize the " << sDefMethod << " method defined space with ID " << mID << "." << std::endl
 										 << "When trying to parse the following input line: " << std::endl
 										 << line << std::endl
 										 << "The determined number_of_tokens are: " << number_of_tokens << std::endl
@@ -206,7 +206,7 @@ ms_space::ms_space(std::string line)
 		{
 			if(number_of_tokens >= 7)
 			{
-				// Read the Dimentioning vector en Coördinate vertex from the R/r insertion method
+				// Read the Dimensioning vector en Coordinate vertex from the R/r insertion method
 				utilities::geometry::vertex temp;
 				temp(0) = utilities::trim_and_cast_double(*(++token));
 				temp(1) = utilities::trim_and_cast_double(*(++token));
@@ -220,18 +220,18 @@ ms_space::ms_space(std::string line)
 			
 			switch (number_of_tokens)
 			{ // handle the tokens for the orthogonal cases
-				case 7: // orthogonal regtangal; no space nor surface types have been defined
+				case 7: // orthogonal rectangle; no space nor surface types have been defined
 				{
 					break;
 				} 
-				case 8: // orthogonal regtangal; only a space type has been defined
+				case 8: // orthogonal rectangle; only a space type has been defined
 				{
 					mSpaceType = *(++token);
 					boost::algorithm::trim(mSpaceType);			
 					break; 
 				}
-				case 13: // orthogonal regtangal; only surface types have been defind (Note: break is skiped to continue to case 14)
-				case 14: // orthogonal regtangal; both a space type and surface types have been defined
+				case 13: // orthogonal rectangle; only surface types have been defined (Note: break is skiped to continue to case 14)
+				case 14: // orthogonal rectangle; both a space type and surface types have been defined
 				{
 					if (number_of_tokens == 14)
 					{
@@ -255,7 +255,7 @@ ms_space::ms_space(std::string line)
 				{
 					std::stringstream errorMessage;
 					errorMessage << std::endl
-											 << "An invalid amount of input argument was encoutered when trying to initialize the " << sDefMethod << " method defined space with ID " << mID << "." << std::endl
+											 << "An invalid amount of input argument was encountered when trying to initialize the " << sDefMethod << " method defined space with ID " << mID << "." << std::endl
 											 << "When trying to parse the following input line: " << std::endl
 											 << line << std::endl
 											 << "The determined number_of_tokens are: " << number_of_tokens << std::endl										   

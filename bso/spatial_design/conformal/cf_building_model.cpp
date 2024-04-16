@@ -53,15 +53,201 @@ namespace bso { namespace spatial_design { namespace conformal {
 			}
 		}
 	} // addSpace
-	
-	void cf_building_model::addSpaceD(const ms_space& msSpace, std::vector<utilities::geometry::triangular_prism>& triPrismPtr)
+
+	void cf_building_model::addSpace(const ms_space& msSpace, std::vector<utilities::geometry::quad_hexahedron> quadHexa)
 	{
-		// Check if the minimun amound of triPrisms are inserted
+		// Check prerequisite for this function
+		if(quadHexa.size() < 1)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "The amount of quadHexa inserted in the addSpaceD() function is to little to fill a space with quadHexa cells.\n"
+									 << "The minumum required amount of quadHexa is 2 and the inserted amount is: " << quadHexa.size() << "\n"
+									 << "Meaning that there are quadHexa(s) missing. \n"
+									 << "The inserted quadHexa consist of the following: " << std::endl;
+										for(const auto i: quadHexa)
+										{
+											errorMessage << i << std::endl;
+										}
+						errorMessage << "the considered space is: " << *(mCFSpaces.back()) << "\n"
+									 << "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+		if(mCFTriPrisms.size() > 0)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "The addSpace function is not allowed to be used when mCFTriPrisms contains content in the geometry conformal model. \n"
+									 << "The mCFTriPrisms consist of: " << mCFTriPrisms.size() << " amount of triangular prisms \n"
+									 << "the considered space is: " << *(mCFSpaces.back()) << "\n"
+									 << "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+		
+		// Store inputs for copy constructor
+		msSpaceInput.push_back(msSpace);
+		quadHexaInput.push_back(quadHexa);
+		
+		// Add and store the space with its according properties
+		mCFSpaces.push_back(new cf_space(msSpace.getGeometry(), this, quadHexa));
+		mCFSpaces.back()->setSpaceID(msSpace.getID());
+		std::string possibleSpaceType;
+		if (msSpace.getSpaceType(possibleSpaceType))
+		{
+			mCFSpaces.back()->setSpaceType(possibleSpaceType);
+		}
+		
+		// Add the geometry entities to cf_geometry_model and the corrsponding cf_building_model geometry, i.e. a line from a space may exist for multiple lines in the cf_geometry_model
+		auto spPtr = mCFSpaces.back();
+		for (const auto& i : *spPtr)
+		{
+			mCFPoints.push_back(new cf_point(i, this)); // add points of space spPtr to mCFSpaces and initiate constructor, which adds the points to cf_geometry_model mCFVertices
+			mCFPoints.back()->addSpace(spPtr); // store the space to which the points belongs in the mCFSpaces of cf_point
+			spPtr->addPoint(mCFPoints.back()); // add the cf_point to the mCFSpaces of the cf_space to which it belongs point belongs
+		}
+		
+		// Store all unique line entities from the to insert quadHexa for consideration of insertion into the geometry conformal model	
+		std::vector<utilities::geometry::line_segment> quadHexaLine;
+		for(const auto i: quadHexa)
+		{
+			for(auto j: i.getLines())
+			{								
+				bool isSameAs = false;
+				for(const auto k: quadHexaLine)
+				{
+					if(k.isSameAs(j, mTol))
+					{
+						isSameAs = true;
+					}
+				}
+				if(isSameAs == false)
+				{
+					quadHexaLine.push_back(j);
+				}
+			}
+		}
+		
+		for (const auto& i : spPtr->getLines())
+		{ 
+			//Determine which lines are corresponding with which edges in the building conformal model
+			std::vector<utilities::geometry::line_segment*> linesOnEdge;
+			
+			for(const auto j: quadHexaLine)
+			{
+				
+				if(i.isOnLine(j[0], mTol) && i.isOnLine(j[1], mTol))
+				{
+					linesOnEdge.push_back(new utilities::geometry::line_segment(j));
+				}
+				else if(i.isOnLine(j[0], mTol))
+				{
+					if((i[0]).isSameAs(j[1], mTol) || (i[1]).isSameAs(j[1], mTol))
+					{
+						linesOnEdge.push_back(new utilities::geometry::line_segment(j));
+					}
+				}
+				else if(i.isOnLine(j[1], mTol))
+				{
+					if((i[0]).isSameAs(j[0], mTol) || (i[1]).isSameAs(j[0], mTol))
+					{
+						linesOnEdge.push_back(new utilities::geometry::line_segment(j));
+					}
+				}
+				else if((i[1]).isSameAs(j[0], mTol) && (i[0]).isSameAs(j[1], mTol))
+				{
+					linesOnEdge.push_back(new utilities::geometry::line_segment(j));
+				}
+				else if((i[0]).isSameAs(j[0], mTol) && (i[1]).isSameAs(j[1], mTol))
+				{
+					linesOnEdge.push_back(new utilities::geometry::line_segment(j));
+				}				
+			}
+
+			// Add edges accordingly
+			mCFEdges.push_back(new cf_edge(i, this, linesOnEdge));
+			mCFEdges.back()->addSpace(spPtr);
+			spPtr->addEdge(mCFEdges.back());
+		}
+		
+		// Add surface types to the spaces
+		std::vector<std::string> possibleSurfaceTypes;
+		bool surfaceTypesAvailable = msSpace.getSurfaceTypes(possibleSurfaceTypes);
+		if (surfaceTypesAvailable)
+		{
+			std::swap(possibleSurfaceTypes[0],possibleSurfaceTypes[2]);
+			std::swap(possibleSurfaceTypes[4],possibleSurfaceTypes[5]);
+		}
+		auto typeIte = possibleSurfaceTypes.begin();
+		
+		
+		for (const auto& i : spPtr->getPolygons())
+		{
+			//Determine which quads are corrsponding with with surfaces
+			std::vector<utilities::geometry::triangle*> triOnSurface; // Empty variable for function call, none will be added since it is empty
+			std::vector<utilities::geometry::quadrilateral*> quadOnSurface;
+			
+			for(const auto j: quadHexa)
+			{
+				for(const auto& k: j.getQuadrilateral())
+				{
+					bool allVOnSurface = true;
+				
+					for(const auto l: k)
+					{
+						if(i->isInsideOrOn(l, mTol) == false){allVOnSurface = false;}
+					}
+					
+					if(allVOnSurface == true)
+					{
+						quadOnSurface.push_back(new utilities::geometry::quadrilateral(k)); // should the new key word be used here, do need a new memory adress since a const storing isn't posible
+					}
+				}
+			}
+
+			// Add surface and quads
+			mCFSurfaces.push_back(new cf_surface(*i, this, triOnSurface, quadOnSurface));
+			mCFSurfaces.back()->addSpace(spPtr);
+			spPtr->addSurface(mCFSurfaces.back());
+			if (surfaceTypesAvailable)
+			{
+				mCFSurfaces.back()->setSurfaceType(*typeIte);
+				++typeIte;
+			}
+		}
+
+
+		//Check if the space volume is considered fully filled with the inserted quad-hexahedrons cells
+		double spaceVolume = (mCFSpaces.back())->getVolume();
+		double cellVolume = 0;
+		for(const auto i: quadHexa)
+		{
+			cellVolume = cellVolume + i.getVolume();
+		}
+		
+		if((spaceVolume-cellVolume) < (0-10) || (spaceVolume-cellVolume) > (0+10)) // The standard tolerance is too small and trickers the error unrightfully fast
+		{
+			std::stringstream errorMessage;
+			errorMessage << "When initializing multiple quad-hexahedron cells in a space in the addSpaceD() function.\n"
+									 << "The space was not fully filled with the inserted cells. \n"
+									 << "Meaning that there are cells missing. \n"
+									 << "The difference between the space volume and the sum of all the cells is: " << (spaceVolume-cellVolume) << "\n"
+									 << "the amount of triPrism in the space is: " << quadHexa.size() << " and consist of the following: " << std::endl;
+										for(const auto i: quadHexa)
+										{
+											errorMessage << i << std::endl;
+										}
+						errorMessage << "the considered space is: " << *(mCFSpaces.back()) << "\n"
+									 << "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+	} // addSpace
+	
+	void cf_building_model::addSpaceD(const ms_space& msSpace, std::vector<utilities::geometry::triangular_prism> triPrismPtr)
+	{
+		// Check if the minimum amount of triPrisms are inserted
 		if(triPrismPtr.size() < 2)
 		{
 			std::stringstream errorMessage;
-			errorMessage << "The amound of triPrisms inserted in the addSpaceD() function is to litle to fill a space with triPrism cells.\n"
-									 << "The minumum required amound of triPrisms is 2 and the inserted amound is: " << triPrismPtr.size() << "\n"
+			errorMessage << "The amount of triPrisms inserted in the addSpaceD() function is to little to fill a space with triPrism cells.\n"
+									 << "The minumum required amount of triPrisms is 2 and the inserted amount is: " << triPrismPtr.size() << "\n"
 									 << "Meaning that there are triPrism(s) missing. \n"
 									 << "The inserted triPrism consist of the following: " << std::endl;
 										for(const auto i: triPrismPtr)
@@ -69,9 +255,22 @@ namespace bso { namespace spatial_design { namespace conformal {
 											errorMessage << i << std::endl;
 										}
 						errorMessage << "the considered space is: " << *(mCFSpaces.back()) << "\n"
-									 << "(bso/utilities/geomtry/cf_building_model.cpp)" << std::endl;
+									 << "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
+		if(mCFCuboids.size() > 0)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "The addSpace function is not allowed to be used when mCFCuboids contains content in the geometry conformal model. \n"
+									 << "The mCFCuboids consist of: " << mCFCuboids.size() << " amount of triangular prisms \n"
+									 << "the considered space is: " << *(mCFSpaces.back()) << "\n"
+									 << "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+
+		// Store inputs for copy constructor
+		msSpaceInput.push_back(msSpace);
+		triPrismInput.push_back(triPrismPtr);
 		
 		mCFSpaces.push_back(new cf_space(msSpace.getGeometry(), this, triPrismPtr));
 		
@@ -103,18 +302,18 @@ namespace bso { namespace spatial_design { namespace conformal {
 			}
 		}
 			
-		// Add the geometry entities to cf_geometry_model and the corosponding cf_building_model geometry, i.e. a line from a space may exist for multiple lines in the cf_geometry_model
+		// Add the geometry entities to cf_geometry_model and the corrsponding cf_building_model geometry, i.e. a line from a space may exist for multiple lines in the cf_geometry_model
 		auto spPtr = mCFSpaces.back();
 		for (const auto& i : *spPtr)
 		{
-			mCFPoints.push_back(new cf_point(i, this)); // add points of space spPtr to mCFSpaces and initate constoctor, which adds the points to cf_geometry_model mCFVertices
+			mCFPoints.push_back(new cf_point(i, this)); // add points of space spPtr to mCFSpaces and initiate constructor, which adds the points to cf_geometry_model mCFVertices
 			mCFPoints.back()->addSpace(spPtr); // store the space to which the points belongs in the mCFSpaces of cf_point
 			spPtr->addPoint(mCFPoints.back()); // add the cf_point to the mCFSpaces of the cf_space to which it belongs point belongs
 		}
 		
 		for (const auto& i : spPtr->getLines())
 		{ 
-			//Determine which lines are coresponding with which edges in the building conformal model
+			//Determine which lines are corresponding with which edges in the building conformal model
 			std::vector<utilities::geometry::line_segment*> linesOnEdge;
 			
 			for(const auto j: prismLine)
@@ -166,8 +365,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		
 		for (const auto& i : spPtr->getPolygons())
 		{
-			//Determine which lines are coresponding with with edges
-			std::vector<utilities::geometry::polygon*> PolyOnSurface;
+			//Determine which triangles/quads are corrsponding with which surfaces
 			std::vector<utilities::geometry::triangle*> triOnSurface;
 			std::vector<utilities::geometry::quadrilateral*> quadOnSurface;
 			
@@ -223,20 +421,20 @@ namespace bso { namespace spatial_design { namespace conformal {
 		}
 		
 		
-		if((spaceVolume-cellVolume) < (0-10) || (spaceVolume-cellVolume) > (0+10)) // The standart tolerance is too small and trikers the error unrightfully fast
+		if((spaceVolume-cellVolume) < (0-10) || (spaceVolume-cellVolume) > (0+10)) // The standard tolerance is too small and trickers the error unrightfully fast
 		{
 			std::stringstream errorMessage;
 			errorMessage << "When initializing multiple triangular prism cells in a space in the addSpaceD() function.\n"
 									 << "The space was not fully filled with the inserted cells. \n"
 									 << "Meaning that there are cells missing. \n"
-									 << "The diference between the space volume and the sum of all the cells is: " << (spaceVolume-cellVolume) << "\n"
-									 << "the amound of triPrism in the space is: " << triPrismPtr.size() << " and consist of the following: " << std::endl;
+									 << "The difference between the space volume and the sum of all the cells is: " << (spaceVolume-cellVolume) << "\n"
+									 << "the amount of triPrism in the space is: " << triPrismPtr.size() << " and consist of the following: " << std::endl;
 										for(const auto i: triPrismPtr)
 										{
 											errorMessage << i << std::endl;
 										}
 						errorMessage << "the considered space is: " << *(mCFSpaces.back()) << "\n"
-									 << "(bso/utilities/geomtry/cf_building_model.cpp)" << std::endl;
+									 << "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
 	}// addSpaceD
@@ -296,24 +494,24 @@ namespace bso { namespace spatial_design { namespace conformal {
 			
 	} //  makeConformal()
 	
-	void cf_building_model::makeConformalND(const ms_N_building& msNModel) // Delauney method
+	void cf_building_model::makeConformalND(const ms_N_building& msNModel) // Delaunay method
 	{ //
-		// Declerations for needed information per space
+		// Declarations for needed information per space
 		std::vector<utilities::geometry::quad_hexahedron> spacesAtLevel;
 		//std::vector<utilities::geometry::quad_hexahedron> spacesAtGround; // Declared in private section class to allow for visualization
 		std::vector<utilities::geometry::vertex> highV;
 		std::vector<utilities::geometry::vertex> LowV;
 		
-		// Declerations for needed information per building spatial design
+		// Declarations for needed information per building spatial design
 		std::vector<double> allLevels; // stores all the floor levels
-		//allLevels.push_back(0); // Always add the z=0 plane to ensure correct load aplication in the later stages
+		//allLevels.push_back(0); // Always add the z=0 plane to ensure correct load application in the later stages
 		std::vector<std::vector<double>> levelPerSpace;
-		int count =0; //counts the amound of spaces
+		int count =0; //counts the amount of spaces
 		
 		//Get the above information
 		for (const auto& i : msNModel)
 		{
-			//Add origonal space geometry
+			//Add original space geometry
 			spacesAtLevel.push_back(i->getGeometry());
 			
 			//Find the highest and lowest vertex
@@ -448,12 +646,12 @@ namespace bso { namespace spatial_design { namespace conformal {
 		}
 		
 		// Split lines at intersection vertices and remove duplicated lines
-		splitLines(delauneyPoints, delauneyLines);// this prevent the genration of traingles on one line or triangles containing duplicate vertices
+		splitLines(delauneyPoints, delauneyLines);// this prevent the generation of triangles on one line or triangles containing duplicate vertices
 
 		// Send all vertices and constrain lines to the delauney triangulation and receive all triangles
 		std::vector<utilities::geometry::triangle> delaunayTri = delaunay(delauneyPoints, delauneyLines);
 		
-		// identify which triangles should be used to generate a triangular prism cell in the space and generate that space and acompaning geometric entities
+		// identify which triangles should be used to generate a triangular prism cell in the space and generate that space and accompanying geometric entities
 		int i = 0;
 		for(const auto& t : msNModel)
 		{
@@ -466,18 +664,18 @@ namespace bso { namespace spatial_design { namespace conformal {
 				{
 					if(!spacesAtGround[i].isInsideOrOn(k, mTol))
 					{
-						//Additional checks for prevention malfuntioning, which has been previously observed
-						//Note; the tolerance of 0.001 is applied diferenly in each geometry check. 
-						//Meaning that in the isOnLine check, the considered vertices onLine are not by difinition within +0.001 and -0.001 from the line in distance.
+						//Additional checks for prevention malfunctioning, which has been previously observed
+						//Note; the tolerance of 0.001 is applied differently in each geometry check. 
+						//Meaning that in the isOnLine check, the considered vertices onLine are not by definition within +0.001 and -0.001 from the line in distance.
 						//However, within the isSameAs check are the vertices within 0.001 from each other
-						//For this reason are all posible geometry checks applied.
+						//For this reason are all possible geometry checks applied.
 						
-						bool annyTrue = false;
+						bool anyTrue = false;
 						for(const auto l: spacesAtGround[i].getLines())
 						{
 							if(l.isOnLine(k, mTol))
 							{
-								annyTrue = true;
+								anyTrue = true;
 							}
 						}
 
@@ -485,11 +683,11 @@ namespace bso { namespace spatial_design { namespace conformal {
 						{
 							if(l.isSameAs(k, mTol))
 							{
-								annyTrue = true;
+								anyTrue = true;
 							}
 						}
 
-						if(!annyTrue)
+						if(!anyTrue)
 						{
 							allNodesInside = false;
 						}
@@ -504,10 +702,10 @@ namespace bso { namespace spatial_design { namespace conformal {
 			if(triCell.size() < 2)
 			{
 				std::stringstream errorMessage;
-				errorMessage << "The amound of triCell found are to litle to form a space fully filled with triPrism cells.\n"
-										<< "The minumum required amound of triCells are 2 and the inserted amound is: " << triCell.size() << "\n"
+				errorMessage << "The amount of triCell found are to little to form a space fully filled with triPrism cells.\n"
+										<< "The minumum required amount of triCells are 2 and the inserted amount is: " << triCell.size() << "\n"
 										<< "Meaning that there are tricell(s) missing. \n"
-										<< "The posibly found triCell consist of the following: " << std::endl;
+										<< "The possibly found triCell consist of the following: " << std::endl;
 											for(const auto i: triCell)
 											{
 												errorMessage << i << std::endl;
@@ -528,7 +726,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 				}
 			}
 
-			// Define all sixs vertices of the triangular prism and store in triPrism
+			// Define all six vertices of the triangular prism and store in triPrism
 			std::vector<utilities::geometry::triangular_prism> triPrism;
 			for(const auto j: triCell)
 			{
@@ -821,25 +1019,58 @@ namespace bso { namespace spatial_design { namespace conformal {
 		int spaceCount2 = 0;
 		for (const auto& i : rhs.mMSModel) spaceCount1++;
 		for (const auto& i : rhs.mMSNModel) spaceCount2++;
-		if(spaceCount1 > 0) newPtr = new cf_building_model(rhs.mMSModel, rhs.mTol);
-		if(spaceCount2 > 0) newPtr = new cf_building_model(rhs.mMSNModel, rhs.mTol);
+		if(spaceCount1 > 0) 
+		{
+			if(rhs.conformal) 
+			{
+				newPtr = new cf_building_model(rhs.mMSModel, rhs.mTol);
+			}
+			else
+			{
+				newPtr = new cf_building_model(rhs.mMSModel, rhs.mTol, false);
+				for (int i = 0; i < rhs.msSpaceInput.size(); i++)
+				{
+					newPtr->addSpace(rhs.msSpaceInput[i], (rhs.quadHexaInput)[i]);
+				}
+			}
+		}
+		if(spaceCount2 > 0) 
+		{
+			if(rhs.conformal) 
+			{
+				newPtr = new cf_building_model(rhs.mMSNModel, rhs.mTol);
+			}
+			else
+			{
+				newPtr = new cf_building_model(rhs.mMSNModel, rhs.mTol, false);
+				for (int i = 0; i < rhs.msSpaceInput.size(); i++)
+				{
+					newPtr->addSpaceD(rhs.msSpaceInput[i], (rhs.triPrismInput)[i]);
+				}
+			}
+		}
 		*this = *newPtr;
 	} // copy ctor()
 
-	cf_building_model::cf_building_model(const ms_building& msModel, const double& tol /*= 1e-3*/)
-	:	cf_geometry_model(tol), mMSModel(msModel), mTol(tol)
+	cf_building_model::cf_building_model(const ms_building& msModel, const double& tol /*= 1e-3*/, bool makeConformal)
+	:	cf_geometry_model(tol), mMSModel(msModel), mTol(tol), conformal(makeConformal)
 	{ // 
-		for (const auto& i : mMSModel)
+		if(makeConformal)
 		{
-			addSpace(*i);
+			for (const auto& i : mMSModel)
+			{
+				addSpace(*i);
+			}
+			this->makeConformal();
 		}
-		this->makeConformal();
+		else /*do nothing*/;
 	} // 
 
-	cf_building_model::cf_building_model(const ms_N_building& msNModel, const double& tol /*= 1e-3*/)
-	:	cf_geometry_model(tol), mMSNModel(msNModel), mTol(tol)
+	cf_building_model::cf_building_model(const ms_N_building& msNModel, const double& tol /*= 1e-3*/, bool makeConformal)
+	:	cf_geometry_model(tol), mMSNModel(msNModel), mTol(tol), conformal(makeConformal)
 	{ // 
-		makeConformalND(msNModel);
+		if(makeConformal) makeConformalND(msNModel);
+		else /*do nothing*/;
 	} // 
 	
 	cf_building_model::~cf_building_model()
@@ -850,7 +1081,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		for (auto& i : mCFPoints) delete i;
 	} // 
 
-	void cf_building_model::writeToFile(std::string fileName) const
+	void cf_building_model::writeToFile(std::string fileName, int writeOption) const
 	{
 		std::ofstream output;
 		if (!fileName.empty()) output.open(fileName.c_str());
@@ -863,8 +1094,88 @@ namespace bso { namespace spatial_design { namespace conformal {
 									<< "(bso/spatial_design/conformal/cf_building_model.cpp). " << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
-		
-		output << *this;
+
+		if(writeOption == 1)
+		{
+			output << *this;
+		}
+		else if(writeOption == 2)
+		{
+			output << "\n\n The conformal model contains the following geometry: \n"
+				   << "\n The building conformal model contains the following geometry: \n"
+				<< "	The cf_space of size()= "<< mCFSpaces.size() << " are: \n";
+				for(const auto i: mCFSpaces) 
+				{
+					output << i->getSpaceID() << " : " << *i << "\n";
+					i->writeGeometryToFile(output);
+				}
+				output << "		The cf_surfaces of size()= "<< mCFSurfaces.size() << " are: \n";
+				for(const auto i: mCFSurfaces) 
+				{
+					output << "		Surface = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				}
+				output << "		The cf_edges of size()= "<< mCFEdges.size() << " are: \n";
+				for(const auto i: mCFEdges) 
+				{
+					output << "		Edges = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				}
+				output << "		The cf_points of size()= "<< mCFPoints.size() << " are: \n";
+				for(const auto i: mCFPoints)
+				{
+					output << "		Points = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				} 
+
+				output << "\n The geometry conformal model contains the following geometry: \n";
+				output << "		The cf_triPrisms of size()= "<< mCFTriPrisms.size() << " are: \n";
+				for(const auto i: mCFTriPrisms) 
+				{
+					output << "		Triangular prisms = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				}
+				output << "		The cf_triangles of size()= "<< mCFTriangles.size() << " are: \n";
+				for(const auto i: mCFTriangles) 
+				{
+					output << "		Triangles = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				}
+				output << "		The cf_rectangles of size()= "<< mCFRectangles.size() << " are: \n";
+				for(const auto i: mCFRectangles) 
+				{
+					output << "		Rectangles = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				}
+				output << "		The cf_lines of size()= "<< mCFLines.size() << " are: \n";
+				for(const auto i: mCFLines) 
+				{
+					output << "		Lines = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				}
+				output << "		The cf_vertices of size()= "<< mCFVertices.size() << " are: \n";
+				for(const auto i: mCFVertices) 
+				{
+					output << "		Vertices = "<< *i << " ";
+					i->writeGeometryToFile(output);
+				}
+		}
+		else if (writeOption == 3)
+		{
+			output << "\n\n The conformal model contains the following geometry: \n"
+				   << "\n The building conformal model contains the following geometry: \n"
+				<< "	The cf_space of size()= "<< mCFSpaces.size() << "  \n"
+				<< "	The cf_surfaces of size()= "<< mCFSurfaces.size() << "  \n"
+				<< "	The cf_edges of size()= "<< mCFEdges.size() << "  \n"
+				<< "	The cf_points of size()= "<< mCFPoints.size() << "  \n"
+				<< "\n The geometry conformal model contains the following geometry: \n"
+				<< "	The cf_triPrisms of size()= "<< mCFTriPrisms.size() << "  \n"
+				<< "	The cf_triangles of size()= "<< mCFTriangles.size() << "  \n"
+				<< "	The cf_rectangles of size()= "<< mCFRectangles.size() << "  \n"
+				<< "	The cf_lines of size()= "<< mCFLines.size() << "  \n"
+				<< "	The cf_vertices of size()= "<< mCFVertices.size() << "  \n";
+		}
+		else /*do nothing*/;
 	} // writeToFile()
 
 	std::ostream& operator <<(std::ostream& stream, const cf_building_model& building)

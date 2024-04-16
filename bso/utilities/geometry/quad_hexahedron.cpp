@@ -191,9 +191,15 @@ namespace bso { namespace utilities { namespace geometry {
 			mPolygons.reserve(6);
 			mSizePolygons = 6;
 			for (unsigned int i = 0; i < 4; ++i)
+			{
 				mPolygons.push_back(new quadrilateral({mVertices[i],mVertices[(i+1)%4],mVertices[i+4],mVertices[((i+1)%4)+4]},tol));
+				mQuad.push_back(*(mPolygons.back()));
+			}
 			for (unsigned int i = 0; i < 2; ++i)
+			{
 				mPolygons.push_back(new quadrilateral({mVertices[0+i*4],mVertices[1+i*4],mVertices[2+i*4],mVertices[3+i*4]},tol));
+				mQuad.push_back(*(mPolygons.back()));
+			}
 		}
 		catch (std::exception& e)
 		{
