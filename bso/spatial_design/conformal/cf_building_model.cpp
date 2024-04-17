@@ -6,6 +6,8 @@
 #include <FadeExport.h>
 #include <iomanip> // Allowes to use std::setprecision() to be able to enlarge the decimals printed to the console of a double					 
 
+#include <bso/utilities/delaunay.hpp>
+
 namespace bso { namespace spatial_design { namespace conformal {
 	
 	void cf_building_model::addSpace(const ms_space& msSpace)
@@ -638,7 +640,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		}
 		
 		// Split lines at intersection vertices and remove duplicated lines
-		splitLines(delauneyPoints, delauneyLines);// this prevent the generation of triangles on one line or triangles containing duplicate vertices
+		utilities::splitLines(delauneyPoints, delauneyLines);// this prevent the generation of triangles on one line or triangles containing duplicate vertices
 
 		// Send all vertices and constrain lines to the delauney triangulation and receive all triangles
 		std::vector<utilities::geometry::triangle> delaunayTri = delaunay(delauneyPoints, delauneyLines);
@@ -962,6 +964,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		return delaunayTri;
 	} //delaunay()
 	
+	/*
 	void cf_building_model::splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL)
 	{					
 		// split lines in acordance to intersection points
@@ -1003,6 +1006,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 			}
 		}		
 	}//cf_space::splitLines
+	*/
 	
 	cf_building_model::cf_building_model(const cf_building_model& rhs)
 	{

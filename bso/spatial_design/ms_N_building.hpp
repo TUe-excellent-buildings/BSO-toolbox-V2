@@ -16,7 +16,6 @@ private:
 	std::vector<std::pair<ms_space,utilities::geometry::quad_hexahedron>> spacesAtGround;
 	mutable unsigned int mLastSpaceID;
 	void checkValidity() const;
-	void generateSpacesAtGround;
 	std::string insertFileName;
 public:
 	ms_N_building(); // empty constructor
@@ -58,7 +57,7 @@ public:
 	const auto begin() const {return mSpaces.begin();}
 	const auto end() const {return mSpaces.end();}
 	
-	// Translational function to Leiden
+	// Translational function to Leiden representation via the geometry conformal model
 	void addBoundary();
 	
 	bool operator == (const ms_N_building& rhs);

@@ -852,18 +852,13 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 
 void ms_N_building::replicateSplitSetSpace(std::vector<ms_space*> spaces)
 {
-	if(spacesAtGround.size() != mSpaces.size()){generateSpacesAtGround();}
+	//if(spacesAtGround.size() != mSpaces.size()){generateSpacesAtGround();}
 
 	//spacesAtGround
 
 
 
 }//replicateSplitSetSpace()
-
-void ms_N_building::generateSpacesAtGround()
-{
-
-}//generateSpacesAtGround
 
 bool ms_N_building::hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 	const double tol /*= 1e-3*/) const

@@ -23,7 +23,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		void addSpaceD(const ms_space& msSpace, std::vector<utilities::geometry::triangular_prism> triPrismPtr); // Generates the final building- and geometry-conformal model after partitioning.
 		void makeConformalND(const ms_N_building& msModel); // Initiates the triangulation partitioning method
 		std::vector<utilities::geometry::triangle> delaunay(const std::vector <utilities::geometry::vertex> delauneyPoints, const std::vector <utilities::geometry::line_segment> delauneyLines); // Constrained Delaunay triangulation performed with the help of the FADE_2D libary
-		void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL); // used during the delaunay method to avoid the inserting of overlapping and duplicate constrain lines
+		//void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL); // used during the delaunay method to avoid the inserting of overlapping and duplicate constrain lines
 
 		// safe it, in case copy constructor is called
 		ms_building mMSModel; 
