@@ -1,15 +1,15 @@
 #	type_ID_1, type_ID_2, Assigned type wall, Assigned type_ID wall, assigned_type__ID floor
 B, A, A, flat_shell, 1, flat_shell, 1
 B, A, E, flat_shell, 1, flat_shell, 1
-B, A, G, flat_shell, 1, flat_shell, 1
+B, A, G, truss, 1, flat_shell, 1
 
 # mesh settings, number of element divisions to be made:
-C, 3
+C, 4
 
 # live loading on floors
 #	load case[-],	load [N/mm²],	azimuth [°],	altitude[°],	type
 D, 1, 0.005, 0, -90, live_load
-D, 1, 0.005, 0, -90, roof_load
+D, 1, 0.001, 0, -90, roof_load
 
 # wind loading on external surfaces
 # load_case[-], load [N/mm²], azimuth [°], altitude[°], type

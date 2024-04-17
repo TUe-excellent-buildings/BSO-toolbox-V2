@@ -22,6 +22,9 @@ namespace bso { namespace utilities { namespace geometry {
 		polyhedron* clone();
 		
 		double getVolume() const;
+		double getTotalArea() const;
+		std::vector<double> getQuadAreas() const;
+		std::vector<double> getTriAreas() const;
 		bool isInside(const vertex& p1, const double& tol = 1e-3) const;
 		bool isInsideOrOn(const vertex& p1, const double& tol = 1e-3) const;
 		

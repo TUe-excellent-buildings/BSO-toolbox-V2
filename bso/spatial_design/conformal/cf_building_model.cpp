@@ -81,11 +81,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 									 << "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
-		
-		// Store inputs for copy constructor
-		msSpaceInput.push_back(msSpace);
-		quadHexaInput.push_back(quadHexa);
-		
+				
 		// Add and store the space with its according properties
 		mCFSpaces.push_back(new cf_space(msSpace.getGeometry(), this, quadHexa));
 		mCFSpaces.back()->setSpaceID(msSpace.getID());
@@ -267,10 +263,6 @@ namespace bso { namespace spatial_design { namespace conformal {
 									 << "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
-
-		// Store inputs for copy constructor
-		msSpaceInput.push_back(msSpace);
-		triPrismInput.push_back(triPrismPtr);
 		
 		mCFSpaces.push_back(new cf_space(msSpace.getGeometry(), this, triPrismPtr));
 		
@@ -715,7 +707,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 							throw std::invalid_argument(errorMessage.str());
 			}
 			
-			// Are there any midLevels and if yes, which are they?
+			// Are there anny midLevels and if yes, which are they?
 			std::vector<double> levelToConsider;			
 			
 			for(const double j: allLevels)
@@ -1021,56 +1013,85 @@ namespace bso { namespace spatial_design { namespace conformal {
 		for (const auto& i : rhs.mMSNModel) spaceCount2++;
 		if(spaceCount1 > 0) 
 		{
-			if(rhs.conformal) 
-			{
-				newPtr = new cf_building_model(rhs.mMSModel, rhs.mTol);
-			}
-			else
-			{
-				newPtr = new cf_building_model(rhs.mMSModel, rhs.mTol, false);
-				for (int i = 0; i < rhs.msSpaceInput.size(); i++)
-				{
-					newPtr->addSpace(rhs.msSpaceInput[i], (rhs.quadHexaInput)[i]);
-				}
-			}
+			if(rhs.quadHexaInput.size() == 0) newPtr = new cf_building_model(rhs.mMSModel, rhs.mTol);
+			else newPtr =new cf_building_model(rhs.mMSModel, rhs.quadHexaInput, rhs.mTol);
 		}
 		if(spaceCount2 > 0) 
 		{
-			if(rhs.conformal) 
-			{
-				newPtr = new cf_building_model(rhs.mMSNModel, rhs.mTol);
-			}
-			else
-			{
-				newPtr = new cf_building_model(rhs.mMSNModel, rhs.mTol, false);
-				for (int i = 0; i < rhs.msSpaceInput.size(); i++)
-				{
-					newPtr->addSpaceD(rhs.msSpaceInput[i], (rhs.triPrismInput)[i]);
-				}
-			}
+			if(rhs.triPrismInput.size() == 0) newPtr = new cf_building_model(rhs.mMSNModel, rhs.mTol);
+			else newPtr = new cf_building_model(rhs.mMSNModel, rhs.triPrismInput, rhs.mTol);
 		}
 		*this = *newPtr;
 	} // copy ctor()
 
-	cf_building_model::cf_building_model(const ms_building& msModel, const double& tol /*= 1e-3*/, bool makeConformal)
-	:	cf_geometry_model(tol), mMSModel(msModel), mTol(tol), conformal(makeConformal)
+	cf_building_model::cf_building_model(const ms_building& msModel, const double& tol /*= 1e-3*/)
+	:	cf_geometry_model(tol), mMSModel(msModel), mTol(tol)
 	{ // 
-		if(makeConformal)
+		for (const auto& i : mMSModel)
 		{
-			for (const auto& i : mMSModel)
-			{
-				addSpace(*i);
-			}
-			this->makeConformal();
+			addSpace(*i);
 		}
-		else /*do nothing*/;
+		this->makeConformal();
 	} // 
 
-	cf_building_model::cf_building_model(const ms_N_building& msNModel, const double& tol /*= 1e-3*/, bool makeConformal)
-	:	cf_geometry_model(tol), mMSNModel(msNModel), mTol(tol), conformal(makeConformal)
+	cf_building_model::cf_building_model(const ms_building& msModel, const std::vector<utilities::geometry::quad_hexahedron>& quadHexa, const double& tol /*= 1e-3*/)
+	:	cf_geometry_model(tol), mMSModel(msModel), mTol(tol), quadHexaInput(quadHexa)
 	{ // 
-		if(makeConformal) makeConformalND(msNModel);
-		else /*do nothing*/;
+		int count = 0;
+		for (const auto& i : mMSModel)
+		{
+			std::vector<utilities::geometry::quad_hexahedron> quadHexaInside;
+			bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+			for(const auto j: quadHexa)
+			{
+				if(spaceGeom.isInside((j.getCenter()),mTol))
+				{
+					quadHexaInside.push_back(j);
+					count++;
+				}
+			}
+			addSpace(*i, quadHexaInside);
+		}
+		if(count != quadHexa.size())
+		{
+			std::stringstream errorMessage;
+			errorMessage << "The inserted quad Hexahedrons are not all considered inside a space or are too often added to a space." << std::endl
+									<< "(bso/spatial_design/conformal/cf_building_model.cpp). " << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+	} // 
+
+	cf_building_model::cf_building_model(const ms_N_building& msNModel, const double& tol /*= 1e-3*/)
+	:	cf_geometry_model(tol), mMSNModel(msNModel), mTol(tol)
+	{ // 
+		makeConformalND(msNModel);
+	} // 
+
+	cf_building_model::cf_building_model(const ms_N_building& msNModel, const std::vector<utilities::geometry::triangular_prism>& triPrism, const double& tol /*= 1e-3*/)
+	:	cf_geometry_model(tol), mMSNModel(msNModel), mTol(tol), triPrismInput(triPrism)
+	{ // 
+		int count = 0;
+		for (const auto& i : msNModel)
+		{
+			std::vector<utilities::geometry::triangular_prism> triPrismInside;
+			bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+			for(const auto j: triPrism)
+			{
+				if(spaceGeom.isInside((j.getCenter()),mTol))
+				{
+					triPrismInside.push_back(j);
+					count++;
+				}
+			}
+			addSpaceD(*i, triPrismInside);
+		}
+		if(count != triPrism.size())
+		{
+			std::stringstream errorMessage;
+			errorMessage << "The inserted triPrism are not all considered inside a space or are too often added to a space." << std::endl
+									<< "(bso/spatial_design/conformal/cf_building_model.cpp). " << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
 	} // 
 	
 	cf_building_model::~cf_building_model()
@@ -1207,9 +1228,6 @@ namespace bso { namespace spatial_design { namespace conformal {
 				stream << *j;
 			}
 		}
-		
-		//boost::erase_all(stream, "{");
-		//boost::erase_all(stream, "}");
 
 		return stream;
 	} // << operator
