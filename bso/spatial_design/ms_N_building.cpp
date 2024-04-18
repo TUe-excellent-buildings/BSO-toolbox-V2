@@ -11,6 +11,8 @@
 #include <boost/algorithm/string.hpp>
 #include <bitset>
 
+#include <bso/utilities/delaunay.hpp>
+
 namespace bso { namespace spatial_design {
 
 ms_N_building::ms_N_building()
@@ -850,15 +852,39 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 	}
 } //duplicateElevation()
 
-void ms_N_building::replicateSplitSetSpace(std::vector<ms_space*> spaces)
+void ms_N_building::replicateSplits(std::vector<ms_space*> spaces)
 {
-	//if(spacesAtGround.size() != mSpaces.size()){generateSpacesAtGround();}
+	std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>> spaceAtGroundV;
+	std::vector<double> allLevels;
+	std::vector <utilities::geometry::line_segment> linesAtZ;
 
-	//spacesAtGround
+	// These functions get the above defined information
+	bso::utilities::getNOBSDAtGround(*this, spaceAtGroundV, allLevels);
+	bso::utilities::getLinesAtZ0(linesAtZ, spaceAtGroundV);
+	
+	for(auto i: spaces)
+	{
+		
+		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+		std::vector<utilities::geometry::line_segment> linesToConsider;
+		for(const auto j: linesAtZ)
+		{
+			if(spaceGeom.isInsideOrOn(j[0]) || spaceGeom.isInsideOrOn(j[1])) linesToConsider.push_back(j);
+		}
+
+		if(linesToConsider.size() == 0)
+		{
+
+		}
+		else if(linesToConsider.size() == 0)
+		{
+
+		}
+	}
 
 
 
-}//replicateSplitSetSpace()
+}//replicateSplits()
 
 bool ms_N_building::hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 	const double tol /*= 1e-3*/) const

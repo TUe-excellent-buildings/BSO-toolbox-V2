@@ -13,7 +13,6 @@ class ms_N_building
 {
 private:
 	std::vector<ms_space*> mSpaces;
-	std::vector<std::pair<ms_space,utilities::geometry::quad_hexahedron>> spacesAtGround;
 	mutable unsigned int mLastSpaceID;
 	void checkValidity() const;
 	std::string insertFileName;
@@ -52,7 +51,7 @@ public:
 	//void enforceSpaceSize(double minimumHeight, double minimumWidth, double minimumDepth);
 	void duplicateElevation(double atZFromGround = 0, double elevationHeight = 3000, bool duplicateBelowZLevel = true);
 	//void stretchAt();
-	void replicateSplitSetSpace(std::vector<ms_space*> spaces);
+	void replicateSplits(std::vector<ms_space*> spaces);
 
 	const auto begin() const {return mSpaces.begin();}
 	const auto end() const {return mSpaces.end();}
