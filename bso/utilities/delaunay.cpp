@@ -240,6 +240,32 @@ namespace bso { namespace utilities {
 		allLevels.erase(it, allLevels.end()); 
 	} //getNOBSDAtGround
 
+	void getNOBSDAtGround(const bso::spatial_design::ms_N_building& msNModel, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spaceAtGroundV, const double mTol)
+	{
+		for (const auto i : msNModel)
+		{
+			//Get original space geometry
+			utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+						
+			//Find the highest and lowest vertex to add to allLevels and for the definition of the shifting vector
+			utilities::geometry::vertex lowVertex = spaceGeom[0];
+			for (const auto j: spaceGeom)
+			{
+				if(lowVertex.z() > j.z()) lowVertex = j;
+			}			
+
+			//Generate the at ground level space geometry
+			std::vector<utilities::geometry::vertex> vertices_1;
+			utilities::geometry::vertex shift = {0,0,lowVertex.z()};
+			if(lowVertex.z() < mTol && lowVertex.z() > -mTol) for(auto k: spaceGeom){vertices_1.push_back(k);}
+			else for(auto k: spaceGeom){vertices_1.push_back(k-shift);}
+			utilities::geometry::quad_hexahedron atGround = utilities::geometry::quad_hexahedron(vertices_1, mTol);
+
+			std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron> spaceGeomPair (i,atGround);
+			spaceAtGroundV.push_back(spaceGeomPair);
+		}
+	} //getNOBSDAtGround
+
 	void getQuadAtZ0(std::vector <utilities::geometry::quadrilateral>& quadAtZ0, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol)
 	{
 		for(const auto j: spacePair)
@@ -304,7 +330,6 @@ namespace bso { namespace utilities {
 			for(auto v: j.second)
 			{
 				utilities::geometry::vertex temp = {v.x(),v.y(),0};
-
 				bool doubleInsert = false;
 				for (const auto& m : delaunayPoints)
 				{// check if temp already exist in delaunayPoints
