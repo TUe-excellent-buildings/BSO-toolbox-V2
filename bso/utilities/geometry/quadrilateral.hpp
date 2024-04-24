@@ -19,6 +19,7 @@ namespace bso { namespace utilities { namespace geometry {
 		double getArea() const;
 		bool isInside(const vertex& p1, const double& tol = 1e-3) const;
 		bool isInsideOrOn(const vertex& p1, const double& tol = 1e-3) const;
+		double getDifRectangle(const double& tol = 1e-3);
 	};
 	
 } // namespace geometry

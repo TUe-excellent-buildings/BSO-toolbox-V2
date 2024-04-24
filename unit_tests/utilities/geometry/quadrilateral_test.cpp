@@ -220,6 +220,20 @@ BOOST_AUTO_TEST_SUITE( quadrilateral_tests )
 		BOOST_REQUIRE((q1.normal() - vector({0,0,1})).isZero(1e-9));
 	}
 
+	BOOST_AUTO_TEST_CASE( getDifRectangle )
+	{
+		quadrilateral q1 = {{1,0,0},{1,1,0},{0,1,0},{0,0,0}}; // Rectangle
+		quadrilateral q2 = {{1,0,0},{0,1,0},{-1,0,0},{0,0,0}}; // Triangle defined with four vertices
+		quadrilateral q3 = {{1,1,0},{-1,1,0},{-1,-1,0},{1,-1,0}}; // Rectangle rotated
+
+		double check1 = q1.getDifRectangle();
+		BOOST_REQUIRE( check1 == 0 );
+		double check2 = q2.getDifRectangle();
+		BOOST_REQUIRE( check2 == 180 );
+		double check3 = q3.getDifRectangle();
+		BOOST_REQUIRE( check3 == 0 );
+	}
+
 	
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace geometry_test
