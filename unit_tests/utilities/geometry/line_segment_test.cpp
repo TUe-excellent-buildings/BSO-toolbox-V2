@@ -136,6 +136,53 @@ BOOST_AUTO_TEST_SUITE( line_segment_tests )
 		BOOST_REQUIRE(!l1.intersectsWith(l2,vCheck12));
 		BOOST_REQUIRE(!l2.intersectsWith(l1,vCheck12));
 	}
+
+	BOOST_AUTO_TEST_CASE( getSmallestAngle ) {
+		double aCheck1, aCheck2, aCheck3, aCheck4, aCheck5, aCheck6, aCheck7;
+		
+		line_segment l1  = {{0,1,0},{0,1,0}};
+		line_segment l2  = {{1,0,0},{1,2,0}};
+		BOOST_REQUIRE(!l1.getSmallestAngle(l2,aCheck1)); // One line is of zero length
+		
+		l1  = {{0,1,1e-4},{2,1,1e-4}}; // lines intersect within tolerance
+		BOOST_REQUIRE(l1.getSmallestAngle(l2,aCheck1));
+		BOOST_REQUIRE(l2.getSmallestAngle(l1,aCheck2));
+		BOOST_REQUIRE(aCheck2 == 90); //Note: should not be exactly the same, otherwise, NOBSD can not be corectly approuched
+		BOOST_REQUIRE(aCheck2 == 90); //Note: should not be exactly the same, otherwise, NOBSD can not be corectly approuched
+		
+		l1  = {{0,1,0.1},{2,1,0.1}}; // lines do not intersect
+		BOOST_REQUIRE(!l1.getSmallestAngle(l2,aCheck3));
+		
+		l1  = {{1,2,0},{2,2,0}}; // one of the end vertices coincides
+		BOOST_REQUIRE(l1.getSmallestAngle(l2,aCheck3));
+		BOOST_REQUIRE(aCheck3 == 90);
+		
+		l1  = {{1,2,0},{1,0,0}}; // parallel identical lines
+		BOOST_REQUIRE(l1.getSmallestAngle(l2,aCheck4));
+		BOOST_REQUIRE(l2.getSmallestAngle(l1,aCheck5));
+		BOOST_REQUIRE(l1.getSmallestAngle(l1,aCheck6));
+		BOOST_REQUIRE(aCheck4 == 0);
+		BOOST_REQUIRE(aCheck5 == 0);
+		BOOST_REQUIRE(aCheck6 == 0);
+
+		l1  = {{1,2,1},{1,0,1}}; // parallel lines not at same location
+		BOOST_REQUIRE(!l1.getSmallestAngle(l2,aCheck4));
+		BOOST_REQUIRE(!l2.getSmallestAngle(l1,aCheck5));
+		l1  = {{1,3,0},{1,1,0}}; // parallel lines shifted on line
+		BOOST_REQUIRE(l2.getSmallestAngle(l1,aCheck4));
+		BOOST_REQUIRE(aCheck4 == 0);
+		l1  = {{1,2,0},{1,1,0}}; // parallel lines shifted on line
+		BOOST_REQUIRE(l2.getSmallestAngle(l1,aCheck4));
+		BOOST_REQUIRE(aCheck4 == 0);
+		l1  = {{1,20,0},{1,18,0}}; // parallel lines shifted not on line
+		BOOST_REQUIRE(!l2.getSmallestAngle(l1,aCheck5));
+		
+		l1  = {{1,0,0},{2,2,0}};
+		BOOST_REQUIRE(l1.getSmallestAngle(l2,aCheck6));
+		BOOST_REQUIRE(l2.getSmallestAngle(l1,aCheck7));
+		BOOST_REQUIRE(aCheck6 < 26.5651+0.001 && aCheck6 > 26.5651-0.001);
+		BOOST_REQUIRE(aCheck7 < 26.5651+0.001 && aCheck7 > 26.5651-0.001);
+	}
 	
 	BOOST_AUTO_TEST_CASE( get_point_closest_to ) {
 		line_segment l1 = {{-1,1,0}, {1,1,0}};

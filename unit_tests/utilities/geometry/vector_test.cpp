@@ -95,33 +95,23 @@ BOOST_AUTO_TEST_SUITE( vector_tests )
 		// vectors of zero length therefor unable to obtain an angle
 		BOOST_REQUIRE(!v1.getSmallestAngle(v2, angle));
 		BOOST_REQUIRE(!v2.getSmallestAngle(v1, angle));
-		// 90 degrees corners
+		// 90 degrees corners:
 		v2.getSmallestAngle(v3, angle);
-		std::cout << angle << std::endl;
 		BOOST_REQUIRE(angle == 90);
 		v2.getSmallestAngle(v4, angle);
-		std::cout << angle << std::endl;
 		BOOST_REQUIRE(angle == 90);
 		v4.getSmallestAngle(v2, angle);
-		std::cout << angle << std::endl;
 		BOOST_REQUIRE(angle == 90);
 		v5.getSmallestAngle(v6, angle);
-		std::cout << angle << std::endl;
-
-		// Parallel vectors
+		// Parallel vectors:
 		v4.getSmallestAngle(v3, angle);
-		std::cout << angle << std::endl;
 		BOOST_REQUIRE(angle == 0);
 		v3.getSmallestAngle(v4, angle);
-		std::cout << angle << std::endl;
 		BOOST_REQUIRE(angle == 0);
 		v4.getSmallestAngle(v8, angle);
-		std::cout << angle << std::endl;
 		BOOST_REQUIRE(angle == 180);
-
-		// non parallel vectors
+		// non parallel vectors:
 		v6.getSmallestAngle(v7, angle);
-		std::cout << angle << std::endl;
 		double tol = 0.001;
 		BOOST_REQUIRE(angle < 60+tol && angle > 60-tol);
 	}
