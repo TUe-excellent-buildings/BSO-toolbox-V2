@@ -51,7 +51,7 @@ public:
 	//void enforceSpaceSize(double minimumHeight, double minimumWidth, double minimumDepth);
 	void duplicateElevation(double atZFromGround = 0, double elevationHeight = 3000, bool duplicateBelowZLevel = true);
 	//void stretchAt();
-	void replicateSplits(std::vector<ms_space*> spaces);
+	//void replicateSplits(std::vector<ms_space*> spaces); // under development
 
 	const auto begin() const {return mSpaces.begin();}
 	const auto end() const {return mSpaces.end();}

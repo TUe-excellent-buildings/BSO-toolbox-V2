@@ -11,7 +11,7 @@
 #include <boost/algorithm/string.hpp>
 #include <bitset>
 
-#include <bso/utilities/delaunay.hpp>
+// #include <bso/utilities/delaunay.hpp>
 
 namespace bso { namespace spatial_design {
 
@@ -852,6 +852,7 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 	}
 } //duplicateElevation()
 
+/* under development
 void ms_N_building::replicateSplits(std::vector<ms_space*> spaces)
 {
 	std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>> spaceAtGroundV;
@@ -885,6 +886,7 @@ void ms_N_building::replicateSplits(std::vector<ms_space*> spaces)
 
 
 }//replicateSplits()
+*/
 
 bool ms_N_building::hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 	const double tol /*= 1e-3*/) const

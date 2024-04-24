@@ -4,7 +4,11 @@
 #include <bitset>
 #include <Fade_2D.h>
 #include <FadeExport.h>
-#include <iomanip> // Allowes to use std::setprecision() to be able to enlarge the decimals printed to the console of a double					 
+#include <iomanip> // Allowes to use std::setprecision() to be able to enlarge the decimals printed to the console of a double		
+#include <vector>
+#include <bso/utilities/geometry.hpp>
+#include <bso/spatial_design/ms_space.hpp>			 
+
 
 namespace bso { namespace utilities {
 
@@ -161,6 +165,107 @@ namespace bso { namespace utilities {
 		
 		return delaunayTri;
 	} //delaunay()
+
+	/* // under development:
+	std::vector<utilities::geometry::triangle> delaunayZoned(const std::vector <utilities::geometry::vertex> delaunayPoints, const utilities::geometry::polygon_non_convex zone, const double mTol, bool outputPs)
+	{
+		// Input check
+		if(delaunayPoints.size() <= 2)
+		{
+			std::stringstream errorMessage;
+				errorMessage << "\nError, the inserted points in the delaunay triangulation are less then three. \n"
+					 << "Meaning that a delaunay triangulation can not be generated. \n"
+					 << "(bso/utilities/delaunay)." << std::endl;
+				throw std::runtime_error(errorMessage.str());
+		}		
+
+		//Check the zone
+		
+		
+
+		// Start Delaunay triangulation process
+		// start adding the points/zoneLines to delaunay triangulation algorithm Fade_2D
+		GEOM_FADE2D::Fade_2D dt;
+		
+		for(const auto i: delaunayPoints)
+		{
+			dt.insert(GEOM_FADE2D::Point2(i.x(),i.y()));
+		}
+		std::vector<GEOM_FADE2D::Segment2> vSegments;
+		for(const auto i: zone.getLines())
+		{
+			vSegments.push_back(GEOM_FADE2D::Segment2(GEOM_FADE2D::Point2(i[0].x(),i[0].y()),GEOM_FADE2D::Point2(i[1].x(),i[1].y())));
+		}
+		GEOM_FADE2D::ConstraintGraph2* pCG=dt.createConstraint(vSegments,GEOM_FADE2D::CIS_CONSTRAINED_DELAUNAY);
+		
+		// create zone
+		GEOM_FADE2D::Zone2* pZone0(dt.createZone(pCG,ZL_INSIDE));
+
+
+		// Makes the constrained delaunay a delaunay respecting the boundaries by adding the intersection point found on the boundary after delaunay
+		bool applyConstrainedDelaunay = true;
+		if(!applyConstrainedDelaunay)
+		{
+			double minLen(0.1);
+			pCG->makeDelaunay(minLen);
+		}
+
+		// Draw; generate a Design.ps file for visualization in for example illustrator 
+		if(outputPs) dt.show("Design.ps",true);		
+
+		// Export fade2D data to Toolbox information format see website te extract the zone triangles:  https://www.geom.at/boolean-operations/
+		GEOM_FADE2D::FadeExport fadeExport;
+		bool bCustomIndices(false); // To retrieve custom indices also
+		bool bClear(false); // Clear memory in $dt
+		dt.exportTriangulation(fadeExport,bCustomIndices,bClear);
+		
+		std::vector<utilities::geometry::triangle> delaunayTri; // fade_2D resulting delaunay triangles, but defined in BSO toolbox geometry classes
+		for(int triIdx=0;triIdx<fadeExport.numTriangles;++triIdx)
+		{ // Iterate through each triangle in Fade_2D and store triangle in Toolbox entities
+			int vtxIdx0,vtxIdx1,vtxIdx2;
+			fadeExport.getCornerIndices(triIdx,vtxIdx0,vtxIdx1,vtxIdx2);
+			
+			double x0,y0;
+			double x1,y1;
+			double x2,y2;
+			fadeExport.getCoordinates(vtxIdx0,x0,y0);
+			fadeExport.getCoordinates(vtxIdx1,x1,y1);
+			fadeExport.getCoordinates(vtxIdx2,x2,y2);
+			
+			// Define triangle in Toolbox entities
+			utilities::geometry::vertex C1 = {x0,y0,0};
+			utilities::geometry::vertex C2 = {x1,y1,0};
+			utilities::geometry::vertex C3 = {x2,y2,0};
+			
+			try
+			{
+				utilities::geometry::triangle tri = {{C1},{C2},{C3}};
+				delaunayTri.push_back(tri);
+			}
+			catch(std::exception& e)
+			{
+				// Skip unviable triangles for the BSO toolbox
+					// This is needed since FADE_2D calculates with a finer tolerance then the BSO toolbox allows.
+					// Therefore, FADE_2D create unlogical triangles from the BSO Toolbox perspective regarding the BSO toolbox tolerances
+					// the main reasons to skip a triangle are as follows:
+					// - two cornerpoints of a single triangle are the same according to the BSO toolbox tolerances.
+					// - the three points of the triangle are on the same line in accordance to the BSO toolbox tolerances.
+					// See paper automatic partitioning methods for more information.
+				continue;
+			}
+		}
+		
+		if(delaunayTri.size() == 0)
+		{
+			std::stringstream errorMessage;
+				errorMessage << "\nError, there are no triangle generated during the delaunay triangulation. \n"
+					 << "(bso/utilities/delaunay)." << std::endl;
+				throw std::runtime_error(errorMessage.str());
+		}
+		
+		return delaunayTri;
+	} //delaunay()
+	*/
 	
 	void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL, const double mTol)
 	{					
@@ -266,14 +371,16 @@ namespace bso { namespace utilities {
 		}
 	} //getNOBSDAtGround
 
-	void getQuadAtZ0(std::vector <utilities::geometry::quadrilateral>& quadAtZ0, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol)
+	std::vector <bso::utilities::geometry::quadrilateral> getQuadAtZ0(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol)
 	{
+		std::vector <bso::utilities::geometry::quadrilateral> quadAtZ0;
 		for(const auto j: spacePair)
 		{
-			// Add the unique lines of each space at Z to quadAtZ0
+			// Add the unique quad of each space at Z to quadAtZ0
 			for (const auto& k : (j.second).getQuadrilateral())
 			{
-				if (k.getCenter().z() > mTol && k.getCenter().z() < -mTol && k.getNormal().isVertical()) continue; // only consider horizontal floors which are at z=0
+				if(!k.getNormal().isVertical()) continue; // only consider horizontal floors
+				if(k.getCenter().z() > mTol || k.getCenter().z() < -mTol) continue; // only at z=0
 				
 				bool doubleInsert = false;
 				for (const auto& m : quadAtZ0)
@@ -289,10 +396,12 @@ namespace bso { namespace utilities {
 				}
 			}
 		}
-	}
+		return quadAtZ0;
+	} //getQuadAtZ0
 
-	void getLinesAtZ0(std::vector <utilities::geometry::line_segment>& linesAtZ, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol)
+	std::vector <utilities::geometry::line_segment> getLinesAtZ0(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol)
 	{
+		std::vector <utilities::geometry::line_segment> linesAtZ;
 		for(const auto j: spacePair)
 		{
 			// Add the unique lines of each space at Z to linesAtZ
@@ -320,7 +429,8 @@ namespace bso { namespace utilities {
 				}
 			}
 		}
-	}
+		return linesAtZ;
+	} //getLinesAtZ0
 
 	void getDelaunayVariables(std::vector <utilities::geometry::vertex>& delaunayPoints, std::vector <utilities::geometry::line_segment>& delaunayLines, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol)
 	{

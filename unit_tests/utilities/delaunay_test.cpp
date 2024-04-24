@@ -1,11 +1,11 @@
 #ifndef BOOST_TEST_MODULE
-#define BOOST_TEST_MODULE trim_and_cast
+#define BOOST_TEST_MODULE delaunay
 #endif
 
 #include <boost/test/included/unit_test.hpp>
 
-#include <bso/spatial_design/ms_N_building.hpp>
 #include <bso/utilities/geometry.hpp>
+#include <bso/spatial_design/ms_N_building.hpp>
 #include <bso/utilities/delaunay.hpp>
 
 #include <vector>
@@ -185,20 +185,132 @@ BOOST_AUTO_TEST_SUITE( delaunay )
 
 	BOOST_AUTO_TEST_CASE( getQuadAtZ0_1 ) 
 	{
+		bso::spatial_design::ms_N_building ms;
+		bso::spatial_design::ms_space s1 = bso::spatial_design::ms_space("N,1,	0,0,0,	3000,0,0,	0,3000,0,	3000,3000,0,	0,0,3000,	3000,0,3000,	0,3000,3000,	3000,3000,3000");
+		bso::spatial_design::ms_space s2 = bso::spatial_design::ms_space("N,2,	3000,0,0,	6000,0,0,	3000,3000,0,	6000,3000,0,	3000,0,3000,	6000,0,3000,	3000,3000,3000,	6000,3000,3000");
+		bso::spatial_design::ms_space s3 = bso::spatial_design::ms_space("N,3,	-1500,-1500,3000,	1500,-1500,3000,	-1500,1500,3000,	1500,1500,3000,	-1500,-1500,6000,	1500,-1500,6000,	-1500,1500,6000,	1500,1500,6000");
+
+		ms.addSpace(s1);
+		ms.addSpace(s2);
+		ms.addSpace(s3);
+
+		std::vector<std::pair<bso::spatial_design::ms_space*, bso::utilities::geometry::quad_hexahedron>> spaceAtGroundV;
+		bso::utilities::getNOBSDAtGround(ms, spaceAtGroundV);
+		std::vector <bso::utilities::geometry::quadrilateral> quads = bso::utilities::getQuadAtZ0(spaceAtGroundV);
+
+		std::vector<bso::utilities::geometry::quadrilateral> checkQuads = {{{0,0,0},{3000,3000,0},{0,3000,0},{3000,0,0}},{{6000,0,0},{6000,3000,0},{3000,0,0},{3000,3000,0}},
+																		 {{-1500,-1500,0},{1500,-1500,0},{1500,1500,0},{-1500,1500,0}}};
 		
 
+		BOOST_REQUIRE(quads.size() == 3);
+		bool anyNotFound = false;
+		for(const bso::utilities::geometry::quadrilateral i: checkQuads)
+		{
+			bool found = false;
+			for(const bso::utilities::geometry::quadrilateral j: quads)
+			{
+				if(i.isSameAs(j)) 
+				{
+					found = true;
+					break;
+				}
+			}
+			if(!found)
+			{
+				anyNotFound = true;
+				break;
+			}
+		}
+		BOOST_REQUIRE(!anyNotFound);
 	}
 
 	BOOST_AUTO_TEST_CASE( getLinesAtZ0_1 ) 
 	{
-		
+		bso::spatial_design::ms_N_building ms;
+		bso::spatial_design::ms_space s1 = bso::spatial_design::ms_space("N,1,	0,0,0,	3000,0,0,	0,3000,0,	3000,3000,0,	0,0,3000,	3000,0,3000,	0,3000,3000,	3000,3000,3000");
+		bso::spatial_design::ms_space s2 = bso::spatial_design::ms_space("N,2,	3000,0,0,	6000,0,0,	3000,3000,0,	6000,3000,0,	3000,0,3000,	6000,0,3000,	3000,3000,3000,	6000,3000,3000");
+		bso::spatial_design::ms_space s3 = bso::spatial_design::ms_space("N,3,	-1500,-1500,3000,	1500,-1500,3000,	-1500,1500,3000,	1500,1500,3000,	-1500,-1500,6000,	1500,-1500,6000,	-1500,1500,6000,	1500,1500,6000");
 
+		ms.addSpace(s1);
+		ms.addSpace(s2);
+		ms.addSpace(s3);
+
+		std::vector<std::pair<bso::spatial_design::ms_space*, bso::utilities::geometry::quad_hexahedron>> spaceAtGroundV;
+		bso::utilities::getNOBSDAtGround(ms, spaceAtGroundV);
+		std::vector <bso::utilities::geometry::line_segment> lines = bso::utilities::getLinesAtZ0(spaceAtGroundV);
+
+		std::vector<bso::utilities::geometry::line_segment> checkLines = {{{0,0,0},{3000,0,0}},{{3000,0,0},{3000,3000,0}},{{3000,3000,0},{0,3000,0}},
+																		 {{0,3000,0},{0,0,0}},{{3000,0,0},{6000,0,0}},{{6000,0,0},{6000,3000,0}},
+																		 {{6000,3000,0},{3000,3000,0}},{{-1500,-1500,0},{1500,-1500,0}},{{1500,-1500,0},{1500,1500,0}},
+																		 {{1500,1500,0},{-1500,1500,0}},{{-1500,1500,0},{-1500,-1500,0}}};
+
+		BOOST_REQUIRE(lines.size() == 11);
+		bool anyNotFound = false;
+		for(const bso::utilities::geometry::line_segment i: checkLines)
+		{
+			bool found = false;
+			for(const bso::utilities::geometry::line_segment j: lines)
+			{
+				if(i.isSameAs(j)) 
+				{
+					found = true;
+					break;
+				}
+			}
+			if(!found)
+			{
+				anyNotFound = true;
+				break;
+			}
+		}
+		BOOST_REQUIRE(!anyNotFound);
 	}
 
 	BOOST_AUTO_TEST_CASE( performDelaunay_1 )
 	{
-
-
+		// delaunayVertices and delaunayLines represent ms from first test getNOBSDAtGround_1.
+		// the addition of vertex {6000.00001,0,0} should result in an FADE_2D triangle which is 
+		// unvalid for BSO-toolbox and therefore filtered out before returning it from the delaunay function
+		std::vector <bso::utilities::geometry::vertex> delaunayVertices = {{0,0,0},{3000,0,0},{0,3000,0},{3000,3000,0},{6000,0,0},
+																		{6000,3000,0},{1500,1500,0},{-1500,1500,0},{-1500,-1500,0},
+																		{1500,-1500,0},{1500,0,0},{0,1500,0},{6000.00001,0,0}}; //
+		std::vector <bso::utilities::geometry::line_segment> delaunayLines = {{{0,0,0},{1500,0,0}},{{0,0,0},{0,1500,0}},{{1500,0,0},{1500,1500,0}},{{0,1500,0},{1500,1500,0}},
+																		{{1500,0,0},{3000,0,0}},{{0,1500,0},{0,3000,0}},{{3000,0,0},{3000,3000,0}},{{0,3000,0},{3000,3000,0}},
+																		{{3000,3000,0},{6000,3000,0}},{{6000,3000,0},{6000,0,0}},{{3000,0,0},{6000,0,0}},{{1500,0,0},{1500,-1500,0}},
+																		{{1500,-1500,0},{-1500,-1500,0}},{{-1500,-1500,0,},{-1500,1500,0}},{{-1500,1500,0},{0,1500,0}}};
+		
+		std::vector<bso::utilities::geometry::triangle> delaunayResults = bso::utilities::delaunay(delaunayVertices, delaunayLines);
+		std::vector<bso::utilities::geometry::triangle> checkTriangles = {{{1500,1500,0},{3000,3000,0},{0,3000,0}},{{1500,1500,0},{3000,0,0},{3000,3000,0}},
+																		 {{6000,0,0},{3000,3000,0},{3000,0,0}},{{6000,3000,0},{3000,3000,0},{6000,0,0}},
+																		 {{0,1500,0},{0,0,0},{1500,1500,0}},{{1500,0,0},{1500,-1500,0},{3000,0,0}},
+																		 {{0,1500,0},{1500,1500,0},{0,3000,0}},{{-1500,-1500,0},{0,0,0},{-1500,1500,0}},
+																		 {{1500,-1500,0},{0,0,0},{-1500,-1500,0}},{{1500,0,0},{0,0,0},{1500,-1500,0}},
+																		 {{1500,-1500,0},{6000,0,0},{3000,0,0}}, {{1500,0,0},{3000,0,0},{1500,1500,0}},
+																		 {{1500,0,0},{1500,1500,0},{0,0,0}},{{0,1500,0},{0,3000,0},{-1500,1500,0}},
+																		 {{0,1500,0},{-1500,1500,0},{0,0,0}}
+																		 };
+		
+		
+		BOOST_REQUIRE(delaunayResults.size() == 15);
+		bool anyNotFound = false;
+		for(const bso::utilities::geometry::triangle i: checkTriangles)
+		{
+			bool found = false;
+			for(const bso::utilities::geometry::triangle j: delaunayResults)
+			{
+				if(i.isSameAs(j)) 
+				{
+					found = true;
+					break;
+				}
+			}
+			if(!found)
+			{
+				anyNotFound = true;
+				break;
+			}
+		}
+		BOOST_REQUIRE(!anyNotFound);
 	}
 
 BOOST_AUTO_TEST_SUITE_END()
