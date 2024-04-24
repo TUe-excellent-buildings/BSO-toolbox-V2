@@ -72,6 +72,7 @@ namespace bso { namespace utilities {  namespace geometry {
 			errorMessage << "(bso/utilities/geometry/polygon.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
+		// This center definition holds only for convex polygons
 		mCenter = {0,0,0};
 		for (const auto& i : mVertices) mCenter += i;
 		mCenter /= mSize;
