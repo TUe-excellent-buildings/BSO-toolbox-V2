@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
 
 	// initialize a movable sizable model named MS
 	std::vector<spatial_design::ms_N_building> msDesigns;
-	std::string inputFile = "design_N_1";
+	std::string inputFile = "design_N_2";
 	msDesigns.push_back(bso::spatial_design::ms_N_building(inputFile));
 	bso::visualization::visualize(msDesigns.back());
 
