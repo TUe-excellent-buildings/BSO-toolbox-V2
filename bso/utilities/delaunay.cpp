@@ -166,8 +166,9 @@ namespace bso { namespace utilities {
 		return delaunayTri;
 	} //delaunay()
 
-	/* // under development:
-	std::vector<utilities::geometry::triangle> delaunayZoned(const std::vector <utilities::geometry::vertex> delaunayPoints, const utilities::geometry::polygon_non_convex zone, const double mTol, bool outputPs)
+	
+	// under development:
+	std::vector<utilities::geometry::triangle> delaunayZoned(const std::vector <utilities::geometry::vertex> delaunayPoints, const std::vector <utilities::geometry::line_segment> orderedLinesOfZone, const double mTol, bool outputPs)
 	{
 		// Input check
 		if(delaunayPoints.size() <= 2)
@@ -180,7 +181,7 @@ namespace bso { namespace utilities {
 		}		
 
 		//Check the zone
-		
+
 		
 
 		// Start Delaunay triangulation process
@@ -192,15 +193,14 @@ namespace bso { namespace utilities {
 			dt.insert(GEOM_FADE2D::Point2(i.x(),i.y()));
 		}
 		std::vector<GEOM_FADE2D::Segment2> vSegments;
-		for(const auto i: zone.getLines())
+		for(const auto i: orderedLinesOfZone)
 		{
 			vSegments.push_back(GEOM_FADE2D::Segment2(GEOM_FADE2D::Point2(i[0].x(),i[0].y()),GEOM_FADE2D::Point2(i[1].x(),i[1].y())));
 		}
 		GEOM_FADE2D::ConstraintGraph2* pCG=dt.createConstraint(vSegments,GEOM_FADE2D::CIS_CONSTRAINED_DELAUNAY);
 		
 		// create zone
-		GEOM_FADE2D::Zone2* pZone0(dt.createZone(pCG,ZL_INSIDE));
-
+		GEOM_FADE2D::Zone2* pZone0(dt.createZone(pCG,GEOM_FADE2D::ZL_INSIDE));
 
 		// Makes the constrained delaunay a delaunay respecting the boundaries by adding the intersection point found on the boundary after delaunay
 		bool applyConstrainedDelaunay = true;
@@ -211,28 +211,28 @@ namespace bso { namespace utilities {
 		}
 
 		// Draw; generate a Design.ps file for visualization in for example illustrator 
-		if(outputPs) dt.show("Design.ps",true);		
+		if(outputPs) 
+		{
+			pZone0->show("Design_Zone0.ps",true,true);
+			dt.show("Design.ps",true);		
+		}
 
-		// Export fade2D data to Toolbox information format see website te extract the zone triangles:  https://www.geom.at/boolean-operations/
-		GEOM_FADE2D::FadeExport fadeExport;
-		bool bCustomIndices(false); // To retrieve custom indices also
-		bool bClear(false); // Clear memory in $dt
-		dt.exportTriangulation(fadeExport,bCustomIndices,bClear);
-		
-		std::vector<utilities::geometry::triangle> delaunayTri; // fade_2D resulting delaunay triangles, but defined in BSO toolbox geometry classes
-		for(int triIdx=0;triIdx<fadeExport.numTriangles;++triIdx)
-		{ // Iterate through each triangle in Fade_2D and store triangle in Toolbox entities
-			int vtxIdx0,vtxIdx1,vtxIdx2;
-			fadeExport.getCornerIndices(triIdx,vtxIdx0,vtxIdx1,vtxIdx2);
-			
-			double x0,y0;
-			double x1,y1;
-			double x2,y2;
-			fadeExport.getCoordinates(vtxIdx0,x0,y0);
-			fadeExport.getCoordinates(vtxIdx1,x1,y1);
-			fadeExport.getCoordinates(vtxIdx2,x2,y2);
-			
-			// Define triangle in Toolbox entities
+		std::vector<GEOM_FADE2D::Triangle2*> zTriangles;
+		pZone0->getTriangles(zTriangles);
+
+		std::vector<utilities::geometry::triangle> delaunayTri;
+		for(const auto i: zTriangles)
+		{
+			// Get FADE_2D variables:
+			GEOM_FADE2D::Point2* corner1 = i->getCorner(0);
+			GEOM_FADE2D::Point2* corner2 = i->getCorner(1);
+			GEOM_FADE2D::Point2* corner3 = i->getCorner(2);
+			double x0,y0,x1,y1,x2,y2;
+			corner1->xy(x0,y0);
+			corner2->xy(x1,y1);
+			corner3->xy(x2,y2);
+
+			// Define BSO toolbox variables:
 			utilities::geometry::vertex C1 = {x0,y0,0};
 			utilities::geometry::vertex C2 = {x1,y1,0};
 			utilities::geometry::vertex C3 = {x2,y2,0};
@@ -254,18 +254,18 @@ namespace bso { namespace utilities {
 				continue;
 			}
 		}
-		
+
 		if(delaunayTri.size() == 0)
 		{
 			std::stringstream errorMessage;
-				errorMessage << "\nError, there are no triangle generated during the delaunay triangulation. \n"
+				errorMessage << "\nError, there are no triangle generated during the delaunayZoned triangulation. \n"
 					 << "(bso/utilities/delaunay)." << std::endl;
 				throw std::runtime_error(errorMessage.str());
 		}
 		
 		return delaunayTri;
 	} //delaunay()
-	*/
+	
 	
 	void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL, const double mTol)
 	{					

@@ -47,9 +47,13 @@ public:
 	void splitSpace(ms_space& space, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit); //split perpendicular to inserted line of space
 	
 	// New functions:
-	//void splitBuilding(double minimumHeight, double minimumWidth, double minimumDepth);
+	//void splitBuilding(double minimumHeight, double minimumWidth, double minimumDepth); // under development
 	//void enforceSpaceSize(double minimumHeight, double minimumWidth, double minimumDepth);
 	void duplicateElevation(double atZFromGround = 0, double elevationHeight = 3000, bool duplicateBelowZLevel = true);
+	//void rotate();
+	//void rotate(bso::utilities::vector axis);
+	//void rotate(std::vector<ms_space*> mSpaces);
+	//void rotate(std::vector<ms_space*> mSpaces, bso::utilities::vector axis);
 	//void stretchAt();
 	//void replicateSplits(std::vector<ms_space*> spaces); // under development
 

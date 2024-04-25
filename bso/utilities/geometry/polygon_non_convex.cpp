@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <bso/utilities/delaunay.hpp>
 
+
 namespace bso { namespace utilities {  namespace geometry {
 	
 	void polygon_non_convex::sortPoints(const double& tol /*= 1e-3*/)
@@ -37,10 +38,7 @@ namespace bso { namespace utilities {  namespace geometry {
 
 	void polygon_non_convex::triangulate(const double& tol /*= 1e-3*/)
 	{
-		std::vector<utilities::geometry::triangle> dTriangles = bso::utilities::delaunay(mVertices, mLineSegments);
-
-		// remove triangle not inside non-convex triangle
-
+		mTriangles = bso::utilities::delaunayZoned(mVertices, mLineSegments);
 	}
 
 	polygon_non_convex::polygon_non_convex()
