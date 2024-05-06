@@ -5,7 +5,6 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include <bso/utilities/geometry.hpp>
-#include <bso/spatial_design/ms_N_building.hpp>
 #include <bso/utilities/delaunay.hpp>
 
 #include <vector>

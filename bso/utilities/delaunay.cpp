@@ -6,8 +6,7 @@
 #include <FadeExport.h>
 #include <iomanip> // Allowes to use std::setprecision() to be able to enlarge the decimals printed to the console of a double		
 #include <vector>
-#include <bso/utilities/geometry.hpp>
-#include <bso/spatial_design/ms_space.hpp>			 
+#include <bso/utilities/geometry.hpp>		 
 
 
 namespace bso { namespace utilities {
@@ -305,87 +304,6 @@ namespace bso { namespace utilities {
 			}
 		}		
 	}//splitLines
-
-	void getDelaunayVariables(std::vector <utilities::geometry::vertex>& delaunayPoints, std::vector <utilities::geometry::line_segment>& delaunayLines, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol)
-	{
-		for(const auto j: spacePair)
-		{
-			// Add all unique cornerpoints at z=0 of spaceAtGround to the delaunayPoints
-			for(auto v: j.second)
-			{
-				utilities::geometry::vertex temp = {v.x(),v.y(),0};
-				bool doubleInsert = false;
-				for (const auto& m : delaunayPoints)
-				{// check if temp already exist in delaunayPoints
-					if (m == temp)
-					{
-						doubleInsert = true;
-					}
-				}
-				if(doubleInsert == false)
-				{//if not, then add to delaunayPoints
-					delaunayPoints.push_back(temp);
-				}
-			}
-
-			// Add the unique lines of each space to delaunayLines
-			for (const auto& k : (j.second).getLines())
-			{
-				utilities::geometry::vertex Ltemp1 = {k[0].x(),k[0].y(),0};
-				utilities::geometry::vertex Ltemp2 = {k[1].x(),k[1].y(),0};
-				utilities::geometry::line_segment Ltemp {{Ltemp1},{Ltemp2}}; //Note the line is newly defined for the case that some round of error occur during the shifting of the lines of the spacesAtGround[i]
-				
-				bool doubleInsert = false;
-				for (const auto& m : delaunayLines)
-				{// check if line k already exist in delaunayLines
-					if (m.isSameAs(Ltemp, mTol))
-					{
-						doubleInsert = true;
-					}
-				}
-				if(Ltemp1.isSameAs(Ltemp2, mTol))
-				{//Check if line has different end points
-					doubleInsert = true;
-				}
-				if(doubleInsert == false)
-				{//if both agree, then add to delaunayLines
-					delaunayLines.push_back(Ltemp);
-				}
-				
-				//Find line-line intersections and add to delaunayPoints, then during splitLines() the lines will be split at this delaunayPoint
-				//Note: no line-rectangle intersection check needed since these are accounted for by the addition of the cornerpoints
-				utilities::geometry::vertex pIntersection;
-				for(auto q: spacePair)
-				{	
-					if((q.second).isSameAs((j.second), mTol)){continue;}
-					for (const auto& l : (q.second).getLines())
-					{
-						if (k.intersectsWith(l, pIntersection, mTol))
-						{
-							//consider the translated to ground floor vertex of the space
-							utilities::geometry::vertex temp = {pIntersection.x(),pIntersection.y(),0};
-							
-							bool doubleInsert = false;
-							for (const auto& m : delaunayPoints)
-							{// check if temp already exist in delaunayPoints
-								if (m.isSameAs(temp, mTol))
-								{
-									doubleInsert = true;
-								}
-							}
-							
-							if(doubleInsert == false)
-							{//if not, then add to delaunayPoints
-								delaunayPoints.push_back(temp);
-							}
-						}
-					}
-				}
-			}
-		}
-
-		splitLines(delaunayPoints, delaunayLines);
-	}
 
 	void convertToQuads(const std::vector <utilities::geometry::vertex>& delaunayPoints, const std::vector <utilities::geometry::line_segment>& orderedLinesOfZone, std::vector <utilities::geometry::quadrilateral>& quads, const double mTol /*= 1e-3*/, bool outputPs /*= false*/)
 	{
