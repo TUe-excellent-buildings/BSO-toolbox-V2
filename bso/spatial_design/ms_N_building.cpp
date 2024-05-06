@@ -11,7 +11,7 @@
 #include <boost/algorithm/string.hpp>
 #include <bitset>
 
-// #include <bso/utilities/delaunay.hpp>
+#include <bso/utilities/delaunay.hpp>
 
 namespace bso { namespace spatial_design {
 
@@ -852,7 +852,7 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 	}
 } //duplicateElevation()
 
-/* under development
+
 void ms_N_building::replicateSplits(std::vector<ms_space*> spaces)
 {
 	std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>> spaceAtGroundV;
@@ -860,33 +860,37 @@ void ms_N_building::replicateSplits(std::vector<ms_space*> spaces)
 	std::vector <utilities::geometry::line_segment> linesAtZ;
 
 	// These functions get the above defined information
-	bso::utilities::getNOBSDAtGround(*this, spaceAtGroundV, allLevels);
-	bso::utilities::getLinesAtZ0(linesAtZ, spaceAtGroundV);
+	double mTol = 0.001;
+	std::vector<bso::utilities::geometry::vertex> delauneyPoints;
+	std::vector<bso::utilities::geometry::line_segment> delauneyLines;
+	bso::utilities::splitLines(delauneyPoints, delauneyLines, mTol);// this prevent the generation of triangles on one line or triangles containing duplicate vertices
+	//utilities::getNOBSDAtGround(*this, spaceAtGroundV, allLevels);
+	//utilities::getLinesAtZ0(linesAtZ, spaceAtGroundV);
 	
-	for(auto i: spaces)
-	{
+	// for(auto i: spaces)
+	// {
 		
-		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
-		std::vector<utilities::geometry::line_segment> linesToConsider;
-		for(const auto j: linesAtZ)
-		{
-			if(spaceGeom.isInsideOrOn(j[0]) || spaceGeom.isInsideOrOn(j[1])) linesToConsider.push_back(j);
-		}
+	// 	utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+	// 	std::vector<utilities::geometry::line_segment> linesToConsider;
+	// 	for(const auto j: linesAtZ)
+	// 	{
+	// 		if(spaceGeom.isInsideOrOn(j[0]) || spaceGeom.isInsideOrOn(j[1])) linesToConsider.push_back(j);
+	// 	}
 
-		if(linesToConsider.size() == 0)
-		{
+	// 	if(linesToConsider.size() == 0)
+	// 	{
 
-		}
-		else if(linesToConsider.size() == 0)
-		{
+	// 	}
+	// 	else if(linesToConsider.size() == 0)
+	// 	{
 
-		}
-	}
+	// 	}
+	// }
 
 
 
 }//replicateSplits()
-*/
+
 
 bool ms_N_building::hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 	const double tol /*= 1e-3*/) const
@@ -986,6 +990,199 @@ bool ms_N_building::hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces,
 	
 	return (floatingSpaces.size() != 0);
 } // hasFloatingSpaces()
+
+void ms_N_building::getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spaceAtGroundV, std::vector<double>& allLevels, const double mTol)
+{
+	for (const auto i : mSpaces)
+	{
+		//Get original space geometry
+		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+					
+		//Find the highest and lowest vertex to add to allLevels and for the definition of the shifting vector
+		utilities::geometry::vertex lowVertex = spaceGeom[0];
+		utilities::geometry::vertex highVertex = spaceGeom[0];
+		for (const auto j: spaceGeom)
+		{
+			if(lowVertex.z() > j.z()) lowVertex = j;
+			else if(highVertex.z() < j.z()) highVertex = j;
+		}			
+		allLevels.push_back(highVertex.z());
+		allLevels.push_back(lowVertex.z());
+
+		//Generate the at ground level space geometry
+		std::vector<utilities::geometry::vertex> vertices_1;
+		utilities::geometry::vertex shift = {0,0,lowVertex.z()};
+		if(lowVertex.z() < mTol && lowVertex.z() > -mTol) for(auto k: spaceGeom){vertices_1.push_back(k);}
+		else for(auto k: spaceGeom){vertices_1.push_back(k-shift);}
+		utilities::geometry::quad_hexahedron atGround = utilities::geometry::quad_hexahedron(vertices_1, mTol);
+
+		std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron> spaceGeomPair (i,atGround);
+		spaceAtGroundV.push_back(spaceGeomPair);
+	}
+	
+	// Sort vector, bring all duplicates to end of vector plus get cut off point, then erase duplicates from the end of vector allLevels:
+	sort(allLevels.begin(), allLevels.end()); 
+	auto it = unique(allLevels.begin(), allLevels.end()); 
+	allLevels.erase(it, allLevels.end()); 
+} //getNOBSDAtGround
+
+void ms_N_building::getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spaceAtGroundV, const double mTol)
+{
+	std::vector<double> allLevels; // create empty variable
+	getNOBSDAtGround(spaceAtGroundV, allLevels, mTol);
+} //getNOBSDAtGround
+
+std::vector <bso::utilities::geometry::quadrilateral> ms_N_building::getQuadAtZ0(const double mTol)
+{
+	std::vector <bso::utilities::geometry::quadrilateral> quadAtZ0;
+	for (const auto i : mSpaces)
+	{
+		//Get original space geometry
+		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+
+		for (const auto& k : spaceGeom.getQuadrilateral())
+		{
+			if(!k.getNormal().isVertical()) continue; // only consider horizontal floors
+
+			//Define shift and define at z=0 quads
+			std::vector<utilities::geometry::vertex> vertices_1;
+			utilities::geometry::vertex shift = {0,0,k[0].z()};
+			if(shift.z() < mTol && shift.z() > -mTol) for(auto l: k){vertices_1.push_back(l);}
+			else for(auto l: k){vertices_1.push_back(l-shift);}
+			utilities::geometry::quadrilateral quadAtGround = utilities::geometry::quadrilateral(vertices_1, mTol);
+
+			
+			bool doubleInsert = false;
+			for (const auto& m : quadAtZ0)
+			{// check if quad k already exist in quadAtZ0
+				if (quadAtGround.isSameAs(m,mTol))
+				{
+					doubleInsert = true;
+				}
+			}
+			if(doubleInsert == false)
+			{//if agree, then add to quadAtZ0
+				quadAtZ0.push_back(quadAtGround);
+			}
+		}
+	}
+	
+	return quadAtZ0;
+} //getQuadAtZ0
+
+std::vector <utilities::geometry::line_segment> ms_N_building::getLinesAtZ0(const double mTol)
+{
+	std::vector <utilities::geometry::line_segment> linesAtZ;
+	for (const auto i : mSpaces)
+	{
+		//Get original space geometry
+		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+		
+		// Add the unique lines of each space at Z to linesAtZ
+		for (const auto& k : spaceGeom.getLines())
+		{
+			utilities::geometry::vertex Ltemp1 = {k[0].x(),k[0].y(),0};
+			utilities::geometry::vertex Ltemp2 = {k[1].x(),k[1].y(),0};
+			if(Ltemp1.isSameAs(Ltemp2, mTol)) {continue;} //only allow non-vertical lines
+			utilities::geometry::line_segment Ltemp {{Ltemp1},{Ltemp2}}; 
+			
+			bool doubleInsert = false;
+			for (const auto& m : linesAtZ)
+			{// check if line k already exist in linesAtZ
+				if (m.isSameAs(Ltemp, mTol))
+				{
+					doubleInsert = true;
+				}
+			}
+			if(doubleInsert == false)
+			{//if both agree, then add to linesAtZ
+				linesAtZ.push_back(Ltemp);
+			}
+		}
+	}
+	return linesAtZ;
+} //getLinesAtZ0
+
+void ms_N_building::getDelaunayVariables(std::vector <utilities::geometry::vertex>& delaunayPoints, std::vector <utilities::geometry::line_segment>& delaunayLines, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol)
+{
+	for(const auto j: spacePair)
+	{
+		// Add all unique cornerpoints at z=0 of spaceAtGround to the delaunayPoints
+		for(auto v: j.second)
+		{
+			utilities::geometry::vertex temp = {v.x(),v.y(),0};
+			bool doubleInsert = false;
+			for (const auto& m : delaunayPoints)
+			{// check if temp already exist in delaunayPoints
+				if (m == temp)
+				{
+					doubleInsert = true;
+				}
+			}
+			if(doubleInsert == false)
+			{//if not, then add to delaunayPoints
+				delaunayPoints.push_back(temp);
+			}
+		}
+
+		// Add the unique lines of each space to delaunayLines
+		for (const auto& k : (j.second).getLines())
+		{
+			utilities::geometry::vertex Ltemp1 = {k[0].x(),k[0].y(),0};
+			utilities::geometry::vertex Ltemp2 = {k[1].x(),k[1].y(),0};
+			utilities::geometry::line_segment Ltemp {{Ltemp1},{Ltemp2}}; //Note the line is newly defined for the case that some round of error occur during the shifting of the lines of the spacesAtGround[i]
+			
+			bool doubleInsert = false;
+			for (const auto& m : delaunayLines)
+			{// check if line k already exist in delaunayLines
+				if (m.isSameAs(Ltemp, mTol))
+				{
+					doubleInsert = true;
+				}
+			}
+			if(Ltemp1.isSameAs(Ltemp2, mTol))
+			{//Check if line has different end points
+				doubleInsert = true;
+			}
+			if(doubleInsert == false)
+			{//if both agree, then add to delaunayLines
+				delaunayLines.push_back(Ltemp);
+			}
+			
+			//Find line-line intersections and add to delaunayPoints, then during splitLines() the lines will be split at this delaunayPoint
+			//Note: no line-rectangle intersection check needed since these are accounted for by the addition of the cornerpoints
+			utilities::geometry::vertex pIntersection;
+			for(auto q: spacePair)
+			{	
+				if((q.second).isSameAs((j.second), mTol)){continue;}
+				for (const auto& l : (q.second).getLines())
+				{
+					if (k.intersectsWith(l, pIntersection, mTol))
+					{
+						//consider the translated to ground floor vertex of the space
+						utilities::geometry::vertex temp = {pIntersection.x(),pIntersection.y(),0};
+						
+						bool doubleInsert = false;
+						for (const auto& m : delaunayPoints)
+						{// check if temp already exist in delaunayPoints
+							if (m.isSameAs(temp, mTol))
+							{
+								doubleInsert = true;
+							}
+						}
+						
+						if(doubleInsert == false)
+						{//if not, then add to delaunayPoints
+							delaunayPoints.push_back(temp);
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	bso::utilities::splitLines(delaunayPoints, delaunayLines);
+} // getDelaunayVariables
 
 void ms_N_building::addBoundary() 
 {

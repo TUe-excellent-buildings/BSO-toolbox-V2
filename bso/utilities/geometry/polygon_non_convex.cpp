@@ -171,27 +171,6 @@ namespace bso { namespace utilities {  namespace geometry {
 	void polygon_non_convex::convertToQuads(std::vector<quadrilateral>& quads)
 	{
 		bso::utilities::convertToQuads(mVertices, mLineSegments, quads);
-
-
-		// std::vector<vertex> newVert = mVertices;
-
-		// vector getHeading;
-
-		// // start round at smallest angle
-		// double smallestAngle = 360;
-		// int startIndex
-		// for(int i=0; i<mVertices.size()-1; i++)
-		// {
-		// 	vector1 = {{mVertices[i]},{mVertices[i+1]}};
-		// 	vector1 = {{mVertices[i+1]},{mVertices[i+2]}};
-		// 	double angle = vector1.getHeading().first - vector2.getHeading().first;
-
-		// }
-
-
-		// newVert[startIndex]
-
-
 	}
 
 } // namespace geometry

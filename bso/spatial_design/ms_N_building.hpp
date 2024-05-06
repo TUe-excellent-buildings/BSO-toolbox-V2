@@ -34,6 +34,13 @@ public:
 	bool hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 		const double tol = 1e-3) const; 
 
+	// Get the NOBSD representation as a certain geometry
+	void getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, std::vector<double>& allLevels, const double mTol = 1e-3);
+	void getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spaceAtGroundV, const double mTol = 1e-3);
+	std::vector <bso::utilities::geometry::quadrilateral> getQuadAtZ0(const double mTol = 1e-3);
+	std::vector <bso::utilities::geometry::line_segment> getLinesAtZ0(const double mTol = 1e-3);
+	void getDelaunayVariables(std::vector <utilities::geometry::vertex>& delaunayPoints, std::vector <utilities::geometry::line_segment>& delaunayLines, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol = 1e-3);
+
 	// Representation adjustment functions
 	void setZZero(); 
 	void resetOrigin(const std::vector<unsigned int>& indices = {0,1,2});
@@ -55,7 +62,7 @@ public:
 	//void rotate(std::vector<ms_space*> mSpaces);
 	//void rotate(std::vector<ms_space*> mSpaces, bso::utilities::vector axis);
 	//void stretchAt();
-	//void replicateSplits(std::vector<ms_space*> spaces); // under development
+	void replicateSplits(std::vector<ms_space*> spaces); // under development
 
 	const auto begin() const {return mSpaces.begin();}
 	const auto end() const {return mSpaces.end();}

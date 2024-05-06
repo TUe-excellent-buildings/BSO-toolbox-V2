@@ -306,129 +306,6 @@ namespace bso { namespace utilities {
 		}		
 	}//splitLines
 
-	void getNOBSDAtGround(const bso::spatial_design::ms_N_building& msNModel, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spaceAtGroundV, std::vector<double>& allLevels, const double mTol)
-	{
-		for (const auto i : msNModel)
-		{
-			//Get original space geometry
-			
-			utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
-						
-			//Find the highest and lowest vertex to add to allLevels and for the definition of the shifting vector
-			utilities::geometry::vertex lowVertex = spaceGeom[0];
-			utilities::geometry::vertex highVertex = spaceGeom[0];
-			for (const auto j: spaceGeom)
-			{
-				if(lowVertex.z() > j.z()) lowVertex = j;
-				else if(highVertex.z() < j.z()) highVertex = j;
-			}			
-			allLevels.push_back(highVertex.z());
-			allLevels.push_back(lowVertex.z());
-
-			//Generate the at ground level space geometry
-			std::vector<utilities::geometry::vertex> vertices_1;
-			utilities::geometry::vertex shift = {0,0,lowVertex.z()};
-			if(lowVertex.z() < mTol && lowVertex.z() > -mTol) for(auto k: spaceGeom){vertices_1.push_back(k);}
-			else for(auto k: spaceGeom){vertices_1.push_back(k-shift);}
-			utilities::geometry::quad_hexahedron atGround = utilities::geometry::quad_hexahedron(vertices_1, mTol);
-
-			std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron> spaceGeomPair (i,atGround);
-			spaceAtGroundV.push_back(spaceGeomPair);
-		}
-		
-		// Sort vector, bring all duplicates to end of vector plus get cut off point, then erase duplicates from the end of vector allLevels:
-		sort(allLevels.begin(), allLevels.end()); 
-		auto it = unique(allLevels.begin(), allLevels.end()); 
-		allLevels.erase(it, allLevels.end()); 
-	} //getNOBSDAtGround
-
-	void getNOBSDAtGround(const bso::spatial_design::ms_N_building& msNModel, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spaceAtGroundV, const double mTol)
-	{
-		for (const auto i : msNModel)
-		{
-			//Get original space geometry
-			utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
-						
-			//Find the highest and lowest vertex to add to allLevels and for the definition of the shifting vector
-			utilities::geometry::vertex lowVertex = spaceGeom[0];
-			for (const auto j: spaceGeom)
-			{
-				if(lowVertex.z() > j.z()) lowVertex = j;
-			}			
-
-			//Generate the at ground level space geometry
-			std::vector<utilities::geometry::vertex> vertices_1;
-			utilities::geometry::vertex shift = {0,0,lowVertex.z()};
-			if(lowVertex.z() < mTol && lowVertex.z() > -mTol) for(auto k: spaceGeom){vertices_1.push_back(k);}
-			else for(auto k: spaceGeom){vertices_1.push_back(k-shift);}
-			utilities::geometry::quad_hexahedron atGround = utilities::geometry::quad_hexahedron(vertices_1, mTol);
-
-			std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron> spaceGeomPair (i,atGround);
-			spaceAtGroundV.push_back(spaceGeomPair);
-		}
-	} //getNOBSDAtGround
-
-	std::vector <bso::utilities::geometry::quadrilateral> getQuadAtZ0(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol)
-	{
-		std::vector <bso::utilities::geometry::quadrilateral> quadAtZ0;
-		for(const auto j: spacePair)
-		{
-			// Add the unique quad of each space at Z to quadAtZ0
-			for (const auto& k : (j.second).getQuadrilateral())
-			{
-				if(!k.getNormal().isVertical()) continue; // only consider horizontal floors
-				if(k.getCenter().z() > mTol || k.getCenter().z() < -mTol) continue; // only at z=0
-				
-				bool doubleInsert = false;
-				for (const auto& m : quadAtZ0)
-				{// check if quad k already exist in quadAtZ0
-					if (k.isSameAs(m,mTol))
-					{
-						doubleInsert = true;
-					}
-				}
-				if(doubleInsert == false)
-				{//if agree, then add to quadAtZ0
-					quadAtZ0.push_back(k);
-				}
-			}
-		}
-		return quadAtZ0;
-	} //getQuadAtZ0
-
-	std::vector <utilities::geometry::line_segment> getLinesAtZ0(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol)
-	{
-		std::vector <utilities::geometry::line_segment> linesAtZ;
-		for(const auto j: spacePair)
-		{
-			// Add the unique lines of each space at Z to linesAtZ
-			for (const auto& k : (j.second).getLines())
-			{
-				utilities::geometry::vertex Ltemp1 = {k[0].x(),k[0].y(),0};
-				utilities::geometry::vertex Ltemp2 = {k[1].x(),k[1].y(),0};
-				utilities::geometry::line_segment Ltemp {{Ltemp1},{Ltemp2}}; 
-				
-				bool doubleInsert = false;
-				for (const auto& m : linesAtZ)
-				{// check if line k already exist in linesAtZ
-					if (m.isSameAs(Ltemp, mTol))
-					{
-						doubleInsert = true;
-					}
-				}
-				if(Ltemp1.isSameAs(Ltemp2, mTol))
-				{//Check if line has different end points
-					doubleInsert = true;
-				}
-				if(doubleInsert == false)
-				{//if both agree, then add to linesAtZ
-					linesAtZ.push_back(Ltemp);
-				}
-			}
-		}
-		return linesAtZ;
-	} //getLinesAtZ0
-
 	void getDelaunayVariables(std::vector <utilities::geometry::vertex>& delaunayPoints, std::vector <utilities::geometry::line_segment>& delaunayLines, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol)
 	{
 		for(const auto j: spacePair)
@@ -510,7 +387,7 @@ namespace bso { namespace utilities {
 		splitLines(delaunayPoints, delaunayLines);
 	}
 
-	void convertToQuads(const std::vector <utilities::geometry::vertex>& delaunayPoints, const std::vector <utilities::geometry::line_segment>& orderedLinesOfZone, std::vector <utilities::geometry::quadrilateral>& quads, const double mTol = 1e-3, bool outputPs = false)
+	void convertToQuads(const std::vector <utilities::geometry::vertex>& delaunayPoints, const std::vector <utilities::geometry::line_segment>& orderedLinesOfZone, std::vector <utilities::geometry::quadrilateral>& quads, const double mTol /*= 1e-3*/, bool outputPs /*= false*/)
 	{
 		// Input check
 		if(delaunayPoints.size() <= 2)
@@ -741,7 +618,7 @@ namespace bso { namespace utilities {
 			}
 			
 			bool found = false;
-			if(bestOption==5)
+			if(bestOption==5) // option is not found
 			{
 				zTrianglesChecked[indexTri] = true;
 				triComboNotFound.push_back(zTriangles[indexTri]);
@@ -787,7 +664,7 @@ namespace bso { namespace utilities {
 			}
 		}
 
-		quads = quadsChoosen;
+		
 
 		// Make quads out of remaining triComboNotFound
 
@@ -801,7 +678,47 @@ namespace bso { namespace utilities {
 		{
 			std::cout << *i << std::endl;
 		}
-		
+
+
+		for(auto i: triComboNotFound)
+		{			
+			// Read fade_2D data
+			GEOM_FADE2D::Point2* corner0 = i->getCorner(0);
+			GEOM_FADE2D::Point2* corner1 = i->getCorner(1);
+			GEOM_FADE2D::Point2* corner2 = i->getCorner(2);
+			double x0,y0,x1,y1,x2,y2,x3,y3;
+			corner0->xy(x0,y0);
+			corner1->xy(x1,y1);
+			corner2->xy(x2,y2);
+			std::vector<utilities::geometry::vertex> mVerticesTri = {{x0,y0,0},{x1,y1,0},{x2,y2,0}};
+			utilities::geometry::triangle tri(mVerticesTri);
+			
+			// Make BSO geometry data
+			std::vector<utilities::geometry::vertex> mVertices;
+			mVertices.resize(4);
+			mVertices[0] = tri.getCenter();
+			std::vector<utilities::geometry::line_segment> triLines = tri.getLines();
+			utilities::geometry::vertex centreRib1 = triLines[0].getCenter();
+			utilities::geometry::vertex centreRib2 = triLines[1].getCenter();
+			utilities::geometry::vertex centreRib3 = triLines[2].getCenter();
+
+			mVertices[1] = tri[0];
+			mVertices[2] = centreRib1;
+			mVertices[3] = centreRib3;
+			quadsChoosen.push_back(utilities::geometry::quadrilateral(mVertices));
+
+			mVertices[1] = tri[1];
+			mVertices[2] = centreRib1;
+			mVertices[3] = centreRib2;
+			quadsChoosen.push_back(utilities::geometry::quadrilateral(mVertices));
+
+			mVertices[1] = tri[2];
+			mVertices[2] = centreRib2;
+			mVertices[3] = centreRib3;
+			quadsChoosen.push_back(utilities::geometry::quadrilateral(mVertices));
+		}
+
+		quads = quadsChoosen;
 	}
 
 } // namespace utilities
