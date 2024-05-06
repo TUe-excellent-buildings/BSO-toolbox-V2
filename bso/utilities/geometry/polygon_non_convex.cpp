@@ -3,8 +3,8 @@
 
 #include <sstream>
 #include <stdexcept>
+#include <bso/utilities/geometry/polygon.hpp>
 #include <bso/utilities/delaunay.hpp>
-
 
 namespace bso { namespace utilities {  namespace geometry {
 	
@@ -14,9 +14,34 @@ namespace bso { namespace utilities {  namespace geometry {
 		// to the polygon abstract class where the line_segments are generated following this order.
 		// the good order of points is as follows: 
 		// take for example a non-convex quadrilateral with vertices v1,v2,v3, and v4.
-		// the sortPoints algorithm is going to 
+		// the polygon::sortPoints algorithm is going to connect the points in the following lines: {v1,v2};{v2,v3};{v3,v4},{v4,v1}
 
 		polygon::sortPoints(tol);
+
+		std::vector<line_segment> lineSegments = this->getLines();
+		
+		// check if the line_segments start and end with the next vertex in the container, since this would definitely be an invalid polygon
+		bool correct = true;
+		if(!(lineSegments[lineSegments.size()])[1].isSameAs((lineSegments[0])[0], tol)){correct =false;}
+		else
+		{
+			for(int i=0; i<lineSegments.size()-1; i++)	
+			{
+				if(!(lineSegments[i])[1].isSameAs((lineSegments[i+1])[0], tol)){correct = false;}
+			}
+		}
+		if(!correct)
+		{
+			std::stringstream errorMessage;
+					errorMessage << "The inserted polygon (which may be convex) has lines in its sequence\n"
+											<< "which does not start and end with the next line as it should.\n"
+											<< "Received the following vertices: \n";
+											for(const auto i: mVertices) errorMessage << i << "; ";
+											errorMessage << "Resulting in the following lines: \n";
+											for(const auto i: lineSegments) errorMessage << i << "; ";
+											errorMessage << "\n(bso/utilities/geometry/polygon_non_convex.cpp)" << std::endl;
+					throw std::invalid_argument(errorMessage.str());
+		}
 
 		// check if the line_segments intersect each other, since this would definitely be an invalid polygon
 		for(const auto i: this->getLines())
@@ -34,11 +59,25 @@ namespace bso { namespace utilities {  namespace geometry {
 				}
 			}
 		}
+
+		// redefine the centre of the polygon_non_convex
 	} //  sortPoints()
 
 	void polygon_non_convex::triangulate(const double& tol /*= 1e-3*/)
 	{
-		mTriangles = bso::utilities::delaunayZoned(mVertices, mLineSegments);
+		try 
+		{
+			mTriangles = bso::utilities::delaunayZoned(mVertices, mLineSegments);
+		}
+		catch (std::exception& e)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "The triangulation of the polygon_non_convex did not work.\n"
+									 << "Received the following error: \n"
+									 << e.what()
+									 << "\n(bso/utilities/geometry/polygon_non_convex.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
 	}
 
 	polygon_non_convex::polygon_non_convex()
@@ -129,8 +168,29 @@ namespace bso { namespace utilities {  namespace geometry {
 		return false;
 	} //  isInside()
 
-	void polygon_non_convex::convertToQuads()
+	void polygon_non_convex::convertToQuads(std::vector<quadrilateral>& quads)
 	{
+		bso::utilities::convertToQuads(mVertices, mLineSegments, quads);
+
+
+		// std::vector<vertex> newVert = mVertices;
+
+		// vector getHeading;
+
+		// // start round at smallest angle
+		// double smallestAngle = 360;
+		// int startIndex
+		// for(int i=0; i<mVertices.size()-1; i++)
+		// {
+		// 	vector1 = {{mVertices[i]},{mVertices[i+1]}};
+		// 	vector1 = {{mVertices[i+1]},{mVertices[i+2]}};
+		// 	double angle = vector1.getHeading().first - vector2.getHeading().first;
+
+		// }
+
+
+		// newVert[startIndex]
+
 
 	}
 

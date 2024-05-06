@@ -22,6 +22,8 @@ namespace bso { namespace utilities {
 	std::vector <bso::utilities::geometry::line_segment> getLinesAtZ0(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol = 1e-3);
 	void getDelaunayVariables(std::vector <utilities::geometry::vertex>& delaunayPoints, std::vector <utilities::geometry::line_segment>& delaunayLines, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol = 1e-3);
 
+	void convertToQuads(const std::vector <utilities::geometry::vertex> delaunayPoints, const std::vector <utilities::geometry::line_segment> orderedLinesOfZone, const double mTol = 1e-3, bool outputPs = false);
+
 } // namespace utilities
 } // namespace bso
 

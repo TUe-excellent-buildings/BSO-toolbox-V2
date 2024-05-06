@@ -167,7 +167,6 @@ namespace bso { namespace utilities {
 	} //delaunay()
 
 	
-	// under development:
 	std::vector<utilities::geometry::triangle> delaunayZoned(const std::vector <utilities::geometry::vertex> delaunayPoints, const std::vector <utilities::geometry::line_segment> orderedLinesOfZone, const double mTol, bool outputPs)
 	{
 		// Input check
@@ -180,10 +179,6 @@ namespace bso { namespace utilities {
 				throw std::runtime_error(errorMessage.str());
 		}		
 
-		//Check the zone
-
-		
-
 		// Start Delaunay triangulation process
 		// start adding the points/zoneLines to delaunay triangulation algorithm Fade_2D
 		GEOM_FADE2D::Fade_2D dt;
@@ -192,6 +187,8 @@ namespace bso { namespace utilities {
 		{
 			dt.insert(GEOM_FADE2D::Point2(i.x(),i.y()));
 		}
+
+		// Start adding the zoneLines to delaunay triangulation algorithm Fade_2D
 		std::vector<GEOM_FADE2D::Segment2> vSegments;
 		for(const auto i: orderedLinesOfZone)
 		{
@@ -264,7 +261,7 @@ namespace bso { namespace utilities {
 		}
 		
 		return delaunayTri;
-	} //delaunay()
+	} //delaunayZoned()
 	
 	
 	void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL, const double mTol)
@@ -511,6 +508,300 @@ namespace bso { namespace utilities {
 		}
 
 		splitLines(delaunayPoints, delaunayLines);
+	}
+
+	void convertToQuads(const std::vector <utilities::geometry::vertex>& delaunayPoints, const std::vector <utilities::geometry::line_segment>& orderedLinesOfZone, std::vector <utilities::geometry::quadrilateral>& quads, const double mTol = 1e-3, bool outputPs = false)
+	{
+		// Input check
+		if(delaunayPoints.size() <= 2)
+		{
+			std::stringstream errorMessage;
+				errorMessage << "\nError, the inserted points in the delaunay triangulation are less then three. \n"
+					 << "Meaning that a delaunay triangulation can not be generated. \n"
+					 << "(bso/utilities/delaunay)." << std::endl;
+				throw std::runtime_error(errorMessage.str());
+		}		
+
+		// Start Delaunay triangulation process
+		// start adding the points/zoneLines to delaunay triangulation algorithm Fade_2D
+		GEOM_FADE2D::Fade_2D dt;
+		for(const auto i: delaunayPoints){dt.insert(GEOM_FADE2D::Point2(i.x(),i.y()));}
+
+		// Start adding the zoneLines to delaunay triangulation algorithm Fade_2D
+		std::vector<GEOM_FADE2D::Segment2> vSegments;
+		for(const auto i: orderedLinesOfZone){vSegments.push_back(GEOM_FADE2D::Segment2(GEOM_FADE2D::Point2(i[0].x(),i[0].y()),GEOM_FADE2D::Point2(i[1].x(),i[1].y())));}
+		GEOM_FADE2D::ConstraintGraph2* pCG=dt.createConstraint(vSegments,GEOM_FADE2D::CIS_CONSTRAINED_DELAUNAY);
+		
+		// create zone
+		GEOM_FADE2D::Zone2* pZone0(dt.createZone(pCG,GEOM_FADE2D::ZL_INSIDE));
+
+		// Makes the constrained delaunay a delaunay respecting the boundaries by adding the intersection point found on the boundary after delaunay
+		bool applyConstrainedDelaunay = true;
+		if(!applyConstrainedDelaunay)
+		{
+			double minLen(0.1);
+			pCG->makeDelaunay(minLen);
+		}
+
+		// Draw; generate a Design.ps file for visualization in for example illustrator 
+		if(outputPs) 
+		{
+			pZone0->show("Design_Zone0.ps",true,true);
+			dt.show("Design.ps",true);		
+		}
+
+		std::vector<GEOM_FADE2D::Triangle2*> zTriangles;
+		pZone0->getTriangles(zTriangles);
+		std::vector<GEOM_FADE2D::Triangle2*> allTriangles;
+		dt.getTrianglePointers(allTriangles);
+
+		pZone0->show("Design_Zone0.ps",true,true);
+
+		// Try to find quad options
+		// Find a starting triangle with one oppositeTriangle or max two
+		std::vector<int> startTri1;
+		std::vector<int> startTri2;
+		std::vector<bool> zTrianglesChecked; // initialize to keep track of triangles already added.
+		std::vector<std::vector<int>> opposingTri; // make a vector for each triangle with their opposite triangles
+		std::vector<GEOM_FADE2D::Triangle2*>::iterator it;
+		std::vector<int> indexOppTri;
+		indexOppTri.resize(3);
+		for(int i=0; i < zTriangles.size(); i++)
+		{
+			GEOM_FADE2D::Triangle2* opposing_0 = zTriangles[i]->getOppositeTriangle(0);
+			GEOM_FADE2D::Triangle2* opposing_1 = zTriangles[i]->getOppositeTriangle(1);
+			GEOM_FADE2D::Triangle2* opposing_2 = zTriangles[i]->getOppositeTriangle(2);
+
+			// find start tri
+			if(opposing_0 == NULL && opposing_1 == NULL || opposing_1 == NULL && opposing_2 == NULL || opposing_0 == NULL && opposing_2 == NULL)
+			{
+				startTri1.push_back(i);
+			}
+			if (opposing_0 == NULL || opposing_1 == NULL || opposing_2 == NULL){startTri2.push_back(i);}
+			
+			// Initiate track vector
+			zTrianglesChecked.push_back(false);
+
+			// store data in opposingTri
+			if(opposing_0 == NULL) {indexOppTri[0] = -1;}
+			else
+			{
+				it = std::find(zTriangles.begin(), zTriangles.end(), opposing_0);
+				if(it != zTriangles.end()) {indexOppTri[0] = it - zTriangles.begin();}
+				else {indexOppTri[0] = -1;} // opposing Triangle is not inside considered shape
+			}
+			if(opposing_1 == NULL) {indexOppTri[1] = -1;}
+			else
+			{
+				it = std::find(zTriangles.begin(), zTriangles.end(), opposing_1);
+				if(it != zTriangles.end()) {indexOppTri[1] = it - zTriangles.begin();}
+				else {indexOppTri[1] = -1;} // opposing Triangle is not inside considered shape
+			}
+			if(opposing_2 == NULL) {indexOppTri[2] = -1;}
+			else
+			{
+				it = std::find(zTriangles.begin(), zTriangles.end(), opposing_2);
+				if(it != zTriangles.end()) {indexOppTri[2] = it - zTriangles.begin();}
+				else {indexOppTri[2] = -1;} // opposing Triangle is not inside considered shape
+			}
+
+			opposingTri.push_back(indexOppTri);
+		}
+
+
+		// Start combining triangles
+		int count =0;
+		int indexTri; //index from zTriangles
+
+		// Define starting triangle
+		if(startTri1.size() > 0)
+		{
+			indexTri = startTri1[0];
+		}
+		else if(startTri2.size() > 0)
+		{
+			indexTri = startTri2[0];
+		}
+		else
+		{
+			/*error*/
+		}
+
+		std::vector <utilities::geometry::quadrilateral> quadsChoosen;
+		std::vector <GEOM_FADE2D::Triangle2*> triComboNotFound;
+		bool allChecked = false;
+		while(!allChecked)
+		{
+			std::vector<bool> options = {{false},{false},false};
+			std::vector<utilities::geometry::quadrilateral> quadOptions;
+			quadOptions.resize(3);
+			
+			GEOM_FADE2D::Point2* corner0;
+			GEOM_FADE2D::Point2* corner1;
+			GEOM_FADE2D::Point2* corner2;
+			GEOM_FADE2D::Point2* corner3;
+
+			// init considered triangle value's
+			corner0 = zTriangles[indexTri]->getCorner(0);
+			corner1 = zTriangles[indexTri]->getCorner(1);
+			corner2 = zTriangles[indexTri]->getCorner(2);
+			double x0,y0,x1,y1,x2,y2,x3,y3;
+			corner0->xy(x0,y0);
+			corner1->xy(x1,y1);
+			corner2->xy(x2,y2);
+
+			if((opposingTri[indexTri])[0] != -1)
+			{
+				for(int ith=0; ith<3; ith++)
+				{
+					corner3 = zTriangles[(opposingTri[indexTri])[0]]->getCorner(ith);
+					if (corner3!=corner0 && corner3!=corner1 && corner3!=corner2) break;
+				}
+				corner3->xy(x3,y3);
+				// Define BSO toolbox variables:
+				std::vector<utilities::geometry::vertex> mVertices = {{x0,y0,0},{x1,y1,0},{x2,y2,0},{x3,y3,0}};
+				// Check for valid quadrilateral
+				utilities::geometry::line_segment l01 = {mVertices[1], mVertices[0]};
+				utilities::geometry::line_segment l23 = {mVertices[3], mVertices[2]};
+				utilities::geometry::line_segment l03 = {mVertices[3], mVertices[0]};
+				utilities::geometry::line_segment l12 = {mVertices[2], mVertices[1]};
+				if (l01.intersectsWith(l23,mTol)){std::iter_swap(mVertices.begin() + 1, mVertices.begin() + 2);}
+				else if (l03.intersectsWith(l12, mTol)){std::iter_swap(mVertices.begin() + 2, mVertices.begin() + 3);}
+				utilities::geometry::line_segment l02 = {mVertices[2], mVertices[0]};
+				utilities::geometry::line_segment l13 = {mVertices[3], mVertices[1]};
+				if (!l02.intersectsWith(l13, mTol)){/*non-convex quadrilateral*/;}
+				else
+				{
+					quadOptions[0] = utilities::geometry::quadrilateral(mVertices);
+					options[0] = true;
+				}
+			}
+			if((opposingTri[indexTri])[1] != -1)
+			{
+				for(int ith=0; ith<3; ith++)
+				{
+					corner3 = zTriangles[(opposingTri[indexTri])[1]]->getCorner(ith);
+					if (corner3!=corner0 && corner3!=corner1 && corner3!=corner2) break;
+				}
+				corner3->xy(x3,y3);
+				// Define BSO toolbox variables:
+				std::vector<utilities::geometry::vertex> mVertices = {{x0,y0,0},{x1,y1,0},{x2,y2,0},{x3,y3,0}};
+				// Check for valid quadrilateral
+				utilities::geometry::line_segment l01 = {mVertices[1], mVertices[0]};
+				utilities::geometry::line_segment l23 = {mVertices[3], mVertices[2]};
+				utilities::geometry::line_segment l03 = {mVertices[3], mVertices[0]};
+				utilities::geometry::line_segment l12 = {mVertices[2], mVertices[1]};
+				if (l01.intersectsWith(l23,mTol)){std::iter_swap(mVertices.begin() + 1, mVertices.begin() + 2);}
+				else if (l03.intersectsWith(l12, mTol)){std::iter_swap(mVertices.begin() + 2, mVertices.begin() + 3);}
+				utilities::geometry::line_segment l02 = {mVertices[2], mVertices[0]};
+				utilities::geometry::line_segment l13 = {mVertices[3], mVertices[1]};
+				if (!l02.intersectsWith(l13, mTol)){/*non-convex quadrilateral*/;}
+				else
+				{
+					quadOptions[1] = utilities::geometry::quadrilateral(mVertices);
+					options[1] = true;
+				}
+			}
+			if((opposingTri[indexTri])[2] != -1)
+			{
+				for(int ith=0; ith<3; ith++)
+				{
+					corner3 = zTriangles[(opposingTri[indexTri])[2]]->getCorner(ith);
+					if (corner3!=corner0 && corner3!=corner1 && corner3!=corner2) break;
+				}
+				corner3->xy(x3,y3);
+				// Define BSO toolbox variables:
+				std::vector<utilities::geometry::vertex> mVertices = {{x0,y0,0},{x1,y1,0},{x2,y2,0},{x3,y3,0}};
+				// Check for valid quadrilateral
+				utilities::geometry::line_segment l01 = {mVertices[1], mVertices[0]};
+				utilities::geometry::line_segment l23 = {mVertices[3], mVertices[2]};
+				utilities::geometry::line_segment l03 = {mVertices[3], mVertices[0]};
+				utilities::geometry::line_segment l12 = {mVertices[2], mVertices[1]};
+				if (l01.intersectsWith(l23,mTol)){std::iter_swap(mVertices.begin() + 1, mVertices.begin() + 2);}
+				else if (l03.intersectsWith(l12, mTol)){std::iter_swap(mVertices.begin() + 2, mVertices.begin() + 3);}
+				utilities::geometry::line_segment l02 = {mVertices[2], mVertices[0]};
+				utilities::geometry::line_segment l13 = {mVertices[3], mVertices[1]};
+				if (!l02.intersectsWith(l13, mTol)){/*non-convex quadrilateral*/;}
+				else
+				{
+					quadOptions[2] = utilities::geometry::quadrilateral(mVertices);
+					options[2] = true;
+				}
+			}
+
+			// Choose best option, which is the options closest to a rectangle
+			double difRectangle = 90+90+90+90; // too high value to receive
+			int bestOption = 5; // set to default value to check later if bestOption is found
+			for(int j=0; j<3; j++)
+			{
+				if(options[j])
+				{
+					if(quadOptions[j].getDifRectangle() < difRectangle){bestOption = j;}
+				}
+			}
+			
+			bool found = false;
+			if(bestOption==5)
+			{
+				zTrianglesChecked[indexTri] = true;
+				triComboNotFound.push_back(zTriangles[indexTri]);
+			}
+			else
+			{
+				// Define quad and next tri connected to just found quad
+				quadsChoosen.push_back(quadOptions[bestOption]);
+				zTrianglesChecked[indexTri] = true;
+				zTrianglesChecked[(opposingTri[indexTri])[bestOption]] = true;
+
+				// find index opposing of the current opposing and check if it is already in a Quad
+				bool found = false;
+				for(int j=0; j<3;j++)
+				{
+					if(opposingTri[(opposingTri[indexTri])[bestOption]][j] != -1 && zTrianglesChecked[opposingTri[(opposingTri[indexTri])[bestOption]][j]] == false)
+					{
+						indexTri = opposingTri[(opposingTri[indexTri])[bestOption]][j];
+						found = true;
+						break;
+					}
+				}
+			}
+
+			if(!found)
+			{				
+				// Check for not checked Triangles
+				for(int j=indexTri+1; j!=indexTri; j++)
+				{
+					if(j >= zTrianglesChecked.size()){j = 0;}
+					else if(zTrianglesChecked[j] == false) // Triangle not yet in a quad
+					{
+						// define new indexTri
+						indexTri = j;
+						found = true;
+						break;
+					}
+				}
+				if(!found)
+				{
+					allChecked = true; //This wil terminate the while loop
+				}
+			}
+		}
+
+		quads = quadsChoosen;
+
+		// Make quads out of remaining triComboNotFound
+
+		std::cout << "the choosen quads are: " << std::endl;
+		for(const auto i: quadsChoosen)
+		{
+			std::cout << i << std::endl;
+		}
+		std::cout << "tri combo's not found are: " << std::endl;
+		for(const auto i: triComboNotFound)
+		{
+			std::cout << *i << std::endl;
+		}
+		
 	}
 
 } // namespace utilities

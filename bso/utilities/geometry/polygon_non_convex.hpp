@@ -7,7 +7,8 @@ namespace bso { namespace utilities { namespace geometry {
 	
 	// This class defines non_convex polygons without holes but is also able to handle convex polygons
 	// The points inserted into this class should already be inserted in an ordered manner 
-	// to allow for the definition of the correct non_convex polygon
+	// to allow for the correct definition of the non_convex polygon
+	// See explanation at function SortPoint for more detail.
 	class polygon_non_convex : public polygon
 	{
 	protected:
@@ -25,9 +26,13 @@ namespace bso { namespace utilities { namespace geometry {
 		bool isInside(const vertex& p1, const double& tol = 1e-3) const;
 		bool isInsideOrOn(const vertex& p1, const double& tol = 1e-3) const;
 
-		void convertToQuads();
+		void convertToQuads(std::vector<quadrilateral>& quads);
 
 		const auto& getTriangles() const {return mTriangles;}
+
+		// default created center in the inherited polygon class is only valid for convex polygons, so function is deleted.
+		vertex getCenter() const = delete;
+		const vertex& center() const =delete;
 	};
 
 } // namespace geometry
