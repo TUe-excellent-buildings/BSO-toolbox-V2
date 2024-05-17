@@ -14,8 +14,13 @@ namespace bso { namespace utilities {
 	 * 
 	 */
 	 
-	std::vector<utilities::geometry::triangle> delaunay(const std::vector <utilities::geometry::vertex> delaunayPoints, const std::vector <utilities::geometry::line_segment> delaunayLines, const double mTol = 1e-3, bool outputPs = false); // Constrained Delaunay triangulation performed with the help of the FADE_2D libary
-	std::vector<utilities::geometry::triangle> delaunayZoned(const std::vector <utilities::geometry::vertex> delaunayPoints, const std::vector <utilities::geometry::line_segment> orderedLinesOfZone, const double mTol = 1e-3, bool outputPs = false); // Constrained Delaunay triangulation performed with the help of the FADE_2D libary
+	std::vector<utilities::geometry::triangle> delaunay(const std::vector <utilities::geometry::vertex> delaunayPoints, 
+			const std::vector <utilities::geometry::line_segment> delaunayLines, const double mTol = 1e-3, bool outputPs = false); // Constrained Delaunay triangulation performed with the help of the FADE_2D libary
+	std::vector<utilities::geometry::triangle> delaunayZoned(const std::vector <utilities::geometry::vertex> delaunayPoints,
+			const std::vector <utilities::geometry::line_segment> orderedLinesOfZone, const double mTol = 1e-3, bool outputPs = false); // Constrained Delaunay triangulation performed with the help of the FADE_2D libary
+	std::vector<std::vector<utilities::geometry::triangle>> delaunayMultipleZoned(const std::vector <utilities::geometry::vertex> delaunayPoints,
+			const std::vector<std::vector<utilities::geometry::line_segment>> orderedLinesOfZone, const std::vector <utilities::geometry::line_segment> delaunayLines,
+			bool getTriOutsideZones = true, bool getBothInAndOutZones = false, const double mTol = 1e-3, bool outputPs = false);
 	void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL,  const double mTol = 1e-3); // used during the delaunay method to avoid the inserting of overlapping and duplicate constrain lines
 
 
@@ -24,7 +29,9 @@ namespace bso { namespace utilities {
 	 * The Polygon_non_convex could not be used duo to 
 	 */
 
-	void convertToQuads(const std::vector <utilities::geometry::vertex>& delaunayPoints, const std::vector <utilities::geometry::line_segment>& orderedLinesOfZone, std::vector <utilities::geometry::quadrilateral>& quads, const double mTol = 1e-3, bool outputPs = false);
+	void convertToQuads(const std::vector <utilities::geometry::vertex>& delaunayPoints, const std::vector <utilities::geometry::line_segment>& orderedLinesOfZone,
+			std::vector <utilities::geometry::quadrilateral>& quads, const double mTol = 1e-3, bool outputPs = false);
+	std::vector<utilities::geometry::line_segment> getOuterBounds2D(std::vector<utilities::geometry::line_segment> lines,  const double mTol = 1e-3);
 
 } // namespace utilities
 } // namespace bso

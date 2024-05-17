@@ -13,7 +13,9 @@ namespace bso { namespace utilities { namespace geometry {
 	{
 	private:
 		template <class CONTAINER>
-		void initFromVertices(const CONTAINER& l, const double& tol = 1e-3);		
+		void initFromVertices(const CONTAINER& l, const double& tol = 1e-3);
+		//template <class CONTAINER>	
+		//void initFromLineSegments(const CONTAINER& l, const double& tol = 1e-3);
 		
 		bool isCoplanarItself(const double& tol = 1e-3) const;
 	protected:
@@ -29,6 +31,7 @@ namespace bso { namespace utilities { namespace geometry {
 		template <class CONTAINER>
 		polygon(const CONTAINER& l, const double& tol = 1e-3);
 		polygon(const std::initializer_list<vertex>&& l, const double& tol = 1e-3);
+		//polygon(const std::initializer_list<line_segment>&& l, const double& tol = 1e-3);
 		virtual ~polygon();
 		virtual polygon* clone() = 0;
 		

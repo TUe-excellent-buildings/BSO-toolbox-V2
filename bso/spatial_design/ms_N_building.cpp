@@ -12,6 +12,7 @@
 #include <bitset>
 
 #include <bso/utilities/delaunay.hpp>
+#include <bso/utilities/geometry/polygon_non_convex.hpp>
 
 namespace bso { namespace spatial_design {
 
@@ -852,6 +853,274 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 	}
 } //duplicateElevation()
 
+void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& location,
+		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol /*= 1e-3*/)
+{	
+	if(shiftDirection.z() > 0)
+	{
+		std::stringstream errorMessage;
+				errorMessage << "There is no valid shift amount defined." << std::endl
+										<< "The inserted shift amount is: " << shiftAmount << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+	}
+	
+	// normalize the shiftDirection for convenience of later use
+	auto n = shiftDirection.normalized();
+	
+	// Find spaces to shift
+	std::vector<ms_space*> notSelectedSpaces;
+	std::vector<ms_space*> partialSpaces;
+	auto selection = this->selectSpacesGeometrically(location, shiftDirection, notSelectedSpaces, partialSpaces,true,true);
+	if(selection.size() == 0 || notSelectedSpaces.size() == 0)
+	{
+		std::stringstream errorMessage;
+				errorMessage << "There are no spaces found to be shifted or no spaces found to not be shifted. " << std::endl
+										<< "the nr of spaces to be shifted are: " << selection.size() << "and the nr of spaces not be be shifted" << notSelectedSpaces.size() << std::endl
+										<< "Inserted a different plane, not of location: " << location << "and shiftDirection" << shiftDirection << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+	}
+
+	// Shift spaces
+	for (auto& i : selection)
+	{
+		// Define the new pVertex vector of considered space
+		bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+		std::vector <utilities::geometry::vertex*> pVert;
+		utilities::geometry::vertex temp;
+		for(const auto j: spaceGeom.getVertices())
+		{
+			pVert.push_back(new utilities::geometry::vertex);							
+			temp = j + n * shiftAmount;
+			*pVert.back() = temp;
+		}
+		// Replace the pVertex of the considered space
+		i->setPVertex(pVert);
+	}
+
+	// get outer bounds of selected and nonSelected
+	std::vector <utilities::geometry::line_segment> selectedLines = getLinesAtZ0(selection, tol);
+	std::vector <utilities::geometry::line_segment> notSelectedLines = getLinesAtZ0(notSelectedSpaces, tol);
+	std::vector <utilities::geometry::line_segment> outerBoundsSelected = bso::utilities::getOuterBounds2D(selectedLines, tol);
+	std::vector <utilities::geometry::line_segment> outerBoundsNotSelectedLines = bso::utilities::getOuterBounds2D(notSelectedLines, tol);
+
+	std::vector<std::vector<utilities::geometry::line_segment>> orderedLinesOfZone;
+	orderedLinesOfZone.push_back(outerBoundsSelected);
+	orderedLinesOfZone.push_back(outerBoundsNotSelectedLines);
+
+	// Perform a delaunayMultipleZoned
+	std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>> spacePair;
+	std::vector<double> allLevels;
+	std::vector <utilities::geometry::vertex> delaunayPoints;
+	std::vector <utilities::geometry::line_segment> delaunayLines;
+	getNOBSDAtGround(spacePair, allLevels, tol);
+	getDelaunayVariables(delaunayPoints, delaunayLines, spacePair);
+	std::vector<std::vector<utilities::geometry::triangle>> triangles = utilities::delaunayMultipleZoned(delaunayPoints, orderedLinesOfZone, delaunayLines, true, false, 0.001, true);
+	
+
+
+	std::vector <utilities::geometry::vertex> boundsVertexes;
+	for(const auto i: outerBoundsSelected){boundsVertexes.push_back(i[0]);	}
+	utilities::geometry::polygon_non_convex selectedBounds(boundsVertexes, tol);
+	std::vector<utilities::geometry::quadrilateral> quads;
+	selectedBounds.convertToQuads(quads);
+
+	std::cout << "the choosen quads are: " << std::endl;
+	for(const auto i: quads)
+	{
+		std::cout << i << std::endl;
+	}
+
+	
+	//std::vector<double> allLevels;
+	// getSpacesAtGround(partialSpaces, spacePair, allLevels, tol);
+
+	// for(int i=0; i < allLevels.size()-1; i++)
+	// {
+	// 	for(const auto j: quads)
+	// 	{
+	// 		// Define ID of new space
+	// 		int newID = mSpaces.back()->getID();
+	// 		newID++;
+
+	// 		// Define all vertices of new space
+	// 		std::vector <utilities::geometry::vertex*> pVert;
+	// 		utilities::geometry::vertex temp;
+	// 		for(const auto k: j)
+	// 		{
+	// 			pVert.push_back(new utilities::geometry::vertex);							
+	// 			temp(0) = k.x();
+	// 			temp(1) = k.y();
+	// 			temp(2) = allLevels[i];
+	// 			*pVert.back() = temp;		
+				
+	// 			pVert.push_back(new utilities::geometry::vertex);
+	// 			temp(2) = allLevels[i+1];
+	// 			*pVert.back() = temp;
+	// 		}
+
+	// 		// Add new space
+	// 		mSpaces.push_back(new ms_space());
+	// 		mSpaces.back()->setID(newID);
+	// 		mSpaces.back()->setPVertex(pVert);	
+	// 	}
+	// }
+
+
+	// Sort partialSpaces per elevation
+	//std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>> spacePair;
+	//std::vector<double> allLevels;
+	//getSpacesAtGround(partialSpaces, spacePair, allLevels, tol);
+	// std::vector <utilities::geometry::vertex> delaunayPoints;
+	// std::vector <utilities::geometry::line_segment> delaunayLines;
+	
+	// getDelaunayVariables(delaunayPoints, delaunayLines, spacePair);
+	// bso::utilities::delaunay(delaunayPoints, delaunayLines, 0.001, true);
+
+	// getNOBSDAtGround(spacePair, allLevels, tol);
+	// getDelaunayVariables(delaunayPoints, delaunayLines, spacePair);
+	// std::vector<bso::utilities::geometry::triangle> delaunayTri	= bso::utilities::delaunay(delaunayPoints, delaunayLines, 0.001, true);
+	
+
+	// Get lines closest to shiftPlane 
+
+
+
+	// // Find the two points of each partialSpaces which are closest to the shift plane
+	// // This identifies the space needed to be filled
+	// std::map<double, std::vector<bso::utilities::geometry::vertex>> poly_vertices;
+	// bso::utilities::geometry::line_segment planeLine = {location, {shiftDirection.y(),-shiftDirection.x(), shiftDirection.z()}}; //Note: flipping x and y and making one negative gives the perpendicular vector to the shiftDirection
+	// for (auto& i : partialSpaces)
+	// {
+	// 	bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+	// 	bso::utilities::geometry::vertex VSmallestDist;
+	// 	bso::utilities::geometry::vertex VSecondSmallestDist;
+	// 	double smallestDist;
+	// 	double secondSmallestDist;
+		
+	// 	std::vector<bso::utilities::geometry::quadrilateral> mQuad = spaceGeom.getQuadrilateral();
+	// 	double height1 = mQuad[5][0].z();
+	// 	double height2 = mQuad[6][0].z();
+	// 	if(height1 > height2)
+	// 	{
+	// 		double temp = height2;
+	// 		height2 = height1;
+	// 		height1 = temp;
+	// 	}
+	// 	int count = 0;
+	// 	for(const auto j: mQuad[5])
+	// 	{
+	// 		bso::utilities::geometry::line_segment distanceLine ={j,planeLine.getPointClosestTo(j)};
+	// 		double distance = distanceLine.getLength();
+	// 		if(count == 0)
+	// 		{
+	// 			smallestDist = distance;
+	// 			VSmallestDist = j;
+	// 			count++;
+	// 			height1 = j.z();
+	// 		}
+	// 		else if (count == 1)
+	// 		{
+	// 			if(distance < smallestDist)
+	// 			{
+	// 				secondSmallestDist = smallestDist;
+	// 				VSecondSmallestDist = VSmallestDist;
+	// 				smallestDist = distance;
+	// 				VSmallestDist = j;
+	// 				count++;
+	// 			}
+	// 			else
+	// 			{
+	// 				secondSmallestDist = distance;
+	// 				VSecondSmallestDist = j;
+	// 			}
+	// 		}
+	// 		else if(distance < smallestDist)
+	// 		{
+	// 			smallestDist = distance;
+	// 			VSmallestDist = j;
+	// 		}
+	// 		else if(distance < secondSmallestDist)
+	// 		{
+	// 			secondSmallestDist = distance;
+	// 			VSecondSmallestDist = j;
+	// 		}
+	// 	}
+
+	// 	if (auto search = poly_vertices.find(height1); search != poly_vertices.end())
+	// 	{
+	// 		search->second.push_back(VSmallestDist);
+	// 		search->second.push_back(VSecondSmallestDist);
+	// 		std::cout << "Found " << search->first << ' ' << search->second << '\n';
+	// 	}
+    // 	else
+	// 	{
+	// 		std::cout << "Not found\n";
+	// 		poly_vertices[] = ;
+
+	// 	}
+       
+	// 	VSmallestDist
+	// 	VSecondSmallestDist
+
+	// }
+
+
+
+
+} // shiftFillCutPlane
+
+std::vector<ms_space*> ms_N_building::selectSpacesGeometrically(
+		const bso::utilities::geometry::vertex& location,
+		const bso::utilities::geometry::vector& normalOfPlane,
+		std::vector<ms_space*>& notSelectedSpaces,
+		std::vector<ms_space*>& partialSpaces,
+		const bool includePartialSpaces /*= false*/,
+		const bool returnNormalDefinedSide /*= false*/) const
+{
+	bso::utilities::geometry::vector normal = normalOfPlane;
+	if(!returnNormalDefinedSide){normal = {-normalOfPlane.x(),-normalOfPlane.y(),-normalOfPlane.z()};}
+	
+	std::vector<ms_space*> spaceSelection;
+	for (const auto& i : mSpaces)
+	{
+		bool allVerticesSelected = true;
+		bool oneOrMoreVerticesSelected = false;
+		bool partialSelection = false;
+		for (const auto& j : i->getGeometry())
+		{
+			double checkValue = normal.dot(j - location);
+			if (checkValue >= -1e-3)
+			{ // check if point j lies behind the plane defined by the location and the direction
+				if (checkValue >= 1e-3) oneOrMoreVerticesSelected = true;
+			}
+			else {allVerticesSelected = false;}
+			if (checkValue >= -1e-3 && checkValue <= 1e-3) partialSelection = true;
+		}
+		if (allVerticesSelected) spaceSelection.push_back(i);
+		else if (oneOrMoreVerticesSelected)
+		{
+			if(includePartialSpaces) spaceSelection.push_back(i);
+			partialSpaces.push_back(i);
+		}
+		else notSelectedSpaces.push_back(i);
+		if(partialSelection) partialSpaces.push_back(i);
+	}
+	return spaceSelection;
+} // selectSpacesGeometrically
+
+std::vector<ms_space*> ms_N_building::selectSpacesGeometrically(
+		const bso::utilities::geometry::vertex& location,
+		const bso::utilities::geometry::vector& normalOfPlane,
+		const bool includePartialSpaces /*= false*/,
+		const bool returnNormalDefinedSide /*= false*/) const
+{
+	std::vector<ms_space*> notSelectedSpaces; // empty variable
+	std::vector<ms_space*> partialSpaces; // empty variable
+	std::vector<ms_space*> spaceSelection = selectSpacesGeometrically(location, normalOfPlane, notSelectedSpaces, partialSpaces, includePartialSpaces, returnNormalDefinedSide);
+	return spaceSelection;
+} // selectSpacesGeometrically
 
 void ms_N_building::replicateSplits(std::vector<ms_space*> spaces)
 {
@@ -863,9 +1132,7 @@ void ms_N_building::replicateSplits(std::vector<ms_space*> spaces)
 	double mTol = 0.001;
 	std::vector<bso::utilities::geometry::vertex> delauneyPoints;
 	std::vector<bso::utilities::geometry::line_segment> delauneyLines;
-	bso::utilities::splitLines(delauneyPoints, delauneyLines, mTol);// this prevent the generation of triangles on one line or triangles containing duplicate vertices
-	//utilities::getNOBSDAtGround(*this, spaceAtGroundV, allLevels);
-	//utilities::getLinesAtZ0(linesAtZ, spaceAtGroundV);
+
 	
 	// for(auto i: spaces)
 	// {
@@ -991,6 +1258,41 @@ bool ms_N_building::hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces,
 	return (floatingSpaces.size() != 0);
 } // hasFloatingSpaces()
 
+void ms_N_building::getSpacesAtGround(std::vector<bso::spatial_design::ms_space*> spacePtr, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spaceAtGroundV, std::vector<double>& allLevels, const double mTol)
+{
+	for (const auto i : spacePtr)
+	{
+		//Get original space geometry
+		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+					
+		//Find the highest and lowest vertex to add to allLevels and for the definition of the shifting vector
+		utilities::geometry::vertex lowVertex = spaceGeom[0];
+		utilities::geometry::vertex highVertex = spaceGeom[0];
+		for (const auto j: spaceGeom)
+		{
+			if(lowVertex.z() > j.z()) lowVertex = j;
+			else if(highVertex.z() < j.z()) highVertex = j;
+		}			
+		allLevels.push_back(highVertex.z());
+		allLevels.push_back(lowVertex.z());
+
+		//Generate the at ground level space geometry
+		std::vector<utilities::geometry::vertex> vertices_1;
+		utilities::geometry::vertex shift = {0,0,lowVertex.z()};
+		if(lowVertex.z() < mTol && lowVertex.z() > -mTol) for(auto k: spaceGeom){vertices_1.push_back(k);}
+		else for(auto k: spaceGeom){vertices_1.push_back(k-shift);}
+		utilities::geometry::quad_hexahedron atGround = utilities::geometry::quad_hexahedron(vertices_1, mTol);
+
+		std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron> spaceGeomPair (i,atGround);
+		spaceAtGroundV.push_back(spaceGeomPair);
+	}
+	
+	// Sort vector, bring all duplicates to end of vector plus get cut off point, then erase duplicates from the end of vector allLevels:
+	sort(allLevels.begin(), allLevels.end()); 
+	auto it = unique(allLevels.begin(), allLevels.end()); 
+	allLevels.erase(it, allLevels.end()); 
+} //getNOBSDAtGround
+
 void ms_N_building::getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spaceAtGroundV, std::vector<double>& allLevels, const double mTol)
 {
 	for (const auto i : mSpaces)
@@ -1032,10 +1334,10 @@ void ms_N_building::getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::
 	getNOBSDAtGround(spaceAtGroundV, allLevels, mTol);
 } //getNOBSDAtGround
 
-std::vector <bso::utilities::geometry::quadrilateral> ms_N_building::getQuadAtZ0(const double mTol)
+std::vector <bso::utilities::geometry::quadrilateral> ms_N_building::getQuadAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol)
 {
 	std::vector <bso::utilities::geometry::quadrilateral> quadAtZ0;
-	for (const auto i : mSpaces)
+	for (const auto i : spaces)
 	{
 		//Get original space geometry
 		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
@@ -1070,10 +1372,16 @@ std::vector <bso::utilities::geometry::quadrilateral> ms_N_building::getQuadAtZ0
 	return quadAtZ0;
 } //getQuadAtZ0
 
-std::vector <utilities::geometry::line_segment> ms_N_building::getLinesAtZ0(const double mTol)
+std::vector <bso::utilities::geometry::quadrilateral> ms_N_building::getQuadAtZ0(const double mTol)
+{
+	std::vector <bso::utilities::geometry::quadrilateral> quadAtZ0 = getQuadAtZ0(mSpaces,mTol);
+	return quadAtZ0;
+} //getQuadAtZ0
+
+std::vector <utilities::geometry::line_segment> ms_N_building::getLinesAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol)
 {
 	std::vector <utilities::geometry::line_segment> linesAtZ;
-	for (const auto i : mSpaces)
+	for (const auto i : spaces)
 	{
 		//Get original space geometry
 		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
@@ -1100,6 +1408,12 @@ std::vector <utilities::geometry::line_segment> ms_N_building::getLinesAtZ0(cons
 			}
 		}
 	}
+	return linesAtZ;
+} //getLinesAtZ0
+
+std::vector <utilities::geometry::line_segment> ms_N_building::getLinesAtZ0(const double mTol)
+{
+	std::vector <utilities::geometry::line_segment> linesAtZ = getLinesAtZ0(mSpaces,mTol);
 	return linesAtZ;
 } //getLinesAtZ0
 
@@ -1180,7 +1494,7 @@ void ms_N_building::getDelaunayVariables(std::vector <utilities::geometry::verte
 			}
 		}
 	}
-	
+
 	bso::utilities::splitLines(delaunayPoints, delaunayLines);
 } // getDelaunayVariables
 

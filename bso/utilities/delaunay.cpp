@@ -6,6 +6,7 @@
 #include <FadeExport.h>
 #include <iomanip> // Allowes to use std::setprecision() to be able to enlarge the decimals printed to the console of a double		
 #include <vector>
+#include <map>
 #include <bso/utilities/geometry.hpp>		 
 
 
@@ -261,6 +262,194 @@ namespace bso { namespace utilities {
 		
 		return delaunayTri;
 	} //delaunayZoned()
+
+	std::vector<std::vector<utilities::geometry::triangle>> delaunayMultipleZoned(const std::vector <utilities::geometry::vertex> delaunayPoints, 
+		const std::vector<std::vector<utilities::geometry::line_segment>> orderedLinesOfZone, const std::vector <utilities::geometry::line_segment> delaunayLines, 
+		bool getTriOutsideZones, bool getBothInAndOutZones, const double mTol, bool outputPs)
+	{
+		// Input check
+		if(delaunayPoints.size() <= 2)
+		{
+			std::stringstream errorMessage;
+				errorMessage << "\nError, the inserted points in the delaunay triangulation are less then three. \n"
+					 << "Meaning that a delaunay triangulation can not be generated. \n"
+					 << "(bso/utilities/delaunay)." << std::endl;
+				throw std::runtime_error(errorMessage.str());
+		}		
+
+		// Start Delaunay triangulation process
+		// start adding the points/ConstrainLines to delaunay triangulation algorithm Fade_2D
+		GEOM_FADE2D::Fade_2D dt;
+		
+		for(const auto i: delaunayPoints)
+		{
+			dt.insert(GEOM_FADE2D::Point2(i.x(),i.y()));
+		}		
+		std::vector<GEOM_FADE2D::Segment2> vSegmentsConstLines;
+		for(const auto i: delaunayLines)
+		{
+			vSegmentsConstLines.push_back(GEOM_FADE2D::Segment2(GEOM_FADE2D::Point2(i[0].x(),i[0].y()),GEOM_FADE2D::Point2(i[1].x(),i[1].y())));
+		}
+		GEOM_FADE2D::ConstraintGraph2* pCGConstLines=dt.createConstraint(vSegmentsConstLines,GEOM_FADE2D::CIS_CONSTRAINED_DELAUNAY);
+
+		// Start adding the zoneLines to delaunay triangulation algorithm Fade_2D
+		std::vector<GEOM_FADE2D::ConstraintGraph2*> pCG;
+		for(const auto j: orderedLinesOfZone)
+		{
+			std::vector<GEOM_FADE2D::Segment2> vSegments;
+			for(const auto i: j)
+			{
+				vSegments.push_back(GEOM_FADE2D::Segment2(GEOM_FADE2D::Point2(i[0].x(),i[0].y()),GEOM_FADE2D::Point2(i[1].x(),i[1].y())));
+			}
+			GEOM_FADE2D::ConstraintGraph2* temp=dt.createConstraint(vSegments,GEOM_FADE2D::CIS_CONSTRAINED_DELAUNAY);
+			pCG.push_back(temp);
+		}
+		
+		// create zones from the zoneLines
+		std::vector<GEOM_FADE2D::Zone2*> zonePtr;
+		for(const auto i: pCG)
+		{
+			GEOM_FADE2D::Zone2* pZone0(dt.createZone(i,GEOM_FADE2D::ZL_INSIDE));
+			zonePtr.push_back(pZone0);
+		}
+
+		// Makes the constrained delaunay a delaunay respecting the boundaries by adding the intersection point found on the boundary after delaunay
+		bool applyConstrainedDelaunay = true;
+		if(!applyConstrainedDelaunay)
+		{
+			double minLen(0.1);
+			for(const auto i: pCG)
+			{
+				i->makeDelaunay(minLen);
+			}
+			pCGConstLines->makeDelaunay(minLen);
+		}
+
+		// Draw; generate a Design.ps file for visualization in for example illustrator 
+		if(outputPs) 
+		{
+			dt.show("Design.ps",true);		
+		}
+
+		
+		std::vector<std::vector<utilities::geometry::triangle>> allDelaunayTri;
+		if(!getTriOutsideZones || getBothInAndOutZones)
+		{
+			std::vector<std::vector<GEOM_FADE2D::Triangle2*>> zTrianglesInZones;
+			for(int i=0; i < zonePtr.size(); i++)
+			{
+				zonePtr[i]->getTriangles(zTrianglesInZones[i]);
+			}
+			
+			for(const auto j: zTrianglesInZones)
+			{
+				std::vector<utilities::geometry::triangle> delaunayTri;
+				for(const auto i: j)
+				{
+					// Get FADE_2D variables:
+					GEOM_FADE2D::Point2* corner1 = i->getCorner(0);
+					GEOM_FADE2D::Point2* corner2 = i->getCorner(1);
+					GEOM_FADE2D::Point2* corner3 = i->getCorner(2);
+					double x0,y0,x1,y1,x2,y2;
+					corner1->xy(x0,y0);
+					corner2->xy(x1,y1);
+					corner3->xy(x2,y2);
+
+					// Define BSO toolbox variables:
+					utilities::geometry::vertex C1 = {x0,y0,0};
+					utilities::geometry::vertex C2 = {x1,y1,0};
+					utilities::geometry::vertex C3 = {x2,y2,0};
+					
+					try
+					{
+						utilities::geometry::triangle tri = {{C1},{C2},{C3}};
+						delaunayTri.push_back(tri);
+					}
+					catch(std::exception& e)
+					{
+						// Skip unviable triangles for the BSO toolbox
+							// This is needed since FADE_2D calculates with a finer tolerance then the BSO toolbox allows.
+							// Therefore, FADE_2D create unlogical triangles from the BSO Toolbox perspective regarding the BSO toolbox tolerances
+							// the main reasons to skip a triangle are as follows:
+							// - two cornerpoints of a single triangle are the same according to the BSO toolbox tolerances.
+							// - the three points of the triangle are on the same line in accordance to the BSO toolbox tolerances.
+							// See paper automatic partitioning methods for more information.
+						continue;
+					}
+				}
+				allDelaunayTri.push_back(delaunayTri);
+			}
+		}
+		else if(getBothInAndOutZones || getTriOutsideZones)
+		{
+			std::vector<GEOM_FADE2D::Triangle2*> zTrianglesOutZones;
+			GEOM_FADE2D::Zone2* pZoneGlobalDif(dt.createZone(NULL, GEOM_FADE2D::ZL_GLOBAL));
+			for(const auto i: zonePtr)
+			{ // Subtract the zonePtr zones from the global zones
+				GEOM_FADE2D::Zone2* pZoneDifference(zoneDifference(pZoneGlobalDif,i));
+				pZoneGlobalDif = pZoneDifference;
+			}
+			pZoneGlobalDif->getTriangles(zTrianglesOutZones); //get triangles
+			
+			std::vector<utilities::geometry::triangle> delaunayTri;
+			for(const auto i: zTrianglesOutZones)
+			{
+				// Get FADE_2D variables:
+				GEOM_FADE2D::Point2* corner1 = i->getCorner(0);
+				GEOM_FADE2D::Point2* corner2 = i->getCorner(1);
+				GEOM_FADE2D::Point2* corner3 = i->getCorner(2);
+				double x0,y0,x1,y1,x2,y2;
+				corner1->xy(x0,y0);
+				corner2->xy(x1,y1);
+				corner3->xy(x2,y2);
+
+				// Define BSO toolbox variables:
+				utilities::geometry::vertex C1 = {x0,y0,0};
+				utilities::geometry::vertex C2 = {x1,y1,0};
+				utilities::geometry::vertex C3 = {x2,y2,0};
+				
+				try
+				{
+					utilities::geometry::triangle tri = {{C1},{C2},{C3}};
+					delaunayTri.push_back(tri);
+				}
+				catch(std::exception& e)
+				{
+					// Skip unviable triangles for the BSO toolbox
+						// This is needed since FADE_2D calculates with a finer tolerance then the BSO toolbox allows.
+						// Therefore, FADE_2D create unlogical triangles from the BSO Toolbox perspective regarding the BSO toolbox tolerances
+						// the main reasons to skip a triangle are as follows:
+						// - two cornerpoints of a single triangle are the same according to the BSO toolbox tolerances.
+						// - the three points of the triangle are on the same line in accordance to the BSO toolbox tolerances.
+						// See paper automatic partitioning methods for more information.
+					continue;
+				}
+			}
+			allDelaunayTri.push_back(delaunayTri);
+
+			// Draw; generate a Design.ps file for visualization in for example illustrator 
+			if(outputPs) 
+			{
+				pZoneGlobalDif->show("Design_zone_outside.ps", true, true);		
+			}
+		}
+
+		bool noTri = false;
+		for(const auto k: allDelaunayTri)
+		{
+			if(k.size() == 0 ){noTri = true;}
+		}
+
+		if(allDelaunayTri.size() == 0 || noTri)
+		{
+			std::stringstream errorMessage;
+				errorMessage << "\nError, there are no triangle generated during the delaunayZoned triangulation in either a zone or in general. \n"
+					 << "(bso/utilities/delaunay)." << std::endl;
+				throw std::runtime_error(errorMessage.str());
+		}
+
+		return allDelaunayTri;
+	} //delaunayMultipleZoned()
 	
 	
 	void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL, const double mTol)
@@ -637,6 +826,171 @@ namespace bso { namespace utilities {
 		}
 
 		quads = quadsChoosen;
+	}
+
+	std::vector<utilities::geometry::line_segment> getOuterBounds2D(std::vector<utilities::geometry::line_segment> lines, double mTol)
+	{ // reference: https://stackoverflow.com/questions/31169125/outermost-polygon-from-a-set-of-edges
+		// Split inserted lines at all their vertices
+		if(lines.size() == 0)
+		{
+			std::stringstream errorMessage;
+				errorMessage << "No lines were inserted in the getOuterBounds2D function. " << std::endl
+										<< "(bso/utilities/delaunay.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+		}
+		// split the lines at the end vertices of the lines and remove duplicates
+		std::vector<utilities::geometry::vertex> lineV;
+		for(const auto i: lines)
+		{
+			lineV.push_back(i[0]);
+			lineV.push_back(i[1]);
+		}
+		splitLines(lineV, lines, mTol);		
+		
+		// Declarations
+		std::vector<utilities::geometry::line_segment> outerBound;
+		std::vector<utilities::geometry::vertex> connectivityVertex; //Note the id vertex of this variable form a pair with the same id from vector connectivityLines
+		std::vector<std::vector<utilities::geometry::line_segment>> connectivityLines;
+		utilities::geometry::vertex startV = (lines[0])[0];
+		std::vector<utilities::geometry::line_segment> connectedLines;
+		int c=0;
+
+		for(const auto i: lines)
+		{
+			c=0;
+			while(c < connectivityVertex.size())
+			{
+				if(connectivityVertex[c].isSameAs(i[0], mTol)) break;
+				c++;
+			}
+			if(c != connectivityVertex.size())
+			{
+				// adjust vector of vertex
+				connectivityLines[c].push_back(i);
+			}
+			else
+			{
+				// not found therefor add new vertex
+				std::vector<utilities::geometry::line_segment> connectedLines;
+				connectedLines.push_back(i);
+				connectivityVertex.push_back(i[0]);
+				connectivityLines.push_back(connectedLines);
+			}
+
+			c = 0;
+			while(c < connectivityVertex.size())
+			{
+				if(connectivityVertex[c].isSameAs(i[1], mTol)) break;
+				c++;
+			}
+			if(c != connectivityVertex.size())
+			{
+				// adjust vector of vertex
+				connectivityLines[c].push_back({i[1],i[0]});
+			}
+			else
+			{
+				// not found therefor add new vertex
+				std::vector<utilities::geometry::line_segment> connectedLines;
+				connectedLines.push_back({i[1],i[0]}); //switch vertices so that the vector is pointing outwards from considered vertex
+				connectivityVertex.push_back(i[1]);
+				connectivityLines.push_back(connectedLines);
+			}
+
+			//find lowest x and y of vertexes
+			if(i[0].x()<=startV.x())
+			{
+				if(i[0].y()<startV.y()) {startV = i[0];}
+			}
+			if(i[1].x()<=startV.x())
+			{
+				if(i[1].y()<startV.y()) {startV = i[1];}
+			}
+		}
+
+		// find starting line segment
+		utilities::geometry::line_segment consideredLine;
+		bso::utilities::geometry::vertex consideredV;
+		double azimuth;
+		double smallestAzimuth;
+
+		c = 0;
+		while(c < connectivityVertex.size())
+		{
+			if(connectivityVertex[c].isSameAs(startV, mTol)) break;
+			c++;
+		}
+		if(c != connectivityVertex.size())
+		{
+			smallestAzimuth = 360- ((connectivityLines[c])[0]).getVector().getHeading().first; // anti clockwise
+			consideredLine = ((connectivityLines[c])[0]);
+			for(int i=1; i<connectivityLines[c].size(); i++)
+			{
+				double azimuth =  360 - ((connectivityLines[c])[i]).getVector().getHeading().first; // anti clockwise
+				if(azimuth < smallestAzimuth) consideredLine = (connectivityLines[c])[i];
+			}
+			// Found start outerBound line
+			outerBound.push_back(consideredLine);
+			// Define the other vertex then the start vertex for searching for next outerBound line:
+			if((consideredLine)[0].isSameAs(startV, mTol)) {consideredV = (consideredLine)[1];}
+			else {consideredV = (consideredLine)[0];}
+		}
+		else
+		{
+			std::stringstream errorMessage;
+				errorMessage << "Start vertex for determining the bounds of a set of lines has not been found. " << std::endl
+										<< "The considered start vertex is: " << startV << std::endl
+										<< "(bso/utilities/delaunay.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+		}
+
+		while(consideredV != startV)
+		{
+			bso::utilities::geometry::vector flipV = (outerBound.back())[0] - (outerBound.back())[1];
+			double currentAzimuth = flipV.getHeading().first;
+			
+			c = 0;
+			while(c < connectivityVertex.size())
+			{
+				if(connectivityVertex[c].isSameAs(consideredV, mTol)) break;
+				c++;
+			}
+			if(c != connectivityVertex.size())
+			{
+				std::vector<utilities::geometry::line_segment> linesAtV = connectivityLines[c];
+				int count = 0;
+				for(const auto i: linesAtV)
+				{
+					if(outerBound.back().isSameAs(i, mTol)) continue; // find line other then already know outbound
+					if(count == 0)
+					{
+						smallestAzimuth = currentAzimuth - i.getVector().getHeading().first; // anti clockwise
+						if(smallestAzimuth < 0) smallestAzimuth = 360 + smallestAzimuth;
+						consideredLine = i;
+						count++;
+						continue;
+					}
+					double azimuth =  currentAzimuth - i.getVector().getHeading().first; // anti clockwise
+					if(azimuth < 0) azimuth = 360 + azimuth;
+					if(azimuth < smallestAzimuth) consideredLine = i;
+				}
+				// Found start outerBound line
+				outerBound.push_back(consideredLine);
+				
+				// Define the other vertex then the considered vertex for searching for next outerBound line:
+				consideredV = (consideredLine)[1];
+			}
+			else
+			{
+				std::stringstream errorMessage;
+				errorMessage << "The considered vertex has not been found while determining the bounds of a set of lines. " << std::endl
+										<< "The considered start vertex is: " << consideredV << std::endl
+										<< "(bso/utilities/delaunay.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+			}
+		}
+
+		return outerBound;
 	}
 
 } // namespace utilities

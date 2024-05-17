@@ -20,6 +20,7 @@ namespace bso { namespace utilities { namespace geometry {
 		template <class CONTAINER>
 		polygon_non_convex(const CONTAINER& l, const double& tol = 1e-3);
 		polygon_non_convex(const std::initializer_list<vertex>&& l, const double& tol = 1e-3);
+		//polygon_non_convex(const std::initializer_list<line_segment>&& l, const double& tol = 1e-3);
 		polygon* clone();
 		
 		double getArea() const;

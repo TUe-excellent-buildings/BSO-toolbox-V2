@@ -22,7 +22,7 @@ namespace bso { namespace utilities {  namespace geometry {
 		
 		// check if the line_segments start and end with the next vertex in the container, since this would definitely be an invalid polygon
 		bool correct = true;
-		if(!(lineSegments[lineSegments.size()])[1].isSameAs((lineSegments[0])[0], tol)){correct =false;}
+		if(!(lineSegments[lineSegments.size()-1])[1].isSameAs((lineSegments[0])[0], tol)){correct =false;}
 		else
 		{
 			for(int i=0; i<lineSegments.size()-1; i++)	
@@ -123,6 +123,25 @@ namespace bso { namespace utilities {  namespace geometry {
 
 		this->triangulate(tol); // used for a lot of geometry analysis functions
 	} // ctor with initializer list
+
+	// polygon_non_convex::polygon_non_convex(const std::initializer_list<line_segment>&& l, const double& tol /*= 1e-3*/) : polygon(std::move(l),tol)
+	// { // 		
+	// 	try 
+	// 	{
+	// 		this->sortPoints(tol);
+	// 	}
+	// 	catch (std::exception& e)
+	// 	{
+	// 		std::stringstream errorMessage;
+	// 		errorMessage << "The inserted points in the class are invalid for initializing polygon_non_convex from container.\n"
+	// 								 << "Received the following error: \n"
+	// 								 << e.what()
+	// 								 << "\n(bso/utilities/geometry/polygon_non_convex.cpp)" << std::endl;
+	// 		throw std::invalid_argument(errorMessage.str());
+	// 	}
+
+	// 	this->triangulate(tol); // used for a lot of geometry analysis functions
+	// } // ctor with initializer list
 	
 	polygon* polygon_non_convex::clone()
 	{
@@ -170,7 +189,7 @@ namespace bso { namespace utilities {  namespace geometry {
 
 	void polygon_non_convex::convertToQuads(std::vector<quadrilateral>& quads)
 	{
-		bso::utilities::convertToQuads(mVertices, mLineSegments, quads);
+		bso::utilities::convertToQuads(mVertices, mLineSegments, quads, 0.001, true);
 	}
 
 } // namespace geometry

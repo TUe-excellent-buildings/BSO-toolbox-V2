@@ -22,7 +22,7 @@ public:
 	ms_N_building(const ms_N_building& rhs); // copy constructor
 	~ms_N_building(); // destructor
 	
-	// Space analysis functions
+	// Space analysis functions:
 	const std::string getInsertFileName() const{return insertFileName;}																	 
 	void writeToFile(std::string fileName) const;
 	std::vector<ms_space*> getSpacePtrs() const;
@@ -34,14 +34,21 @@ public:
 	bool hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 		const double tol = 1e-3) const; 
 
-	// Get the NOBSD representation as a certain geometry
-	void getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, std::vector<double>& allLevels, const double mTol = 1e-3);
+	// Get the NOBSD representation as a certain geometry:
+	void getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, 
+		std::vector<double>& allLevels, const double mTol = 1e-3);
 	void getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spaceAtGroundV, const double mTol = 1e-3);
+	void getSpacesAtGround(std::vector<bso::spatial_design::ms_space*> spacePtr, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, 
+		std::vector<double>& allLevels, const double mTol = 1e-3);
+	void getDelaunayVariables(std::vector <utilities::geometry::vertex>& delaunayPoints, std::vector <utilities::geometry::line_segment>& delaunayLines,
+		std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol = 1e-3);
 	std::vector <bso::utilities::geometry::quadrilateral> getQuadAtZ0(const double mTol = 1e-3);
+	std::vector <bso::utilities::geometry::quadrilateral> getQuadAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol = 1e-3);
 	std::vector <bso::utilities::geometry::line_segment> getLinesAtZ0(const double mTol = 1e-3);
-	void getDelaunayVariables(std::vector <utilities::geometry::vertex>& delaunayPoints, std::vector <utilities::geometry::line_segment>& delaunayLines, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol = 1e-3);
+	std::vector <bso::utilities::geometry::line_segment> getLinesAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol = 1e-3);
+	
 
-	// Representation adjustment functions
+	// Representation adjustment functions:
 	void setZZero(); 
 	void resetOrigin(const std::vector<unsigned int>& indices = {0,1,2});
 	void addSpace(const ms_space& space); 
@@ -57,12 +64,34 @@ public:
 	//void splitBuilding(double minimumHeight, double minimumWidth, double minimumDepth); // under development
 	//void enforceSpaceSize(double minimumHeight, double minimumWidth, double minimumDepth);
 	void duplicateElevation(double atZFromGround = 0, double elevationHeight = 3000, bool duplicateBelowZLevel = true);
+	void shiftFillPlane(const bso::utilities::geometry::vertex& location,
+		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3);
+	//void sweep(const bso::utilities::geometry::vertex& location,
+	//	const std::vector<std::pair<unsigned int, double> >& distances =
+	//	{{0,1.0},{1,0.0},{2,0.0}}, const double& tol = 1e-3);
+	//void cutOff(const bso::utilities::geometry::vertex& location,
+	//	const bso::utilities::geometry::vector& direction, const double& tol = 1e-3);
 	//void rotate();
 	//void rotate(bso::utilities::vector axis);
 	//void rotate(std::vector<ms_space*> mSpaces);
 	//void rotate(std::vector<ms_space*> mSpaces, bso::utilities::vector axis);
 	//void stretchAt();
 	void replicateSplits(std::vector<ms_space*> spaces); // under development
+	//void recenterBuilding();
+
+	// Space selection functions:
+	std::vector<ms_space*> selectSpacesGeometrically(
+		const bso::utilities::geometry::vertex& location,
+		const bso::utilities::geometry::vector& normalOfPlane,
+		const bool includePartialSpaces = false,
+		const bool returnNormalDefinedSide = false) const;
+	std::vector<ms_space*> selectSpacesGeometrically(
+		const bso::utilities::geometry::vertex& location,
+		const bso::utilities::geometry::vector& normalOfPlane,
+		std::vector<ms_space*>& notSelectedSpaces,
+		std::vector<ms_space*>& partialSpaces,
+		const bool includePartialSpaces = false,
+		const bool returnNormalDefinedSide = false) const;
 
 	const auto begin() const {return mSpaces.begin();}
 	const auto end() const {return mSpaces.end();}
