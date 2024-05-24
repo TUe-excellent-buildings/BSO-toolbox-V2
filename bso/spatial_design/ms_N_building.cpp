@@ -882,6 +882,324 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 				throw std::invalid_argument(errorMessage.str());
 	}
 
+	// Identify toughing & coplanar quads and store the levels of the floor for later use:
+	std::vector<bso::utilities::geometry::quadrilateral> toughingSQuads;
+	std::vector<bso::utilities::geometry::quadrilateral> toughingNSQuads;
+	std::vector<double> allLevels;
+	std::vector<double> allLevelsS;
+	std::vector<double> allLevelsSN;
+	for (auto& i : selection)
+	{
+		bso::utilities::geometry::quad_hexahedron spaceGeomS = i->getGeometry();
+		std::vector<bso::utilities::geometry::quadrilateral> QuadS = spaceGeomS.getQuadrilateral();
+		for (auto& j : notSelectedSpaces)
+		{
+			bso::utilities::geometry::quad_hexahedron spaceGeomNS = j->getGeometry();
+			std::vector<bso::utilities::geometry::quadrilateral> QuadNS = spaceGeomNS.getQuadrilateral();
+			for(const auto k: QuadS)
+			{
+				if(k.getNormal().isVertical()) continue; // only consider vertical planes
+				std::vector<bso::utilities::geometry::line_segment> linesk = k.getLines();
+				for(const auto t: QuadNS)
+				{
+					if(k.getNormal().isVertical()) continue; // only consider vertical planes
+					if(!k.isCoplanar(t[0], tol) || !k.isCoplanar(t[2], tol)) continue; // the ID 0 and 2 vertices are opposing vertices therefore if hold then quads are coPlanar
+					bool alreadyAdd = false;
+					std::vector<bso::utilities::geometry::line_segment> linest = t.getLines();
+					for(const auto l1: linest)
+					{
+						for(const auto l2: linesk)
+						{
+							if(l1.intersectsWith(l2, tol))
+							{
+								bool doubleInsertQ1 = false;
+								for (const auto& m : toughingSQuads)
+								{// check if quad k or t already exist in toughingSQuads
+									if (k.isSameAs(m, tol))
+									{
+										doubleInsertQ1 = true;
+									}
+								}
+								if(!doubleInsertQ1)
+								{//if agree, then add to toughingSQuads
+									toughingSQuads.push_back(k);
+									allLevels.push_back(k[0].z());
+									allLevelsS.push_back(allLevels.back());
+									allLevels.push_back(k[2].z());
+									allLevelsS.push_back(allLevels.back());
+
+									alreadyAdd =  true;
+								}
+								bool doubleInsertQ2 = false;
+								for (const auto& m : toughingNSQuads)
+								{// check if quad k or t already exist in toughingNSQuads
+									if (t.isSameAs(m, tol))
+									{
+										doubleInsertQ2 = true;
+									}
+								}
+								if(!doubleInsertQ2)
+								{//if agree, then add to toughingNSQuads
+									toughingNSQuads.push_back(t);
+									allLevels.push_back(t[0].z());
+									allLevelsSN.push_back(allLevels.back());
+									allLevels.push_back(t[2].z());
+									allLevelsSN.push_back(allLevels.back());
+									alreadyAdd =  true;
+								}
+								if(alreadyAdd) break;
+							}
+						}
+						if(alreadyAdd) break;
+					}
+				}
+			}
+		}
+	}
+
+	// Sort vector, bring all duplicates to end of vector plus get cut off point, then erase duplicates from the end of vector allLevels:
+	sort(allLevels.begin(), allLevels.end()); 
+	auto it = unique(allLevels.begin(), allLevels.end()); 
+	allLevels.erase(it, allLevels.end()); 
+
+	// Sort vector, bring all duplicates to end of vector plus get cut off point, then erase duplicates from the end of vector allLevelsS:
+	sort(allLevelsS.begin(), allLevelsS.end()); 
+	auto itS = unique(allLevelsS.begin(), allLevelsS.end()); 
+	allLevelsS.erase(itS, allLevelsS.end()); 
+
+	// Sort vector, bring all duplicates to end of vector plus get cut off point, then erase duplicates from the end of vector allLevelsSN:
+	sort(allLevelsSN.begin(), allLevelsSN.end()); 
+	auto itSN = unique(allLevelsSN.begin(), allLevelsSN.end()); 
+	allLevelsSN.erase(itSN, allLevelsSN.end()); 
+
+	// Pick the smallest elevation of either selected or non-selected to determine to which elevation the fill area will be filled.
+	bool elevationFillSelected = true;
+	if(allLevelsS.back() > allLevelsSN.back()) elevationFillSelected = false;
+
+	std::cout << "toughingSQuads: " << std::endl;
+	for(const auto i: toughingSQuads) std::cout << i << std::endl;
+	std::cout << "toughingNSQuads: " << std::endl;
+	for(const auto i: toughingNSQuads) std::cout << i << std::endl;
+
+
+
+	// Find the lines for a polygon_non_convex of each elevation:
+	std::vector<std::vector<bso::utilities::geometry::line_segment>> polygons;
+	std::vector<std::vector<bso::utilities::geometry::line_segment>> polygonsS;
+	std::vector<std::vector<bso::utilities::geometry::line_segment>> polygonsSN;
+	polygons.resize(allLevels.size()-1);
+	polygonsS.resize(allLevels.size()-1);
+	polygonsSN.resize(allLevels.size()-1);
+
+	for(int i=0; i< toughingSQuads.size(); i++)
+	{
+		// Shift toughingSQuads to the position the selected spaces will be shifted to:
+		bso::utilities::geometry::vertex v1 = (toughingSQuads[i])[0] + n * shiftAmount;
+		bso::utilities::geometry::vertex v2 = (toughingSQuads[i])[1] + n * shiftAmount;
+		bso::utilities::geometry::vertex v3 = (toughingSQuads[i])[2] + n * shiftAmount;
+		bso::utilities::geometry::vertex v4 = (toughingSQuads[i])[3] + n * shiftAmount;
+		
+		toughingSQuads[i] = {v1, v2, v3, v4};
+
+		std::vector<bso::utilities::geometry::line_segment> lines = toughingSQuads[i].getLines();
+		for(int j=0; j<allLevels.size()-1; j++)
+		{
+			if(v1.z() >= allLevels[j] && v1.z() < allLevels[j+1])
+			{
+				polygons[j].push_back(lines[0]);
+				polygonsS[j].push_back(lines[0]);
+			}
+		}
+	}
+	for(int i=0; i< toughingNSQuads.size(); i++)
+	{
+		std::vector<bso::utilities::geometry::line_segment> lines = toughingNSQuads[i].getLines();
+		for(int j=0; j<allLevels.size()-1; j++)
+		{
+			if((toughingNSQuads[i][0]).z() >= allLevels[j] && (toughingNSQuads[i][0]).z() < allLevels[j+1])
+			{
+				polygons[j].push_back(lines[0]);
+				polygonsSN[j].push_back(lines[0]);
+			}
+		}
+	}
+
+	std::cout << "\n polygons: " << std::endl;
+	int count = 0;
+	for(const auto i: polygons)
+	{
+		std::cout << "elevation " << count << std::endl;
+		for(const auto j: i) std::cout << j << std::endl;
+		count ++;
+	} 
+
+	std::cout << "\n polygonsS: " << std::endl;
+	count = 0;
+	for(const auto i: polygonsS)
+	{
+		std::cout << "elevation " << count << std::endl;
+		for(const auto j: i) std::cout << j << std::endl;
+		count ++;
+	} 
+
+	std::cout << "\n polygonsSN: " << std::endl;
+	count = 0;
+	for(const auto i: polygonsSN)
+	{
+		std::cout << "elevation " << count << std::endl;
+		for(const auto j: i) std::cout << j << std::endl;
+		count ++;
+	} 
+
+
+	
+
+	std::vector<std::vector<bso::utilities::geometry::vertex>> polygonsV;
+	std::vector<std::vector<bso::utilities::geometry::vertex>> polygonsSV;
+	std::vector<std::vector<bso::utilities::geometry::vertex>> polygonsSNV;
+	polygons.resize(allLevels.size()-1);
+	polygonsS.resize(allLevels.size()-1);
+	polygonsSN.resize(allLevels.size()-1);
+	for(auto linesAtLevel: polygonsS)
+	{
+		if(linesAtLevel.size() <= 1) continue;
+		bool reverse = false;
+		bool done = false;
+		int i=0;
+		int condition = linesAtLevel.size();
+		int vID = 1;
+		while(!done)
+		{	
+			bool anyConnected = false;
+			// find nex lineAtLevel which is connected
+			for(int j=i+1; j < linesAtLevel.size()-1; j++)
+			{
+				if(linesAtLevel[i][vID] == linesAtLevel[j][1])
+				{
+					bso::utilities::geometry::line_segment temp;
+					temp = linesAtLevel[i+1];
+					linesAtLevel[i+1] = {linesAtLevel[j][1],linesAtLevel[j][0]};
+					linesAtLevel[j] = temp;
+					anyConnected = true;
+					break;
+				} 
+				else if (linesAtLevel[i][vID] == linesAtLevel[j][0])
+				{
+					bso::utilities::geometry::line_segment temp;
+					temp = linesAtLevel[i+1];
+					linesAtLevel[i+1] = linesAtLevel[j];
+					linesAtLevel[j] = temp;
+					anyConnected = true;
+					break;
+				}
+			}
+			if(!anyConnected)
+			{
+				if(vID = 1)
+				{
+					// shift the content of the vector to the back of the vector and reverse iteration order
+					int shift = condition-1 - i;
+					std::vector<bso::utilities::geometry::line_segment> temp = linesAtLevel;
+					
+					int count = 0;
+					for(int s = shift; s==shift-1; s++)
+					{
+						linesAtLevel[s]= temp[count];
+						count ++;
+						if(shift == linesAtLevel.size()-1) {shift = 0;}
+						if(s == linesAtLevel.size()-1) {s=0;}
+					}
+					
+					vID = 0;
+					i = shift;
+					reverse = true;
+				}
+				else if(vID = 0)
+				{
+					// start new line
+					done = true;
+				}
+
+			}
+			if(i >= linesAtLevel.size()) {done = true;}
+			else if(i < 0) {done = true;}
+			else if(!reverse) {i++;}
+			else {i--;}
+		}
+	}
+
+	for(auto& linesAtLevel: polygonsSN)
+	{
+		if(linesAtLevel.size() <= 1) continue;
+		bool reverse = false;
+		bool done = false;
+		int i=0;
+		int condition = linesAtLevel.size();
+		int vID = 1;
+		while(!done)
+		{	
+			bool anyConnected = false;
+			// find nex lineAtLevel which is connected
+			for(int j=i+1; j < linesAtLevel.size()-1; j++)
+			{
+				if(linesAtLevel[i][vID] == linesAtLevel[j][1])
+				{
+					bso::utilities::geometry::line_segment temp;
+					temp = linesAtLevel[i+1];
+					linesAtLevel[i+1] = {linesAtLevel[j][1],linesAtLevel[j][0]};
+					linesAtLevel[j] = temp;
+					anyConnected = true;
+					break;
+				} 
+				else if (linesAtLevel[i][vID] == linesAtLevel[j][0])
+				{
+					bso::utilities::geometry::line_segment temp;
+					temp = linesAtLevel[i+1];
+					linesAtLevel[i+1] = linesAtLevel[j];
+					linesAtLevel[j] = temp;
+					anyConnected = true;
+					break;
+				}
+			}
+			if(!anyConnected)
+			{
+				if(vID == 1)
+				{
+					// shift the content of the vector to the back of the vector and reverse iteration order
+					int shift = condition-1 - i;
+					std::vector<bso::utilities::geometry::line_segment> temp = linesAtLevel;
+					
+					int count = 0;
+					for(int s = shift; s==shift-1; s++)
+					{
+						linesAtLevel[s]= temp[count];
+						count ++;
+						if(shift == linesAtLevel.size()-1) {shift = 0;}
+						if(s == linesAtLevel.size()-1) {s=0;}
+					}
+					
+					vID = 0;
+					i = shift;
+					reverse = true;
+				}
+				else if(vID == 0)
+				{
+					// should start new line in future when surfaces are not continues
+					done = true;
+				}
+
+			}
+			if(i >= linesAtLevel.size()) {done = true;}
+			else if(i < 0) {done = true;}
+			else if(!reverse) {i++;}
+			else {i--;}
+		}
+	}
+
+	
+
+
+
 	// Shift spaces
 	for (auto& i : selection)
 	{
@@ -899,172 +1217,14 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		i->setPVertex(pVert);
 	}
 
-	// get outer bounds of selected and nonSelected
-	std::vector <utilities::geometry::line_segment> selectedLines = getLinesAtZ0(selection, tol);
-	std::vector <utilities::geometry::line_segment> notSelectedLines = getLinesAtZ0(notSelectedSpaces, tol);
-	std::vector <utilities::geometry::line_segment> outerBoundsSelected = bso::utilities::getOuterBounds2D(selectedLines, tol);
-	std::vector <utilities::geometry::line_segment> outerBoundsNotSelectedLines = bso::utilities::getOuterBounds2D(notSelectedLines, tol);
 
-	std::vector<std::vector<utilities::geometry::line_segment>> orderedLinesOfZone;
-	orderedLinesOfZone.push_back(outerBoundsSelected);
-	orderedLinesOfZone.push_back(outerBoundsNotSelectedLines);
-
-	// Perform a delaunayMultipleZoned
-	std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>> spacePair;
-	std::vector<double> allLevels;
-	std::vector <utilities::geometry::vertex> delaunayPoints;
-	std::vector <utilities::geometry::line_segment> delaunayLines;
-	getNOBSDAtGround(spacePair, allLevels, tol);
-	getDelaunayVariables(delaunayPoints, delaunayLines, spacePair);
-	std::vector<std::vector<utilities::geometry::triangle>> triangles = utilities::delaunayMultipleZoned(delaunayPoints, orderedLinesOfZone, delaunayLines, true, false, 0.001, true);
-	
-
-
-	std::vector <utilities::geometry::vertex> boundsVertexes;
-	for(const auto i: outerBoundsSelected){boundsVertexes.push_back(i[0]);	}
-	utilities::geometry::polygon_non_convex selectedBounds(boundsVertexes, tol);
-	std::vector<utilities::geometry::quadrilateral> quads;
-	selectedBounds.convertToQuads(quads);
-
-	std::cout << "the choosen quads are: " << std::endl;
-	for(const auto i: quads)
-	{
-		std::cout << i << std::endl;
-	}
-
-	
-	//std::vector<double> allLevels;
-	// getSpacesAtGround(partialSpaces, spacePair, allLevels, tol);
-
-	// for(int i=0; i < allLevels.size()-1; i++)
-	// {
-	// 	for(const auto j: quads)
-	// 	{
-	// 		// Define ID of new space
-	// 		int newID = mSpaces.back()->getID();
-	// 		newID++;
-
-	// 		// Define all vertices of new space
-	// 		std::vector <utilities::geometry::vertex*> pVert;
-	// 		utilities::geometry::vertex temp;
-	// 		for(const auto k: j)
-	// 		{
-	// 			pVert.push_back(new utilities::geometry::vertex);							
-	// 			temp(0) = k.x();
-	// 			temp(1) = k.y();
-	// 			temp(2) = allLevels[i];
-	// 			*pVert.back() = temp;		
-				
-	// 			pVert.push_back(new utilities::geometry::vertex);
-	// 			temp(2) = allLevels[i+1];
-	// 			*pVert.back() = temp;
-	// 		}
-
-	// 		// Add new space
-	// 		mSpaces.push_back(new ms_space());
-	// 		mSpaces.back()->setID(newID);
-	// 		mSpaces.back()->setPVertex(pVert);	
-	// 	}
-	// }
-
-
-	// Sort partialSpaces per elevation
-	//std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>> spacePair;
-	//std::vector<double> allLevels;
-	//getSpacesAtGround(partialSpaces, spacePair, allLevels, tol);
-	// std::vector <utilities::geometry::vertex> delaunayPoints;
-	// std::vector <utilities::geometry::line_segment> delaunayLines;
-	
-	// getDelaunayVariables(delaunayPoints, delaunayLines, spacePair);
-	// bso::utilities::delaunay(delaunayPoints, delaunayLines, 0.001, true);
-
-	// getNOBSDAtGround(spacePair, allLevels, tol);
-	// getDelaunayVariables(delaunayPoints, delaunayLines, spacePair);
-	// std::vector<bso::utilities::geometry::triangle> delaunayTri	= bso::utilities::delaunay(delaunayPoints, delaunayLines, 0.001, true);
-	
-
-	// Get lines closest to shiftPlane 
+	// Check if shifted spaces and non-shifted spaces really leaf a capp to fill
 
 
 
-	// // Find the two points of each partialSpaces which are closest to the shift plane
-	// // This identifies the space needed to be filled
-	// std::map<double, std::vector<bso::utilities::geometry::vertex>> poly_vertices;
-	// bso::utilities::geometry::line_segment planeLine = {location, {shiftDirection.y(),-shiftDirection.x(), shiftDirection.z()}}; //Note: flipping x and y and making one negative gives the perpendicular vector to the shiftDirection
-	// for (auto& i : partialSpaces)
-	// {
-	// 	bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
-	// 	bso::utilities::geometry::vertex VSmallestDist;
-	// 	bso::utilities::geometry::vertex VSecondSmallestDist;
-	// 	double smallestDist;
-	// 	double secondSmallestDist;
-		
-	// 	std::vector<bso::utilities::geometry::quadrilateral> mQuad = spaceGeom.getQuadrilateral();
-	// 	double height1 = mQuad[5][0].z();
-	// 	double height2 = mQuad[6][0].z();
-	// 	if(height1 > height2)
-	// 	{
-	// 		double temp = height2;
-	// 		height2 = height1;
-	// 		height1 = temp;
-	// 	}
-	// 	int count = 0;
-	// 	for(const auto j: mQuad[5])
-	// 	{
-	// 		bso::utilities::geometry::line_segment distanceLine ={j,planeLine.getPointClosestTo(j)};
-	// 		double distance = distanceLine.getLength();
-	// 		if(count == 0)
-	// 		{
-	// 			smallestDist = distance;
-	// 			VSmallestDist = j;
-	// 			count++;
-	// 			height1 = j.z();
-	// 		}
-	// 		else if (count == 1)
-	// 		{
-	// 			if(distance < smallestDist)
-	// 			{
-	// 				secondSmallestDist = smallestDist;
-	// 				VSecondSmallestDist = VSmallestDist;
-	// 				smallestDist = distance;
-	// 				VSmallestDist = j;
-	// 				count++;
-	// 			}
-	// 			else
-	// 			{
-	// 				secondSmallestDist = distance;
-	// 				VSecondSmallestDist = j;
-	// 			}
-	// 		}
-	// 		else if(distance < smallestDist)
-	// 		{
-	// 			smallestDist = distance;
-	// 			VSmallestDist = j;
-	// 		}
-	// 		else if(distance < secondSmallestDist)
-	// 		{
-	// 			secondSmallestDist = distance;
-	// 			VSecondSmallestDist = j;
-	// 		}
-	// 	}
 
-	// 	if (auto search = poly_vertices.find(height1); search != poly_vertices.end())
-	// 	{
-	// 		search->second.push_back(VSmallestDist);
-	// 		search->second.push_back(VSecondSmallestDist);
-	// 		std::cout << "Found " << search->first << ' ' << search->second << '\n';
-	// 	}
-    // 	else
-	// 	{
-	// 		std::cout << "Not found\n";
-	// 		poly_vertices[] = ;
 
-	// 	}
-       
-	// 	VSmallestDist
-	// 	VSecondSmallestDist
 
-	// }
 
 
 
