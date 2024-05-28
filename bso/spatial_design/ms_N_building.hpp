@@ -41,7 +41,7 @@ public:
 	void getSpacesAtGround(std::vector<bso::spatial_design::ms_space*> spacePtr, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, 
 		std::vector<double>& allLevels, const double mTol = 1e-3);
 	void getDelaunayVariables(std::vector <utilities::geometry::vertex>& delaunayPoints, std::vector <utilities::geometry::line_segment>& delaunayLines,
-		std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol = 1e-3);
+		std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol = 1e-3); // Note: this functions uses the results from getXAtGround to retrieve the needed geometry information from.
 	std::vector <bso::utilities::geometry::quadrilateral> getQuadAtZ0(const double mTol = 1e-3);
 	std::vector <bso::utilities::geometry::quadrilateral> getQuadAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol = 1e-3);
 	std::vector <bso::utilities::geometry::line_segment> getLinesAtZ0(const double mTol = 1e-3);

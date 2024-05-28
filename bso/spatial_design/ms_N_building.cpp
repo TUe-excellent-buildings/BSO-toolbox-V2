@@ -982,7 +982,6 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 	for(const auto i: toughingNSQuads) std::cout << i << std::endl;
 
 
-
 	// Find the lines for a polygon_non_convex of each elevation:
 	std::vector<std::vector<bso::utilities::geometry::line_segment>> polygons;
 	std::vector<std::vector<bso::utilities::geometry::line_segment>> polygonsS;
@@ -994,20 +993,29 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 	for(int i=0; i< toughingSQuads.size(); i++)
 	{
 		// Shift toughingSQuads to the position the selected spaces will be shifted to:
-		bso::utilities::geometry::vertex v1 = (toughingSQuads[i])[0] + n * shiftAmount;
-		bso::utilities::geometry::vertex v2 = (toughingSQuads[i])[1] + n * shiftAmount;
-		bso::utilities::geometry::vertex v3 = (toughingSQuads[i])[2] + n * shiftAmount;
-		bso::utilities::geometry::vertex v4 = (toughingSQuads[i])[3] + n * shiftAmount;
+		// bso::utilities::geometry::vertex v1 = (toughingSQuads[i])[0] + n * shiftAmount;
+		// bso::utilities::geometry::vertex v2 = (toughingSQuads[i])[1] + n * shiftAmount;
+		// bso::utilities::geometry::vertex v3 = (toughingSQuads[i])[2] + n * shiftAmount;
+		// bso::utilities::geometry::vertex v4 = (toughingSQuads[i])[3] + n * shiftAmount;
 		
-		toughingSQuads[i] = {v1, v2, v3, v4};
+		// toughingSQuads[i] = {v1, v2, v3, v4};
 
 		std::vector<bso::utilities::geometry::line_segment> lines = toughingSQuads[i].getLines();
+		// for(int j=0; j<allLevels.size()-1; j++)
+		// {
+		// 	if(v1.z() >= allLevels[j] && v1.z() < allLevels[j+1])
+		// 	{
+		// 		polygons[j].push_back(lines[0]);
+		// 		polygonsS[j].push_back(lines[0]);
+		// 	}
+		// }
+
 		for(int j=0; j<allLevels.size()-1; j++)
 		{
-			if(v1.z() >= allLevels[j] && v1.z() < allLevels[j+1])
+			if((toughingSQuads[i][0]).z() >= allLevels[j] && (toughingSQuads[i][0]).z() < allLevels[j+1])
 			{
 				polygons[j].push_back(lines[0]);
-				polygonsS[j].push_back(lines[0]);
+		 		polygonsS[j].push_back(lines[0]);
 			}
 		}
 	}
@@ -1051,16 +1059,62 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		count ++;
 	} 
 
-
+	// remove lines which have no duplicate at the other (either selected or nonselected) side
+	std::vector<std::vector<bso::utilities::geometry::line_segment>> selectedLines;
+	std::vector<std::vector<bso::utilities::geometry::line_segment>> nonSelectedLines;
+	selectedLines.resize(allLevels.size()-1);
+	nonSelectedLines.resize(allLevels.size()-1);
 	
+	std::vector<std::vector<bso::utilities::geometry::vertex>> allVertices;
+	allVertices.resize(allLevels.size()-1);
+	for(int i=0; i<polygons.size(); i++)
+	{
+		for(auto j: polygons[i])
+		{
+			allVertices[i].push_back(j[0]);
+			allVertices[i].push_back(j[1]);
+		}
+	}
+	for(int i=0; i<allLevels.size()-1; i++)
+	{
+		bso::utilities::splitLines(allVertices[i], polygonsS[i], tol);
+		bso::utilities::splitLines(allVertices[i], polygonsSN[i], tol);
 
-	std::vector<std::vector<bso::utilities::geometry::vertex>> polygonsV;
-	std::vector<std::vector<bso::utilities::geometry::vertex>> polygonsSV;
-	std::vector<std::vector<bso::utilities::geometry::vertex>> polygonsSNV;
-	polygons.resize(allLevels.size()-1);
-	polygonsS.resize(allLevels.size()-1);
-	polygonsSN.resize(allLevels.size()-1);
-	for(auto linesAtLevel: polygonsS)
+		for(int j=0; j< polygonsS[i].size(); j++)
+		{
+			int index=0;
+			while(index < polygonsSN[i].size())
+			{
+				if((polygonsS[i][j]).isSameAs(polygonsSN[i][index], tol)) break;
+				index++;
+			}
+			if(index < polygonsSN[i].size())
+			{ // Duplicate of line found so keep
+				// shift line since spaces will be shifted to this position:
+				bso::utilities::geometry::vertex v1 = (polygonsS[i][j])[0] + n * shiftAmount;
+				bso::utilities::geometry::vertex v2 = (polygonsS[i][j])[1] + n * shiftAmount;
+
+				bso::utilities::geometry::line_segment l = {v1,v2};
+				selectedLines[i].push_back(l);
+			}
+		}
+		for(int j=0; j< polygonsSN[i].size(); j++)
+		{
+			int index=0;
+			while(index < polygonsS[i].size())
+			{
+				if((polygonsSN[i][j]).isSameAs(polygonsS[i][index], tol)) break;
+				index++;
+			}
+			if(index < polygonsS[i].size())
+			{ // Duplicate of line found so keep
+				nonSelectedLines[i].push_back((polygonsSN[i][j]));
+			}
+		}
+	}
+	
+	// sort lines to form a chain of lines
+	for(auto linesAtLevel: selectedLines)
 	{
 		if(linesAtLevel.size() <= 1) continue;
 		bool reverse = false;
@@ -1072,9 +1126,14 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		{	
 			bool anyConnected = false;
 			// find nex lineAtLevel which is connected
-			for(int j=i+1; j < linesAtLevel.size()-1; j++)
+			if(i+1 == linesAtLevel.size())
 			{
-				if(linesAtLevel[i][vID] == linesAtLevel[j][1])
+				anyConnected = true;
+				break;
+			}
+			for(int j=i+1; j < linesAtLevel.size(); j++)
+			{
+				if(linesAtLevel[i][vID].isSameAs(linesAtLevel[j][1], tol))
 				{
 					bso::utilities::geometry::line_segment temp;
 					temp = linesAtLevel[i+1];
@@ -1083,12 +1142,15 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 					anyConnected = true;
 					break;
 				} 
-				else if (linesAtLevel[i][vID] == linesAtLevel[j][0])
+				else if (linesAtLevel[i][vID].isSameAs(linesAtLevel[j][0], tol))
 				{
-					bso::utilities::geometry::line_segment temp;
-					temp = linesAtLevel[i+1];
-					linesAtLevel[i+1] = linesAtLevel[j];
-					linesAtLevel[j] = temp;
+					if(j != i+1)
+					{
+						bso::utilities::geometry::line_segment temp;
+						temp = linesAtLevel[i+1];
+						linesAtLevel[i+1] = linesAtLevel[j];
+						linesAtLevel[j] = temp;
+					}
 					anyConnected = true;
 					break;
 				}
@@ -1101,13 +1163,12 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 					int shift = condition-1 - i;
 					std::vector<bso::utilities::geometry::line_segment> temp = linesAtLevel;
 					
-					int count = 0;
-					for(int s = shift; s==shift-1; s++)
+					int s = shift;
+					for(int count = 0; count < linesAtLevel.size(); count++)
 					{
 						linesAtLevel[s]= temp[count];
-						count ++;
-						if(shift == linesAtLevel.size()-1) {shift = 0;}
-						if(s == linesAtLevel.size()-1) {s=0;}
+						s ++;
+						if(s == linesAtLevel.size()) {s = 0;}
 					}
 					
 					vID = 0;
@@ -1128,7 +1189,18 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		}
 	}
 
-	for(auto& linesAtLevel: polygonsSN)
+	count = 0;
+	for(auto linesAtLevel: selectedLines)
+	{
+		std::cout << "ordered selected lines at elevation sorted: " << count << std::endl;
+		for(const auto j: linesAtLevel)
+		{
+			std::cout << j << std::endl;
+		}
+		count++;
+	}
+	
+	for(auto& linesAtLevel: nonSelectedLines)
 	{
 		if(linesAtLevel.size() <= 1) continue;
 		bool reverse = false;
@@ -1140,9 +1212,14 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		{	
 			bool anyConnected = false;
 			// find nex lineAtLevel which is connected
-			for(int j=i+1; j < linesAtLevel.size()-1; j++)
+			if(i+1 == linesAtLevel.size())
 			{
-				if(linesAtLevel[i][vID] == linesAtLevel[j][1])
+				anyConnected = true;
+				break;
+			}
+			for(int j=i+1; j < linesAtLevel.size(); j++)
+			{
+				if(linesAtLevel[i][vID].isSameAs(linesAtLevel[j][1], tol))
 				{
 					bso::utilities::geometry::line_segment temp;
 					temp = linesAtLevel[i+1];
@@ -1151,12 +1228,15 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 					anyConnected = true;
 					break;
 				} 
-				else if (linesAtLevel[i][vID] == linesAtLevel[j][0])
+				else if (linesAtLevel[i][vID].isSameAs(linesAtLevel[j][0], tol))
 				{
-					bso::utilities::geometry::line_segment temp;
-					temp = linesAtLevel[i+1];
-					linesAtLevel[i+1] = linesAtLevel[j];
-					linesAtLevel[j] = temp;
+					if(j != i+1)
+					{
+						bso::utilities::geometry::line_segment temp;
+						temp = linesAtLevel[i+1];
+						linesAtLevel[i+1] = linesAtLevel[j];
+						linesAtLevel[j] = temp;
+					}
 					anyConnected = true;
 					break;
 				}
@@ -1169,13 +1249,12 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 					int shift = condition-1 - i;
 					std::vector<bso::utilities::geometry::line_segment> temp = linesAtLevel;
 					
-					int count = 0;
-					for(int s = shift; s==shift-1; s++)
+					int s = shift;
+					for(int count = 0; count < linesAtLevel.size(); count++)
 					{
 						linesAtLevel[s]= temp[count];
-						count ++;
-						if(shift == linesAtLevel.size()-1) {shift = 0;}
-						if(s == linesAtLevel.size()-1) {s=0;}
+						s ++;
+						if(s == linesAtLevel.size()) {s = 0;}
 					}
 					
 					vID = 0;
@@ -1196,9 +1275,98 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		}
 	}
 
-	
+	count = 0;
+	for(auto linesAtLevel: nonSelectedLines)
+	{
+		std::cout << "ordered non Selected lines at elevation sorted: " << count << std::endl;
+		for(const auto j: linesAtLevel)
+		{
+			std::cout << j << std::endl;
+		}
+		count++;
+	}
 
 
+	// get vertices of lines to form a polygon-non-convex
+	std::vector<std::vector<bso::utilities::geometry::vertex>> polygonsV;
+	polygonsV.resize(allLevels.size()-1);	
+	for(int i=0; i<polygonsV.size(); i++)
+	{
+		if(selectedLines[i].size() < 1 || nonSelectedLines[i].size() < 1)
+		{
+			continue; // need points on both sides to be a minumum of two
+		} 
+		
+		polygonsV[i].push_back(selectedLines[i][0][0]); 
+		for(int j=0; j<selectedLines[i].size(); j++)
+		{
+			polygonsV[i].push_back(selectedLines[i][j][1]);
+		}
+		
+		// Check if line from each side intersect and if the lines should be inserted in reverse order
+		bso::utilities::geometry::line_segment l1 = {{polygonsV[i].back()}, {nonSelectedLines[i][0][0]}};
+		bso::utilities::geometry::line_segment l2 = {{polygonsV[i][0]}, {(nonSelectedLines[i].back())[1]}};
+		if(l1.intersectsWith(l2, tol))
+		{
+			polygonsV[i].push_back((nonSelectedLines[i].back())[1]); 
+			for(int j=nonSelectedLines[i].size()-1; j<0; j--)
+			{
+				polygonsV[i].push_back(nonSelectedLines[i][j][0]);
+			}
+		}
+		else 
+		{
+			polygonsV[i].push_back(nonSelectedLines[i][0][0]); 
+			for(int j=0; j<nonSelectedLines[i].size(); j++)
+			{
+				polygonsV[i].push_back(nonSelectedLines[i][j][1]);
+			}
+		}
+		
+	}
+
+	// make the polygon_non_convex and make quads out of them per elevation
+	std::vector<std::vector<bso::utilities::geometry::quadrilateral>> quadsPerLevel;
+	//quadsPerLevel.resize(allLevels.size()-1);
+	for(int i=0; i<polygonsV.size(); i++)
+	{
+		if(polygonsV[i].size() == 0) continue; // needs to be defined different in the future
+		bso::utilities::geometry::polygon_non_convex polyTemp(polygonsV[i]);
+		std::cout << "polyTemp is: " << polyTemp << std::endl;
+
+		std::vector<bso::utilities::geometry::quadrilateral> quadsTemp;
+		polyTemp.convertToQuads(quadsTemp);
+		quadsPerLevel.push_back(quadsTemp);
+	}
+
+	// Define new spaces in the cap formed by the shifting of the selected spaces
+	for(int i=0; i<quadsPerLevel.size(); i++)
+	{
+		// elevation height
+		bso::utilities::geometry::vector lowVector = {0,0,allLevels[i]};
+		bso::utilities::geometry::vector hightVector = {0,0,allLevels[i+1]};
+		
+		for(const auto j: quadsPerLevel[i])
+		{
+			// Define vertices of new space
+			std::vector <utilities::geometry::vertex*> vertexes;
+			for(const auto v: j) 
+			{
+				vertexes.push_back(new utilities::geometry::vertex);
+				*(vertexes.back()) = v + lowVector;
+
+				vertexes.push_back(new utilities::geometry::vertex);
+				*(vertexes.back()) = v + hightVector;
+			}
+
+			// Define new space
+			int newID = mSpaces.back()->getID();
+			newID++;
+			mSpaces.push_back(new ms_space());
+			mSpaces.back()->setID(newID);
+			mSpaces.back()->setPVertex(vertexes);
+		}
+	}
 
 	// Shift spaces
 	for (auto& i : selection)
@@ -1217,14 +1385,8 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		i->setPVertex(pVert);
 	}
 
-
 	// Check if shifted spaces and non-shifted spaces really leaf a capp to fill
-
-
-
-
-
-
+	
 
 
 

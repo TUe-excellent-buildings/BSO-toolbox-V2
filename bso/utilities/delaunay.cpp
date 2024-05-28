@@ -753,17 +753,19 @@ namespace bso { namespace utilities {
 			if(!found)
 			{				
 				// Check for not checked Triangles
-				for(int j=indexTri+1; j!=indexTri; j++)
+				int j = indexTri;
+				do
 				{
+					j++;
 					if(j >= zTrianglesChecked.size()){j = 0;}
-					else if(zTrianglesChecked[j] == false) // Triangle not yet in a quad
+					if(zTrianglesChecked[j] == false) // Triangle not yet in a quad
 					{
 						// define new indexTri
 						indexTri = j;
 						found = true;
 						break;
 					}
-				}
+				} while (j!=indexTri);
 				if(!found)
 				{
 					allChecked = true; //This wil terminate the while loop
@@ -772,9 +774,7 @@ namespace bso { namespace utilities {
 		}
 
 		
-
 		// Make quads out of remaining triComboNotFound
-
 		std::cout << "the choosen quads are: " << std::endl;
 		for(const auto i: quadsChoosen)
 		{
