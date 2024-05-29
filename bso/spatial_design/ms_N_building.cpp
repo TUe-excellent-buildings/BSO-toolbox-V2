@@ -992,24 +992,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 
 	for(int i=0; i< toughingSQuads.size(); i++)
 	{
-		// Shift toughingSQuads to the position the selected spaces will be shifted to:
-		// bso::utilities::geometry::vertex v1 = (toughingSQuads[i])[0] + n * shiftAmount;
-		// bso::utilities::geometry::vertex v2 = (toughingSQuads[i])[1] + n * shiftAmount;
-		// bso::utilities::geometry::vertex v3 = (toughingSQuads[i])[2] + n * shiftAmount;
-		// bso::utilities::geometry::vertex v4 = (toughingSQuads[i])[3] + n * shiftAmount;
-		
-		// toughingSQuads[i] = {v1, v2, v3, v4};
-
 		std::vector<bso::utilities::geometry::line_segment> lines = toughingSQuads[i].getLines();
-		// for(int j=0; j<allLevels.size()-1; j++)
-		// {
-		// 	if(v1.z() >= allLevels[j] && v1.z() < allLevels[j+1])
-		// 	{
-		// 		polygons[j].push_back(lines[0]);
-		// 		polygonsS[j].push_back(lines[0]);
-		// 	}
-		// }
-
 		for(int j=0; j<allLevels.size()-1; j++)
 		{
 			if((toughingSQuads[i][0]).z() >= allLevels[j] && (toughingSQuads[i][0]).z() < allLevels[j+1])
@@ -1058,6 +1041,24 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		for(const auto j: i) std::cout << j << std::endl;
 		count ++;
 	} 
+
+	// Shift spaces
+	for (auto& i : selection)
+	{
+		// Define the new pVertex vector of considered space
+		bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+		std::vector <utilities::geometry::vertex*> pVert;
+		utilities::geometry::vertex temp;
+		for(const auto j: spaceGeom.getVertices())
+		{
+			pVert.push_back(new utilities::geometry::vertex);							
+			temp = j + n * shiftAmount;
+			*pVert.back() = temp;
+		}
+		// Replace the pVertex of the considered space
+		i->setPVertex(pVert);
+	}
+
 
 	// remove lines which have no duplicate at the other (either selected or nonSelected) side
 	std::vector<std::vector<bso::utilities::geometry::line_segment>> selectedLines;
@@ -1309,7 +1310,8 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		if(l1.intersectsWith(l2, tol))
 		{
 			polygonsV[i].push_back((nonSelectedLines[i].back())[1]); 
-			for(int j=nonSelectedLines[i].size()-1; j<0; j--)
+
+			for(int j=nonSelectedLines[i].size()-1; j>=0; j--)
 			{
 				polygonsV[i].push_back(nonSelectedLines[i][j][0]);
 			}
@@ -1368,22 +1370,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		}
 	}
 
-	// Shift spaces
-	for (auto& i : selection)
-	{
-		// Define the new pVertex vector of considered space
-		bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
-		std::vector <utilities::geometry::vertex*> pVert;
-		utilities::geometry::vertex temp;
-		for(const auto j: spaceGeom.getVertices())
-		{
-			pVert.push_back(new utilities::geometry::vertex);							
-			temp = j + n * shiftAmount;
-			*pVert.back() = temp;
-		}
-		// Replace the pVertex of the considered space
-		i->setPVertex(pVert);
-	}
+	
 
 	// Check if shifted spaces and non-shifted spaces really leaf a capp to fill
 	
