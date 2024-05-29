@@ -1059,7 +1059,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		count ++;
 	} 
 
-	// remove lines which have no duplicate at the other (either selected or nonselected) side
+	// remove lines which have no duplicate at the other (either selected or nonSelected) side
 	std::vector<std::vector<bso::utilities::geometry::line_segment>> selectedLines;
 	std::vector<std::vector<bso::utilities::geometry::line_segment>> nonSelectedLines;
 	selectedLines.resize(allLevels.size()-1);
