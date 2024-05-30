@@ -13,7 +13,7 @@
 #include <sstream>
 
 std::vector<std::string> VIS_OPTIONS = {"ms","msc","rc","cb","tr","tp","tb", "sd","fe","bp"};
-std::vector<std::string> OUT_OPTIONS = {"PN_file", "result_file", "verbose", "ms_files"};
+std::vector<std::string> OUT_OPTIONS = {"result_file", "verbose", "ms_files"};
 
 int end, begin = 0;
 template<class T>
@@ -31,15 +31,13 @@ using namespace bso;
 
 int main(int argc, char* argv[])
 {
-	std::string inputFile = "design_301";
-	std::string designName = "design_301";
+	std::string inputFile = "";
+	std::string designName = "";
 	std::string colorinputFile = "";
 	std::string colourFileName = "";
 	std::string modification = "";
 	std::vector<std::string> visualizations;
-	visualizations.push_back("");
 	bool result_file = false;
-	bool PN_file = true;
 	bool ms_files = false;
 	bool verbose = false;
 	bool bounded = false;
@@ -48,13 +46,13 @@ int main(int argc, char* argv[])
 	// Handle the given input arguments
 	std::vector<std::string> args(argv+1, argv+argc);
 	auto arg = args.begin();
-	// if (arg == args.end())
-	// {
-	// 	std::stringstream errorMessage;
-	// 	errorMessage << "\nError, expected arguments, received nothing.\n"
-	// 							 << "use -h or --help for help." << std::endl;
-	// 	throw std::invalid_argument(errorMessage.str());
-	// }
+	if (arg == args.end())
+	{
+		std::stringstream errorMessage;
+		errorMessage << "\nError, expected arguments, received nothing.\n"
+								 << "use -h or --help for help." << std::endl;
+		throw std::invalid_argument(errorMessage.str());
+	}
 	while (arg != args.end())
 	{
 		if (*arg == "-h" || *arg == "--help")
@@ -76,7 +74,6 @@ int main(int argc, char* argv[])
 			std::cout << "-v\t" << "or --visualization, to specify which models are\n"
 								<<   "\t" << "visualized: \'ms\' for \'Movable Sizable\', \n"
 								<<   "\t" << "\'msc\' for \'Movable Sizable\' view with alternate coloring according to input file, \n"
-								<<   "\t" << "(note: for this to be able to be visualized -r or should be included in the run statement)\', \n"
 								<<   "\t" << "\'rc\' for \'conformal model with Rectangles for R insertion method\', \n"
 								<<   "\t" << "\'cb\' for \'conformal model with Cuboids for R insertion method\', \n"
 								<<   "\t" << "\'tr\' for \'conformal model with Triangles and Rectangles for N insertion method\', \n"
@@ -87,7 +84,7 @@ int main(int argc, char* argv[])
 								<<   "\t" << "\'fe\' for \'Finite Elements of the structural design model\',\n"
 								<<   "\t" << "and \'bp\' for the \'Building Physics model\'.\n"
 								<<   "\t" << "More than one can be specified.\n"
-								<<   "\t" << "Note: for any visualization, the model should be generated. So -r needs to be specified.\n";
+								<<   "\t" << "Note: for any visualization (apart from 'msc' and 'tb'), the model should be generated with the command -r needs to be specified.\n";
 			std::cout << "-b\t" << "or --bounded, to obtain a model with boundaries.\n";
 			std::cout << "-r\t" << "or --run, to run the sd and bps simulation of the building spatial design.\n";
 			std::cout << "\n\n" << "Press ENTER to continue..." << std::endl;
