@@ -13,8 +13,10 @@ namespace bso { namespace utilities {
 	int trim_and_cast_int(std::string); // trims all white space at the end and beginning of a string, and the converts it to an integer
 	unsigned int trim_and_cast_uint(std::string s);  // trims all white space at the end and beginning of a string, and the converts it to an unsigned integer
 	double trim_and_cast_double(std::string); // trims all white space at the end and beginning of a string, and the converts it to a double
+	float trim_and_cast_float(std::string); // trims all white space at the end and beginning of a string, and the converts it to a float
 	unsigned long trim_and_cast_ulong(std::string); // trims all white space at the end and beginning of a string, and the converts it to an unsigned long
-	char trim_and_cast_char(std::string); // trims all white space at the end and beginning of a string, and the converts it to an integer
+	char trim_and_cast_char(std::string); // trims all white space at the end and beginning of a string, and the converts it to an chat
+	bool trim_and_cast_bool(std::string); // trims all white space at the end and beginning of a string, and the converts it to an bool
 
 } // namespace utilities
 } // namespace bso

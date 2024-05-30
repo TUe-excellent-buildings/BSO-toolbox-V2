@@ -79,6 +79,22 @@ namespace bso { namespace utilities {
 		}
 	} // trim_and_cast_double()
 
+	float trim_and_cast_float(std::string s) // trims all white space at the end and beginning of a string, and the converts it to a double
+	{
+		try
+		{
+			boost::algorithm::trim(s); // trims white space at beginning and end of a string
+			return boost::lexical_cast<float>(s); // casts a string as a float
+		}
+		catch(std::exception& e)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Failed to trim and cast the following string to a float: " << s << std::endl
+									 << "(bso/trim_and_cast)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+	} // trim_and_cast_float()
+
 	char trim_and_cast_char(std::string s) // trims all white space at the end and beginning of a string, and the converts it to an integer
 	{
 		try
@@ -88,11 +104,43 @@ namespace bso { namespace utilities {
 			{
 				std::stringstream errorMessage;
 				errorMessage << "Cannot trim and cast a string with a size larger than 1 to a char."
-										 << "Occured for the following string: " << s << std::endl
+										 << "Occurred for the following string: " << s << std::endl
 										 << "(bso/trim_and_cast)." << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 			}
 			return s.at(0); // casts a string as a char
+		}
+		catch(std::exception& e)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Failed to trim and cast the following string to a character: " << s << std::endl
+									 << "(bso/trim_and_cast)."
+									 << "Received the following error: " << std::endl << e.what() << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+	} // trim_and_cast_char()
+
+	bool trim_and_cast_bool(std::string s) // trims all white space at the end and beginning of a string, and the converts it to an integer
+	{
+		try
+		{
+			boost::algorithm::trim(s); // trims white space at beginning and end of a string
+			if (s == "true")
+			{
+				return true;
+			}
+			else if (s == "false")
+			{
+				return false;
+			}
+			else
+			{
+				std::stringstream errorMessage;
+				errorMessage << "Cannot trim and cast a string which does not contain the text 'true' or 'false' to a bool."
+										 << "Occurred for the following string: " << s << std::endl
+										 << "(bso/trim_and_cast)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+			}
 		}
 		catch(std::exception& e)
 		{

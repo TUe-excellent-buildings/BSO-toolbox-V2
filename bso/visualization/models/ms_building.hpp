@@ -6,6 +6,9 @@
 #include <bso/spatial_design/ms_building.hpp>
 #include <bso/spatial_design/ms_N_building.hpp>
 
+#include <boost/algorithm/string.hpp>
+#include <utility>
+
 #ifdef SD_MODEL_HPP
 #include <bso/structural_design/sd_model.hpp>
 #endif // SD_MODEL_HPP
@@ -27,7 +30,9 @@ private:
 	std::list<label*>   labels;
 
 	polygon_props  pprops;
-	polygon_props  ppropsSurfaceType; // NEW
+	polygon_props  ppropsSurfaceType; 
+	polygon_props  ppropsDefault; 
+	std::vector<std::pair<int, polygon_props>> spaceIDProps;
 
 	line_props     lprops;
 	label_props    lbprops;
@@ -36,7 +41,26 @@ public:
 	MS_Model(const spatial_design::ms_building& ms, const std::string& type = "spaces",
 					 const std::string& title = "ms_building", const double& linewidth = 1.0);
 	MS_Model(const spatial_design::ms_N_building& msN, const std::string& type = "spaces",
-					 const std::string& title = "ms_building", const double& linewidth = 1.0);
+					 const std::string& title = "ms_N_building", const double& linewidth = 1.0);
+
+	/*
+	The following constructor contain the abilitiy for defining diferent colors per space defined in a file 
+	(first input contains the file name for this imput)
+	A discribtion of how this file should look like is shown bellow:
+	
+	# space with ID zerro is considered the standart collor and will overrule the other standarts defined.
+	# this standart color will be used for all spaces without a defined color.
+	# To define a color of a space insert the ID number of the space followed by four times the four rgba value's.
+	# See link: https://www.w3schools.com/css/css_colors_rgb.asp for explenation rgba value's.
+	# In the BSO the rgba value's are defined as a ratio. Where 1.0 equals the maximum value.
+
+	#	space_ID	ambient(rgba)		diffuse(rgba)		specular(rgba)	emission(rgba)	shininess(float value)	translucent(bool)		twoSided(bool)
+	0,	0.1,0.5,0.1,0.3,	0.2,1.0,0.2,0.3,	0.2,1.0,0.2,0.3,	0.0,0.0,0.0,0.0,	60.0,	true,	true
+	1,	0.1,0.5,0.1,0.3,	0.2,1.0,0.2,0.3,	0.2,1.0,0.2,0.3,	0.0,0.0,0.0,0.0,	60.0,	true,	true
+	2,	1.0,0.1,0.1,1.0,	1.0,0.2,0.2,1.0,	1.0,0.2,0.2,1.0,	0.0,0.0,0.0,0.0,	60.0,	true,	true
+	*/
+	MS_Model(const std::string& fileName, const spatial_design::ms_N_building& msN, const std::string& type = "spaces",
+					 const std::string& title = "ms_N_building", const double& linewidth = 1.0);
 	~MS_Model();
 	
 	void render(const camera &cam) const;
@@ -137,7 +161,7 @@ MS_Model::MS_Model(const spatial_design::ms_building& ms,
 	}
 
 	pbsp = new random_bsp(polygons);
-} //NEW
+} //
 
 MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 						const std::string& type /*= "spaces"*/, const std::string& title /*= "ms_building"*/,
@@ -232,7 +256,198 @@ MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 	}
 
 	pbsp = new random_bsp(polygons);
-} //NEW
+} //
+
+MS_Model::MS_Model(const std::string& fileName, const spatial_design::ms_N_building& msN, 
+						const std::string& type /*= "spaces"*/, const std::string& title /*= "ms_building"*/,
+						const double& linewidth /*= 1.0*/)
+{
+	std::ifstream input;
+	if (!fileName.empty()) input.open(fileName.c_str());
+	
+	if (fileName.empty() || !input.is_open())
+	{
+		std::stringstream errorMessage;
+		errorMessage << "Could not initialize a visualization of MS_N building spatial design with the following colour input file:" << std::endl
+								 << ((fileName.empty())? "no input file given" : fileName) << std::endl
+								 << "(bso/visualization/ms_building.hpp). " << std::endl;
+		throw std::invalid_argument(errorMessage.str());
+	}
+	
+	std::string line;
+
+	while (!input.eof()) // Parse the input file line by line
+	{
+		getline(input,line); // get next line from the file
+		try
+		{
+			boost::algorithm::trim(line); // remove white space from start and end of line (to see if it is an empty line, removes any incidental white space)
+			if (line == "") //skip empty lines (tokenizer does not like it)
+			{
+				continue; // continue to next line
+			}
+			else if(line.substr(0,1) == "#")
+			{
+				continue;
+			}
+			else
+			{
+				boost::char_separator<char> sep(","); // defines what separates tokens in a string
+				typedef boost::tokenizer< boost::char_separator<char> > t_tokenizer; // settings for the boost::tokenizer
+				t_tokenizer tokens(line, sep); // this is where the tokenized line will be stored
+				t_tokenizer::iterator token = tokens.begin(); // set iterator to first token
+				int number_of_tokens = std::distance( tokens.begin(), tokens.end()); // count the number of tokens int the line
+
+				try
+				{
+					int ID = utilities::trim_and_cast_int(*(token));
+					polygon_props temp;
+
+					if(number_of_tokens != 20)
+					{
+						std::stringstream errorMessage;
+						errorMessage << std::endl
+												<< "An invalid amount of input argument was encountered when trying to read the visualization settings" << std::endl
+												<< "When trying to parse the following input line: " << std::endl
+												<< line << std::endl
+												<< "The number_of_tokens are: " << number_of_tokens << std::endl
+												<< "(bso/visualizations/ms_building.hpp)" << std::endl;
+						throw std::invalid_argument(errorMessage.str());
+					}
+				
+					float f1, f2, f3, f4;
+
+					f1 = utilities::trim_and_cast_float(*(++token));
+					f2 = utilities::trim_and_cast_float(*(++token));
+					f3 = utilities::trim_and_cast_float(*(++token));
+					f4 = utilities::trim_and_cast_float(*(++token));
+					temp.ambient = rgba(f1, f2, f3, f4);
+				
+					f1 = utilities::trim_and_cast_float(*(++token));
+					f2 = utilities::trim_and_cast_float(*(++token));
+					f3 = utilities::trim_and_cast_float(*(++token));
+					f4 = utilities::trim_and_cast_float(*(++token));
+					temp.diffuse = rgba(f1, f2, f3, f4);							
+				
+					f1 = utilities::trim_and_cast_float(*(++token));
+					f2 = utilities::trim_and_cast_float(*(++token));
+					f3 = utilities::trim_and_cast_float(*(++token));
+					f4 = utilities::trim_and_cast_float(*(++token));
+					temp.specular = rgba(f1, f2, f3, f4);							
+				
+					f1 = utilities::trim_and_cast_float(*(++token));
+					f2 = utilities::trim_and_cast_float(*(++token));
+					f3 = utilities::trim_and_cast_float(*(++token));
+					f4 = utilities::trim_and_cast_float(*(++token));
+					temp.emission = rgba(f1, f2, f3, f4);							
+				
+					temp.shininess = utilities::trim_and_cast_float(*(++token));
+				
+					temp.translucent = utilities::trim_and_cast_bool(*(++token));
+				
+					temp.twosided = utilities::trim_and_cast_bool(*(++token));
+
+					// Add new to spaceIDProps
+					std::pair<int, polygon_props> pairTemp (ID, temp);
+					spaceIDProps.push_back(pairTemp);
+				}
+				catch (std::exception& e)
+				{
+					std::stringstream errorMessage;
+					errorMessage << std::endl
+											<< "Could not parse the following line to initialize an ms_space:" << std::endl
+											<< line << std::endl
+											<< "(bso/spatial_design/ms_space.cpp). Got the following error:" << std::endl
+											<< e.what() << std::endl;
+					throw std::invalid_argument(errorMessage.str());
+				}
+			}
+		}
+		catch(std::exception& e)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Encountered an error while parsing the following line of a visualization ms_N_building input file:" << std::endl
+									 << line << std::endl
+									 << "(bso/visualization/ms_building.hpp). Got the following error: " << std::endl
+									 << e.what() << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+	}
+	
+	
+	lprops.width = linewidth;
+	mTitle = title;
+	pprops.ambient = rgba(0.1f, 0.5f, 0.1f, 0.3f);
+	pprops.diffuse = rgba(0.2f, 1.0f, 0.2f, 0.3f);
+	pprops.specular = rgba(0.2f, 1.0f, 0.2f, 0.3f);
+	pprops.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	pprops.shininess = 60.0f;
+	pprops.translucent = true;
+	pprops.twosided = true;
+
+	for (const auto& i : msN)
+	{
+		namespace geom = bso::utilities::geometry;
+		geom::quad_hexahedron spaceGeometry = i->getGeometry();
+		std::stringstream centerLabel;
+
+		// define default:
+		bool defaultDefined = false;
+		for(const auto i: spaceIDProps)
+		{
+			if(i.first == 0)
+			{
+				ppropsDefault = i.second;
+				defaultDefined = true;
+				break;
+			}
+		}
+		
+		if (type == "spaces" || type == "" )
+		{
+			int spaceID = i->getID();
+			bool found = false;
+			int index = 0;
+			while(index < spaceIDProps.size())
+			{
+				if(spaceIDProps[index].first == spaceID)
+				{
+					found = true;
+					break;
+				}
+				index++;
+			}
+			if(found)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &(spaceIDProps[index].second), &lprops);
+			}
+			else if(defaultDefined)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsDefault, &lprops);
+			}
+			else
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &pprops, &lprops);
+			}
+			if (type == "") centerLabel.str(std::string());
+		}
+		else
+		{
+			std::stringstream errorMessage;
+			errorMessage << "\nError in visualizing ms_N_buildings.\n"
+									 << "Did not recognize type of visualization: " << type << "\n"
+									 << "Options are: spaces\n" 
+									 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
+			throw std::runtime_error(errorMessage.str());
+		}
+		
+		//Add the space indexes to the visualization models
+		this->addLabel(labels,&lbprops,centerLabel.str(),spaceGeometry.getCenter());
+	}
+
+	pbsp = new random_bsp(polygons);
+} //
+
 
 MS_Model::~MS_Model()
 {
