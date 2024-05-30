@@ -31,6 +31,7 @@ private:
 
 	polygon_props  pprops;
 	polygon_props  ppropsSurfaceType; 
+	polygon_props  ppropsDefault; 
 	std::vector<std::pair<int, polygon_props>> spaceIDProps;
 
 	line_props     lprops;
@@ -41,6 +42,23 @@ public:
 					 const std::string& title = "ms_building", const double& linewidth = 1.0);
 	MS_Model(const spatial_design::ms_N_building& msN, const std::string& type = "spaces",
 					 const std::string& title = "ms_N_building", const double& linewidth = 1.0);
+
+	/*
+	The following constructor contain the abilitiy for defining diferent colors per space defined in a file 
+	(first input contains the file name for this imput)
+	A discribtion of how this file should look like is shown bellow:
+	
+	# space with ID zerro is considered the standart collor and will overrule the other standarts defined.
+	# this standart color will be used for all spaces without a defined color.
+	# To define a color of a space insert the ID number of the space followed by four times the four rgba value's.
+	# See link: https://www.w3schools.com/css/css_colors_rgb.asp for explenation rgba value's.
+	# In the BSO the rgba value's are defined as a ratio. Where 1.0 equals the maximum value.
+
+	#	space_ID	ambient(rgba)		diffuse(rgba)		specular(rgba)	emission(rgba)	shininess(float value)	translucent(bool)		twoSided(bool)
+	0,	0.1,0.5,0.1,0.3,	0.2,1.0,0.2,0.3,	0.2,1.0,0.2,0.3,	0.0,0.0,0.0,0.0,	60.0,	true,	true
+	1,	0.1,0.5,0.1,0.3,	0.2,1.0,0.2,0.3,	0.2,1.0,0.2,0.3,	0.0,0.0,0.0,0.0,	60.0,	true,	true
+	2,	1.0,0.1,0.1,1.0,	1.0,0.2,0.2,1.0,	1.0,0.2,0.2,1.0,	0.0,0.0,0.0,0.0,	60.0,	true,	true
+	*/
 	MS_Model(const std::string& fileName, const spatial_design::ms_N_building& msN, const std::string& type = "spaces",
 					 const std::string& title = "ms_N_building", const double& linewidth = 1.0);
 	~MS_Model();
@@ -283,7 +301,6 @@ MS_Model::MS_Model(const std::string& fileName, const spatial_design::ms_N_build
 				try
 				{
 					int ID = utilities::trim_and_cast_int(*(token));
-					std::cout << ID << std::endl;
 					polygon_props temp;
 
 					if(number_of_tokens != 20)
@@ -304,38 +321,31 @@ MS_Model::MS_Model(const std::string& fileName, const spatial_design::ms_N_build
 					f2 = utilities::trim_and_cast_float(*(++token));
 					f3 = utilities::trim_and_cast_float(*(++token));
 					f4 = utilities::trim_and_cast_float(*(++token));
-					std::cout << f1 << " ; "<< f2 << " ; "<< f3 << " ; " << f4 << std::endl;
 					temp.ambient = rgba(f1, f2, f3, f4);
 				
 					f1 = utilities::trim_and_cast_float(*(++token));
 					f2 = utilities::trim_and_cast_float(*(++token));
 					f3 = utilities::trim_and_cast_float(*(++token));
 					f4 = utilities::trim_and_cast_float(*(++token));
-					std::cout << f1 << " ; "<< f2 << " ; "<< f3 << " ; " << f4 << std::endl;
 					temp.diffuse = rgba(f1, f2, f3, f4);							
 				
 					f1 = utilities::trim_and_cast_float(*(++token));
 					f2 = utilities::trim_and_cast_float(*(++token));
 					f3 = utilities::trim_and_cast_float(*(++token));
 					f4 = utilities::trim_and_cast_float(*(++token));
-					std::cout << f1 << " ; "<< f2 << " ; "<< f3 << " ; " << f4 << std::endl;
 					temp.specular = rgba(f1, f2, f3, f4);							
 				
 					f1 = utilities::trim_and_cast_float(*(++token));
 					f2 = utilities::trim_and_cast_float(*(++token));
 					f3 = utilities::trim_and_cast_float(*(++token));
 					f4 = utilities::trim_and_cast_float(*(++token));
-					std::cout << f1 << " ; "<< f2 << " ; "<< f3 << " ; " << f4 << std::endl;
 					temp.emission = rgba(f1, f2, f3, f4);							
 				
 					temp.shininess = utilities::trim_and_cast_float(*(++token));
-					std::cout << temp.shininess << std::endl;
 				
 					temp.translucent = utilities::trim_and_cast_bool(*(++token));
-					std::cout << temp.translucent << std::endl;
 				
 					temp.twosided = utilities::trim_and_cast_bool(*(++token));
-					std::cout << temp.translucent << std::endl;
 
 					// Add new to spaceIDProps
 					std::pair<int, polygon_props> pairTemp (ID, temp);
@@ -375,60 +385,45 @@ MS_Model::MS_Model(const std::string& fileName, const spatial_design::ms_N_build
 	pprops.translucent = true;
 	pprops.twosided = true;
 
-	ppropsSurfaceType.ambient = rgba(1.0f, 1.0f, 0.04f, 0.4f);
-	ppropsSurfaceType.diffuse = rgba(1.0f, 1.0f, 0.04f, 0.4f);
-	ppropsSurfaceType.specular = rgba(0.04f, 0.04f, 0.04f, 1.0f);
-	ppropsSurfaceType.emission = rgba(0.04f, 0.04f, 0.04f, 1.0f);
-	ppropsSurfaceType.shininess = 60.0;
-	ppropsSurfaceType.translucent = true;
-	ppropsSurfaceType.twosided = true;
-	
 	for (const auto& i : msN)
 	{
 		namespace geom = bso::utilities::geometry;
 		geom::quad_hexahedron spaceGeometry = i->getGeometry();
 		std::stringstream centerLabel;
-		centerLabel << i->getID();
 
 		// define default:
-		polygon_props SpaceColorDefault;
-		bool found = false;
+		bool defaultDefined = false;
 		for(const auto i: spaceIDProps)
 		{
 			if(i.first == 0)
 			{
-				SpaceColorDefault = i.second;
-				found = true;
+				ppropsDefault = i.second;
+				defaultDefined = true;
 				break;
 			}
-		}
-		if(!found)
-		{
-			std::stringstream errorMessage;
-			errorMessage << "\nError in visualizing ms_N_buildings.\n"
-									 << "Did not receive a default color for a space: " << type << "\n"
-									 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
-			throw std::runtime_error(errorMessage.str());
 		}
 		
 		if (type == "spaces" || type == "" )
 		{
-			polygon_props colorSpace;
 			int spaceID = i->getID();
-			found = false;
-			for(const auto i: spaceIDProps)
+			bool found = false;
+			int index = 0;
+			while(index < spaceIDProps.size())
 			{
-				if(i.first == spaceID)
+				if(spaceIDProps[index].first == spaceID)
 				{
-					colorSpace = i.second;
-					std::cout << SpaceColorDefault.shininess << std::endl;
 					found = true;
 					break;
 				}
+				index++;
 			}
 			if(found)
 			{
-				this->addPolyhedron(polygons, &spaceGeometry, &colorSpace, &lprops);
+				this->addPolyhedron(polygons, &spaceGeometry, &(spaceIDProps[index].second), &lprops);
+			}
+			else if(defaultDefined)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsDefault, &lprops);
 			}
 			else
 			{
@@ -446,7 +441,7 @@ MS_Model::MS_Model(const std::string& fileName, const spatial_design::ms_N_build
 			throw std::runtime_error(errorMessage.str());
 		}
 		
-		//Add the space indixes to the visualization models
+		//Add the space indexes to the visualization models
 		this->addLabel(labels,&lbprops,centerLabel.str(),spaceGeometry.getCenter());
 	}
 

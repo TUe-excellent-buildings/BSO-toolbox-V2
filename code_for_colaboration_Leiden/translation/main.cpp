@@ -12,7 +12,7 @@
 #include <vector>
 #include <sstream>
 
-std::vector<std::string> VIS_OPTIONS = {"ms","rc","cb","tr","tp","tb", "sd","fe","bp"};
+std::vector<std::string> VIS_OPTIONS = {"ms","msc","rc","cb","tr","tp","tb", "sd","fe","bp"};
 std::vector<std::string> OUT_OPTIONS = {"PN_file", "result_file", "verbose", "ms_files"};
 
 int end, begin = 0;
@@ -31,10 +31,13 @@ using namespace bso;
 
 int main(int argc, char* argv[])
 {
-	std::string inputFile = "";
-	std::string designName = "";
+	std::string inputFile = "design_301";
+	std::string designName = "design_301";
+	std::string colorinputFile = "";
+	std::string colourFileName = "";
 	std::string modification = "";
 	std::vector<std::string> visualizations;
+	visualizations.push_back("");
 	bool result_file = false;
 	bool PN_file = true;
 	bool ms_files = false;
@@ -45,13 +48,13 @@ int main(int argc, char* argv[])
 	// Handle the given input arguments
 	std::vector<std::string> args(argv+1, argv+argc);
 	auto arg = args.begin();
-	if (arg == args.end())
-	{
-		std::stringstream errorMessage;
-		errorMessage << "\nError, expected arguments, received nothing.\n"
-								 << "use -h or --help for help." << std::endl;
-		throw std::invalid_argument(errorMessage.str());
-	}
+	// if (arg == args.end())
+	// {
+	// 	std::stringstream errorMessage;
+	// 	errorMessage << "\nError, expected arguments, received nothing.\n"
+	// 							 << "use -h or --help for help." << std::endl;
+	// 	throw std::invalid_argument(errorMessage.str());
+	// }
 	while (arg != args.end())
 	{
 		if (*arg == "-h" || *arg == "--help")
@@ -63,7 +66,7 @@ int main(int argc, char* argv[])
 								<<   "\t" << "of the input file. The input file should be\n"
 								<<   "\t" << "in \'Movable Sizable\' format.\n"
 								<<   "\t" << "and the filename should have no spaces.\n";
-			std::cout << "-o\t" << "or --output, to specify the diferent outputs:\n"
+			std::cout << "-o\t" << "or --output, to specify the different outputs:\n"
 								<<   "\t" << "\'result_file\' output a file containing \n"
 								<<   "\t" << "the file name, Structural Design model analysis results, \n"
 								<<   "\t" << "and Building Physics model analysis results. \n"
@@ -72,15 +75,19 @@ int main(int argc, char* argv[])
 								<<   "\t" << "to the console during running \n";
 			std::cout << "-v\t" << "or --visualization, to specify which models are\n"
 								<<   "\t" << "visualized: \'ms\' for \'Movable Sizable\', \n"
+								<<   "\t" << "\'msc\' for \'Movable Sizable\' view with alternate coloring according to input file, \n"
+								<<   "\t" << "(note: for this to be able to be visualized -r or should be included in the run statement)\', \n"
 								<<   "\t" << "\'rc\' for \'conformal model with Rectangles for R insertion method\', \n"
 								<<   "\t" << "\'cb\' for \'conformal model with Cuboids for R insertion method\', \n"
 								<<   "\t" << "\'tr\' for \'conformal model with Triangles and Rectangles for N insertion method\', \n"
 								<<   "\t" << "\'tp\' for \'conformal model with Triangular Prism for N insertion method\', \n"
-								<<   "\t" << "\'tb\' for \'conformal model with Triangular Prism for N insertion method and including bounding box\', \n"
+								<<   "\t" << "\'tb\' for \'conformal model with Triangular Prism for N insertion method and including bounding box \n"
+								<<   "\t" << "(note: for this to be able to be visualized -b should be included in the run statement)\', \n"
 								<<   "\t" << "\'sd\' for'\'Structural Design\', \n"
 								<<   "\t" << "\'fe\' for \'Finite Elements of the structural design model\',\n"
 								<<   "\t" << "and \'bp\' for the \'Building Physics model\'.\n"
-								<<   "\t" << "More than one can be specified.\n";
+								<<   "\t" << "More than one can be specified.\n"
+								<<   "\t" << "Note: for any visualization, the model should be generated. So -r needs to be specified.\n";
 			std::cout << "-b\t" << "or --bounded, to obtain a model with boundaries.\n";
 			std::cout << "-r\t" << "or --run, to run the sd and bps simulation of the building spatial design.\n";
 			std::cout << "\n\n" << "Press ENTER to continue..." << std::endl;
@@ -119,6 +126,16 @@ int main(int argc, char* argv[])
 				}
 			}
 		}
+		else if (*arg == "-b" || *arg == "--bounded") 
+		{
+			bounded = true;
+			++arg;
+		}
+		else if (*arg == "-r" || *arg == "--run") 
+		{
+			run = true;
+			++arg;
+		}
 		else if (*arg == "-v" || *arg == "--visualize")
 		{
 			while (++arg != args.end() && arg->operator[](0) != '-')
@@ -134,6 +151,37 @@ int main(int argc, char* argv[])
 					throw std::invalid_argument(errorMessage.str());
 				}
 				visualizations.push_back(visSpec);
+
+				if(visualizations.back() == "msc")
+				{
+					if(arg == args.end() || arg->operator[](0) == '-')
+					{
+						std::stringstream errorMessage;
+							errorMessage << "\nError, expected an colour input file to be specified after 'msc'.\n"
+													<< "use -h or --help for help\n";
+							throw std::invalid_argument(errorMessage.str());
+					}
+						
+					++arg;
+					colorinputFile = *arg;
+					boost::trim(colorinputFile);
+					colourFileName = colorinputFile;
+
+					if(colorinputFile == "")
+					{
+						std::stringstream errorMessage;
+						errorMessage << "\nError, expected an colour input file to be specified after 'msc'.\n"
+												<< "use -h or --help for help\n";
+						throw std::invalid_argument(errorMessage.str());
+					}
+					if (colorinputFile.empty())
+					{
+						std::stringstream errorMessage;
+						errorMessage << "Error, can not visualize an MS_N_building design using\n";
+							errorMessage << "the following colour input file: " << colorinputFile << "\n";		
+						throw std::invalid_argument(errorMessage.str());
+					}
+				}
 			}
 			if (visualizations.size() == 0)
 			{
@@ -143,12 +191,6 @@ int main(int argc, char* argv[])
 										 << "--help for help\n";
 				throw std::invalid_argument(errorMessage.str());
 			}
-		} else if (*arg == "-b" || *arg == "--bounded") {
-			bounded = true;
-			++arg;
-		} else if (*arg == "-r" || *arg == "--run") {
-			run = true;
-			++arg;
 		}
 		else
 		{
@@ -160,7 +202,7 @@ int main(int argc, char* argv[])
 	if (inputFile == "")
 	{
 		std::stringstream errorMessage;
-		errorMessage << "\nError, expected an input file to be specified.\n"
+		errorMessage << "\nError, expected an input file to be specified after 'i'.\n"
 								 << "use -h or --help for help\n";
 		throw std::invalid_argument(errorMessage.str());
 	}
@@ -171,7 +213,7 @@ int main(int argc, char* argv[])
 			errorMessage << "the following MS input file: " << inputFile << "\n";		
 		throw std::invalid_argument(errorMessage.str());
 	}
-	
+
 	// start executing the options:
 	
 	// start visualization:
@@ -225,7 +267,7 @@ int main(int argc, char* argv[])
 		if (!visualizations.empty()) out("Sent bounded conformal model to visualization",true,true,verbose);
 	}
 	
-	// Run and posibly print results to file
+	// Run and possibly print results to file
 	if (run)
 	{
 		// Regular MS building model
@@ -262,6 +304,7 @@ int main(int argc, char* argv[])
 		if (!visualizations.empty()) for (const auto& visOption : visualizations)
 		{
 			if (visOption == "ms") bso::visualization::visualize(MS);
+			if (visOption == "msc")	bso::visualization::visualize(colourFileName,MS);
 			if (visOption == "rc") visualization::visualize(CM,"rectangle");
 			if (visOption == "cb") visualization::visualize(CM,"cuboid");
 			if (visOption == "tr") visualization::visualize(CM,"trirec");
@@ -295,6 +338,20 @@ int main(int argc, char* argv[])
 			output << designName << std::endl;
 			output << "SDResult, " << SDResult << std::endl;
 			output << "BPResult, " << BPResult << std::endl;
+		}
+	}
+
+	if (!visualizations.empty())
+	{
+		for (const auto& visOption : visualizations)
+		{
+			if (visOption == "msc" && !run)
+			{				
+				bso::spatial_design::ms_N_building MS(inputFile);
+				out("Created a Movable and Sizable (MS) building model", true, true, verbose);
+				
+				visualization::visualize(colourFileName,MS);
+			} 
 		}
 	}
 	
