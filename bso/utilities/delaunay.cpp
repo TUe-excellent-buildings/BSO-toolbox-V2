@@ -452,7 +452,7 @@ namespace bso { namespace utilities {
 	} //delaunayMultipleZoned()
 	
 	
-	void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL, const double mTol)
+	void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL, bool removeDuplicates /*= true*/, const double mTol)
 	{					
 		// split lines in accordance to intersection points
 		for(int k=0; k<intsecL.size(); k++)
@@ -474,24 +474,27 @@ namespace bso { namespace utilities {
 			}
 		}
 		
-		// remove duplicates from intsecL
-		auto intsecL_end = intsecL.end();
-		for(auto it = intsecL.begin(); it != intsecL_end; ++it)
+		if(removeDuplicates)
 		{
-			intsecL_end = std::remove(it + 1, intsecL_end, *it);
-		}
-		intsecL.erase(intsecL_end, intsecL.end());
-		
-		
-		// remove duplicates which has switched vertexes in intsecL		
-		for(int k; k<intsecL.size(); k++)
-		{
-			for(auto m : intsecL)
+			// remove duplicates from intsecL
+			auto intsecL_end = intsecL.end();
+			for(auto it = intsecL.begin(); it != intsecL_end; ++it)
 			{
-				if (m == intsecL[k]){continue;} //No tolerance needed. Just operator to make sure the same entities are not checked with each other.
-				if (m.isSameAs(intsecL[k], mTol)){intsecL.erase(intsecL.begin() + k);}
+				intsecL_end = std::remove(it + 1, intsecL_end, *it);
 			}
-		}		
+			intsecL.erase(intsecL_end, intsecL.end());
+			
+			
+			// remove duplicates which has switched vertexes in intsecL		
+			for(int k; k<intsecL.size(); k++)
+			{
+				for(auto m : intsecL)
+				{
+					if (m == intsecL[k]){continue;} // No tolerance needed. Just operator to make sure the same entities are not checked with each other.
+					if (m.isSameAs(intsecL[k], mTol)){intsecL.erase(intsecL.begin() + k);}
+				}
+			}
+		}	
 	}//splitLines
 
 	void convertToQuads(const std::vector <utilities::geometry::vertex>& delaunayPoints, const std::vector <utilities::geometry::line_segment>& orderedLinesOfZone, std::vector <utilities::geometry::quadrilateral>& quads, const double mTol /*= 1e-3*/, bool outputPs /*= false*/)

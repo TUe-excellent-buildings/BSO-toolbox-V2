@@ -21,7 +21,7 @@ namespace bso { namespace utilities {
 	std::vector<std::vector<utilities::geometry::triangle>> delaunayMultipleZoned(const std::vector <utilities::geometry::vertex> delaunayPoints,
 			const std::vector<std::vector<utilities::geometry::line_segment>> orderedLinesOfZone, const std::vector <utilities::geometry::line_segment> delaunayLines,
 			bool getTriOutsideZones = true, bool getBothInAndOutZones = false, const double mTol = 1e-3, bool outputPs = false);
-	void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL,  const double mTol = 1e-3); // used during the delaunay method to avoid the inserting of overlapping and duplicate constrain lines
+	void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL, bool removeDuplicates = true, const double mTol = 1e-3); // used during the delaunay method to avoid the inserting of overlapping and duplicate constrain lines
 
 
 	/*
