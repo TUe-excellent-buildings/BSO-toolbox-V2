@@ -996,6 +996,133 @@ namespace bso { namespace utilities {
 		return outerBound;
 	}
 
+	void sortLinesToChain(std::vector<utilities::geometry::line_segment>& lines,  const double mTol /*= 1e-3*/)
+	{
+		// Sort lines to form a chain of lines (i.e. vertex 1 of line 0 connect to vertex 0 of line 1, etc.) instead of random stored lines.
+		// Note; for now this function only works when the lines form a continues line.
+		if(lines.size() <= 1)
+		{
+			return; // since line are already sorted
+		}
+		bool reverse = false;
+		bool done = false;
+		int i=0;
+		int condition = lines.size();
+		int vID = 1;
+		while(!done)
+		{	
+			bool anyConnected = false;
+			// find nex lineAtLevel which is connected
+			if(!reverse)
+			{
+				if(i+1 == lines.size())
+				{
+					anyConnected = true;
+					break;
+				}
+				for(int j=i+1; j < lines.size(); j++)
+				{
+					if(lines[i][vID].isSameAs(lines[j][1], mTol))
+					{
+						bso::utilities::geometry::line_segment temp;
+						temp = lines[i+1];
+						lines[i+1] = {lines[j][1],lines[j][0]};
+						if(j != i+1)
+						{
+							lines[j] = temp;
+						}
+						anyConnected = true;
+						break;
+					} 
+					else if (lines[i][vID].isSameAs(lines[j][0], mTol))
+					{
+						if(j != i+1)
+						{
+							bso::utilities::geometry::line_segment temp;
+							temp = lines[i+1];
+							lines[i+1] = lines[j];
+							lines[j] = temp;
+						}
+						anyConnected = true;
+						break;
+					}
+				}
+				if(!anyConnected)
+				{
+					if(vID == 1)
+					{
+						// shift the content of the vector to the back of the vector and reverse iteration order
+						int shift = condition-1 - i;
+						std::vector<bso::utilities::geometry::line_segment> temp = lines;
+						
+						int s = shift;
+						for(int count = 0; count < lines.size(); count++)
+						{
+							lines[s]= temp[count];
+							s ++;
+							if(s == lines.size()) {s = 0;}
+						}
+						
+						vID = 0;
+						i = shift+1; // +1 to compensate for the i-- at the end
+						reverse = true;
+					}
+				}
+			}
+			else
+			{
+				bool anyConnected = false;
+				// find next lineAtLevel which is connected
+				if(i-1 < 0)
+				{
+					anyConnected = true;
+					break;
+				}
+				for(int j=i-1; j >= 0 ; j--)
+				{
+					if(lines[i][vID].isSameAs(lines[j][1], mTol))
+					{
+						if(j != i-1)
+						{
+							bso::utilities::geometry::line_segment temp;
+							temp = lines[i-1];
+							lines[i-1] = lines[j];
+							lines[j] = temp;
+						}
+						anyConnected = true;
+						break;
+					} 
+					else if (lines[i][vID].isSameAs(lines[j][0], mTol))
+					{
+						bso::utilities::geometry::line_segment temp;
+						temp = lines[i-1];
+						lines[i-1] = {lines[j][1],lines[j][0]};
+						if(j != i-1)
+						{
+							lines[j] = temp;
+						}
+						anyConnected = true;
+						break;
+					}
+				}
+				if(!anyConnected)
+				{
+					if(vID == 0)
+					{
+						// should start new line in future when surfaces are not continues
+						done = true;
+					}
+
+				}
+			}
+			if(reverse){i--;}
+			if(i >= lines.size()) {done = true;}
+			else if(i < 0) {done = true;}
+			if(!reverse){i++;}
+		}
+	}
+
+
 } // namespace utilities
 } // namespace bso
 

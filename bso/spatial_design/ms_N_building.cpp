@@ -856,7 +856,7 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& location,
 		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol /*= 1e-3*/)
 {	
-	if(shiftDirection.z() > 0)
+	if(shiftDirection.z() > 0 || shiftDirection.x() <= tol && shiftDirection.x() >= -tol && shiftDirection.y() <= tol && shiftDirection.y() >= -tol)
 	{
 		std::stringstream errorMessage;
 				errorMessage << "There is no valid shift Direction defined." << std::endl
@@ -890,9 +890,11 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 				throw std::invalid_argument(errorMessage.str());
 	}
 
-	// Identify toughing & coplanar quads and store the levels of the floor for later use:
+	// Identify toughing & coplanar quads between selected and non-selected spaces and store the levels of the floor for later use:
 	std::vector<bso::utilities::geometry::quadrilateral> toughingSQuads;
 	std::vector<bso::utilities::geometry::quadrilateral> toughingNSQuads;
+	std::vector<bso::utilities::geometry::quadrilateral> toughingSHQuads;
+	std::vector<bso::utilities::geometry::quadrilateral> toughingNSHQuads;
 	std::vector<double> allLevels;
 	for (auto& i : selection)
 	{
@@ -904,55 +906,122 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 			std::vector<bso::utilities::geometry::quadrilateral> QuadNS = spaceGeomNS.getQuadrilateral();
 			for(const auto k: QuadS)
 			{
-				if(k.getNormal().isVertical()) continue; // only consider vertical planes
+				bool QuadSisVertical = k.getNormal().isVertical(); // if true then a horizontal plane is considered
+				//if(k.getNormal().isVertical()) continue; // only consider vertical planes
 				std::vector<bso::utilities::geometry::line_segment> linesk = k.getLines();
 				for(const auto t: QuadNS)
 				{
-					if(k.getNormal().isVertical()) continue; // only consider vertical planes
-					if(!k.isCoplanar(t[0], tol) || !k.isCoplanar(t[2], tol)) continue; // the ID 0 and 2 vertices are opposing vertices therefore if hold then quads are coPlanar
-					bool alreadyAdd = false;
-					std::vector<bso::utilities::geometry::line_segment> linest = t.getLines();
-					for(const auto l1: linest)
+					// if(k.getNormal().isVertical()) continue; // only consider vertical planes
+					if(QuadSisVertical && k.getNormal().isVertical()) // both are horizontal planes
 					{
-						for(const auto l2: linesk)
+						if(!k.isCoplanar(t[0], tol) || !k.isCoplanar(t[2], tol)) continue; // the ID 0 and 2 vertices are opposing vertices therefore if hold then quads are coPlanar
+						bool anyIsInside = false;
+						for(const auto v: t)
 						{
-							if(l1.intersectsWith(l2, tol))
+							if(k.isInside(v, tol))
 							{
-								bool doubleInsertQ1 = false;
-								for (const auto& m : toughingSQuads)
-								{// check if quad k or t already exist in toughingSQuads
-									if (k.isSameAs(m, tol))
-									{
-										doubleInsertQ1 = true;
-									}
-								}
-								if(!doubleInsertQ1)
-								{//if agree, then add to toughingSQuads
-									toughingSQuads.push_back(k);
-									allLevels.push_back(k[0].z());
-									allLevels.push_back(k[2].z());
-
-									alreadyAdd =  true;
-								}
-								bool doubleInsertQ2 = false;
-								for (const auto& m : toughingNSQuads)
-								{// check if quad k or t already exist in toughingNSQuads
-									if (t.isSameAs(m, tol))
-									{
-										doubleInsertQ2 = true;
-									}
-								}
-								if(!doubleInsertQ2)
-								{//if agree, then add to toughingNSQuads
-									toughingNSQuads.push_back(t);
-									allLevels.push_back(t[0].z());
-									allLevels.push_back(t[2].z());
-									alreadyAdd =  true;
-								}
-								if(alreadyAdd) break;
+								anyIsInside = true;
+								break;
 							}
 						}
-						if(alreadyAdd) break;
+						if(!anyIsInside)
+						{
+							for(const auto v: k)
+							{
+								if(t.isInside(v, tol))
+								{
+									anyIsInside = true;
+									break;
+								}
+							}
+						}
+						if(anyIsInside)
+						{
+							bool alreadyAdd = false;
+							bool doubleInsertQ1 = false;
+							for (const auto& m : toughingSQuads)
+							{// check if quad k or t already exist in toughingSQuads
+								if (k.isSameAs(m, tol))
+								{
+									doubleInsertQ1 = true;
+								}
+							}
+							if(!doubleInsertQ1)
+							{//if agree, then add to toughingSQuads
+								toughingSHQuads.push_back(k);
+								allLevels.push_back(k[0].z());
+								allLevels.push_back(k[2].z());
+
+								alreadyAdd =  true;
+							}
+							bool doubleInsertQ2 = false;
+							for (const auto& m : toughingNSQuads)
+							{// check if quad k or t already exist in toughingNSQuads
+								if (t.isSameAs(m, tol))
+								{
+									doubleInsertQ2 = true;
+								}
+							}
+							if(!doubleInsertQ2)
+							{//if agree, then add to toughingNSQuads
+								toughingNSHQuads.push_back(t);
+								allLevels.push_back(t[0].z());
+								allLevels.push_back(t[2].z());
+
+								alreadyAdd =  true;
+							}
+							if(alreadyAdd) break;
+						}
+					}
+					else
+					{					
+						if(QuadSisVertical) {continue;} // only consider two vertical planes in the following
+						if(!k.isCoplanar(t[0], tol) || !k.isCoplanar(t[2], tol)) continue; // the ID 0 and 2 vertices are opposing vertices therefore if hold then quads are coPlanar
+						bool alreadyAdd = false;
+						std::vector<bso::utilities::geometry::line_segment> linest = t.getLines();
+						for(const auto l1: linest)
+						{
+							for(const auto l2: linesk)
+							{
+								if(l1.intersectsWith(l2, tol))
+								{
+									bool doubleInsertQ1 = false;
+									for (const auto& m : toughingSQuads)
+									{// check if quad k or t already exist in toughingSQuads
+										if (k.isSameAs(m, tol))
+										{
+											doubleInsertQ1 = true;
+										}
+									}
+									if(!doubleInsertQ1)
+									{//if agree, then add to toughingSQuads
+										toughingSQuads.push_back(k);
+										allLevels.push_back(k[0].z());
+										allLevels.push_back(k[2].z());
+
+										alreadyAdd =  true;
+									}
+									bool doubleInsertQ2 = false;
+									for (const auto& m : toughingNSQuads)
+									{// check if quad k or t already exist in toughingNSQuads
+										if (t.isSameAs(m, tol))
+										{
+											doubleInsertQ2 = true;
+										}
+									}
+									if(!doubleInsertQ2)
+									{//if agree, then add to toughingNSQuads
+										toughingNSQuads.push_back(t);
+										allLevels.push_back(t[0].z());
+										allLevels.push_back(t[2].z());
+
+										alreadyAdd =  true;
+									}
+									if(alreadyAdd) break;
+								}
+							}
+							if(alreadyAdd) break;
+						}
 					}
 				}
 			}
@@ -964,18 +1033,19 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 	auto it = unique(allLevels.begin(), allLevels.end()); 
 	allLevels.erase(it, allLevels.end()); 
 
-	// Find the lines for a polygon_non_convex of each elevation:
-	std::vector<std::vector<bso::utilities::geometry::line_segment>> polygons;
-	polygons.resize(allLevels.size()-1);
+	// Determine the bottom lines of each toughing quad and add to linesAtFloor:
+	std::vector<std::vector<bso::utilities::geometry::line_segment>> linesAtFloor;
+	linesAtFloor.resize(allLevels.size()-1);
 
 	for(int i=0; i< toughingSQuads.size(); i++)
 	{
 		std::vector<bso::utilities::geometry::line_segment> lines = toughingSQuads[i].getLines();
 		for(int j=0; j<allLevels.size()-1; j++)
 		{
-			if((toughingSQuads[i][0]).z() >= allLevels[j] && (toughingSQuads[i][0]).z() < allLevels[j+1])
+			if(allLevels[j] >= (toughingSQuads[i][0]).z() && allLevels[j] < (toughingSQuads[i][2]).z())// toughingSQuads[i][2] represent top level quad and toughingSQuads[i][0] represent bottom level quad
 			{
-				polygons[j].push_back(lines[0]);
+				bso::utilities::geometry::line_segment lineAtLevel = {{lines[0][0].x(),lines[0][0].y(),allLevels[j]},{lines[0][1].x(),lines[0][1].y(),allLevels[j]}};
+				linesAtFloor[j].push_back(lineAtLevel);
 			}
 		}
 	}
@@ -984,9 +1054,10 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		std::vector<bso::utilities::geometry::line_segment> lines = toughingNSQuads[i].getLines();
 		for(int j=0; j<allLevels.size()-1; j++)
 		{
-			if((toughingNSQuads[i][0]).z() >= allLevels[j] && (toughingNSQuads[i][0]).z() < allLevels[j+1])
+			if(allLevels[j] >= (toughingNSQuads[i][0]).z() && allLevels[j] < (toughingNSQuads[i][2]).z())// toughingNSQuads[i][2] represent top level quad and toughingNSQuads[i][0] represent bottom level quad
 			{
-				polygons[j].push_back(lines[0]);
+				bso::utilities::geometry::line_segment lineAtLevel = {{lines[0][0].x(),lines[0][0].y(),allLevels[j]},{lines[0][1].x(),lines[0][1].y(),allLevels[j]}};
+				linesAtFloor[j].push_back(lineAtLevel);
 			}
 		}
 	}
@@ -1008,15 +1079,16 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		i->setPVertex(pVert);
 	}
 
-	// remove lines which have no duplicate at the other (either selected or nonSelected) side
+	// first split lines at all the vertices then remove lines which have no duplicate at the other (either selected or nonSelected) side 
+	// to remove the non toughing sections of the found quads
 	std::vector<std::vector<bso::utilities::geometry::line_segment>> lines;
 	lines.resize(allLevels.size()-1);
 	
 	std::vector<std::vector<bso::utilities::geometry::vertex>> allVertices;
 	allVertices.resize(allLevels.size()-1);
-	for(int i=0; i<polygons.size(); i++)
+	for(int i=0; i<linesAtFloor.size(); i++)
 	{
-		for(auto j: polygons[i])
+		for(auto j: linesAtFloor[i])
 		{
 			allVertices[i].push_back(j[0]);
 			allVertices[i].push_back(j[1]);
@@ -1024,208 +1096,87 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 	}
 	for(int i=0; i<allLevels.size()-1; i++)
 	{
-		bso::utilities::splitLines(allVertices[i], polygons[i], false, tol);
+		bso::utilities::splitLines(allVertices[i], linesAtFloor[i], false, tol);
 
-		for(int j=0; j< polygons[i].size(); j++)
+		for(int j=0; j< linesAtFloor[i].size(); j++)
 		{
 			int index=0;
-			while(index < polygons[i].size())
+			while(index < linesAtFloor[i].size())
 			{
 				if(j == index)
 				{
 					index++;
 					continue;
 				}
-				if((polygons[i][j]).isSameAs(polygons[i][index], tol)) break;
+				if((linesAtFloor[i][j]).isSameAs(linesAtFloor[i][index], tol)) break;
 				index++;
 			}
-			if(index < polygons[i].size())
+			if(index < linesAtFloor[i].size())
 			{ // Duplicate of line found so keep one of them
-				polygons[i].erase(polygons[i].begin() + index);
+				linesAtFloor[i].erase(linesAtFloor[i].begin() + index);
 			}
 			else
 			{ // No duplicate found so erase the considered line
-				polygons[i].erase(polygons[i].begin() + j);
+				linesAtFloor[i].erase(linesAtFloor[i].begin() + j);
+				j--;
 			}
 		}
 	}
 
-	// sort polygons to form a chain of lines
-	for(auto& linesAtLevel: polygons)
-	{
-		if(linesAtLevel.size() <= 1) continue;
-		bool reverse = false;
-		bool done = false;
-		int i=0;
-		int condition = linesAtLevel.size();
-		int vID = 1;
-		while(!done)
-		{	
-			bool anyConnected = false;
-			// find nex lineAtLevel which is connected
-			if(!reverse)
-			{
-				if(i+1 == linesAtLevel.size())
-				{
-					anyConnected = true;
-					break;
-				}
-				for(int j=i+1; j < linesAtLevel.size(); j++)
-				{
-					if(linesAtLevel[i][vID].isSameAs(linesAtLevel[j][1], tol))
-					{
-						bso::utilities::geometry::line_segment temp;
-						temp = linesAtLevel[i+1];
-						linesAtLevel[i+1] = {linesAtLevel[j][1],linesAtLevel[j][0]};
-						if(j != i+1)
-						{
-							linesAtLevel[j] = temp;
-						}
-						anyConnected = true;
-						break;
-					} 
-					else if (linesAtLevel[i][vID].isSameAs(linesAtLevel[j][0], tol))
-					{
-						if(j != i+1)
-						{
-							bso::utilities::geometry::line_segment temp;
-							temp = linesAtLevel[i+1];
-							linesAtLevel[i+1] = linesAtLevel[j];
-							linesAtLevel[j] = temp;
-						}
-						anyConnected = true;
-						break;
-					}
-				}
-				if(!anyConnected)
-				{
-					if(vID == 1)
-					{
-						// shift the content of the vector to the back of the vector and reverse iteration order
-						int shift = condition-1 - i;
-						std::vector<bso::utilities::geometry::line_segment> temp = linesAtLevel;
-						
-						int s = shift;
-						for(int count = 0; count < linesAtLevel.size(); count++)
-						{
-							linesAtLevel[s]= temp[count];
-							s ++;
-							if(s == linesAtLevel.size()) {s = 0;}
-						}
-						
-						vID = 0;
-						i = shift+1; // +1 to compensate for the i-- at the end
-						reverse = true;
-					}
-				}
-			}
-			else
-			{
-				bool anyConnected = false;
-				// find next lineAtLevel which is connected
-				if(i-1 < 0)
-				{
-					anyConnected = true;
-					break;
-				}
-				for(int j=i-1; j >= 0 ; j--)
-				{
-					if(linesAtLevel[i][vID].isSameAs(linesAtLevel[j][1], tol))
-					{
-						if(j != i-1)
-						{
-							bso::utilities::geometry::line_segment temp;
-							temp = linesAtLevel[i-1];
-							linesAtLevel[i-1] = linesAtLevel[j];
-							linesAtLevel[j] = temp;
-						}
-						anyConnected = true;
-						break;
-					} 
-					else if (linesAtLevel[i][vID].isSameAs(linesAtLevel[j][0], tol))
-					{
-						bso::utilities::geometry::line_segment temp;
-						temp = linesAtLevel[i-1];
-						linesAtLevel[i-1] = {linesAtLevel[j][1],linesAtLevel[j][0]};
-						if(j != i-1)
-						{
-							linesAtLevel[j] = temp;
-						}
-						anyConnected = true;
-						break;
-					}
-				}
-				if(!anyConnected)
-				{
-					if(vID == 0)
-					{
-						// should start new line in future when surfaces are not continues
-						done = true;
-					}
-
-				}
-			}
-			if(reverse){i--;}
-			if(i >= linesAtLevel.size()) {done = true;}
-			else if(i < 0) {done = true;}
-			if(!reverse){i++;}
-		}
-	}
+	
 			
-	// Generate lines opposing side i.e. shift the line so they are on the position of the shifted spaces
+	// Generate lines opposing side i.e. shift the line so they are on the position of the shifted spaces and remove the lines invalid for space generation
 	std::vector<std::vector<bso::utilities::geometry::line_segment>> linesOpposite;
 	linesOpposite.resize(allLevels.size()-1);
-	for(int i=0; i< polygons.size(); i++)
+	for(int i=0; i< linesAtFloor.size(); i++)
 	{
-		for(int j=0; j<polygons[i].size(); j++)
+		for(int j=0; j<linesAtFloor[i].size(); j++)
 		{
-			bso::utilities::geometry::vertex v1 = (polygons[i][j])[0] + n * shiftAmount;
-			bso::utilities::geometry::vertex v2 = (polygons[i][j])[1] + n * shiftAmount;
-
+			bso::utilities::geometry::vertex v1 = (linesAtFloor[i][j])[0] + n * shiftAmount;
+			bso::utilities::geometry::vertex v2 = (linesAtFloor[i][j])[1] + n * shiftAmount;
 			bso::utilities::geometry::line_segment l = {v1,v2};
 			
+			// determine if line wil form a valid space:
 			bool noSeparation = false;
-			bso::utilities::geometry::vector vec1 = polygons[i][j].getVector();
+			bso::utilities::geometry::vector vec1 = linesAtFloor[i][j].getVector();
 			bso::utilities::geometry::vector vec2 = -1*vec1;
 			if(vec1.isCodirectional(n)) {noSeparation = true;}
 			else if(vec2.isCodirectional(n)) {noSeparation = true;}
 
 			if(noSeparation)
-			{
-				// remove line
-				polygons[i].erase(polygons[i].begin() + j);
+			{ // if not, remove line
+				linesAtFloor[i].erase(linesAtFloor[i].begin() + j);
 			}
 			else
-			{
-				// Add line to opposing
+			{ // if yes, add line to opposing so that the pair of the lines wil form a space
 				linesOpposite[i].push_back(l);
 			}
 		}
 	}
 	
-	// Define spaces between lines and linesOpposite
-	for(int i=0; i<polygons.size(); i++)
+	// Define spaces between the pairs of lines and linesOpposites
+	for(int i=0; i<linesAtFloor.size(); i++)
 	{
 		// elevation height
 		bso::utilities::geometry::vector hightVector = {0,0,allLevels[i+1]-allLevels[i]};
 		
-		for(int j=0; j< polygons[i].size(); j++)
+		for(int j=0; j< linesAtFloor[i].size(); j++)
 		{
 			// Define vertices of new space
 			std::vector <utilities::geometry::vertex*> vertexes;
 
 			vertexes.push_back(new utilities::geometry::vertex);
-			*vertexes.back() = polygons[i][j][0];
+			*vertexes.back() = linesAtFloor[i][j][0];
 			vertexes.push_back(new utilities::geometry::vertex);
-			*vertexes.back() = polygons[i][j][1];
+			*vertexes.back() = linesAtFloor[i][j][1];
 			vertexes.push_back(new utilities::geometry::vertex);
 			*vertexes.back() = linesOpposite[i][j][0];
 			vertexes.push_back(new utilities::geometry::vertex);
 			*vertexes.back() = linesOpposite[i][j][1];
 			vertexes.push_back(new utilities::geometry::vertex);
-			*vertexes.back() = polygons[i][j][0]+hightVector;
+			*vertexes.back() = linesAtFloor[i][j][0]+hightVector;
 			vertexes.push_back(new utilities::geometry::vertex);
-			*vertexes.back() = polygons[i][j][1]+hightVector;
+			*vertexes.back() = linesAtFloor[i][j][1]+hightVector;
 			vertexes.push_back(new utilities::geometry::vertex);
 			*vertexes.back() = linesOpposite[i][j][0]+hightVector;
 			vertexes.push_back(new utilities::geometry::vertex);

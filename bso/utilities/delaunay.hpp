@@ -32,6 +32,7 @@ namespace bso { namespace utilities {
 	void convertToQuads(const std::vector <utilities::geometry::vertex>& delaunayPoints, const std::vector <utilities::geometry::line_segment>& orderedLinesOfZone,
 			std::vector <utilities::geometry::quadrilateral>& quads, const double mTol = 1e-3, bool outputPs = false);
 	std::vector<utilities::geometry::line_segment> getOuterBounds2D(std::vector<utilities::geometry::line_segment> lines,  const double mTol = 1e-3);
+	void sortLinesToChain(std::vector<utilities::geometry::line_segment>& lines,  const double mTol = 1e-3);
 
 } // namespace utilities
 } // namespace bso
