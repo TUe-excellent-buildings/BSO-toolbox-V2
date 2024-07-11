@@ -1012,11 +1012,12 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::spatial_design::ms_space s2 = bso::spatial_design::ms_space("N,2,	3000,0,0,	6000,0,0,	3000,3000,0,	6000,3000,0,	3000,0,3000,	6000,0,3000,	3000,3000,3000,	6000,3000,3000");
 		bso::spatial_design::ms_space s3 = bso::spatial_design::ms_space("N,3,	-1500,-1500,3000,	1500,-1500,3000,	-1500,1500,3000,	1500,1500,3000,	-1500,-1500,6000,	1500,-1500,6000,	-1500,1500,6000,	1500,1500,6000");
 
-		ms.addSpace(s1);
-		ms.addSpace(s2);
-		ms.addSpace(s3);
+		std::vector<ms_space*> mSpaces;
+		mSpaces.push_back(&s1);
+		mSpaces.push_back(&s2);
+		mSpaces.push_back(&s3);
 
-		std::vector <bso::utilities::geometry::quadrilateral> quads = ms.getQuadAtZ0();
+		std::vector <bso::utilities::geometry::quadrilateral> quads = ms.getQuadAtZ0(mSpaces);
 
 		std::vector<bso::utilities::geometry::quadrilateral> checkQuads = {{{0,0,0},{3000,3000,0},{0,3000,0},{3000,0,0}},{{6000,0,0},{6000,3000,0},{3000,0,0},{3000,3000,0}},
 																		 {{-1500,-1500,0},{1500,-1500,0},{1500,1500,0},{-1500,1500,0}}};
@@ -1051,11 +1052,12 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::spatial_design::ms_space s2 = bso::spatial_design::ms_space("N,2,	3000,0,0,	6000,0,0,	3000,3000,0,	6000,3000,0,	3000,0,3000,	6000,0,3000,	3000,3000,3000,	6000,3000,3000");
 		bso::spatial_design::ms_space s3 = bso::spatial_design::ms_space("N,3,	-1500,-1500,3000,	1500,-1500,3000,	-1500,1500,3000,	1500,1500,3000,	-1500,-1500,6000,	1500,-1500,6000,	-1500,1500,6000,	1500,1500,6000");
 
-		ms.addSpace(s1);
-		ms.addSpace(s2);
-		ms.addSpace(s3);
+		std::vector<ms_space*> mSpaces;
+		mSpaces.push_back(&s1);
+		mSpaces.push_back(&s2);
+		mSpaces.push_back(&s3);
 
-		std::vector <bso::utilities::geometry::line_segment> lines = ms.getLinesAtZ0();
+		std::vector <bso::utilities::geometry::line_segment> lines = ms.getLinesAtZ0(mSpaces);
 
 		std::vector<bso::utilities::geometry::line_segment> checkLines = {{{0,0,0},{3000,0,0}},{{3000,0,0},{3000,3000,0}},{{3000,3000,0},{0,3000,0}},
 																		 {{0,3000,0},{0,0,0}},{{3000,0,0},{6000,0,0}},{{6000,0,0},{6000,3000,0}},
@@ -1151,6 +1153,106 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 			}
 		}
 		BOOST_REQUIRE(!anyNotFound);
+	}
+
+	/*
+	The bellow shiftFillPlane test where performed while developing the shiftFillPlane function.
+	If any of the bellow generates an error and a visualization is preferred, the following can be done:
+	Go to \BSO-toolbox-V2\unit_tests\spatial_design\NOBSD_test_suite. 
+	Here the make file and main.cpp file are there.
+	When you compile with 'make cls clean all', followed by running with ./main.
+	A visualization will be shown of the bellow boost unit test for shiftFillPlane_x.
+	*/
+
+	BOOST_AUTO_TEST_CASE( shiftFillPlane_1 )
+	{
+		bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_327");
+
+		bso::utilities::geometry::vertex location = {7000,0,0};
+		bso::utilities::geometry::vector direction = {1,0,0};
+		double shift = 3000;
+		ms.shiftFillPlane(location, direction, shift);
+
+		bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_327_Linear_shift");
+		BOOST_REQUIRE(msShift == ms);
+	}
+
+	BOOST_AUTO_TEST_CASE( shiftFillPlane_2 )
+	{
+		bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
+
+		bso::utilities::geometry::vertex location = {3000,0,0};
+		bso::utilities::geometry::vector direction = {1,-1,0};
+		double shift = sqrt(2) * 3000;
+		ms.shiftFillPlane(location, direction, shift);
+
+		bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_cornerDiagonalShift");
+		BOOST_REQUIRE(msShift == ms);
+	}
+
+	BOOST_AUTO_TEST_CASE( shiftFillPlane_3 )
+	{
+		bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
+
+		bso::utilities::geometry::vertex location = {3000,0,0};
+		bso::utilities::geometry::vector direction = {1,0,0};
+		double shift = sqrt(2) * 3000;
+		ms.shiftFillPlane(location, direction, shift);
+		ms.writeToFile("spatial_design/NOBSD_test_suite/design_325_cornerFullShift_unit_test");
+
+		bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_cornerFullShift");
+		BOOST_REQUIRE(msShift == ms);
+
+		// I have checked the output files and they are exactly the same, so the boolean operation msShift == ms notice a difference???
+	}
+
+	BOOST_AUTO_TEST_CASE( shiftFillPlane_4 )
+	{
+		bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
+
+		bso::utilities::geometry::vertex location = {3000,0,0};
+		bso::utilities::geometry::vector direction = {1,0,0};
+		double shift = 3000;
+		ms.shiftFillPlane(location, direction, shift);
+
+		bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_cornerMatchShift");
+		BOOST_REQUIRE(msShift == ms);
+	}
+
+	BOOST_AUTO_TEST_CASE( shiftFillPlane_5 )
+	{
+		bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
+
+		bso::utilities::geometry::vertex location = {0,6000,0};
+		bso::utilities::geometry::vector direction = {0,1,0};
+		double shift = 3000;
+		ms.shiftFillPlane(location, direction, shift);
+
+		bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_shiftSlantedSide");
+		BOOST_REQUIRE(msShift == ms);
+	}
+
+	BOOST_AUTO_TEST_CASE( shiftFillPlane_6 )
+	{
+		bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_308");
+
+		bso::utilities::geometry::vertex location = {0,15000,0};
+		bso::utilities::geometry::vector direction = {0,1,0};
+		double shift = 6000;
+		ms.shiftFillPlane(location, direction, shift);
+
+		bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_308_splitLevelAndHorizontalOverlapShift");
+		BOOST_REQUIRE(msShift == ms);
+	}
+
+	BOOST_AUTO_TEST_CASE( shiftFillPlane_7 )
+	{
+		bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_308");
+
+		ms.shiftFillPlaneCentre(5000);
+
+		bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_308_centreShiftFillPlane");
+		BOOST_REQUIRE(msShift == ms);
 	}
 	
 	
