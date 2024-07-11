@@ -42,11 +42,9 @@ public:
 		std::vector<double>& allLevels, const double mTol = 1e-3);
 	void getDelaunayVariables(std::vector <utilities::geometry::vertex>& delaunayPoints, std::vector <utilities::geometry::line_segment>& delaunayLines,
 		std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol = 1e-3); // Note: this functions uses the results from getXAtGround to retrieve the needed geometry information from.
-	std::vector <bso::utilities::geometry::quadrilateral> getQuadAtZ0(const double mTol = 1e-3);
 	std::vector <bso::utilities::geometry::quadrilateral> getQuadAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol = 1e-3);
-	std::vector <bso::utilities::geometry::line_segment> getLinesAtZ0(const double mTol = 1e-3);
 	std::vector <bso::utilities::geometry::line_segment> getLinesAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol = 1e-3);
-	
+	bso::utilities::geometry::vertex getCentreBuilding();
 
 	// Representation adjustment functions:
 	void setZZero(); 
@@ -64,6 +62,7 @@ public:
 	//void splitBuilding(double minimumHeight, double minimumWidth, double minimumDepth); // under development
 	//void enforceSpaceSize(double minimumHeight, double minimumWidth, double minimumDepth);
 	void duplicateElevation(double atZFromGround = 0, double elevationHeight = 3000, bool duplicateBelowZLevel = true);
+	void shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHeadingDirection = false, int amountOfHeadingCatagories = 6, const double& tol = 1e-3);
 	void shiftFillPlane(const bso::utilities::geometry::vertex& location,
 		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3);
 	//void sweep(const bso::utilities::geometry::vertex& location,

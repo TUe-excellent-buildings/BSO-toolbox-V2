@@ -853,6 +853,140 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 	}
 } //duplicateElevation()
 
+void ms_N_building::shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHeadingDirection /*= false*/, int amountOfHeadingCatagories /* = 6 */, const double& tol /*= 1e-3*/)
+{
+	bso::utilities::geometry::vertex location = this->getCentreBuilding();
+	bso::utilities::geometry::vector shiftDirection;
+
+	// Define shiftDirection:
+	// Get headings azimuth from all horizontal lines in the building	
+	std::vector <double> horizontalHeadings;
+	for (const auto i : mSpaces)
+	{
+		//Get original space geometry
+		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+		
+		// Add lines if horizontal to linesAtZ
+		for (const auto& k : spaceGeom.getLines())
+		{
+			bso::utilities::geometry::vector lineV = k.getVector();
+			if(!lineV.isVertical()) 
+			{				
+				horizontalHeadings.push_back(lineV.getHeading().first);
+			}
+		}
+	}
+
+	// There are x amount of azimuth catagories considered and dispatched all horizontal lines in these
+	// this figures out which heading direction is most frequent and which are second most frequent
+	//double amountOfHeadingCatagories = 6; //should be even to have two matching opposing sides
+	
+	//Generate headingCategories:
+	std::vector<std::pair<double,double>> headingCategories;
+	double sectionSize = 180/(amountOfHeadingCatagories);
+	std::pair<double,double> temp (360-sectionSize/2,0+sectionSize/2);
+	headingCategories.push_back(temp);
+	for(int i=0; i<amountOfHeadingCatagories; i++)
+	{
+		temp = std::make_pair(temp.first,temp.first+sectionSize);
+		headingCategories.push_back(temp);
+	}
+
+	//Dispatch buildings found horizontal line headings into Categories:
+	std::vector<std::vector<double>> headingInCategories; 
+	headingInCategories.resize(amountOfHeadingCatagories);
+	for(double i: horizontalHeadings)
+	{
+		for(int j=0; j<amountOfHeadingCatagories; j++)
+		{
+			if(headingCategories[j].first <= i && headingCategories[j].second > i)
+			{
+				headingInCategories[j].push_back(i);
+				break;
+			}
+			double oppositeFirst = headingCategories[j].first+180;
+			double oppositeSecond = headingCategories[j].second+180;
+			if(oppositeFirst > 360) {oppositeFirst = oppositeFirst -360;}
+			if(oppositeSecond > 360) {oppositeSecond = oppositeSecond -360;}
+			if(oppositeFirst <= i && oppositeSecond > i)
+			{
+				double flipHeading = i-180;
+				if(flipHeading < 0){flipHeading = 360+i-180;}
+				headingInCategories[j].push_back(flipHeading);
+				break;
+			}
+		}
+	}
+
+	// Find most frequent heading category in building
+	int biggestCategory = 0;
+	int categorySize = 0;
+	for(int i=0; i<amountOfHeadingCatagories; i++)
+	{
+		if(headingInCategories[i].size() > categorySize)
+		{
+			biggestCategory = i;
+			categorySize = headingInCategories[i].size();
+		}
+	}
+
+	// Are there headings found more often then take that heading, otherwise use the middle of the heading category
+	double headingFrequent;
+	std::vector<std::pair<double,int>> headingFrequency;
+	for(const auto i: headingInCategories[biggestCategory])
+	{
+		bool found = false;
+		for(auto j: headingFrequency)
+		{
+			if(j.first == i)
+			{
+				(j.second)++;
+				found = true;
+				break;
+			}
+		}
+		if(!found)
+		{
+			std::pair<double,int> temp (i,1);
+			headingFrequency.push_back(temp);
+		}
+	}
+
+	int IDMost = headingFrequency.size() + 1;
+	int most = 1;
+	for(int i=0; i<headingFrequency.size(); i++)
+	{
+		if((headingFrequency[i]).second > most)
+		{
+			most = (headingFrequency[i]).second;
+			IDMost = i;
+		}
+	}
+	double ShiftDirectionPerpendicularHeading;
+	if(most == 1) // use default middle heading from category if no more then one time a heading is observed
+	{
+		ShiftDirectionPerpendicularHeading = biggestCategory * categorySize + 0;
+	}
+	else // use the heading most frequent
+	{
+		ShiftDirectionPerpendicularHeading = (headingFrequency[IDMost]).first;
+	}
+
+	// define the shiftDirection from ShiftDirectionPerpendicularHeading
+	std::pair<double,double> headingV (ShiftDirectionPerpendicularHeading, 0);
+	bso::utilities::geometry::vector perpendicularV;
+	perpendicularV.setHeading(headingV);
+	shiftDirection = {perpendicularV.y(),-perpendicularV.x(),0};
+
+	std::cout << "the found location/centre of the building is: " << location << std::endl;
+	std::cout << "the heading found is with ID: " << IDMost << " and is found : " << most << " amount of times. " << std::endl;
+	std::cout << "the most found frequent Heading is: " << ShiftDirectionPerpendicularHeading << std::endl;
+	std::cout << "this heading defined in a vector is: " << perpendicularV << std::endl;
+	std::cout << "the found shiftDirection is: " << shiftDirection << std::endl;
+
+	this->shiftFillPlane(location, shiftDirection, shiftAmount, tol);
+} // shiftFillPlaneCentre()
+
 void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& location,
 		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol /*= 1e-3*/)
 {	
@@ -875,11 +1009,17 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 	
 	// normalize the shiftDirection for convenience of later use
 	auto n = shiftDirection.normalized();
+	bso::utilities::geometry::vector perpendicularToN = {n.y(),-n.x(),0};
+	bso::utilities::geometry::vector locationZ0 = {location.x(),location.y(),0};
+	bso::utilities::geometry::line_segment planeZ0line = {locationZ0, locationZ0+perpendicularToN};
 	
 	// Find spaces to shift
 	std::vector<ms_space*> notSelectedSpaces;
 	std::vector<ms_space*> partialSpaces;
+	std::vector<bool> shiftIssueSpaces;
 	auto selection = this->selectSpacesGeometrically(location, shiftDirection, notSelectedSpaces, partialSpaces,true,true);
+	
+	std::vector<ms_space*> selectionShiftIssue;
 	if(selection.size() == 0 || notSelectedSpaces.size() == 0)
 	{
 		std::stringstream errorMessage;
@@ -896,9 +1036,10 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 	std::vector<bso::utilities::geometry::quadrilateral> toughingSHQuads;
 	std::vector<bso::utilities::geometry::quadrilateral> toughingNSHQuads;
 	std::vector<double> allLevels;
-	for (auto& i : selection)
+	for (int i=0; i<selection.size(); i++)
 	{
-		bso::utilities::geometry::quad_hexahedron spaceGeomS = i->getGeometry();
+		bool spaceBreak = false;
+		bso::utilities::geometry::quad_hexahedron spaceGeomS = selection[i]->getGeometry();
 		std::vector<bso::utilities::geometry::quadrilateral> QuadS = spaceGeomS.getQuadrilateral();
 		for (auto& j : notSelectedSpaces)
 		{
@@ -907,12 +1048,11 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 			for(const auto k: QuadS)
 			{
 				bool QuadSisVertical = k.getNormal().isVertical(); // if true then a horizontal plane is considered
-				//if(k.getNormal().isVertical()) continue; // only consider vertical planes
+				
 				std::vector<bso::utilities::geometry::line_segment> linesk = k.getLines();
 				for(const auto t: QuadNS)
 				{
-					// if(k.getNormal().isVertical()) continue; // only consider vertical planes
-					if(QuadSisVertical && k.getNormal().isVertical()) // both are horizontal planes
+					if(QuadSisVertical && t.getNormal().isVertical()) // both are horizontal planes
 					{
 						if(!k.isCoplanar(t[0], tol) || !k.isCoplanar(t[2], tol)) continue; // the ID 0 and 2 vertices are opposing vertices therefore if hold then quads are coPlanar
 						bool anyIsInside = false;
@@ -987,44 +1127,140 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 								{
 									bool doubleInsertQ1 = false;
 									for (const auto& m : toughingSQuads)
-									{// check if quad k or t already exist in toughingSQuads
+									{// check if quad k already exist in toughingSQuads
 										if (k.isSameAs(m, tol))
 										{
 											doubleInsertQ1 = true;
 										}
 									}
 									if(!doubleInsertQ1)
-									{//if agree, then add to toughingSQuads
-										toughingSQuads.push_back(k);
-										allLevels.push_back(k[0].z());
-										allLevels.push_back(k[2].z());
-
+									{// if agree, then check and add to toughingSQuads
+										// check if quad can be sweeped without interfering with non moving spaces
+										bso::utilities::geometry::vertex pointOnPlaneZ0line0 = planeZ0line.getPointClosestTo(k[0]);
+										bso::utilities::geometry::vertex pointOnPlaneZ0line1 = planeZ0line.getPointClosestTo(k[1]);
+										bso::utilities::geometry::vertex cornerAtZ00 = {k[0].x(),k[0].y(),0};
+										bso::utilities::geometry::vertex cornerAtZ01 = {k[1].x(),k[1].y(),0};
+										bso::utilities::geometry::line_segment checkLine0 = {pointOnPlaneZ0line0, cornerAtZ00};
+										bso::utilities::geometry::line_segment checkLine1 = {pointOnPlaneZ0line1, cornerAtZ01};
+										bool sweepQuadWillIntersectSpace = false;
+										for(const auto l: ((spaceGeomNS.getQuadrilateral())[4]).getLines())
+										{
+											bso::utilities::geometry::line_segment lz0 = {{l[0].x(),l[0].y(),0},{l[1].x(),l[1].y(),0}};
+											bso::utilities::geometry::vertex intersectionPoint;
+											if(checkLine0.intersectsWith(lz0, intersectionPoint, tol))
+											{
+												if(!intersectionPoint.isSameAs(checkLine0[0],tol) && !intersectionPoint.isSameAs(checkLine0[1],tol))
+												{
+													sweepQuadWillIntersectSpace = true;
+													break;
+												}
+											}
+											if(checkLine1.intersectsWith(lz0, intersectionPoint, tol))
+											{
+												if(!intersectionPoint.isSameAs(checkLine1[0],tol) && !intersectionPoint.isSameAs(checkLine1[1],tol))
+												{
+													sweepQuadWillIntersectSpace = true;
+													break;
+												}
+											}
+										}
+										
+										if(!sweepQuadWillIntersectSpace)
+										{
+											toughingSQuads.push_back(k);
+											allLevels.push_back(k[0].z());
+											allLevels.push_back(k[2].z());
+										}
+										else
+										{
+											// Do not add quad to toughingQuads and add the space to spaces which need more check for shifting.
+											std::cout << "space i is: " << *selection[i] << "and will be removed from to shift spaces. " << std::endl;
+											selectionShiftIssue.push_back(selection[i]);
+											spaceBreak = true;
+											selection.erase (selection.begin()+i);
+											if(i=!0) i--;
+											break;
+										}
 										alreadyAdd =  true;
 									}
 									bool doubleInsertQ2 = false;
 									for (const auto& m : toughingNSQuads)
-									{// check if quad k or t already exist in toughingNSQuads
+									{// check if t already exist in toughingNSQuads
 										if (t.isSameAs(m, tol))
 										{
 											doubleInsertQ2 = true;
 										}
 									}
 									if(!doubleInsertQ2)
-									{//if agree, then add to toughingNSQuads
-										toughingNSQuads.push_back(t);
-										allLevels.push_back(t[0].z());
-										allLevels.push_back(t[2].z());
+									{//if agree, then: 
+										// check if quad can be sweeped without interfering with non moving spaces
+										bso::utilities::geometry::vertex pointOnPlaneZ0line0 = planeZ0line.getPointClosestTo(k[0]);
+										bso::utilities::geometry::vertex pointOnPlaneZ0line1 = planeZ0line.getPointClosestTo(k[1]);
+										bso::utilities::geometry::vertex cornerAtZ00 = {k[0].x(),k[0].y(),0};
+										bso::utilities::geometry::vertex cornerAtZ01 = {k[1].x(),k[1].y(),0};
+										bso::utilities::geometry::line_segment checkLine0 = {pointOnPlaneZ0line0, cornerAtZ00};
+										bso::utilities::geometry::line_segment checkLine1 = {pointOnPlaneZ0line1, cornerAtZ01};
+										bool sweepQuadWillIntersectSpace = false;
+										for(const auto l: ((spaceGeomNS.getQuadrilateral())[4]).getLines())
+										{
+											bso::utilities::geometry::line_segment lz0 = {{l[0].x(),l[0].y(),0},{l[1].x(),l[1].y(),0}};
+											bso::utilities::geometry::vertex intersectionPoint;
+											if(checkLine0.intersectsWith(lz0, intersectionPoint, tol))
+											{
+												if(!intersectionPoint.isSameAs(checkLine0[0],tol) && !intersectionPoint.isSameAs(checkLine0[1],tol))
+												{
+													sweepQuadWillIntersectSpace = true;
+													break;
+												}
+											}
+											if(checkLine1.intersectsWith(lz0, intersectionPoint, tol))
+											{
+												if(!intersectionPoint.isSameAs(checkLine1[0],tol) && !intersectionPoint.isSameAs(checkLine1[1],tol))
+												{
+													sweepQuadWillIntersectSpace = true;
+													break;
+												}
+											}
+										}
+										
+										if(!sweepQuadWillIntersectSpace)
+										{
+											toughingNSQuads.push_back(t);
+											allLevels.push_back(t[0].z());
+											allLevels.push_back(t[2].z());
+										}
+										else
+										{
+											// Do not add quad to toughingQuads and add the space to spaces which need more check for shifting.
+											std::cout << "space i is: " << *selection[i] << "and will be removed from to shift spaces. " << std::endl;
+											selectionShiftIssue.push_back(selection[i]);
+											spaceBreak = true;
+											selection.erase (selection.begin()+i);
+											if(i=!0) i--;
 
+											// check scenario's:
+											 //1. is the shiftAmount big enough to avoid overlap? (Note: the earlier check performed does not check for this case)
+
+											 //2. is not shifting an option? and if so, which quads should be then take into account, if any?
+
+
+
+
+											break;
+										}
 										alreadyAdd =  true;
 									}
-									if(alreadyAdd) break;
+									if(alreadyAdd || spaceBreak) break;
 								}
 							}
-							if(alreadyAdd) break;
+							if(alreadyAdd || spaceBreak) break;
 						}
 					}
+					if(spaceBreak) break;
 				}
+				if(spaceBreak) break;
 			}
+			if(spaceBreak) break;
 		}
 	}
 
@@ -1060,6 +1296,12 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 				linesAtFloor[j].push_back(lineAtLevel);
 			}
 		}
+	}
+
+	// Look into all unique selectionShiftIssue spaces
+	for(auto& i : selectionShiftIssue)
+	{
+
 	}
 
 	// Shift spaces
@@ -1499,12 +1741,6 @@ std::vector <bso::utilities::geometry::quadrilateral> ms_N_building::getQuadAtZ0
 	return quadAtZ0;
 } //getQuadAtZ0
 
-std::vector <bso::utilities::geometry::quadrilateral> ms_N_building::getQuadAtZ0(const double mTol)
-{
-	std::vector <bso::utilities::geometry::quadrilateral> quadAtZ0 = getQuadAtZ0(mSpaces,mTol);
-	return quadAtZ0;
-} //getQuadAtZ0
-
 std::vector <utilities::geometry::line_segment> ms_N_building::getLinesAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol)
 {
 	std::vector <utilities::geometry::line_segment> linesAtZ;
@@ -1538,11 +1774,16 @@ std::vector <utilities::geometry::line_segment> ms_N_building::getLinesAtZ0(std:
 	return linesAtZ;
 } //getLinesAtZ0
 
-std::vector <utilities::geometry::line_segment> ms_N_building::getLinesAtZ0(const double mTol)
+bso::utilities::geometry::vertex ms_N_building::getCentreBuilding()
 {
-	std::vector <utilities::geometry::line_segment> linesAtZ = getLinesAtZ0(mSpaces,mTol);
-	return linesAtZ;
-} //getLinesAtZ0
+	bso::utilities::geometry::vertex centreOfBuilding = {0,0,0};
+	for(const auto i: mSpaces)
+	{
+		centreOfBuilding = centreOfBuilding + i->getGeometry().getCenter();
+	}
+	centreOfBuilding = centreOfBuilding/mSpaces.size();
+	return centreOfBuilding;
+} //getCentreBuilding()
 
 void ms_N_building::getDelaunayVariables(std::vector <utilities::geometry::vertex>& delaunayPoints, std::vector <utilities::geometry::line_segment>& delaunayLines, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol)
 {
