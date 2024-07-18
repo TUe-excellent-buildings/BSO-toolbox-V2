@@ -48,6 +48,9 @@ public:
 	bool operator != (const ms_space& rhs) const;
 	
 	friend std::ostream& operator<< (std::ostream& stream, const ms_space& space);
+
+	bool highlightInVisualization = false;
+	bool highlightInVisualization1 = false;
 };
 
 } // namespace spatial_design

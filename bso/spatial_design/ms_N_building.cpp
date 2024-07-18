@@ -1047,11 +1047,13 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 			std::vector<bso::utilities::geometry::quadrilateral> QuadNS = spaceGeomNS.getQuadrilateral();
 			for(const auto k: QuadS)
 			{
+				//std::cout << "QuadS is: " << k << std::endl;
 				bool QuadSisVertical = k.getNormal().isVertical(); // if true then a horizontal plane is considered
 				
 				std::vector<bso::utilities::geometry::line_segment> linesk = k.getLines();
 				for(const auto t: QuadNS)
 				{
+					//std::cout << "QuadNS is: " << k << std::endl;
 					if(QuadSisVertical && t.getNormal().isVertical()) // both are horizontal planes
 					{
 						if(!k.isCoplanar(t[0], tol) || !k.isCoplanar(t[2], tol)) continue; // the ID 0 and 2 vertices are opposing vertices therefore if hold then quads are coPlanar
@@ -1118,142 +1120,304 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 						if(QuadSisVertical) {continue;} // only consider two vertical planes in the following
 						if(!k.isCoplanar(t[0], tol) || !k.isCoplanar(t[2], tol)) continue; // the ID 0 and 2 vertices are opposing vertices therefore if hold then quads are coPlanar
 						bool alreadyAdd = false;
-						std::vector<bso::utilities::geometry::line_segment> linest = t.getLines();
-						for(const auto l1: linest)
+						bool AddIfSweepIsOke = false;
+
+						// check for identical quads since the line intersection check in the else statement would not notice this case.
+						if(k.isSameAs(t,tol))
 						{
-							for(const auto l2: linesk)
-							{
-								if(l1.intersectsWith(l2, tol))
+							bool doubleInsertQ1 = false;
+							for (const auto& m : toughingSQuads)
+							{// check if quad k already exist in toughingSQuads
+								if (k.isSameAs(m, tol))
 								{
-									bool doubleInsertQ1 = false;
-									for (const auto& m : toughingSQuads)
-									{// check if quad k already exist in toughingSQuads
-										if (k.isSameAs(m, tol))
-										{
-											doubleInsertQ1 = true;
-										}
-									}
-									if(!doubleInsertQ1)
-									{// if agree, then check and add to toughingSQuads
-										// check if quad can be sweeped without interfering with non moving spaces
-										bso::utilities::geometry::vertex pointOnPlaneZ0line0 = planeZ0line.getPointClosestTo(k[0]);
-										bso::utilities::geometry::vertex pointOnPlaneZ0line1 = planeZ0line.getPointClosestTo(k[1]);
-										bso::utilities::geometry::vertex cornerAtZ00 = {k[0].x(),k[0].y(),0};
-										bso::utilities::geometry::vertex cornerAtZ01 = {k[1].x(),k[1].y(),0};
-										bso::utilities::geometry::line_segment checkLine0 = {pointOnPlaneZ0line0, cornerAtZ00};
-										bso::utilities::geometry::line_segment checkLine1 = {pointOnPlaneZ0line1, cornerAtZ01};
-										bool sweepQuadWillIntersectSpace = false;
-										for(const auto l: ((spaceGeomNS.getQuadrilateral())[4]).getLines())
-										{
-											bso::utilities::geometry::line_segment lz0 = {{l[0].x(),l[0].y(),0},{l[1].x(),l[1].y(),0}};
-											bso::utilities::geometry::vertex intersectionPoint;
-											if(checkLine0.intersectsWith(lz0, intersectionPoint, tol))
-											{
-												if(!intersectionPoint.isSameAs(checkLine0[0],tol) && !intersectionPoint.isSameAs(checkLine0[1],tol))
-												{
-													sweepQuadWillIntersectSpace = true;
-													break;
-												}
-											}
-											if(checkLine1.intersectsWith(lz0, intersectionPoint, tol))
-											{
-												if(!intersectionPoint.isSameAs(checkLine1[0],tol) && !intersectionPoint.isSameAs(checkLine1[1],tol))
-												{
-													sweepQuadWillIntersectSpace = true;
-													break;
-												}
-											}
-										}
-										
-										if(!sweepQuadWillIntersectSpace)
-										{
-											toughingSQuads.push_back(k);
-											allLevels.push_back(k[0].z());
-											allLevels.push_back(k[2].z());
-										}
-										else
-										{
-											// Do not add quad to toughingQuads and add the space to spaces which need more check for shifting.
-											std::cout << "space i is: " << *selection[i] << "and will be removed from to shift spaces. " << std::endl;
-											selectionShiftIssue.push_back(selection[i]);
-											spaceBreak = true;
-											selection.erase (selection.begin()+i);
-											if(i=!0) i--;
-											break;
-										}
-										alreadyAdd =  true;
-									}
-									bool doubleInsertQ2 = false;
-									for (const auto& m : toughingNSQuads)
-									{// check if t already exist in toughingNSQuads
-										if (t.isSameAs(m, tol))
-										{
-											doubleInsertQ2 = true;
-										}
-									}
-									if(!doubleInsertQ2)
-									{//if agree, then: 
-										// check if quad can be sweeped without interfering with non moving spaces
-										bso::utilities::geometry::vertex pointOnPlaneZ0line0 = planeZ0line.getPointClosestTo(k[0]);
-										bso::utilities::geometry::vertex pointOnPlaneZ0line1 = planeZ0line.getPointClosestTo(k[1]);
-										bso::utilities::geometry::vertex cornerAtZ00 = {k[0].x(),k[0].y(),0};
-										bso::utilities::geometry::vertex cornerAtZ01 = {k[1].x(),k[1].y(),0};
-										bso::utilities::geometry::line_segment checkLine0 = {pointOnPlaneZ0line0, cornerAtZ00};
-										bso::utilities::geometry::line_segment checkLine1 = {pointOnPlaneZ0line1, cornerAtZ01};
-										bool sweepQuadWillIntersectSpace = false;
-										for(const auto l: ((spaceGeomNS.getQuadrilateral())[4]).getLines())
-										{
-											bso::utilities::geometry::line_segment lz0 = {{l[0].x(),l[0].y(),0},{l[1].x(),l[1].y(),0}};
-											bso::utilities::geometry::vertex intersectionPoint;
-											if(checkLine0.intersectsWith(lz0, intersectionPoint, tol))
-											{
-												if(!intersectionPoint.isSameAs(checkLine0[0],tol) && !intersectionPoint.isSameAs(checkLine0[1],tol))
-												{
-													sweepQuadWillIntersectSpace = true;
-													break;
-												}
-											}
-											if(checkLine1.intersectsWith(lz0, intersectionPoint, tol))
-											{
-												if(!intersectionPoint.isSameAs(checkLine1[0],tol) && !intersectionPoint.isSameAs(checkLine1[1],tol))
-												{
-													sweepQuadWillIntersectSpace = true;
-													break;
-												}
-											}
-										}
-										
-										if(!sweepQuadWillIntersectSpace)
-										{
-											toughingNSQuads.push_back(t);
-											allLevels.push_back(t[0].z());
-											allLevels.push_back(t[2].z());
-										}
-										else
-										{
-											// Do not add quad to toughingQuads and add the space to spaces which need more check for shifting.
-											std::cout << "space i is: " << *selection[i] << "and will be removed from to shift spaces. " << std::endl;
-											selectionShiftIssue.push_back(selection[i]);
-											spaceBreak = true;
-											selection.erase (selection.begin()+i);
-											if(i=!0) i--;
-
-											// check scenario's:
-											 //1. is the shiftAmount big enough to avoid overlap? (Note: the earlier check performed does not check for this case)
-
-											 //2. is not shifting an option? and if so, which quads should be then take into account, if any?
-
-
-
-
-											break;
-										}
-										alreadyAdd =  true;
-									}
-									if(alreadyAdd || spaceBreak) break;
+									doubleInsertQ1 = true;
 								}
 							}
+							if(!doubleInsertQ1)
+							{// if agree, then check and add to toughingSQuads
+								// check if quad can be sweeped without interfering with non moving spaces
+								bool sweepQuadWillIntersectSpace = false;
+
+								bso::utilities::geometry::vertex pointOnPlaneZ0line0 = planeZ0line.getPointClosestTo(k[0]);
+								bso::utilities::geometry::vertex pointOnPlaneZ0line1 = planeZ0line.getPointClosestTo(k[1]);
+								bso::utilities::geometry::vertex cornerAtZ00 = {k[0].x(),k[0].y(),0};
+								bso::utilities::geometry::vertex cornerAtZ01 = {k[1].x(),k[1].y(),0};
+								bso::utilities::geometry::line_segment bottumLine = {cornerAtZ00,cornerAtZ01};
+								if(!bottumLine.isOnLine(pointOnPlaneZ0line0, tol) && !bottumLine.isOnLine(pointOnPlaneZ0line1, tol))
+								{
+									bso::utilities::geometry::line_segment checkLine0 = {pointOnPlaneZ0line0, cornerAtZ00};
+									bso::utilities::geometry::line_segment checkLine1 = {pointOnPlaneZ0line1, cornerAtZ01};
+									
+									for(const auto l: ((spaceGeomNS.getQuadrilateral())[4]).getLines())
+									{
+										bso::utilities::geometry::line_segment lz0 = {{l[0].x(),l[0].y(),0},{l[1].x(),l[1].y(),0}};
+										bso::utilities::geometry::vertex intersectionPoint;
+										if(checkLine0.intersectsWith(lz0, intersectionPoint, tol))
+										{
+											if(!intersectionPoint.isSameAs(checkLine0[0],tol) && !intersectionPoint.isSameAs(checkLine0[1],tol))
+											{
+												sweepQuadWillIntersectSpace = true;
+												break;
+											}
+										}
+										if(checkLine1.intersectsWith(lz0, intersectionPoint, tol))
+										{
+											if(!intersectionPoint.isSameAs(checkLine1[0],tol) && !intersectionPoint.isSameAs(checkLine1[1],tol))
+											{
+												sweepQuadWillIntersectSpace = true;
+												break;
+											}
+										}
+									}
+								}
+								
+								if(!sweepQuadWillIntersectSpace)
+								{
+									toughingSQuads.push_back(k);
+									allLevels.push_back(k[0].z());
+									allLevels.push_back(k[2].z());
+								}
+								else
+								{
+									// Do not add quad to toughingQuads and add the space to spaces which need more check for shifting.
+									std::cout << "space i is: " << *selection[i] << "and will be removed from to shift spaces. " << std::endl;
+									selection[i]->highlightInVisualization = true;
+									selectionShiftIssue.push_back(selection[i]);
+									spaceBreak = true;
+									selection.erase (selection.begin()+i);
+									if(i=!0) i--;
+									break;
+								}
+								alreadyAdd =  true;
+							}
+							bool doubleInsertQ2 = false;
+							for (const auto& m : toughingNSQuads)
+							{// check if t already exist in toughingNSQuads
+								if (t.isSameAs(m, tol))
+								{
+									doubleInsertQ2 = true;
+								}
+							}
+							if(!doubleInsertQ2)
+							{//if agree, then: 
+								// check if quad can be sweeped without interfering with non moving spaces
+								bool sweepQuadWillIntersectSpace = false;
+								
+								bso::utilities::geometry::vertex pointOnPlaneZ0line0 = planeZ0line.getPointClosestTo(k[0]);
+								bso::utilities::geometry::vertex pointOnPlaneZ0line1 = planeZ0line.getPointClosestTo(k[1]);
+								bso::utilities::geometry::vertex cornerAtZ00 = {k[0].x(),k[0].y(),0};
+								bso::utilities::geometry::vertex cornerAtZ01 = {k[1].x(),k[1].y(),0};
+								bso::utilities::geometry::line_segment bottumLine = {cornerAtZ00,cornerAtZ01};
+								if(!bottumLine.isOnLine(pointOnPlaneZ0line0, tol) && !bottumLine.isOnLine(pointOnPlaneZ0line1, tol))
+								{
+									bso::utilities::geometry::line_segment checkLine0 = {pointOnPlaneZ0line0, cornerAtZ00};
+									bso::utilities::geometry::line_segment checkLine1 = {pointOnPlaneZ0line1, cornerAtZ01};
+									
+									for(const auto l: ((spaceGeomNS.getQuadrilateral())[4]).getLines())
+									{
+										bso::utilities::geometry::line_segment lz0 = {{l[0].x(),l[0].y(),0},{l[1].x(),l[1].y(),0}};
+										bso::utilities::geometry::vertex intersectionPoint;
+										if(checkLine0.intersectsWith(lz0, intersectionPoint, tol))
+										{
+											if(!intersectionPoint.isSameAs(checkLine0[0],tol) && !intersectionPoint.isSameAs(checkLine0[1],tol))
+											{
+												sweepQuadWillIntersectSpace = true;
+												break;
+											}
+										}
+										if(checkLine1.intersectsWith(lz0, intersectionPoint, tol))
+										{
+											if(!intersectionPoint.isSameAs(checkLine1[0],tol) && !intersectionPoint.isSameAs(checkLine1[1],tol))
+											{
+												sweepQuadWillIntersectSpace = true;
+												break;
+											}
+										}
+									}
+								}
+								
+								if(!sweepQuadWillIntersectSpace)
+								{
+									toughingNSQuads.push_back(t);
+									allLevels.push_back(t[0].z());
+									allLevels.push_back(t[2].z());
+								}
+								else
+								{
+									// Do not add quad to toughingQuads and add the space to spaces which need more check for shifting.
+									std::cout << "space i is: " << *selection[i] << "and will be removed from to shift spaces. " << std::endl;
+									selection[i]->highlightInVisualization = true;
+									selectionShiftIssue.push_back(selection[i]);
+									spaceBreak = true;
+									selection.erase (selection.begin()+i);
+									if(i=!0) i--;
+
+									// check scenario's:
+										//1. is the shiftAmount big enough to avoid overlap? (Note: the earlier check performed does not check for this case)
+
+										//2. is not shifting an option? and if so, which quads should be then take into account, if any?
+
+
+
+									break;
+								}
+								alreadyAdd =  true;
+							}
 							if(alreadyAdd || spaceBreak) break;
+						}
+						else
+						{
+							std::vector<bso::utilities::geometry::line_segment> linest = t.getLines();
+							for(const auto l1: linest)
+							{
+								for(const auto l2: linesk)
+								{
+									if(l1.intersectsWith(l2, tol))
+									{
+										bool doubleInsertQ1 = false;
+										for (const auto& m : toughingSQuads)
+										{// check if quad k already exist in toughingSQuads
+											if (k.isSameAs(m, tol))
+											{
+												doubleInsertQ1 = true;
+											}
+										}
+										if(!doubleInsertQ1)
+										{// if agree, then check and add to toughingSQuads
+											// check if quad can be sweeped without interfering with non moving spaces
+											bool sweepQuadWillIntersectSpace = false;
+
+											bso::utilities::geometry::vertex pointOnPlaneZ0line0 = planeZ0line.getPointClosestTo(k[0]);
+											bso::utilities::geometry::vertex pointOnPlaneZ0line1 = planeZ0line.getPointClosestTo(k[1]);
+											bso::utilities::geometry::vertex cornerAtZ00 = {k[0].x(),k[0].y(),0};
+											bso::utilities::geometry::vertex cornerAtZ01 = {k[1].x(),k[1].y(),0};
+											bso::utilities::geometry::line_segment bottumLine = {cornerAtZ00,cornerAtZ01};
+											if(!bottumLine.isOnLine(pointOnPlaneZ0line0, tol) && !bottumLine.isOnLine(pointOnPlaneZ0line1, tol))
+											{
+												bso::utilities::geometry::line_segment checkLine0 = {pointOnPlaneZ0line0, cornerAtZ00};
+												bso::utilities::geometry::line_segment checkLine1 = {pointOnPlaneZ0line1, cornerAtZ01};
+												
+												for(const auto l: ((spaceGeomNS.getQuadrilateral())[4]).getLines())
+												{
+													bso::utilities::geometry::line_segment lz0 = {{l[0].x(),l[0].y(),0},{l[1].x(),l[1].y(),0}};
+													bso::utilities::geometry::vertex intersectionPoint;
+													if(checkLine0.intersectsWith(lz0, intersectionPoint, tol))
+													{
+														if(!intersectionPoint.isSameAs(checkLine0[0],tol) && !intersectionPoint.isSameAs(checkLine0[1],tol))
+														{
+															sweepQuadWillIntersectSpace = true;
+															break;
+														}
+													}
+													if(checkLine1.intersectsWith(lz0, intersectionPoint, tol))
+													{
+														if(!intersectionPoint.isSameAs(checkLine1[0],tol) && !intersectionPoint.isSameAs(checkLine1[1],tol))
+														{
+															sweepQuadWillIntersectSpace = true;
+															break;
+														}
+													}
+												}
+											}
+											
+											if(!sweepQuadWillIntersectSpace)
+											{
+												toughingSQuads.push_back(k);
+												allLevels.push_back(k[0].z());
+												allLevels.push_back(k[2].z());
+											}
+											else
+											{
+												// Do not add quad to toughingQuads and add the space to spaces which need more check for shifting.
+												//std::cout << "space i is: " << *selection[i] << "and will be removed from to shift spaces. " << std::endl;
+												selection[i]->highlightInVisualization = true;
+												selectionShiftIssue.push_back(selection[i]);
+												spaceBreak = true;
+												selection.erase (selection.begin()+i);
+												if(i=!0) i--;
+												break;
+											}
+											alreadyAdd =  true;
+										}
+										bool doubleInsertQ2 = false;
+										for (const auto& m : toughingNSQuads)
+										{// check if t already exist in toughingNSQuads
+											if (t.isSameAs(m, tol))
+											{
+												doubleInsertQ2 = true;
+											}
+										}
+										if(!doubleInsertQ2)
+										{//if agree, then: 
+											// check if quad can be sweeped without interfering with non moving spaces
+											bool sweepQuadWillIntersectSpace = false;
+											
+											bso::utilities::geometry::vertex pointOnPlaneZ0line0 = planeZ0line.getPointClosestTo(k[0]);
+											bso::utilities::geometry::vertex pointOnPlaneZ0line1 = planeZ0line.getPointClosestTo(k[1]);
+											bso::utilities::geometry::vertex cornerAtZ00 = {k[0].x(),k[0].y(),0};
+											bso::utilities::geometry::vertex cornerAtZ01 = {k[1].x(),k[1].y(),0};
+											bso::utilities::geometry::line_segment bottumLine = {cornerAtZ00,cornerAtZ01};
+											if(!bottumLine.isOnLine(pointOnPlaneZ0line0, tol) && !bottumLine.isOnLine(pointOnPlaneZ0line1, tol))
+											{
+												bso::utilities::geometry::line_segment checkLine0 = {pointOnPlaneZ0line0, cornerAtZ00};
+												bso::utilities::geometry::line_segment checkLine1 = {pointOnPlaneZ0line1, cornerAtZ01};
+												
+												for(const auto l: ((spaceGeomNS.getQuadrilateral())[4]).getLines())
+												{
+													bso::utilities::geometry::line_segment lz0 = {{l[0].x(),l[0].y(),0},{l[1].x(),l[1].y(),0}};
+													bso::utilities::geometry::vertex intersectionPoint;
+													if(checkLine0.intersectsWith(lz0, intersectionPoint, tol))
+													{
+														if(!intersectionPoint.isSameAs(checkLine0[0],tol) && !intersectionPoint.isSameAs(checkLine0[1],tol))
+														{
+															sweepQuadWillIntersectSpace = true;
+															break;
+														}
+													}
+													if(checkLine1.intersectsWith(lz0, intersectionPoint, tol))
+													{
+														if(!intersectionPoint.isSameAs(checkLine1[0],tol) && !intersectionPoint.isSameAs(checkLine1[1],tol))
+														{
+															sweepQuadWillIntersectSpace = true;
+															break;
+														}
+													}
+												}
+											}
+											
+											if(!sweepQuadWillIntersectSpace)
+											{
+												toughingNSQuads.push_back(t);
+												allLevels.push_back(t[0].z());
+												allLevels.push_back(t[2].z());
+											}
+											else
+											{
+												// Do not add quad to toughingQuads and add the space to spaces which need more check for shifting.
+												//std::cout << "space i is: " << *selection[i] << "and will be removed from to shift spaces. " << std::endl;
+												selection[i]->highlightInVisualization = true;
+												selectionShiftIssue.push_back(selection[i]);
+												spaceBreak = true;
+												selection.erase (selection.begin()+i);
+												if(i=!0) i--;
+
+												// check scenario's:
+												//1. is the shiftAmount big enough to avoid overlap? (Note: the earlier check performed does not check for this case)
+
+												//2. is not shifting an option? and if so, which quads should be then take into account, if any?
+
+
+
+
+												break;
+											}
+											alreadyAdd =  true;
+										}
+										if(alreadyAdd || spaceBreak) break;
+									}
+								}
+								if(alreadyAdd || spaceBreak) break;
+							}
 						}
 					}
 					if(spaceBreak) break;
@@ -1262,6 +1426,17 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 			}
 			if(spaceBreak) break;
 		}
+	}
+
+	if(selection.size() == 0 || notSelectedSpaces.size() == 0)
+	{
+		std::stringstream errorMessage;
+				errorMessage << "There are no spaces found to be shifted after searching for Quads. " << std::endl
+										<< "Meaning that spaces where removed from being shifted because they would run into non-moving spaces " << std::endl
+										<< "the nr of spaces to be shifted are: " << selection.size() << "and the nr of spaces not be be shifted" << notSelectedSpaces.size() << std::endl
+										<< "Inserted a different plane, not of location: " << location << "and shiftDirection" << shiftDirection << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
 	}
 
 	// Sort vector, bring all duplicates to end of vector plus get cut off point, then erase duplicates from the end of vector allLevels:
@@ -1308,6 +1483,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 	for (auto& i : selection)
 	{
 		// Define the new pVertex vector of considered space
+		i->highlightInVisualization1 = true;
 		bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
 		std::vector <utilities::geometry::vertex*> pVert;
 		utilities::geometry::vertex temp;
@@ -1388,6 +1564,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 			if(noSeparation)
 			{ // if not, remove line
 				linesAtFloor[i].erase(linesAtFloor[i].begin() + j);
+				if(j!=0) j--;
 			}
 			else
 			{ // if yes, add line to opposing so that the pair of the lines wil form a space
@@ -1430,6 +1607,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 			mSpaces.push_back(new ms_space());
 			mSpaces.back()->setID(newID);
 			mSpaces.back()->setPVertex(vertexes);
+			std::cout << "space added: " << *mSpaces.back() << std::endl;
 		}
 	}
 
