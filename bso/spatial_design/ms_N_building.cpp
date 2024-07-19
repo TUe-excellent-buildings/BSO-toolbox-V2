@@ -1451,11 +1451,26 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 	for(int i=0; i< toughingSQuads.size(); i++)
 	{
 		std::vector<bso::utilities::geometry::line_segment> lines = toughingSQuads[i].getLines();
+		// Generally, vertex toughingSQuads[i][2] represent/connect to horizontal line top level quad.
+		// and vertex toughingSQuads[i][0] represent/connect to horizontal line bottom level quad.
+		// However, on some occasions, this has not been observed. Therefore, the following code checks this:
+
+		int lineNr1 = 0, lineNr2 = 2;
+		if(lines[lineNr1].getVector().isVertical()) 
+		{
+			lineNr1 = 3;
+			lineNr2 = 1;
+			if((toughingSQuads[i][lineNr1]).z() > (toughingSQuads[i][lineNr2]).z())
+			{
+				lineNr1 = 1;
+				lineNr2 = 3;
+			}
+		}
 		for(int j=0; j<allLevels.size()-1; j++)
 		{
-			if(allLevels[j] >= (toughingSQuads[i][0]).z() && allLevels[j] < (toughingSQuads[i][2]).z())// toughingSQuads[i][2] represent top level quad and toughingSQuads[i][0] represent bottom level quad
+			if(allLevels[j] >= (toughingSQuads[i][lineNr1]).z() && allLevels[j] < (toughingSQuads[i][lineNr2]).z())
 			{
-				bso::utilities::geometry::line_segment lineAtLevel = {{lines[0][0].x(),lines[0][0].y(),allLevels[j]},{lines[0][1].x(),lines[0][1].y(),allLevels[j]}};
+				bso::utilities::geometry::line_segment lineAtLevel = {{lines[lineNr1][0].x(),lines[lineNr1][0].y(),allLevels[j]},{lines[lineNr1][1].x(),lines[lineNr1][1].y(),allLevels[j]}};
 				linesAtFloor[j].push_back(lineAtLevel);
 			}
 		}
@@ -1463,11 +1478,26 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 	for(int i=0; i< toughingNSQuads.size(); i++)
 	{
 		std::vector<bso::utilities::geometry::line_segment> lines = toughingNSQuads[i].getLines();
+		// Generally, vertex toughingSQuads[i][2] represent/connect to horizontal line top level quad.
+		// and vertex toughingSQuads[i][0] represent/connect to horizontal line bottom level quad.
+		// However, on some occasions, this has not been observed. Therefore, the following code checks this:
+
+		int lineNr1 = 0, lineNr2 = 2;
+		if(lines[lineNr1].getVector().isVertical()) 
+		{
+			lineNr1 = 3;
+			lineNr2 = 1;
+			if((toughingSQuads[i][lineNr1]).z() > (toughingSQuads[i][lineNr2]).z())
+			{
+				lineNr1 = 1;
+				lineNr2 = 3;
+			}
+		}
 		for(int j=0; j<allLevels.size()-1; j++)
 		{
-			if(allLevels[j] >= (toughingNSQuads[i][0]).z() && allLevels[j] < (toughingNSQuads[i][2]).z())// toughingNSQuads[i][2] represent top level quad and toughingNSQuads[i][0] represent bottom level quad
+			if(allLevels[j] >= (toughingNSQuads[i][lineNr1]).z() && allLevels[j] < (toughingNSQuads[i][lineNr2]).z())// toughingNSQuads[i][2] represent top level quad and toughingNSQuads[i][0] represent bottom level quad
 			{
-				bso::utilities::geometry::line_segment lineAtLevel = {{lines[0][0].x(),lines[0][0].y(),allLevels[j]},{lines[0][1].x(),lines[0][1].y(),allLevels[j]}};
+				bso::utilities::geometry::line_segment lineAtLevel = {{lines[lineNr1][0].x(),lines[lineNr1][0].y(),allLevels[j]},{lines[lineNr1][1].x(),lines[lineNr1][1].y(),allLevels[j]}};
 				linesAtFloor[j].push_back(lineAtLevel);
 			}
 		}
