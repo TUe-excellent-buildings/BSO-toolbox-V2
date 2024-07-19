@@ -1245,7 +1245,6 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 								else
 								{
 									// Do not add quad to toughingQuads and add the space to spaces which need more check for shifting.
-									std::cout << "space i is: " << *selection[i] << "and will be removed from to shift spaces. " << std::endl;
 									selection[i]->highlightInVisualization = true;
 									selectionShiftIssue.push_back(selection[i]);
 									spaceBreak = true;
@@ -1329,7 +1328,6 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 											else
 											{
 												// Do not add quad to toughingQuads and add the space to spaces which need more check for shifting.
-												//std::cout << "space i is: " << *selection[i] << "and will be removed from to shift spaces. " << std::endl;
 												selection[i]->highlightInVisualization = true;
 												selectionShiftIssue.push_back(selection[i]);
 												spaceBreak = true;
@@ -1637,15 +1635,8 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 			mSpaces.push_back(new ms_space());
 			mSpaces.back()->setID(newID);
 			mSpaces.back()->setPVertex(vertexes);
-			std::cout << "space added: " << *mSpaces.back() << std::endl;
 		}
 	}
-
-	// Check if shifted spaces and non-shifted spaces really leave a capp to fill
-	
-
-
-
 } // shiftFillCutPlane
 
 std::vector<ms_space*> ms_N_building::selectSpacesGeometrically(
