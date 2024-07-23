@@ -13,7 +13,7 @@ class clustering
 private:
 	std::vector<std::shared_ptr<data_point> > mData;
 	std::vector<cluster> mClusters;
-	mutable std::mt19937 mRNGEngine;
+	mutable std::mt19937 mRNGEngine; // This is an engine to make a random set of numbers! Therefore, the clustering can be different each time you run it!
 	unsigned long mRNGSeed;
 	unsigned int mKMin;
 	unsigned int mKMax;

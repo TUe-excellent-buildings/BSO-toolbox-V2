@@ -18,9 +18,10 @@
 #include <stdexcept>
 #include <map>
 
-std::vector<std::string> VIS_OPTIONS = {"ms","tp","tr","de","bo","sd","fe","bp"};
+std::vector<std::string> VIS_OPTIONS = {"ms","msc","msw","tp","tr","de","bo","sd","fe","bp"};
 std::vector<std::string> MOD_OPTIONS = {"bp","sd","sdbp","bpsd"};
 std::vector<std::string> OUT_OPTIONS = {"result_line", "verbose", "ms_files","best","all","recDif"};
+std::vector<std::string> DEL_OPTIONS = {"worst", "cluster"};
 
 int end, begin = 0;
 template<class T>
@@ -37,34 +38,38 @@ void out(const T& t, const bool& e = false,
 using namespace bso;
 int main(int argc, char* argv[])
 {
-	std::string inputFile = "";
-	std::string designName = "";
+	// settings for iteration variables
+	std::string inputFile = "design_311";
+	std::string designName = "design_311";
 	std::string inputLine = "";
-	std::string modification = "";
+	std::string modification = "sd";//"sdbp";
 	std::vector<std::string> visualizations;
 	bool result_line = false;
 	bool ms_files = false;
-	bool verbose = false;
+	bool verbose = true;//false;
 	bool outputAll = false;
 	bool outputBest = false;
 	bool recDif = false;
-	unsigned int iterations = 0;
+	bool clusterDelete = false;
+	unsigned int iterations = 30;//0;
 	unsigned int kMin = 2;
 	unsigned int kMax = 10;
 	unsigned int RNGSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
 	double spaceRemoveRatio = 0.1;
+	int amountOfSpaceRemoval = 0;
 	
+	visualizations.push_back("msc sd bp");
+
+	// Go trough the input argument and set the settings correctly for the iterations
 	std::vector<std::string> args(argv+1, argv+argc);
 	auto arg = args.begin();
-
-	if (arg == args.end())
-	{
-		std::stringstream errorMessage;
-		errorMessage << "\nError, expected arguments, received nothing.\n"
-								 << "use -h or --help for help." << std::endl;
-		throw std::invalid_argument(errorMessage.str());
-	}
-	
+	// if (arg == args.end())
+	// {
+	// 	std::stringstream errorMessage;
+	// 	errorMessage << "\nError, expected arguments, received nothing.\n"
+	// 							 << "use -h or --help for help." << std::endl;
+	// 	throw std::invalid_argument(errorMessage.str());
+	// }
 	while (arg != args.end())
 	{
 		if (*arg == "-h" || *arg == "--help")
@@ -77,9 +82,12 @@ int main(int argc, char* argv[])
 								<<   "\t" << "in \'Movable Sizable\' format.\n";
 			std::cout << "-k\t" << "or --kMinMax, to specify a kMin and kMax for a\n"
 								<<   "\t" << "clustering, expects two integers larger than 1.\n";
-			std::cout << "-r\t" << "or --ratio, to specify a minimum ratio of spaces\n"
+			std::cout << "-r\t" << "or --ratio, to specify a minimum ratio(in case of clustering)/a ratio of spaces\n"
 								<<   "\t" << "that should be removed in every iteration.\n"
 								<<	 "\t" << "Expects a number in the range [0,1].\n";
+			std::cout << "-a\t" << "or --amount, to specify a amount of spaces\n"
+								<<   "\t" << "that should be removed in every iteration.\n"
+								<<	 "\t" << "Expects an integer number above 1.\n";
 			std::cout << "-m\t" << "or --modification, to specify which modification\n"
 								<<   "\t" << "will be applied: \'sd\' for the sd-modifications;\n"
 								<<   "\t" << "\'bp\' for the bp_modifications; \'sdbp\' to alternate\n"
@@ -87,6 +95,9 @@ int main(int argc, char* argv[])
 								<<   "\t" << "but now starting with bp. Only one option is possible.\n";
 			std::cout << "-n\t" << "or --nModifications, to specify the number of modifications\n"
 								<<   "\t" << "that will be applied. Expects only a positive integer\n";
+			std::cout << "-d\t" << "or --deleteMethod, to specify how spaces are deleted:\n"
+								<<   "\t" << "\'cluster\' for cluster deleting spaces\n"
+								<<   "\t" << "\'worst\' for deleting spaces based on worst performance\n";
 			std::cout << "-o\t" << "or --output, to specify the different outputs:\n"
 								<<   "\t" << "\'result_line\' prints a line with the input\n"
 								<<   "\t" << "parameters and the results; \'verbose\' prints\n"
@@ -99,6 +110,8 @@ int main(int argc, char* argv[])
 								<<   "\t" << "but \'all\' and \'best\' cannot be given simultaneously.\n";
 			std::cout << "-v\t" << "or --visualization, to specify which models are visualized: \n"
 								<<   "\t" << "\'ms\' for \'Movable Sizable\',\n"
+								<<   "\t" << "\'msc\' for \'Movable Sizable with visualization of clustering for -d cluster option\',\n"
+								<<   "\t" << "\'msw\' for \'Movable Sizable with visualization of worst spaces to less worst spaces for -d worst option\',\n"
 								<<   "\t" << "\'tp\' for \'conformal model with triangular_prism\', \n"
 								<<   "\t" << "\'tr\' for \'conformal model with ReCtangles and triangles\', \n"
 								<<   "\t" << "\'de\' for \'2D delaunay view used as basis for conformal model\'\n"
@@ -190,6 +203,34 @@ int main(int argc, char* argv[])
 			}
 			
 		}
+		else if (*arg == "-a" || *arg == "--amount")
+		{
+			if (++arg == args.end() || arg->operator[](0) == '-')
+			{
+				std::stringstream errorMessage;
+				errorMessage << "\nError, expected a value after -a or --amount.\n";
+				throw std::invalid_argument(errorMessage.str());
+			}
+			
+			amountOfSpaceRemoval = bso::utilities::trim_and_cast_int(*arg);
+			
+			if (amountOfSpaceRemoval  <= 0)
+			{
+				std::stringstream errorMessage;
+				errorMessage << "\nError, the value after -a or --amount \n"
+										 << "should be an integer number larger then 1, instead it is: "
+										 << amountOfSpaceRemoval << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+			}
+			
+			if (++arg != args.end() && arg->operator[](0) != '-')
+			{
+				std::stringstream errorMessage;
+				errorMessage << "\nError, can only specify one value after -a or --amount.\n";
+				throw std::invalid_argument(errorMessage.str());
+			}
+			
+		}
 		else if (*arg == "-m" || *arg == "--modification")
 		{
 			if (++arg == args.end() || arg->operator[](0) == '-')
@@ -250,6 +291,24 @@ int main(int argc, char* argv[])
 										 << "-n or --nModifications. Use -h or -- help for help\n";
 				throw std::invalid_argument(errorMessage.str());
 			}				
+		}
+		else if (*arg == "-d" || *arg == "--deleteMethod")
+		{
+			while (++arg != args.end() && arg->operator[](0) != '-')
+			{
+				std::string outSpec = *arg;
+				boost::trim(outSpec);
+				if (outSpec == "cluster") clusterDelete = true;
+				else if(outSpec == "worst") clusterDelete = false;
+				else
+				{
+					std::stringstream errorMessage;
+					errorMessage << "\nError, did not recognize: " << outSpec << " as an\n"
+												<< "argument for -d or --deleteMethod. Use -h or\n"
+												<< "--help for help\n";
+					throw std::invalid_argument(errorMessage.str());
+				}
+			}
 		}
 		else if (*arg == "-s" || *arg == "--seed")
 		{
@@ -356,6 +415,9 @@ int main(int argc, char* argv[])
 	if (!visualizations.empty()) visualization::initVisualization(argc,argv);
 	out("Initialized visualization", true, true, verbose);
 	
+
+
+	// Initialize initial design:
 	std::vector<spatial_design::ms_N_building> msDesigns;
 	std::vector<spatial_design::ms_N_building> msDesignsTemp;
 	try
@@ -367,9 +429,7 @@ int main(int argc, char* argv[])
 		std::stringstream errorMessage;
 		errorMessage << "Error, could not initialize MS building design using\n";
 		if (!inputFile.empty())
-			errorMessage << "the following MS input file: " << inputFile << "\n";
-		else
-			errorMessage << "an SC model initialized by the following line:\n" << inputLine;
+			errorMessage << "the following MS_N input file: " << inputFile << "\n";
 		errorMessage << "Received the following error:\n" << e.what() << std::endl;
 		
 		throw std::invalid_argument(errorMessage.str());
@@ -390,6 +450,8 @@ int main(int argc, char* argv[])
 		std::cout <<"averageRecDif: " << averageRecDif << std::endl;
 	}
 	
+
+	// Start with co-evolutionary design proccess:
 	unsigned int nSpaces = msDesigns.back().getSpacePtrs().size();
 	double floorArea = msDesigns.back().getFloorArea();
 	std::vector<structural_design::sd_model> sdModels;
@@ -397,7 +459,7 @@ int main(int argc, char* argv[])
 	std::vector<utilities::data_point> designPerformances;
 	for (unsigned int i = 0; i <= iterations; ++i)
 	{
-		out("Iteration: ",false,false,verbose); out(i,true,false,verbose);
+		out("\nIteration: ",false,false,verbose); out(i,true,false,verbose);
 		
 		designPerformances.push_back(utilities::data_point(2));
 		
@@ -445,10 +507,10 @@ int main(int argc, char* argv[])
 		out("Sent models to visualization",true,true,verbose);
 		if (i >= iterations) break;
 		
-		// create a new MS model
+		// Create a new MS model so the original can not be adapted and adapt this version
 		spatial_design::ms_N_building newMS = msDesigns.back();
 
-		// step 2, get performances per space
+		// Step 2, get performances per space
 		std::vector<utilities::data_point> performances;
 		for (const auto& j : newMS.getSpacePtrs())
 		{
@@ -464,7 +526,7 @@ int main(int argc, char* argv[])
 			tempDataPoint /= j->getFloorArea();
 			performances.push_back(tempDataPoint);
 		}
-		out("Collected performances for each space",true,true,verbose);
+		out("Collected performances for each space",true,true,verbose);	
 
 		// step 3, normalize the data points
 		utilities::data_point utopianPoint;
@@ -480,56 +542,112 @@ int main(int argc, char* argv[])
 		distopianPoint.setToDistopia(performances);
 		out("Normalized space performances",true,true,verbose);
 
-		// step 4, cluster the data
-		utilities::clustering clus(RNGSeed,performances,kMin,kMax,250);
-		out("Clustered space performances",true,true,verbose);
-
-		// step 5, select worst performing cluster and remove these spaces
-		unsigned int nRetainedSpaces = std::floor(nSpaces*(1-spaceRemoveRatio));
-		auto clusters = clus.getClusters();
-		while (newMS.getSpacePtrs().size() > nRetainedSpaces && clusters.size() > 1)
+		// step 4, delete spaces
+		if(clusterDelete)
 		{
-			// find cluster with centroid closest to distopianPoint.
-			unsigned int worstClusterIndex = 0;
-			double smallestDistance = distopianPoint.calcDistanceTo(clusters[0].getCentroid());
-			
-			for (unsigned int j = 1; j < clusters.size(); ++j)
+			// step 4, cluster the data
+			utilities::clustering clus(RNGSeed,performances,kMin,kMax,250);
+			out("Clustered space performances",true,true,verbose);
+
+			// Visualize the clustering if requested
+			if (!visualizations.empty()) for (const auto& visOption : visualizations)
 			{
-				double distance = distopianPoint.calcDistanceTo(clusters[j].getCentroid());
-				if (smallestDistance > distance)
+				if (visOption == "msc")
 				{
-					smallestDistance = distance;
-					worstClusterIndex = j;
+					std::string title = "ms_N_clustering";
+					visualization::visualize(clus, title, 4.0);
+					out("Sent ms clustering models to visualization",true,true,verbose);
 				}
 			}
 			
-			// remove spaces within that cluster.
-			for (const auto& j : clusters[worstClusterIndex].getData())
+			// step 5, select worst performing cluster and remove these spaces
+			unsigned int nRetainedSpaces = std::floor(nSpaces*(1-spaceRemoveRatio));
+			auto clusters = clus.getClusters();
+			while (newMS.getSpacePtrs().size() > nRetainedSpaces && clusters.size() > 1)
 			{
-				std::string msSpaceLine = j->getLabels().back();
-				bso::spatial_design::ms_space temp_space(msSpaceLine);
-				newMS.deleteSpace(j->getMSpacePtrs().back());
-				
+				// find cluster with centroid closest to distopianPoint.
+				unsigned int worstClusterIndex = 0;
+				double smallestDistance = distopianPoint.calcDistanceTo(clusters[0].getCentroid());
+				for (unsigned int j = 1; j < clusters.size(); ++j)
+				{
+					double distance = distopianPoint.calcDistanceTo(clusters[j].getCentroid());
+					if (smallestDistance > distance)
+					{
+						smallestDistance = distance;
+						worstClusterIndex = j;
+					}
+				}
+				// remove spaces within that cluster.
+				for (const auto& j : clusters[worstClusterIndex].getData())
+				{
+					std::string msSpaceLine = j->getLabels().back();
+					newMS.deleteSpace(j->getMSpacePtrs().back());
+				}
+				// remove that cluster from the vector containing all clusters
+				clusters.erase(clusters.begin() + worstClusterIndex);
+			}
+			newMS.setZZero();
+			std::vector<spatial_design::ms_space*> floatingSpaces;
+			if (newMS.hasFloatingSpaces(floatingSpaces))
+			{
+				for (auto& i : floatingSpaces) newMS.deleteSpace(i);
+			}
+			out("Removed worst performing cluster of spaces in building spatial design",true,true,verbose);
+		}
+		else
+		{			
+			for(const auto t: performances) std::cout << t << std::endl;
+			std::cout <<"\nsort performance" << std::endl;
+			std::sort(performances.begin(), performances.end());
+			std::cout <<"sort performance done" << std::endl;
+			for(const auto t: performances) std::cout << t << std::endl;
+			
+
+			// Visualize the performance of spaces
+			if (!visualizations.empty()) for (const auto& visOption : visualizations)
+			{
+				if (visOption == "msw")
+				{
+					std::vector<int> resultModificationFactor = {0,0};
+					
+					if (modification == "sd"){resultModificationFactor[1] = 1;}
+					if (modification == "bp"){resultModificationFactor[0] = 1;}
+					if (modification == "sdbp" || modification == "bpsd")
+					{
+						resultModificationFactor[1] = 1;
+						resultModificationFactor[0] = 1;
+					}					
+					
+					std::string title = "ms_N_worst";
+					visualization::visualize(performances, resultModificationFactor, title, 4.0);
+					out("Sent ms performances models to visualization",true,true,verbose);
+				}
+			}
+
+			int spaceAmountRemoval;
+			if(amountOfSpaceRemoval > 0) {spaceAmountRemoval = amountOfSpaceRemoval;}
+			else 
+			{
+				spaceAmountRemoval = nSpaces*spaceRemoveRatio;
+				if(spaceAmountRemoval == 0){spaceAmountRemoval == 1;}
 			}
 			
-			// remove that cluster from the vector containing all clusters
-			clusters.erase(clusters.begin() + worstClusterIndex);
+			for(int k=performances.size()-1; k>=performances.size()-spaceAmountRemoval; k--)
+			{
+				newMS.deleteSpace(performances[k].getMSpacePtrs().back());
+			}
+			out("Removed worst performing spaces in building spatial design",true,true,verbose);
 		}
-		newMS.setZZero();
-		std::vector<spatial_design::ms_space*> floatingSpaces;
-		if (newMS.hasFloatingSpaces(floatingSpaces))
-		{
-			for (auto& i : floatingSpaces) newMS.deleteSpace(i);
-		}
-		out("Removed worst performing cluster of spaces in building spatial design",true,true,verbose);
 		msDesignsTemp.push_back(newMS);
 		
+
+
 		// step 6, scale and split spaces to recover initial conditions
 		// scale the dimensions in x and y direction
 		double scaleFactor = sqrt(floorArea / newMS.getFloorArea());
 		newMS.scale({{0,scaleFactor},{1,scaleFactor}});
 
-		// split the spaces with the largest dimension in x or y direction (checking x first)
+		// split the spaces with the longest horizontal rib
 		while (newMS.getSpacePtrs().size() < nSpaces)
 		{
 			auto spaceWithLargestDimension = newMS.getSpacePtrs().front();
@@ -553,10 +671,8 @@ int main(int argc, char* argv[])
 			int splitamount = 2;
 			newMS.splitSpace(spaceWithLargestDimension, splitamount , LongestAxis);
 		}
-		
 		// scaleFactor = sqrt(floorArea / newMS.getFloorArea());
 		// newMS.scale({{0,scaleFactor},{1,scaleFactor}});
-		
 		out("Split spaces to restore number of spaces",true,true,verbose);
 		
 		// in case the lower spaces were removed reset minimum z coordinate to Z
@@ -581,6 +697,8 @@ int main(int argc, char* argv[])
 	}
 	out("finished SCDP process",true,true,verbose);
 	
+
+	// Output the requested outputs:
 	std::vector<unsigned int> outputSpaces;
 	// if best, find which designs are best;
 	if (outputAll)

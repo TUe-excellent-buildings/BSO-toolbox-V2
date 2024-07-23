@@ -34,6 +34,8 @@ private:
 	polygon_props  ppropsHighlight1;
 	polygon_props  ppropsSurfaceType; 
 	polygon_props  ppropsDefault; 
+	std::vector<polygon_props> performanceProps;
+	std::vector<std::pair<int, polygon_props>> clusterProps;
 	std::vector<std::pair<int, polygon_props>> spaceIDProps;
 
 	line_props     lprops;
@@ -44,6 +46,8 @@ public:
 					 const std::string& title = "ms_building", const double& linewidth = 1.0);
 	MS_Model(const spatial_design::ms_N_building& msN, const std::string& type = "spaces",
 					 const std::string& title = "ms_N_building", const double& linewidth = 1.0);
+	MS_Model(const utilities::clustering& clus, const std::string& title = "ms_N_clustering", const double& linewidth = 1.0);
+	MS_Model(const std::vector<utilities::data_point>& spaceData, const std::vector<int>& resultModificationFactor, const std::string& title = "ms_N_performances", const double& linewidth = 1.0);
 
 	/*
 	The following constructor contain the ability for defining different colors per space defined in a file 
@@ -188,7 +192,7 @@ MS_Model::MS_Model(const spatial_design::ms_building& ms,
 			throw std::runtime_error(errorMessage.str());
 		}
 		
-		//Add the space indixes to the visualization models
+		//Add the space indexes to the visualization models
 		this->addLabel(labels,&lbprops,centerLabel.str(),spaceGeometry.getCenter());
 	}
 
@@ -319,6 +323,227 @@ MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 
 	pbsp = new random_bsp(polygons);
 } //
+
+MS_Model::MS_Model(const utilities::clustering& clus, const std::string& title /*= "ms_N_building"*/, const double& linewidth /*= 1.0*/)
+{
+	lprops.width = linewidth;
+	mTitle = title;
+
+	// Generate a props color for the amount of clusters
+	const auto clusters = clus.getClusters();
+	int clusterSize = clusters.size();
+	if(clusterSize == 0)
+	{
+		std::stringstream errorMessage;
+			errorMessage << "\nError in visualizing ms_N_buildings clusters.\n"
+									 << "The amount of inserted clusters is zero, therefore there is nothing to visualize: " << clusterSize << "\n"
+									 << "Options are: spaces; surface_type; space_type\n" 
+									 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
+			throw std::runtime_error(errorMessage.str());
+	}
+	float f1=1.0, f2=0.2, f3=0.2, f4 = 0.3;
+
+	int percentage = 1/(clusterSize/3);
+
+	// initiate first cluster color:
+	polygon_props temp;
+	temp.ambient = rgba(f1, f2, f3, f4);
+	temp.diffuse = rgba(f1, f2, f3, f4);							
+	temp.specular = rgba(f1, f2, f3, f4);							
+	temp.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);						
+	temp.shininess = 60.0f;
+	temp.translucent = true;
+	temp.twosided = true;
+
+	// Add new to clusterProps
+	std::pair<int, polygon_props> pairTemp (0, temp);
+	clusterProps.push_back(pairTemp);
+
+	// Send geometry from cluster to visualization with just generated according color
+	namespace geom = bso::utilities::geometry;
+	for (const auto& i : clusters[0].getData())
+	{
+		geom::quad_hexahedron spaceGeometry = i->getMSpacePtrs().back()->getGeometry();
+		std::stringstream centerLabel;
+		centerLabel << i->getMSpacePtrs().back()->getID();
+
+		this->addPolyhedron(polygons, &spaceGeometry, &clusterProps.back().second, &lprops);
+	}
+
+	// All other clusters
+	float tempStoreInt;
+	for (unsigned int j = 1; j < clusterSize; ++j)
+	{
+		// Swich primary color
+		tempStoreInt = f1;
+		f1 = f2;
+		f2 = f3;
+		f3 = tempStoreInt;
+		
+		// // Switch intensity of primary color
+		// if((j+2)%3 == 0)
+		// {
+		// 	f1 = primaryColor1* (1/(percentage*j));
+		// 	f2 = primaryColor2* (1/(percentage*j));
+		// 	f3 = primaryColor3* (1/(percentage*j));
+		// }
+		// else if((j+1)%3 == 0)
+		// {
+		// 	f1 = primaryColor1* (1/(percentage*j));
+		// 	f2 = primaryColor2* (1/(percentage*j));
+		// 	f3 = primaryColor3* (1/(percentage*j));
+		// }
+		// else if(j % 3 == 0)
+		// {
+		// 	f1 = primaryColor1* (1/(percentage*j));
+		// 	f2 = primaryColor2* (1/(percentage*j));
+		// 	f3 = primaryColor3* (1/(percentage*j));
+		// }
+				
+		temp.ambient = rgba(f1, f2, f3, f4);
+		temp.diffuse = rgba(f1, f2, f3, f4);							
+		temp.specular = rgba(f1, f2, f3, f4);							
+		temp.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);						
+		temp.shininess = 60.0f;
+		temp.translucent = true;
+		temp.twosided = true;
+
+		// Add new to clusterProps
+		std::pair<int, polygon_props> pairTemp (j, temp);
+		clusterProps.push_back(pairTemp);
+
+		// Send geometry from cluster to visualization with just generated according color
+		for (const auto& i : clusters[j].getData())
+		{
+			geom::quad_hexahedron spaceGeometry = i->getMSpacePtrs().back()->getGeometry();
+			std::stringstream centerLabel;
+			centerLabel << i->getMSpacePtrs().back()->getID();
+
+			this->addPolyhedron(polygons, &spaceGeometry, &clusterProps.back().second, &lprops);
+		}
+	}
+
+	pbsp = new random_bsp(polygons);
+} //
+
+MS_Model::MS_Model(const std::vector<utilities::data_point>& spaceData, const std::vector<int>& resultModificationFactor, const std::string& title /*= "ms_N_building"*/, const double& linewidth /*= 1.0*/)
+{
+	// Check prerequicatate:
+	int spaceDataSize = spaceData.size();
+	if(spaceDataSize == 0)
+	{
+		std::stringstream errorMessage;
+			errorMessage << "\nError in visualizing ms_N_buildings performance.\n"
+									 << "The amount of inserted performances is zero, therefore there is nothing to visualize: " << spaceDataSize << "\n"
+									 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
+			throw std::runtime_error(errorMessage.str());
+	}
+
+	// initiate standard data:
+	lprops.width = linewidth;
+	mTitle = title;
+
+	// Generate color and add space to visualization:
+	float f1=1.0, f2=0, f3=0, f4 = 0.3;
+	polygon_props temp;
+	temp.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);						
+	temp.shininess = 60.0f;
+	temp.translucent = true;
+	temp.twosided = true;
+	for(const auto i: spaceData)
+	{
+		// switch (i)
+		// {
+		// case /* constant-expression */:
+		// 	/* code */
+		// 	break;
+		
+		// default:
+		// 	break;
+		// }
+		
+		
+		// initiate first performance color
+		temp.ambient = rgba(f1, f2, f3, f4);
+		temp.diffuse = rgba(f1, f2, f3, f4);							
+		temp.specular = rgba(f1, f2, f3, f4);							
+		
+		// Add new to performanceProps
+		performanceProps.push_back(temp);
+	}
+
+	
+	
+
+	
+
+	// // Send geometry from spaceData to visualization with just generated according color
+	// namespace geom = bso::utilities::geometry;
+	// for (const auto& i : clusters[0].getData())
+	// {
+	// 	geom::quad_hexahedron spaceGeometry = i->getMSpacePtrs().back()->getGeometry();
+	// 	std::stringstream centerLabel;
+	// 	centerLabel << i->getMSpacePtrs().back()->getID();
+
+	// 	this->addPolyhedron(polygons, &spaceGeometry, &clusterProps.back().second, &lprops);
+	// }
+
+	// // All other performances
+	// float tempStoreInt;
+	// for (unsigned int j = 1; j < clusterSize; ++j)
+	// {
+	// 	// Swich primary color
+	// 	tempStoreInt = f1;
+	// 	f1 = f2;
+	// 	f2 = f3;
+	// 	f3 = tempStoreInt;
+		
+	// 	// // Switch intensity of primary color
+	// 	// if((j+2)%3 == 0)
+	// 	// {
+	// 	// 	f1 = primaryColor1* (1/(percentage*j));
+	// 	// 	f2 = primaryColor2* (1/(percentage*j));
+	// 	// 	f3 = primaryColor3* (1/(percentage*j));
+	// 	// }
+	// 	// else if((j+1)%3 == 0)
+	// 	// {
+	// 	// 	f1 = primaryColor1* (1/(percentage*j));
+	// 	// 	f2 = primaryColor2* (1/(percentage*j));
+	// 	// 	f3 = primaryColor3* (1/(percentage*j));
+	// 	// }
+	// 	// else if(j % 3 == 0)
+	// 	// {
+	// 	// 	f1 = primaryColor1* (1/(percentage*j));
+	// 	// 	f2 = primaryColor2* (1/(percentage*j));
+	// 	// 	f3 = primaryColor3* (1/(percentage*j));
+	// 	// }
+				
+	// 	temp.ambient = rgba(f1, f2, f3, f4);
+	// 	temp.diffuse = rgba(f1, f2, f3, f4);							
+	// 	temp.specular = rgba(f1, f2, f3, f4);							
+	// 	temp.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);						
+	// 	temp.shininess = 60.0f;
+	// 	temp.translucent = true;
+	// 	temp.twosided = true;
+
+	// 	// Add new to clusterProps
+	// 	std::pair<int, polygon_props> pairTemp (j, temp);
+	// 	performanceProps.push_back(pairTemp);
+
+	// 	// Send geometry from cluster to visualization with just generated according color
+	// 	for (const auto& i : clusters[j].getData())
+	// 	{
+	// 		geom::quad_hexahedron spaceGeometry = i->getMSpacePtrs().back()->getGeometry();
+	// 		std::stringstream centerLabel;
+	// 		centerLabel << i->getMSpacePtrs().back()->getID();
+
+	// 		this->addPolyhedron(polygons, &spaceGeometry, &performanceProps.back().second, &lprops);
+	// 	}
+	// }
+
+	pbsp = new random_bsp(polygons);
+} //
+
 
 MS_Model::MS_Model(const std::string& fileName, const spatial_design::ms_N_building& msN, 
 						const std::string& type /*= "spaces"*/, const std::string& title /*= "ms_building"*/,

@@ -14,6 +14,7 @@ void data_point::mCheckValidDimensions(const data_point& pCheck) const
 		std::stringstream errorMessage;
 		errorMessage << "\nCannot perform operation between data points\n"
 								 << "because they do not have the same dimensions.\n"
+								 << "The found dimensions are: "<< mData.size() << " != " << pCheck.mData.size() << ".\n"
 								 << "(bso/utilities/data_point.hpp)" << std::endl;
 		throw std::runtime_error(errorMessage.str());
 	}
