@@ -172,9 +172,9 @@ void visualize(const utilities::clustering& clus, const std::string& title = "ms
 	vpmanager.addviewport(new viewport(new MS_Model(clus, title, linewidth)));
 }
 
-void visualize(const std::vector<utilities::data_point>& spaceData, const std::vector<int>& resultModificationFactor, const std::string& title = "ms_N_performances", const double& linewidth = 1.0)
+void visualize(const std::vector<utilities::data_point>& spaceData, const std::vector<int>& resultWeightFactor, float transparency = 1.0, const std::string& title = "ms_N_performances", const double& linewidth = 1.0)
 {
-	vpmanager.addviewport(new viewport(new MS_Model(spaceData, resultModificationFactor, title, linewidth)));
+	vpmanager.addviewport(new viewport(new MS_Model(spaceData, resultWeightFactor, transparency, title, linewidth)));
 }
 
 void visualize(const std::string& fileName, const spatial_design::ms_N_building& msN, const std::string& type = "spaces", const std::string& title = "ms_N_building", const double& lineWidth = 1.0)

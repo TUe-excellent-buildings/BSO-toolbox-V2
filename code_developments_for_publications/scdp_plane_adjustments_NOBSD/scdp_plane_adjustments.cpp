@@ -39,37 +39,35 @@ using namespace bso;
 int main(int argc, char* argv[])
 {
 	// settings for iteration variables
-	std::string inputFile = "design_311";
-	std::string designName = "design_311";
+	std::string inputFile = "";
+	std::string designName = "";
 	std::string inputLine = "";
-	std::string modification = "sd";//"sdbp";
+	std::string modification = "";
 	std::vector<std::string> visualizations;
 	bool result_line = false;
 	bool ms_files = false;
-	bool verbose = true;//false;
+	bool verbose = false;
 	bool outputAll = false;
 	bool outputBest = false;
 	bool recDif = false;
 	bool clusterDelete = false;
-	unsigned int iterations = 30;//0;
+	unsigned int iterations = 0;
 	unsigned int kMin = 2;
 	unsigned int kMax = 10;
 	unsigned int RNGSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
 	double spaceRemoveRatio = 0.1;
 	int amountOfSpaceRemoval = 0;
-	
-	visualizations.push_back("msc sd bp");
 
 	// Go trough the input argument and set the settings correctly for the iterations
 	std::vector<std::string> args(argv+1, argv+argc);
 	auto arg = args.begin();
-	// if (arg == args.end())
-	// {
-	// 	std::stringstream errorMessage;
-	// 	errorMessage << "\nError, expected arguments, received nothing.\n"
-	// 							 << "use -h or --help for help." << std::endl;
-	// 	throw std::invalid_argument(errorMessage.str());
-	// }
+	if (arg == args.end())
+	{
+		std::stringstream errorMessage;
+		errorMessage << "\nError, expected arguments, received nothing.\n"
+								 << "use -h or --help for help." << std::endl;
+		throw std::invalid_argument(errorMessage.str());
+	}
 	while (arg != args.end())
 	{
 		if (*arg == "-h" || *arg == "--help")
@@ -542,6 +540,28 @@ int main(int argc, char* argv[])
 		distopianPoint.setToDistopia(performances);
 		out("Normalized space performances",true,true,verbose);
 
+		// Visualize the performance of spaces
+		if (!visualizations.empty()) for (const auto& visOption : visualizations)
+		{
+			if (visOption == "msw")
+			{
+				std::vector<int> resultModificationFactor = {0,0};
+				
+				if (modification == "sd"){resultModificationFactor[1] = 1;}
+				if (modification == "bp"){resultModificationFactor[0] = 1;}
+				if (modification == "sdbp" || modification == "bpsd")
+				{
+					resultModificationFactor[1] = 0.5;
+					resultModificationFactor[0] = 0.5;
+				}					
+				
+				std::string title = "ms_N_worst";
+				float transparency = 1.0;
+				visualization::visualize(performances, resultModificationFactor, transparency, title, 4.0);
+				out("Sent ms performances models to visualization",true,true,verbose);
+			}
+		}
+
 		// step 4, delete spaces
 		if(clusterDelete)
 		{
@@ -595,35 +615,18 @@ int main(int argc, char* argv[])
 			out("Removed worst performing cluster of spaces in building spatial design",true,true,verbose);
 		}
 		else
-		{			
-			for(const auto t: performances) std::cout << t << std::endl;
-			std::cout <<"\nsort performance" << std::endl;
-			std::sort(performances.begin(), performances.end());
-			std::cout <<"sort performance done" << std::endl;
-			for(const auto t: performances) std::cout << t << std::endl;
+		{
 			
-
-			// Visualize the performance of spaces
-			if (!visualizations.empty()) for (const auto& visOption : visualizations)
+			if (modification == "sd" || modification == "bp")
 			{
-				if (visOption == "msw")
-				{
-					std::vector<int> resultModificationFactor = {0,0};
-					
-					if (modification == "sd"){resultModificationFactor[1] = 1;}
-					if (modification == "bp"){resultModificationFactor[0] = 1;}
-					if (modification == "sdbp" || modification == "bpsd")
-					{
-						resultModificationFactor[1] = 1;
-						resultModificationFactor[0] = 1;
-					}					
-					
-					std::string title = "ms_N_worst";
-					visualization::visualize(performances, resultModificationFactor, title, 4.0);
-					out("Sent ms performances models to visualization",true,true,verbose);
-				}
+				std::sort(performances.begin(), performances.end());
 			}
+			else
+			{
+				
+			}	
 
+			// Determine space removal amount
 			int spaceAmountRemoval;
 			if(amountOfSpaceRemoval > 0) {spaceAmountRemoval = amountOfSpaceRemoval;}
 			else 
@@ -631,10 +634,22 @@ int main(int argc, char* argv[])
 				spaceAmountRemoval = nSpaces*spaceRemoveRatio;
 				if(spaceAmountRemoval == 0){spaceAmountRemoval == 1;}
 			}
-			
-			for(int k=performances.size()-1; k>=performances.size()-spaceAmountRemoval; k--)
+
+			// Remove spaces
+			if (modification == "sd" || modification == "bp")
+			{			
+				for(int k=performances.size()-1; k>=performances.size()-spaceAmountRemoval; k--)
+				{
+					newMS.deleteSpace(performances[k].getMSpacePtrs().back());
+				}
+			}
+			else
 			{
-				newMS.deleteSpace(performances[k].getMSpacePtrs().back());
+
+
+
+
+
 			}
 			out("Removed worst performing spaces in building spatial design",true,true,verbose);
 		}
