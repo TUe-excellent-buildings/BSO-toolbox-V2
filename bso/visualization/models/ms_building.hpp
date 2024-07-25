@@ -35,7 +35,7 @@ private:
 	polygon_props  ppropsSurfaceType; 
 	polygon_props  ppropsDefault; 
 	std::vector<polygon_props> performanceProps;
-	std::vector<std::pair<int, polygon_props>> clusterProps;
+	std::vector<polygon_props> clusterProps;
 	std::vector<std::pair<int, polygon_props>> spaceIDProps;
 
 	line_props     lprops;
@@ -326,12 +326,9 @@ MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 
 MS_Model::MS_Model(const utilities::clustering& clus, const std::string& title /*= "ms_N_building"*/, const double& linewidth /*= 1.0*/)
 {
-	lprops.width = linewidth;
-	mTitle = title;
-
-	// Generate a props color for the amount of clusters
+	// Get and check initial data for validity for this function
 	const auto clusters = clus.getClusters();
-	int clusterSize = clusters.size();
+	double clusterSize = clusters.size(); // defined as double for later calculations
 	if(clusterSize == 0)
 	{
 		std::stringstream errorMessage;
@@ -341,64 +338,55 @@ MS_Model::MS_Model(const utilities::clustering& clus, const std::string& title /
 									 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
 			throw std::runtime_error(errorMessage.str());
 	}
-	float f1=1.0, f2=0.2, f3=0.2, f4 = 0.3;
 
-	int percentage = 1/(clusterSize/3);
+	// Initiate variables
+	lprops.width = linewidth;
+	mTitle = title;
+	float f1, f2, f3, f4 = 0.3;
 
-	// initiate first cluster color:
+	// Define color for cluster and insert the spaces of that cluster in that color
 	polygon_props temp;
-	temp.ambient = rgba(f1, f2, f3, f4);
-	temp.diffuse = rgba(f1, f2, f3, f4);							
-	temp.specular = rgba(f1, f2, f3, f4);							
-	temp.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);						
-	temp.shininess = 60.0f;
-	temp.translucent = true;
-	temp.twosided = true;
-
-	// Add new to clusterProps
-	std::pair<int, polygon_props> pairTemp (0, temp);
-	clusterProps.push_back(pairTemp);
-
-	// Send geometry from cluster to visualization with just generated according color
-	namespace geom = bso::utilities::geometry;
-	for (const auto& i : clusters[0].getData())
+	clusterProps.resize(clusterSize);
+	for (double j = 0; j < clusterSize; j++) // defined as double for later calculations
 	{
-		geom::quad_hexahedron spaceGeometry = i->getMSpacePtrs().back()->getGeometry();
-		std::stringstream centerLabel;
-		centerLabel << i->getMSpacePtrs().back()->getID();
+		// the clusterSize is transformed to as wide possible range of colors.
+		double range;
+		range = j/(clusterSize-1);
 
-		this->addPolyhedron(polygons, &spaceGeometry, &clusterProps.back().second, &lprops);
-	}
-
-	// All other clusters
-	float tempStoreInt;
-	for (unsigned int j = 1; j < clusterSize; ++j)
-	{
-		// Swich primary color
-		tempStoreInt = f1;
-		f1 = f2;
-		f2 = f3;
-		f3 = tempStoreInt;
-		
-		// // Switch intensity of primary color
-		// if((j+2)%3 == 0)
-		// {
-		// 	f1 = primaryColor1* (1/(percentage*j));
-		// 	f2 = primaryColor2* (1/(percentage*j));
-		// 	f3 = primaryColor3* (1/(percentage*j));
-		// }
-		// else if((j+1)%3 == 0)
-		// {
-		// 	f1 = primaryColor1* (1/(percentage*j));
-		// 	f2 = primaryColor2* (1/(percentage*j));
-		// 	f3 = primaryColor3* (1/(percentage*j));
-		// }
-		// else if(j % 3 == 0)
-		// {
-		// 	f1 = primaryColor1* (1/(percentage*j));
-		// 	f2 = primaryColor2* (1/(percentage*j));
-		// 	f3 = primaryColor3* (1/(percentage*j));
-		// }
+		// Define rgb color value's according to range(i.e. percentage) values
+		double factor;
+		if(range > 0.75 && range <= 1.0) // red till yellow
+		{
+			factor = 1-(range-0.75)/0.25;
+			f1=1.0;
+			f2=1.0*factor;
+			f3=0;
+		}
+		else if(range >= 0.5 && range <= 0.75) // yellow till green
+		{
+			factor = (range-0.5)/0.25;
+			f1=1.0*factor;
+			f2=1.0;
+			f3=0;
+		}
+		else if(range >= 0.25 && range <= 0.5) // green till aqua
+		{
+			factor = 1-(range-0.25)/0.25;
+			f1=0;
+			f2=1.0;
+			f3=1.0*factor;
+		}
+		else if(range >= 0 && range <= 0.25) // aqua till blue
+		{
+			factor = (range)/0.25;
+			f1=0;
+			f2=1.0*factor;
+			f3=1.0;
+		}
+		else
+		{
+			/*not a possible option duo to definition of ratio*/
+		}
 				
 		temp.ambient = rgba(f1, f2, f3, f4);
 		temp.diffuse = rgba(f1, f2, f3, f4);							
@@ -407,19 +395,20 @@ MS_Model::MS_Model(const utilities::clustering& clus, const std::string& title /
 		temp.shininess = 60.0f;
 		temp.translucent = true;
 		temp.twosided = true;
+		std::cout << "color is: " << f1 << "; " << f2 << "; " << f3 << "; " << f4 << std::endl;
 
-		// Add new to clusterProps
-		std::pair<int, polygon_props> pairTemp (j, temp);
-		clusterProps.push_back(pairTemp); // The data clusterProps should already be full with the amount of element required since otherwise the data is rearranged and we can't send it trough pointer reference
+		// Add new color to clusterProps
+		clusterProps[j] = temp; // The data clusterProps should already be full with the amount of element required since otherwise the data is rearranged and we can't send it trough pointer reference to visualization
 
 		// Send geometry from cluster to visualization with just generated according color
+		namespace geom = bso::utilities::geometry;
 		for (const auto& i : clusters[j].getData())
 		{
 			geom::quad_hexahedron spaceGeometry = i->getMSpacePtrs().back()->getGeometry();
 			std::stringstream centerLabel;
 			centerLabel << i->getMSpacePtrs().back()->getID();
 
-			this->addPolyhedron(polygons, &spaceGeometry, &clusterProps.back().second, &lprops);
+			this->addPolyhedron(polygons, &spaceGeometry, &clusterProps[j], &lprops);
 		}
 	}
 
