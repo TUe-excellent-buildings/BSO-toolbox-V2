@@ -395,7 +395,6 @@ MS_Model::MS_Model(const utilities::clustering& clus, const std::string& title /
 		temp.shininess = 60.0f;
 		temp.translucent = true;
 		temp.twosided = true;
-		std::cout << "color is: " << f1 << "; " << f2 << "; " << f3 << "; " << f4 << std::endl;
 
 		// Add new color to clusterProps
 		clusterProps[j] = temp; // The data clusterProps should already be full with the amount of element required since otherwise the data is rearranged and we can't send it trough pointer reference to visualization
