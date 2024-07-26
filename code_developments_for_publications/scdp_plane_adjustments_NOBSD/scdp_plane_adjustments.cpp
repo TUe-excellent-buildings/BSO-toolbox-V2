@@ -468,7 +468,7 @@ int main(int argc, char* argv[])
 		grammar::grammar grm(cf);
 		out("Initialized grammar",true,true,verbose);
 		
-		sdModels.push_back(grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt")));
+		sdModels.push_back(grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"))); 
 		out("Generated structural model",true,true,verbose);
 		
 		sdModels.back().analyze();
@@ -546,23 +546,29 @@ int main(int argc, char* argv[])
 			if (visOption == "msw")
 			{
 				std::vector<int> resultModificationFactor = {0,0};
-				
-				if (modification == "sd"){resultModificationFactor[1] = 1;}
-				if (modification == "bp"){resultModificationFactor[0] = 1;}
-				if (modification == "sdbp" || modification == "bpsd")
-				{
-					resultModificationFactor[1] = 0.5;
-					resultModificationFactor[0] = 0.5;
-				}					
-				
 				std::string title = "ms_N_worst";
+
+				if (modification == "sd"){resultModificationFactor[1] = 1; title = "ms_N_worst_sd_" + std::to_string(i);}
+				else if (modification == "bp"){resultModificationFactor[0] = 1; title = "ms_N_worst_bp_" + std::to_string(i);}
+				else if (modification == "sdbp")
+				{
+					if(i % 2){resultModificationFactor[0] = 1; title = "ms_N_worst_bp_" + std::to_string(i);}
+					else{resultModificationFactor[1] = 1; title = "ms_N_worst_sd_" + std::to_string(i);}
+				}
+				else if (modification == "bpsd")
+				{
+					if(i % 2){resultModificationFactor[1] = 1; title = "ms_N_worst_sd_" + std::to_string(i);}
+					else{resultModificationFactor[0] = 1; title = "ms_N_worst_bp_" + std::to_string(i);}
+				}	
+				
 				float transparency = 1.0;
+				std::cout << "resultModificationFactor is: " << resultModificationFactor[0] << " ; " << resultModificationFactor[1] << std::endl;
 				visualization::visualize(performances, resultModificationFactor, transparency, title, 4.0);
 				out("Sent ms performances models to visualization",true,true,verbose);
 			}
 		}
 
-		// step 4, delete spaces
+		// Step 4, delete spaces
 		if(clusterDelete)
 		{
 			// step 4, cluster the data
@@ -574,7 +580,7 @@ int main(int argc, char* argv[])
 			{
 				if (visOption == "msc")
 				{
-					std::string title = "ms_N_clustering";
+					std::string title = "ms_N_clustering" + std::to_string(i);
 					visualization::visualize(clus, title, 4.0);
 					out("Sent ms clustering models to visualization",true,true,verbose);
 				}
@@ -616,14 +622,27 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			
+			std::vector<utilities::data_point> performancesRemoveSpace = performances;
 			if (modification == "sd" || modification == "bp")
 			{
-				std::sort(performances.begin(), performances.end());
+				std::sort(performancesRemoveSpace.begin(), performancesRemoveSpace.end());
 			}
 			else
-			{
-				
+			{ 
+				// remove performance data which is not used so for deleting spaces so the following sorting algorithm works.
+				int index = 0;
+				if(modification == "sdbp")
+				{
+					if((i+1) % 2){index = 0;}
+					else {index = 1;}
+				}
+				else if(modification == "bpsd")
+				{
+					if((i+1) % 2){index = 1;}
+					else {index = 0;}
+				}
+				for(auto &k: performancesRemoveSpace){k(index) = 0;} 
+				std::sort(performancesRemoveSpace.begin(), performancesRemoveSpace.end());
 			}	
 
 			// Determine space removal amount
@@ -636,20 +655,9 @@ int main(int argc, char* argv[])
 			}
 
 			// Remove spaces
-			if (modification == "sd" || modification == "bp")
-			{			
-				for(int k=performances.size()-1; k>=performances.size()-spaceAmountRemoval; k--)
-				{
-					newMS.deleteSpace(performances[k].getMSpacePtrs().back());
-				}
-			}
-			else
+			for(int k=performancesRemoveSpace.size()-1; k>=performancesRemoveSpace.size()-spaceAmountRemoval; k--)
 			{
-
-
-
-
-
+				newMS.deleteSpace(performancesRemoveSpace[k].getMSpacePtrs().back());
 			}
 			out("Removed worst performing spaces in building spatial design",true,true,verbose);
 		}
