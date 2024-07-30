@@ -5,6 +5,7 @@
 #include <bso/utilities/geometry.hpp>
 #include <bso/utilities/data_point.hpp>
 #include <bso/utilities/clustering.hpp>
+#include <bso/utilities/data_plot.hpp>
 #include <bso/structural_design/sd_model.hpp>
 #include <bso/building_physics/bp_model.hpp>
 #include <bso/grammar/grammar.hpp>
@@ -20,7 +21,7 @@
 
 std::vector<std::string> VIS_OPTIONS = {"ms","msc","msw","tp","tr","de","bo","sd","fe","bp"};
 std::vector<std::string> MOD_OPTIONS = {"bp","sd","sdbp","bpsd"};
-std::vector<std::string> OUT_OPTIONS = {"result_line", "verbose", "ms_files","best","all","recDif"};
+std::vector<std::string> OUT_OPTIONS = {"result_line", "verbose", "ms_files","plot","best","all","recDif"};
 std::vector<std::string> DEL_OPTIONS = {"worst", "cluster"};
 
 int end, begin = 0;
@@ -46,12 +47,13 @@ int main(int argc, char* argv[])
 	std::vector<std::string> visualizations;
 	bool result_line = false;
 	bool ms_files = false;
+	bool plot = false;
 	bool verbose = false;
 	bool outputAll = false;
 	bool outputBest = false;
 	bool recDif = false;
 	bool clusterDelete = false;
-	unsigned int iterations = 0;
+	unsigned int iterations = 2;
 	unsigned int kMin = 2;
 	unsigned int kMax = 10;
 	unsigned int RNGSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
@@ -348,6 +350,7 @@ int main(int argc, char* argv[])
 				boost::trim(outSpec);
 				if 			(outSpec == "result_line") result_line = true;
 				else if (outSpec == "verbose") verbose = true;
+				else if (outSpec == "plot") plot = true;
 				else if (outSpec == "ms_files") ms_files = true;
 				else if (outSpec == "all") outputAll = true;
 				else if (outSpec == "best") outputBest = true;
@@ -455,6 +458,7 @@ int main(int argc, char* argv[])
 	std::vector<structural_design::sd_model> sdModels;
 	std::vector<building_physics::bp_model> bpModels;
 	std::vector<utilities::data_point> designPerformances;
+	std::vector<std::string> axisDesignPerformances = {"sd","bp"};
 	for (unsigned int i = 0; i <= iterations; ++i)
 	{
 		out("\nIteration: ",false,false,verbose); out(i,true,false,verbose);
@@ -510,6 +514,7 @@ int main(int argc, char* argv[])
 
 		// Step 2, get performances per space
 		std::vector<utilities::data_point> performances;
+		std::vector<std::string> axisDataTypes = {"bp","sd"};
 		for (const auto& j : newMS.getSpacePtrs())
 		{
 			utilities::data_point tempDataPoint({0,0});
@@ -562,7 +567,6 @@ int main(int argc, char* argv[])
 				}	
 				
 				float transparency = 1.0;
-				std::cout << "resultModificationFactor is: " << resultModificationFactor[0] << " ; " << resultModificationFactor[1] << std::endl;
 				visualization::visualize(performances, resultModificationFactor, transparency, title, 4.0);
 				out("Sent ms performances models to visualization",true,true,verbose);
 			}
@@ -731,6 +735,14 @@ int main(int argc, char* argv[])
 			outputSpaces.push_back(i);
 		}
 	}
+
+	if(plot)
+	{
+		utilities::data_plot dp("temp", designPerformances, axisDesignPerformances, "Design Iteration");
+		//dp.plotScatter2D();
+		dp.plotParetoFront2D();
+		dp.plotVector2D();
+	}
 	
 	for (const auto& i : outputSpaces)
 	{
@@ -740,8 +752,11 @@ int main(int argc, char* argv[])
 								<< modification << "\t"
 								<< i << "\t"
 								<< designPerformances[i](0) << "\t"
-								<< designPerformances[i](1) << "\t"
-								<< RNGSeed << std::endl;
+								<< designPerformances[i](1) << "\t" << std::endl;
+								if(clusterDelete)
+								{
+									std::cout << designName << RNGSeed << std::endl;
+								}
 		}
 		if (ms_files)
 		{
@@ -750,8 +765,11 @@ int main(int argc, char* argv[])
 										 << modification << "_"
 										 << i << "_"
 										 << designPerformances[i](0) << "_"
-										 << designPerformances[i](1) << "_"
-										 << RNGSeed;
+										 << designPerformances[i](1) << "_";
+										 if(clusterDelete)
+										 {
+											fileNameStream << RNGSeed;
+										 }
 			std::string fileName = fileNameStream.str();
 			msDesigns[i].writeToFile(fileName);
 		}
