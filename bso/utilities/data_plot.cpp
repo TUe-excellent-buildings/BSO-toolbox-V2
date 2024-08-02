@@ -340,7 +340,7 @@ void data_plot::plotVector2D(std::string fileNameVector /*= "vectorStyleData"*/,
     }
     
     // Send a terminal command to make a plot with GNUplot
-    std::string plotDetails = "plot '" + fileNameVector  + "' using 1:2:3:4 with vectors arrowstyle 3 title '" + dataName + " progression'\"";
+    std::string plotDetails = "plot '" + fileNameVector  + "' using 1:2:3:4 with vectors filled head title '" + dataName + " progression'\"";
     std::string axisSetting = "set xlabel '" + axisDataTypes[0] + "'; set ylabel '" + axisDataTypes[1] + "';";
 
     // Perform the plot terminal command to either make a png file of the plot (i.e. bool writeToPNG) or make a visualization (i.e. bool visualize)

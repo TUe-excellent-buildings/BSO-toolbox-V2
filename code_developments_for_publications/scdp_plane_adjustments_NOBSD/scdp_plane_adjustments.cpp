@@ -18,6 +18,8 @@
 #include <sstream>
 #include <stdexcept>
 #include <map>
+#include <filesystem>
+#include <chrono>
 
 std::vector<std::string> VIS_OPTIONS = {"ms","msc","msw","tp","tr","de","bo","sd","fe","bp"};
 std::vector<std::string> MOD_OPTIONS = {"bp","sd","sdbp","bpsd"};
@@ -35,6 +37,14 @@ void out(const T& t, const bool& e = false,
 	if (e) std::cout << std::endl;
 	begin = end;
 } // out()
+
+std::string getCurrentDateTime() {
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d_%H-%M-%S");
+    return ss.str();
+}
 
 using namespace bso;
 int main(int argc, char* argv[])
@@ -103,6 +113,8 @@ int main(int argc, char* argv[])
 								<<   "\t" << "\'result_line\' prints a line with the input\n"
 								<<   "\t" << "parameters and the results; \'verbose\' prints\n"
 								<<   "\t" << "a descriptive outline of the process;\n"
+								<<   "\t" << "\'plot\' will make a data file (needed for plotting), \n"
+								<< 	 "\t" << "visualize the plot to screen and the plot will be written to a png file\n"
 								<<   "\t" << "\'ms_files\' will write the ms designs to files\n"
 								<<   "\t" << "\'recdif\' will output the average divergence from a rectangle\n"
 								<<   "\t" << "\'all\' will write all the designs to the specified format\n"
@@ -427,10 +439,7 @@ int main(int argc, char* argv[])
 	
 
 
-	if(resultDir)
-	{
-		
-	}
+
 
 
 
@@ -700,8 +709,8 @@ int main(int argc, char* argv[])
 			if(amountOfSpaceRemoval > 0) {spaceAmountRemoval = amountOfSpaceRemoval;}
 			else 
 			{
-				spaceAmountRemoval = nSpaces*spaceRemoveRatio;
-				if(spaceAmountRemoval == 0){spaceAmountRemoval == 1;}
+				spaceAmountRemoval = round(nSpaces*spaceRemoveRatio);
+				if(spaceAmountRemoval < 1){spaceAmountRemoval = 1;}
 			}
 
 			// Remove spaces
@@ -796,12 +805,69 @@ int main(int argc, char* argv[])
 		}
 	}
 
+
+	std::string dir = "";
+	if(resultDir)
+	{
+		// create resultDir if not existing yet
+		bool resultDirGen = false;
+		std::string path = "results";
+		if (!std::filesystem::exists(path)) 
+		{
+			if (std::filesystem::create_directory(path)) 
+			{
+				resultDirGen = true;
+				dir = path + "/";
+				out("Directory created successfully.",true,true,verbose);
+			} 
+			else 
+			{
+				out("Failed to create directory.",true,true,verbose);
+			}
+		} 
+		else 
+		{
+			resultDirGen = true;
+			dir = path + "/";
+			out("Directory already exists.",true,true,verbose);
+		}
+
+		if(resultDirGen)
+		{
+			std::string path2 = dir + inputFile + "_" + modification + "_-n=" + std::to_string(iterations) + "_" + getCurrentDateTime();
+			if (!std::filesystem::exists(path2)) 
+			{
+				if (std::filesystem::create_directory(path2)) 
+				{
+					dir = path2 + "/";
+					out("Sub-directory of results created successfully.",true,true,verbose);
+				} 
+				else 
+				{
+					out("Sub-directory of results failed to create directory.",true,true,verbose);
+				}
+			} 
+			else 
+			{
+				dir = path2 + "/";
+				out("Sub-directory of results directory already exists.",true,true,verbose);
+			}
+		}
+	}
+
 	if(plot)
 	{
 		utilities::data_plot dp(designPerformances, axisDesignPerformances, "Design Iteration");
-		dp.plotScatter2D();
-		dp.plotParetoFront2D();
-		dp.plotVector2D();
+		std::string fileScatter = dir+"scatterData_" + inputFile + "_" + modification;
+		std::string fileParetoFront = dir+"paretoFrontData_" + inputFile + "_" + modification;
+		std::string fileNonParetoFront = dir+"paretoNonFrontData_" + inputFile + "_" + modification;
+		std::string fileVector = dir+"vectorData_" + inputFile + "_" + modification;
+		std::string plotScatter = dir+"scatterPlot_" + inputFile + "_" + modification +".png";
+		std::string plotParetoFront = dir+"paretoFrontPlot_" + inputFile + "_" + modification +".png";
+		std::string plotVector = dir+"vectorPlot_" + inputFile + "_" + modification +".png";
+		dp.plotScatter2D(fileScatter, plotScatter);
+		dp.plotParetoFront2D(fileParetoFront, fileNonParetoFront, plotParetoFront);
+		dp.plotVector2D(fileVector, plotVector);
 	}
 	
 	for (const auto& i : outputSpaces)
@@ -821,7 +887,7 @@ int main(int argc, char* argv[])
 		if (ms_files)
 		{
 			std::stringstream fileNameStream;
-			fileNameStream << designName << "_"
+			fileNameStream << dir << designName << "_"
 										 << modification << "_"
 										 << i << "_"
 										 << designPerformances[i](0) << "_"
