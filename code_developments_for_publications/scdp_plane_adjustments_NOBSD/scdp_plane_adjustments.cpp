@@ -53,6 +53,7 @@ int main(int argc, char* argv[])
 	bool outputBest = false;
 	bool recDif = false;
 	bool clusterDelete = false;
+	bool resultDir = false;
 	unsigned int iterations = 2;
 	unsigned int kMin = 2;
 	unsigned int kMax = 10;
@@ -350,8 +351,16 @@ int main(int argc, char* argv[])
 				boost::trim(outSpec);
 				if 			(outSpec == "result_line") result_line = true;
 				else if (outSpec == "verbose") verbose = true;
-				else if (outSpec == "plot") plot = true;
-				else if (outSpec == "ms_files") ms_files = true;
+				else if (outSpec == "plot")
+				{
+					plot = true;
+					resultDir = true;
+				}
+				else if (outSpec == "ms_files")
+				{
+					ms_files = true;
+					resultDir = true;
+				} 
 				else if (outSpec == "all") outputAll = true;
 				else if (outSpec == "best") outputBest = true;
 				else if (outSpec == "recdif") recDif = true;
@@ -418,6 +427,32 @@ int main(int argc, char* argv[])
 	
 
 
+	if(resultDir)
+	{
+		
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	// Initialize initial design:
 	std::vector<spatial_design::ms_N_building> msDesigns;
 	std::vector<spatial_design::ms_N_building> msDesignsTemp;
@@ -451,6 +486,17 @@ int main(int argc, char* argv[])
 		std::cout <<"averageRecDif: " << averageRecDif << std::endl;
 	}
 	
+
+
+
+
+
+
+
+
+
+
+
 
 	// Start with co-evolutionary design proccess:
 	unsigned int nSpaces = msDesigns.back().getSpacePtrs().size();
@@ -725,6 +771,20 @@ int main(int argc, char* argv[])
 	out("finished SCDP process",true,true,verbose);
 	
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	// Output the requested outputs:
 	std::vector<unsigned int> outputSpaces;
 	// if best, find which designs are best;
@@ -738,8 +798,8 @@ int main(int argc, char* argv[])
 
 	if(plot)
 	{
-		utilities::data_plot dp("temp", designPerformances, axisDesignPerformances, "Design Iteration");
-		//dp.plotScatter2D();
+		utilities::data_plot dp(designPerformances, axisDesignPerformances, "Design Iteration");
+		dp.plotScatter2D();
 		dp.plotParetoFront2D();
 		dp.plotVector2D();
 	}

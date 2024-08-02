@@ -473,14 +473,14 @@ MS_Model::MS_Model(const std::vector<utilities::data_point>& spaceData, const st
 
 		// Define rgb color value's according to performance
 		double factor;
-		if(performance > 0.5 && performance <= 1.0) // red till yellow
+		if(performance > 0.5 && performance <= (1.0+0.0001)) // red till yellow
 		{
 			factor = 1-(performance-0.5)/0.5;
 			f1=1.0;
 			f2=1.0*factor;
 			f3=0;
 		}
-		else if(performance >= 0 && performance <= 0.5) // yellow till green
+		else if(performance >= (0-0.001) && performance <= 0.5) // yellow till green
 		{
 			factor = (performance)/0.5;
 			f1=1.0*factor;
@@ -489,7 +489,13 @@ MS_Model::MS_Model(const std::vector<utilities::data_point>& spaceData, const st
 		}
 		else
 		{
-			/*not a possible option duo to other error check at start of function above*/
+			std::stringstream errorMessage;
+			errorMessage << "\nError in visualizing ms_N_buildings performance.\n"
+									 << "The inserted spaceData contains results outside the range of 0 till 1,\n"
+									 << "as a result, the colors can not be defined correctly. \n"
+									 << " please normalize the data prior to importing the data in this function. \n"
+									 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
+			throw std::runtime_error(errorMessage.str());
 		}
 		
 		// Generate color for specific performance:
