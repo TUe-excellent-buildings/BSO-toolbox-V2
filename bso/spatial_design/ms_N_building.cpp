@@ -332,16 +332,16 @@ void ms_N_building::scale(const std::vector<std::pair<unsigned int, double> >& s
 void ms_N_building::splitSpace(ms_space* spacePtr, const std::vector<std::pair<unsigned int, unsigned int> >& splits /*= {{0,2},{1,2}}*/)
 { 
 	//Gather information
-	this->getLastSpaceID(); // this statement make sure that an error 
+	this->getLastSpaceID(); 
 	bso::utilities::geometry::quad_hexahedron geometry = spacePtr->getGeometry();
 	
 	// Initiate value's to be used for new space definition
 	bool firstFloorDone = false;
 	std::vector<unsigned int> splitsdiv; // store the split value's in order of axis x,y, and z
 	splitsdiv.resize(3);
-	splitsdiv[0] = 1;//1 is the minimum value of splits since it will uphold the origonal space
-	splitsdiv[1] = 1;//1 is the minimum value of splits since it will uphold the origonal space
-	splitsdiv[2] = 1;//1 is the minimum value of splits since it will uphold the origonal space
+	splitsdiv[0] = 1;//1 is the minimum value of splits since it will uphold the original space
+	splitsdiv[1] = 1;//1 is the minimum value of splits since it will uphold the original space
+	splitsdiv[2] = 1;//1 is the minimum value of splits since it will uphold the original space
 	bso::utilities::geometry::vector heightV; //heigh vector for definition of vertices in the z-direction
 	std::vector<bso::utilities::geometry::line_segment> axisL; // stores the x-axis first and y-axis as second
 	axisL.resize(2);
@@ -538,7 +538,7 @@ void ms_N_building::splitSpace(ms_space& space, const std::vector<std::pair<unsi
 	this->splitSpace(this->getSpacePtr(space), splits);
 } // splitSpace()
 
-void ms_N_building::splitSpace(ms_space* spacePtr, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit) //split inserted line of space into 'splitamount'of section wherefrom splitamount of spaces are defined
+void ms_N_building::splitSpace(ms_space* spacePtr, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit) //split inserted line of space into 'splitamount' of section wherefrom splitAmount of spaces are defined
 {
 	// The inserted line may be closes to a certain axis. 
 	// However, it does not mean that the found axisL in the splitSpace function is the same as the axis of the inserted line since another line of the space may be closer to this axis. 
@@ -622,7 +622,7 @@ void ms_N_building::splitSpace(ms_space* spacePtr, int splitAmount, bso::utiliti
 				throw std::invalid_argument(errorMessage.str());
 		}
 
-		// Check if the inserted line is already found as an axis. If so, adjust the axis variable acordingly
+		// Check if the inserted line is already found as an axis. If so, adjust the axis variable accordingly
 		if(axisL[axis] == lineToSplit) break;
 		else if(axis == 0)
 		{

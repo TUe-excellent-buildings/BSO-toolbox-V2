@@ -1,0 +1,23 @@
+-i_design_1 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i_design_2 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i_design_3 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_301 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_302 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_303 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_304 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_305 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_308 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_309 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_311 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_314 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_316 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_317 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_325 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_326 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_327 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_328 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_329 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_337 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_343 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_344 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw
+-i design_350 -m sd -n 15 -d worst -o verbose plot ms_files all -v msw

@@ -493,7 +493,8 @@ MS_Model::MS_Model(const std::vector<utilities::data_point>& spaceData, const st
 			errorMessage << "\nError in visualizing ms_N_buildings performance.\n"
 									 << "The inserted spaceData contains results outside the range of 0 till 1,\n"
 									 << "as a result, the colors can not be defined correctly. \n"
-									 << " please normalize the data prior to importing the data in this function. \n"
+									 << "the found value is: " << performance <<". \n"
+									 << "please normalize the data prior to importing the data in this function. \n"
 									 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
 			throw std::runtime_error(errorMessage.str());
 		}

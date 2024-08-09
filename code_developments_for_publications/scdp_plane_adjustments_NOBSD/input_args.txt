@@ -1,4 +1,4 @@
--i design_301 -m sd -n 15 -d worst -o verbose plot ms_files all
--i design_301 -m bp -n 15 -d worst -o verbose plot ms_files all
--i design_301 -m sdbp -n 15 -d worst -o verbose plot ms_files all
--i design_301 -m bpsd -n 15 -d worst -o verbose plot ms_files all
+-i design_304 -m bpsd 	-n 15 -d worst -o verbose plot ms_files all
+-i design_304 -m sdbp 	-n 15 -d worst -o verbose plot ms_files all
+-i design_304 -m bp 	-n 15 -d worst -o verbose plot ms_files all
+-i design_304 -m sd 	-n 15 -d worst -o verbose plot ms_files all
