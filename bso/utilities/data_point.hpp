@@ -18,6 +18,16 @@ private:
 	void mCheckValidDimensions(const data_point& pCheck) const;
 	template <class CONTAINER>
 	void mInitFromContainer(const CONTAINER& l);
+
+	// Helper functions for tag dispatching in function setToUtopia() and setToDistopia()
+	template<class CONTAINER>
+    void setToUtopiaImpl(const CONTAINER& dataCollection, std::false_type);
+	template<class CONTAINER>
+	void setToUtopiaImpl(const CONTAINER& dataCollection, std::true_type);
+    template<class CONTAINER>
+    void setToDistopiaImpl(const CONTAINER& dataCollection, std::false_type);
+    template<class CONTAINER>
+    void setToDistopiaImpl(const CONTAINER& dataCollection, std::true_type);
 public:
 	data_point();
 	data_point(const unsigned int& size);
@@ -38,6 +48,7 @@ public:
 	template<class CONTAINER>
 	std::vector<data_point> findClosestIn(const CONTAINER& dataCollection,
 		const double& tol = 1e-3) const;
+
 	template<class CONTAINER>
 	std::vector<data_point> findFurthestIn(const CONTAINER& dataCollection,
 		const double& tol = 1e-3) const;

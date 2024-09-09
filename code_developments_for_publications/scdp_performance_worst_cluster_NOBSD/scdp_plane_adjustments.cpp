@@ -23,7 +23,7 @@
 
 std::vector<std::string> VIS_OPTIONS = {"ms","msc","msw","tp","tr","de","bo","sd","fe","bp"};
 std::vector<std::string> MOD_OPTIONS = {"bp","sd","sdbp","bpsd"};
-std::vector<std::string> OUT_OPTIONS = {"result_line", "verbose", "ms_files","plot","best","all","recDif"};
+std::vector<std::string> OUT_OPTIONS = {"result_line", "verbose", "combine_data", "ms_files","plot","best","all","recDif"};
 std::vector<std::string> DEL_OPTIONS = {"worst", "cluster"};
 
 int end, begin = 0;
@@ -64,7 +64,8 @@ int main(int argc, char* argv[])
 	bool recDif = false;
 	bool clusterDelete = false;
 	bool resultDir = false;
-	unsigned int iterations = 2;
+	bool combineData = false;
+	unsigned int iterations;
 	unsigned int kMin = 2;
 	unsigned int kMax = 10;
 	unsigned int RNGSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
@@ -115,6 +116,9 @@ int main(int argc, char* argv[])
 								<<   "\t" << "a descriptive outline of the process;\n"
 								<<   "\t" << "\'plot\' will make a data file (needed for plotting), \n"
 								<< 	 "\t" << "visualize the plot to screen and the plot will be written to a png file\n"
+								<<   "\t" << "\'combine_data\' will make a data file where saporate runs of this, \n"
+								<< 	 "\t" << "executable can be copy pasted behind each other. \n"
+								<< 	 "\t" << "This file can be loaded into excel to compare individual runs of this executable.\n"
 								<<   "\t" << "\'ms_files\' will write the ms designs to files\n"
 								<<   "\t" << "\'recdif\' will output the average divergence from a rectangle\n"
 								<<   "\t" << "\'all\' will write all the designs to the specified format\n"
@@ -363,6 +367,7 @@ int main(int argc, char* argv[])
 				boost::trim(outSpec);
 				if 			(outSpec == "result_line") result_line = true;
 				else if (outSpec == "verbose") verbose = true;
+				else if (outSpec == "combine_data") combineData = true;
 				else if (outSpec == "plot")
 				{
 					plot = true;
@@ -519,6 +524,8 @@ int main(int argc, char* argv[])
 		out("\nIteration: ",false,false,verbose); out(i,true,false,verbose);
 		
 		designPerformances.push_back(utilities::data_point(2));
+
+		msDesigns.back().writeToFile("lastGenDesign");
 		
 		// step 1, generate SD and BP models and evaluate them.
 		spatial_design::cf_building cf(msDesigns.back(),1e-6);
@@ -527,7 +534,7 @@ int main(int argc, char* argv[])
 		grammar::grammar grm(cf);
 		out("Initialized grammar",true,true,verbose);
 		
-		sdModels.push_back(grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"))); 
+		sdModels.push_back(grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_setting_only_liveload.txt"))); 
 		out("Generated structural model",true,true,verbose);
 		
 		sdModels.back().analyze();
@@ -560,8 +567,8 @@ int main(int argc, char* argv[])
 			if (visOption == "fe") visualization::visualize(sdModels.back(), "element");
 			if (visOption == "fe") visualization::visualize(sdModels.back(), "strain_energy");
 			if (visOption == "bp") visualization::visualize(bpModels.back());
+			out("Sent models to visualization",true,true,verbose);
 		}
-		out("Sent models to visualization",true,true,verbose);
 		if (i >= iterations) break;
 		
 		// Create a new MS model so the original can not be adapted and adapt this version
@@ -570,6 +577,8 @@ int main(int argc, char* argv[])
 		// Step 2, get performances per space
 		std::vector<utilities::data_point> performances;
 		std::vector<std::string> axisDataTypes = {"bp","sd"};
+		bool floorAreaDivision = false;
+		bool SurfaceAreaDivision = true;
 		for (const auto& j : newMS.getSpacePtrs())
 		{
 			utilities::data_point tempDataPoint({0,0});
@@ -581,7 +590,10 @@ int main(int argc, char* argv[])
 			auto spaceGeom = j->getGeometry();
 			if (modification != "bp") tempDataPoint(1) = sdModels.back().getPartialResults(&spaceGeom).mTotalStrainEnergy;
 			if (modification != "sd") tempDataPoint(0) = bpModels.back().getPartialResults(&spaceGeom).mTotalEnergy;
-			tempDataPoint /= j->getFloorArea();
+
+			if(floorAreaDivision){tempDataPoint /= j->getFloorArea();}
+			else if(SurfaceAreaDivision){tempDataPoint /= j->getSurfaceArea();}	
+
 			performances.push_back(tempDataPoint);
 		}
 		out("Collected performances for each space",true,true,verbose);	
@@ -628,6 +640,7 @@ int main(int argc, char* argv[])
 		}
 
 		// Step 4, delete spaces
+		std::vector<utilities::data_point> performancesRemoveSpace = performances;
 		if(clusterDelete)
 		{
 			// step 4, cluster the data
@@ -681,7 +694,7 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			std::vector<utilities::data_point> performancesRemoveSpace = performances;
+			//std::vector<utilities::data_point> performancesRemoveSpace = performances;
 			if (modification == "sd" || modification == "bp")
 			{
 				std::sort(performancesRemoveSpace.begin(), performancesRemoveSpace.end());
@@ -737,39 +750,72 @@ int main(int argc, char* argv[])
 		double scaleFactor = sqrt(floorArea / newMS.getFloorArea());
 		newMS.scale({{0,scaleFactor},{1,scaleFactor}});
 
-		// split the spaces with the longest horizontal rib
-		while (newMS.getSpacePtrs().size() < nSpaces)
+		bool longestRib = false;
+		bool performanceSplit = false;
+		if(longestRib)
 		{
-			auto spaceWithLargestDimension = newMS.getSpacePtrs().front();
-			bso::utilities::geometry::line_segment LongestAxis;
-			double longestLength = 0;
-
-			for (const auto& j : newMS.getSpacePtrs())
+			// split the spaces with the longest horizontal rib
+			while (newMS.getSpacePtrs().size() < nSpaces)
 			{
-				std::vector<bso::utilities::geometry::line_segment> lines = j->getGeometry().getLines();
+				auto spaceWithLargestDimension = newMS.getSpacePtrs().front();
+				bso::utilities::geometry::line_segment LongestAxis;
+				double longestLength = 0;
+
+				for (const auto& j : newMS.getSpacePtrs())
+				{
+					std::vector<bso::utilities::geometry::line_segment> lines = j->getGeometry().getLines();
+					for(const auto k: lines)
+					{
+						if(k.getVector().isVertical())
+						{
+							if(k.getLength() < 6000) continue; // only consider horizontal lines which are long enough for elevation height purposes
+						} 
+						if(longestLength < k.getLength())
+						{
+							longestLength = k.getLength();
+							LongestAxis = k;
+							spaceWithLargestDimension = j;
+						}
+					}
+				}
+				int splitamount = 2;
+				if(LongestAxis.getVector().isVertical())
+				{
+					std::vector<std::pair<unsigned int, unsigned int> > splits = {{2,splitamount}};
+					newMS.splitSpace(spaceWithLargestDimension, splits);
+				}
+				else
+				{
+					newMS.splitSpace(spaceWithLargestDimension, splitamount , LongestAxis);
+				}
+			}
+		}
+		else if(performanceSplit)
+		{
+			int splitCount = 0;
+			int splitamount = 2;
+			while (newMS.getSpacePtrs().size() < nSpaces)
+			{				
+				std::vector<bso::utilities::geometry::line_segment> lines = (performancesRemoveSpace[splitCount].getMSpacePtrs().back())->getGeometry().getLines();
+				bso::utilities::geometry::line_segment LongestAxis;
+				double longestLength = 0;
+				bool found = false;
 				for(const auto k: lines)
 				{
 					if(k.getVector().isVertical())
 					{
 						if(k.getLength() < 6000) continue; // only consider horizontal lines which are long enough for elevation height purposes
 					} 
-					if(longestLength < k.getLength())
+					if(longestLength < k.getLength() && k.getLength() > 4000)
 					{
 						longestLength = k.getLength();
 						LongestAxis = k;
-						spaceWithLargestDimension = j;
+						found = true;
 					}
 				}
-			}
-			int splitamount = 2;
-			if(LongestAxis.getVector().isVertical())
-			{
-				std::vector<std::pair<unsigned int, unsigned int> > splits = {{2,splitamount}};
-				newMS.splitSpace(spaceWithLargestDimension, splits);
-			}
-			else
-			{
-				newMS.splitSpace(spaceWithLargestDimension, splitamount , LongestAxis);
+
+				if(found){newMS.splitSpace(performancesRemoveSpace[splitCount].getMSpacePtrs().back(), splitamount, LongestAxis);}
+				splitCount++;
 			}
 		}
 		// scaleFactor = sqrt(floorArea / newMS.getFloorArea());
@@ -886,7 +932,12 @@ int main(int argc, char* argv[])
 		std::string plotVector = dir+"vectorPlot_" + inputFile + "_" + modification +".png";
 		dp.plotScatter2D(fileScatter, plotScatter, false, true);
 		dp.plotParetoFront2D(fileParetoFront, fileNonParetoFront, plotParetoFront, false, true);
-		dp.plotVector2D(fileVector, plotVector, false, true);
+		dp.plotVector2D(fileVector, plotVector, true, true);
+	}
+	if(combineData)
+	{		
+		utilities::data_plot dp(designPerformances, axisDesignPerformances, "Design Iteration");
+		dp.addToCombinedDataFile("combined_data.csv", modification, inputFile);
 	}
 	
 	for (const auto& i : outputSpaces)
@@ -895,7 +946,7 @@ int main(int argc, char* argv[])
 		{
 			std::cout << designName << "\t"
 								<< modification << "\t"
-								<< i << "\t"
+								<< i << "\t" << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10)
 								<< designPerformances[i](0) << "\t"
 								<< designPerformances[i](1) << "\t" << std::endl;
 								if(clusterDelete)
@@ -908,7 +959,7 @@ int main(int argc, char* argv[])
 			std::stringstream fileNameStream;
 			fileNameStream << dir << designName << "_"
 										 << modification << "_"
-										 << i << "_"
+										 << i << "_" << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10)
 										 << designPerformances[i](0) << "_"
 										 << designPerformances[i](1) << "_";
 										 if(clusterDelete)

@@ -22,7 +22,7 @@ public:
 	ms_N_building(const ms_N_building& rhs); // copy constructor
 	~ms_N_building(); // destructor
 	
-	// Space analysis functions:
+	// Building spatial design analysis functions:
 	const std::string getInsertFileName() const{return insertFileName;}																	 
 	void writeToFile(std::string fileName) const;
 	std::vector<ms_space*> getSpacePtrs() const;
@@ -31,8 +31,14 @@ public:
 	unsigned int getLastSpaceID() const;
 	double getVolume() const;
 	double getFloorArea() const;
+	double getAverageSpaceSize() const;
+	double getSpaceDifRatioVolume() const;
+	double getSpaceDifRatioFloorArea() const;
+	double getAverageRecDif() const;
 	bool hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 		const double tol = 1e-3) const; 
+	// bool isFragmented(std::vector<ms_space*>& toDeleteFragmentSpaces, 
+		//const double tol = 1e-3) const;
 
 	// Get the NOBSD representation as a certain geometry:
 	void getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, 
@@ -45,6 +51,7 @@ public:
 	std::vector <bso::utilities::geometry::quadrilateral> getQuadAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol = 1e-3);
 	std::vector <bso::utilities::geometry::line_segment> getLinesAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol = 1e-3);
 	bso::utilities::geometry::vertex getCentreBuilding();
+
 
 	// Representation adjustment functions:
 	void setZZero(); 

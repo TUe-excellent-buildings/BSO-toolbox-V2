@@ -31,6 +31,8 @@ public:
 	// Write data to file
 	void writeDataToFile(const std::vector<std::shared_ptr<data_point> >& data, std::string fileName, std::string dataKind = "");
 	void writeVectorStyleFile(const std::vector<std::shared_ptr<data_point> >& data, std::string fileName);
+	void addToCombinedDataFile(std::string fileName, std::string runKind, std::string designName);
+	void addToOverviewCombinedDataFile(std::string fileName, std::string runKind, std::string designName);
 
 	// Plot functions for mData
 	void plotScatter2D(std::string fileNameScatter = "scatterData", std::string pngName = "plotScatter.png", bool visualize = true, bool writeToPNG = true);

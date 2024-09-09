@@ -1,6 +1,10 @@
 #ifndef BSO_DATA_PLOT_CPP
 #define BSO_DATA_PLOT_CPP
 
+#include <fstream>
+#include <string>
+#include <sstream>
+
 namespace bso { namespace utilities {
 
 data_plot::data_plot()
@@ -45,7 +49,7 @@ void data_plot::writeDataToFile(const std::vector<std::shared_ptr<data_point> >&
     {
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected some data to be stored within the input variable data\n"
-										 << "The found size of data is: " << mData.size() << "\n"
+										 << "The found size of data is: " << data.size() << "\n"
                                          << "(bso/utilities/data_plot.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
@@ -73,7 +77,7 @@ void data_plot::writeDataToFile(const std::vector<std::shared_ptr<data_point> >&
     {
         for(int j=0; j< (*i).size(); j++)
         {     
-            output << (*i)(j) << "\t";
+            output << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*i)(j) << "\t";
         }
         output << std::endl;
     }
@@ -134,11 +138,11 @@ void data_plot::writeVectorStyleFile(const std::vector<std::shared_ptr<data_poin
 
             for(int j=0; j< (*i).size(); j++)
             {
-                output << (*i)(j) << "\t";
+                output  << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*i)(j) << "\t";
             }
             for(int j=0; j< (*next_i).size(); j++)
             {
-                output << ((*next_i)(j)-(*i)(j)) << "\t";
+                output << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << ((*next_i)(j)-(*i)(j)) << "\t";
             }
             output << std::endl;
         }
@@ -147,6 +151,512 @@ void data_plot::writeVectorStyleFile(const std::vector<std::shared_ptr<data_poin
     // Store the just generated file in object
     vectorStyleData = fileName;
 } // writeVectorStyleFile()
+
+void data_plot::addToCombinedDataFile(std::string fileName, std::string runKind, std::string designName)
+{ 
+    if(fileName == "")
+    {
+        std::stringstream errorMessage;
+				errorMessage << "\nError, expected a file name with at least one character, but the file name did not had any.\n"
+                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+    }
+    if(designName == "")
+    {
+        std::stringstream errorMessage;
+				errorMessage << "\nError, expected a designName with at least one character, but the designName name did not had any.\n"
+                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+    }
+    if(runKind == "")
+    {
+        std::stringstream errorMessage;
+				errorMessage << "\nError, expected a runKind with at least one character, but the runKind name did not had any.\n"
+                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+    }
+    if(mData.size() == 0)
+    {
+        std::stringstream errorMessage;
+				errorMessage << "\nError, expected some data to be stored within the input variable data\n"
+										 << "The found size of data is: " << mData.size() << "\n"
+                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+    }
+
+    // Check ouput file:
+    std::ifstream inputFile(fileName);
+    std::ofstream outputFile("temp.txt");
+    if (!outputFile.is_open())
+    { 
+        std::stringstream errorMessage;
+				errorMessage << "\nError, unable to open file.\n"
+                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+    }
+
+    // Get relevant data to write to file:
+    // Make a normalized copy for space iterations:
+    std::vector<utilities::data_point> mDataNormalized;
+    for(const auto i: mData)
+    {
+        mDataNormalized.push_back(*i);
+    }
+    utilities::data_point utopianPoint;
+	utopianPoint.setToUtopia(mDataNormalized);
+    utilities::data_point distopianPoint;
+	distopianPoint.setToDistopia(mDataNormalized);
+    std::swap(utopianPoint(1),distopianPoint(1));
+    for (auto& j : mDataNormalized)
+    {
+        j.normalize(utopianPoint,distopianPoint,{1});
+    }
+    utopianPoint.setToUtopia(mDataNormalized);
+	distopianPoint.setToDistopia(mDataNormalized);
+
+    // Determine the sd Best, bp Best and kneePoint design
+    int kneePointIteration = 0;
+    int sdBestIteration = 0;
+    int bpBestIteration = 0;
+    utilities::data_point sdBest = *(mData[0]);
+    utilities::data_point sdBestNormalized = mDataNormalized[0];
+    utilities::data_point bpBest = *(mData[0]);
+    utilities::data_point bpBestNormalized = mDataNormalized[0];
+    utilities::data_point kneePoint;
+    utilities::data_point kneePointObjective({0,1});
+    std::vector<data_point> kneePointVectorNor = kneePointObjective.findClosestIn(mDataNormalized);
+    for(int i=0; i < mData.size(); i++)
+    {
+        if(mDataNormalized[i](0) < sdBestNormalized(0))
+        { // determine the best design in SD
+            sdBest = *(mData[i]);
+            sdBestNormalized = mDataNormalized[i];
+            sdBestIteration = i;
+        }
+        if(mDataNormalized[i](1) > bpBestNormalized(1))
+        { // determine the best design in BP
+            bpBest = *(mData[i]);
+            bpBestNormalized = mDataNormalized[i];
+            bpBestIteration = i;
+        }
+        if(kneePointVectorNor[0] == mDataNormalized[i])
+        {
+            kneePoint = *(mData[i]);
+            kneePointIteration = i;
+        }
+    }
+
+    double SDBestImprovementPercentage = (1-((*(mData[sdBestIteration]))(0)/(*(mData[0]))(0)))*100;
+    double BPBestImprovementPercentage = (1-((*(mData[bpBestIteration]))(1)/(*(mData[0]))(1)))*100;
+    double SDLastImprovementPercentage = (1-((*(mData[mData.size()-1]))(0)/(*(mData[0]))(0)))*100;
+    double BPLastImprovementPercentage = (1-((*(mData[mData.size()-1]))(1)/(*(mData[0]))(1)))*100;
+    
+    if (!inputFile.is_open())
+    {
+        // File does not exist yet, so initialize with headers and first data values
+        outputFile << "," << designName << runKind << "," << designName << runKind << "," << std::endl;
+        outputFile << ",";
+        for(std::string i: axisDataTypes)
+        {
+            outputFile << i << ",";
+        }
+        outputFile << std::endl;
+        int iteration = 0;
+        
+        for(const auto& i: mData)
+        {
+            outputFile << iteration << ",";
+            for(int j=0; j< (*i).size(); j++)
+            {     
+                outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*i)(j) << ",";
+            }
+            outputFile << std::endl;
+            iteration++;
+        }
+        outputFile << "kneePoint,";
+        for(int j=0; j< kneePoint.size(); j++){outputFile << kneePoint(j) << ",";} 
+        outputFile << std::endl;
+        outputFile << "sdBest,";
+        for(int j=0; j< sdBest.size(); j++){outputFile << sdBest(j) << ",";} 
+        outputFile << std::endl;
+        outputFile << "bpBest,";
+        for(int j=0; j< bpBest.size(); j++){outputFile << bpBest(j) << ",";} 
+        outputFile << std::endl;
+        outputFile << "kneePoint iteration," << kneePointIteration << ",," << std::endl;
+        outputFile << "sdBest iteration," << sdBestIteration << ",," << std::endl;
+        outputFile << "bpBest iteration," << bpBestIteration << ",," << std::endl;
+        outputFile << "SD last iteration vs. first iteration," << SDLastImprovementPercentage << ",," << std::endl;
+        outputFile << "BP last iteration vs. first iteration," << BPLastImprovementPercentage << ",," << std::endl;
+        outputFile << "SD best iteration vs. first iteration," << SDBestImprovementPercentage << ",," << std::endl;
+        outputFile << "BP best iteration vs. first iteration," << BPBestImprovementPercentage << ",," << std::endl;
+
+        inputFile.close();
+        outputFile.close();
+    } 
+    else 
+    {
+        // File is not empty, process existing lines
+        int lineCount = 0;
+        int dataCount = 0;
+        std::string line;
+        while (getline(inputFile, line)) 
+        {
+            if(lineCount == 0){line += designName + runKind + "," + designName + runKind + ",";}
+            else if(lineCount == 1)
+            {
+                for(std::string i: axisDataTypes)
+                {
+                    line +=  i  + ",";
+                }
+            }
+            else if(dataCount < mData.size())
+            {
+                for(int j=0; j< (*(mData[dataCount])).size(); j++)
+                {     
+                    // Use ostringstream to format the double with full precision
+                    std::ostringstream oss;
+                    oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[dataCount]))(j) << ",";
+                    // Append the formatted value to the line
+                    line += oss.str();
+                }
+                dataCount++;
+            }
+            else
+            {
+                std::ostringstream oss;
+                if(mData.size()+2 == lineCount)
+                {
+                    for(int j=0; j< kneePoint.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << kneePoint(j) << ",";} 
+                }
+                else if(mData.size()+3 == lineCount)
+                {
+                    for(int j=0; j< sdBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
+                }
+                else if(mData.size()+4 == lineCount)
+                {
+                    for(int j=0; j< bpBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
+                }
+                else if(mData.size()+5 == lineCount)
+                {
+                    oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << kneePointIteration << ",,";
+                }
+                else if(mData.size()+6 == lineCount)
+                {
+                    oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBestIteration << ",,";
+                }
+                else if(mData.size()+7 == lineCount)
+                {
+                    oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBestIteration << ",,";
+                }
+                else if(mData.size()+8 == lineCount)
+                {
+                    oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << SDLastImprovementPercentage << ",,";
+                }
+                else if(mData.size()+9 == lineCount)
+                {
+                    oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << BPLastImprovementPercentage << ",,";
+                }
+                else if(mData.size()+10 == lineCount)
+                {
+                    oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << SDBestImprovementPercentage << ",,";
+                }
+                else if(mData.size()+11 == lineCount)
+                {
+                    oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << BPBestImprovementPercentage << ",,";
+                }
+                line += oss.str();
+            }
+            // Write the modified line to the temporary file
+            outputFile << line << std::endl;
+            lineCount++;
+        }
+
+        inputFile.close();
+        outputFile.close();
+
+        // Remove original file
+        if (std::remove(fileName.c_str()) != 0) 
+        {
+            std::stringstream errorMessage;
+                errorMessage << "\nError, while deleting original file.\n"
+                                        << "(bso/utilities/data_plot.cpp). " << std::endl;
+                throw std::invalid_argument(errorMessage.str());
+        } 
+    }
+    
+
+    // Rename the temporary file to the original file name
+    if (std::rename("temp.txt", fileName.c_str()) != 0) 
+    {
+        std::stringstream errorMessage;
+            errorMessage << "\nError, renaming temporary file.\n"
+                                    << "(bso/utilities/data_plot.cpp). " << std::endl;
+            throw std::invalid_argument(errorMessage.str());
+    } 
+    else 
+    {            
+        std::cout << "File processing complete and original file overwritten." << std::endl;
+    }
+    
+} // addToCombinedDataFile()
+
+void data_plot::addToOverviewCombinedDataFile(std::string fileName, std::string runKind, std::string designName)
+{ 
+    if(fileName == "")
+    {
+        std::stringstream errorMessage;
+				errorMessage << "\nError, expected a file name with at least one character, but the file name did not had any.\n"
+                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+    }
+    if(designName == "")
+    {
+        std::stringstream errorMessage;
+				errorMessage << "\nError, expected a designName with at least one character, but the designName name did not had any.\n"
+                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+    }
+    if(runKind == "")
+    {
+        std::stringstream errorMessage;
+				errorMessage << "\nError, expected a runKind with at least one character, but the runKind name did not had any.\n"
+                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+    }
+    if(mData.size() == 0)
+    {
+        std::stringstream errorMessage;
+				errorMessage << "\nError, expected some data to be stored within the input variable data\n"
+										 << "The found size of data is: " << mData.size() << "\n"
+                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+    }
+
+    // Check ouput file:
+    std::ifstream inputFile(fileName);
+    std::ofstream outputFile("temp.txt");
+    if (!outputFile.is_open())
+    { 
+        std::stringstream errorMessage;
+				errorMessage << "\nError, unable to open file.\n"
+                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+    }
+
+    // Get relevant data to write to file:
+    // Make a normalized copy for space iterations:
+    std::vector<utilities::data_point> mDataNormalized;
+    for(const auto i: mData)
+    {
+        mDataNormalized.push_back(*i);
+    }
+    utilities::data_point utopianPoint;
+	utopianPoint.setToUtopia(mDataNormalized);
+    utilities::data_point distopianPoint;
+	distopianPoint.setToDistopia(mDataNormalized);
+    std::swap(utopianPoint(1),distopianPoint(1));
+    for (auto& j : mDataNormalized)
+    {
+        j.normalize(utopianPoint,distopianPoint,{1});
+    }
+    utopianPoint.setToUtopia(mDataNormalized);
+	distopianPoint.setToDistopia(mDataNormalized);
+
+    // Determine the sd Best, bp Best and kneePoint design
+    int kneePointIteration = 0;
+    int sdBestIteration = 0;
+    int bpBestIteration = 0;
+    utilities::data_point sdBest = *(mData[0]);
+    utilities::data_point sdBestNormalized = mDataNormalized[0];
+    utilities::data_point bpBest = *(mData[0]);
+    utilities::data_point bpBestNormalized = mDataNormalized[0];
+    utilities::data_point kneePoint;
+    utilities::data_point kneePointObjective({0,1});
+    std::vector<data_point> kneePointVectorNor = kneePointObjective.findClosestIn(mDataNormalized);
+    for(int i=0; i < mData.size(); i++)
+    {
+        if(mDataNormalized[i](0) < sdBestNormalized(0))
+        { // determine the best design in SD
+            sdBest = *(mData[i]);
+            sdBestNormalized = mDataNormalized[i];
+            sdBestIteration = i;
+        }
+        if(mDataNormalized[i](1) > bpBestNormalized(1))
+        { // determine the best design in BP
+            bpBest = *(mData[i]);
+            bpBestNormalized = mDataNormalized[i];
+            bpBestIteration = i;
+        }
+        if(kneePointVectorNor[0] == mDataNormalized[i])
+        {
+            kneePoint = *(mData[i]);
+            kneePointIteration = i;
+        }
+    }
+
+    double SDBestImprovementPercentage = (1-((*(mData[sdBestIteration]))(0)/(*(mData[0]))(0)))*100;
+    double BPBestImprovementPercentage = (1-((*(mData[bpBestIteration]))(1)/(*(mData[0]))(1)))*100;
+    double SDLastImprovementPercentage = (1-((*(mData[mData.size()-1]))(0)/(*(mData[0]))(0)))*100;
+    double BPLastImprovementPercentage = (1-((*(mData[mData.size()-1]))(1)/(*(mData[0]))(1)))*100;
+    
+    if (!inputFile.is_open())
+    {
+        // initiate descriptive line:
+        outputFile << ",best sd design in sd run";
+        for(std::string i: axisDataTypes) { outputFile << ",";}
+        outputFile << "best bp design in sd run";
+        for(std::string i: axisDataTypes) { outputFile << ",";}
+        outputFile << "Last design of sd run";
+        for(std::string i: axisDataTypes) { outputFile << ",";}
+        for(int j=0; j < 6; j++) outputFile << ",";
+
+        outputFile << "best bp design in bp run";
+        for(std::string i: axisDataTypes) { outputFile << ",";}
+        outputFile << "best sd design in bp run";
+        for(std::string i: axisDataTypes) { outputFile << ",";}
+        outputFile << "Last design of bp run";
+        for(std::string i: axisDataTypes) { outputFile << ",";}
+        for(int j=0; j < 6; j++) outputFile << ",";
+
+        outputFile << "best sd design in weighted run";
+        for(std::string i: axisDataTypes) { outputFile << ",";}
+        outputFile << "best bp design in weighted run";
+        for(std::string i: axisDataTypes) { outputFile << ",";}
+        outputFile << "Last design of weighted run";
+        for(std::string i: axisDataTypes) { outputFile << ",";}
+        outputFile << std::endl;
+        
+        // make rule with value indicators:
+        outputFile << ",";
+        for(int j=0; j < 3; j++)
+        {
+            for(std::string i: axisDataTypes)
+            {
+                outputFile <<  i  + ",";
+            }
+        }
+        outputFile << "sd best iteration,bp best iteration,sd improvement last vs. initial,bp improvement last vs. initial,sd improvement best vs. initial,bp improvement best vs. initial,";
+        for(int j=0; j < 3; j++)
+        {
+            for(std::string i: axisDataTypes)
+            {
+                outputFile <<  i  + ",";
+            }
+        }
+        outputFile << "sd best iteration,bp best iteration,sd improvement last vs. initial,bp improvement last vs. initial,sd improvement best vs. initial,bp improvement best vs. initial,";
+        for(int j=0; j < 3; j++)
+        {
+            for(std::string i: axisDataTypes)
+            {
+                outputFile <<  i  + ",";
+            }
+        }
+        outputFile << "sd best iteration,bp best iteration,sd improvement last vs. initial,bp improvement last vs. initial,sd improvement best vs. initial,bp improvement best vs. initial,";
+        outputFile << std::endl;
+
+        // output performance rule of data:
+        int lastIndex =  mData.size()-1;
+        outputFile << designName << ",";
+        for(int j=0; j < sdBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
+        for(int j=0; j < bpBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
+        for(int j=0; j < (*(mData[lastIndex])).size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[lastIndex]))(j) << ",";} // performance of last design of run
+        outputFile << sdBestIteration << "," ;
+        outputFile << bpBestIteration << "," ;
+        outputFile << SDLastImprovementPercentage << "," ;
+        outputFile << BPLastImprovementPercentage << "," ;
+        outputFile << SDBestImprovementPercentage << "," ;
+        outputFile << BPBestImprovementPercentage << "," ;
+
+        inputFile.close();
+        outputFile.close();
+    } 
+    else 
+    {
+        // Is there already a line for the input design
+        int lineCount = 0;
+        std::string line;
+        bool lineFound = false;
+        while (getline(inputFile, line)) 
+        {
+            if(lineCount == 0 || lineCount == 1)
+            {
+                outputFile << line << std::endl;
+                lineCount++; 
+                continue;
+            }
+            if(designName == line.substr(0,line.find(",")))
+            { 
+                // output performance rule of data at the end of the design data line:
+                std::ostringstream oss;
+                int lastIndex =  mData.size()-1;
+                for(int j=0; j < sdBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
+                for(int j=0; j < bpBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
+                for(int j=0; j < (*(mData[lastIndex])).size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[lastIndex]))(j) << ",";} // performance of last design of run
+                oss << sdBestIteration << "," ;
+                oss << bpBestIteration << "," ;
+                oss << SDLastImprovementPercentage << "," ;
+                oss << BPLastImprovementPercentage << "," ;
+                oss << SDBestImprovementPercentage << "," ;
+                oss << BPBestImprovementPercentage << "," ;
+                
+                lineFound = true;
+
+                // Write the modified line to the temporary file
+                line += oss.str();
+                outputFile << line << std::endl;
+                break;
+            }
+            else
+            {
+                outputFile << line << std::endl;
+            }
+            lineCount++;
+        }
+
+        if(!lineFound)
+        {
+            // output performance rule of data:
+            int lastIndex =  mData.size()-1;
+            outputFile << designName << ",";
+            for(int j=0; j < sdBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
+            for(int j=0; j < bpBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
+            for(int j=0; j < (*(mData[lastIndex])).size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[lastIndex]))(j) << ",";} // performance of last design of run
+            outputFile << sdBestIteration << "," ;
+            outputFile << bpBestIteration << "," ;
+            outputFile << SDLastImprovementPercentage << "," ;
+            outputFile << BPLastImprovementPercentage << "," ;
+            outputFile << SDBestImprovementPercentage << "," ;
+            outputFile << BPBestImprovementPercentage << "," ;
+        }
+    
+        inputFile.close();
+        outputFile.close();
+
+        // Remove original file
+        if (std::remove(fileName.c_str()) != 0) 
+        {
+            std::stringstream errorMessage;
+                errorMessage << "\nError, while deleting original file.\n"
+                                        << "(bso/utilities/data_plot.cpp). " << std::endl;
+                throw std::invalid_argument(errorMessage.str());
+        } 
+    }
+    
+
+    // Rename the temporary file to the original file name
+    if (std::rename("temp.txt", fileName.c_str()) != 0) 
+    {
+        std::stringstream errorMessage;
+            errorMessage << "\nError, renaming temporary file.\n"
+                                    << "(bso/utilities/data_plot.cpp). " << std::endl;
+            throw std::invalid_argument(errorMessage.str());
+    } 
+    else 
+    {            
+        std::cout << "File processing complete and original file overwritten." << std::endl;
+    }
+    
+} // addToCombinedDataFile()
 
 void data_plot::plotScatter2D(std::string fileNameScatter /*= "scatterData"*/, std::string pngName /*="plotScatter.png"*/, bool visualize /*= true*/, bool writeToPNG /*= true*/)
 {

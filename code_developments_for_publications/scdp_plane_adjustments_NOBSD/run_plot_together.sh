@@ -50,8 +50,8 @@ while IFS= read -r ARG || [ -n "$ARG" ]; do
     # Extract the design_* section from ARG
     DESIGN=$(echo $ARG | grep -oP '(?<=-i )design_[^ ]+')
 
-    # Every four runs (i.e. sd, bp, sdbp, and bpsd done per design), generate the plot:
-    if (( count % 4 == 0 )); then
+    # Every four runs (i.e. sd, bp, weighted, sdbp, and bpsd done per design), generate the plot:
+    if (( count % 3 == 0 )); then
         echo "Generating plot after $count runs"
         
         # Output file for combined data
@@ -61,7 +61,7 @@ while IFS= read -r ARG || [ -n "$ARG" ]; do
         > $COMBINED_DATA_FILE
         
         # Define the possible extensions
-        EXTENSIONS=("bpsd" "sdbp" "bp" "sd")
+        EXTENSIONS=("bpsd" "sdbp" "weighted" "bp" "sd")
         
         # Array to store the order of extensions processed
         PROCESSED_EXTENSIONS=()
@@ -102,7 +102,7 @@ while IFS= read -r ARG || [ -n "$ARG" ]; do
         gnuplot -persist <<-EOFMarker
             set terminal png
             set output 'combined_plot_${DESIGN}.png'
-            set title 'Iteration plot overview of ${DESIGN} for bp, sd, bpsd, and sdbp'
+            set title 'Iteration plot overview of ${DESIGN} for bp, sd, and weighted'
             set xlabel 'sd'
             set ylabel 'bp'
             # Highlight the first value of the first dataset
@@ -111,8 +111,7 @@ while IFS= read -r ARG || [ -n "$ARG" ]; do
             set label "Initial design" at first_value_x, first_value_y point pointtype 7 lc rgb "red"
             plot '$COMBINED_DATA_FILE' index 0 using 1:2:3:4 with vectors filled head title '${PROCESSED_EXTENSIONS[0]}',\
                  '$COMBINED_DATA_FILE' index 1 using 1:2:3:4 with vectors filled head title '${PROCESSED_EXTENSIONS[1]}',\
-                 '$COMBINED_DATA_FILE' index 2 using 1:2:3:4 with vectors filled head title '${PROCESSED_EXTENSIONS[2]}',\
-                 '$COMBINED_DATA_FILE' index 3 using 1:2:3:4 with vectors filled head title '${PROCESSED_EXTENSIONS[3]}'
+                 '$COMBINED_DATA_FILE' index 2 using 1:2:3:4 with vectors filled head title '${PROCESSED_EXTENSIONS[2]}'
             set terminal x11
             replot
 EOFMarker

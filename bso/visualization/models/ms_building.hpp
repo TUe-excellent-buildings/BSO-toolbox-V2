@@ -5,6 +5,8 @@
 #include <bso/visualization/bsp/bsp.hpp>
 #include <bso/spatial_design/ms_building.hpp>
 #include <bso/spatial_design/ms_N_building.hpp>
+#include <bso/utilities/data_point.hpp>
+#include <bso/utilities/clustering.hpp>
 
 #include <boost/algorithm/string.hpp>
 #include <utility>
@@ -47,7 +49,7 @@ public:
 	MS_Model(const spatial_design::ms_N_building& msN, const std::string& type = "spaces",
 					 const std::string& title = "ms_N_building", const double& linewidth = 1.0);
 	MS_Model(const utilities::clustering& clus, const std::string& title = "ms_N_clustering", const double& linewidth = 1.0);
-	MS_Model(const std::vector<utilities::data_point>& spaceData, const std::vector<int>& resultWeightFactor, float transparency =1.0, const std::string& title = "ms_N_performances", const double& linewidth = 1.0);
+	MS_Model(const std::vector<utilities::data_point>& spaceData, const std::vector<double>& resultWeightFactor, float transparency =1.0, const std::string& title = "ms_N_performances", const double& linewidth = 1.0);
 
 	/*
 	The following constructor contain the ability for defining different colors per space defined in a file 
@@ -414,7 +416,7 @@ MS_Model::MS_Model(const utilities::clustering& clus, const std::string& title /
 	pbsp = new random_bsp(polygons);
 } //
 
-MS_Model::MS_Model(const std::vector<utilities::data_point>& spaceData, const std::vector<int>& resultWeightFactor, float transparency /*=1.0*/, const std::string& title /*= "ms_N_building"*/, const double& linewidth /*= 1.0*/)
+MS_Model::MS_Model(const std::vector<utilities::data_point>& spaceData, const std::vector<double>& resultWeightFactor, float transparency /*=1.0*/, const std::string& title /*= "ms_N_building"*/, const double& linewidth /*= 1.0*/)
 {
 	// Check prerequicatate:
 	int spaceDataSize = spaceData.size();
@@ -426,9 +428,9 @@ MS_Model::MS_Model(const std::vector<utilities::data_point>& spaceData, const st
 									 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
 			throw std::runtime_error(errorMessage.str());
 	}
-	double sumW;
-	for(unsigned int j = 0; j < resultWeightFactor.size(); ++j) sumW = sumW + resultWeightFactor[j];
-	if(sumW != 1)
+	double sumW = 0;
+	for(unsigned int j = 0; j < resultWeightFactor.size(); ++j){sumW = sumW + resultWeightFactor[j];}
+	if(sumW <= 1+0.000000001 && sumW >= 1+0.000000001)
 	{
 		std::stringstream errorMessage;
 			errorMessage << "\nError in visualizing ms_N_buildings performance.\n"

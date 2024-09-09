@@ -22,7 +22,7 @@
 #include <chrono>
 
 std::vector<std::string> VIS_OPTIONS = {"ms","msc","msw","tp","tr","de","bo","sd","fe","bp"};
-std::vector<std::string> MOD_OPTIONS = {"bp","sd","sdbp","bpsd"};
+std::vector<std::string> MOD_OPTIONS = {"bp","sd","sdbp","bpsd","weighted"};
 std::vector<std::string> OUT_OPTIONS = {"result_line", "verbose", "ms_files","plot","best","all","recDif"};
 std::vector<std::string> DEL_OPTIONS = {"worst", "cluster"};
 
@@ -50,40 +50,42 @@ using namespace bso;
 int main(int argc, char* argv[])
 {
 	// settings for iteration variables
-	std::string inputFile = "design_301";
+	std::string inputFile = "";
 	std::string designName = "";
 	std::string inputLine = "";
-	std::string modification = "sd";
+	std::string modification = "";
 	std::vector<std::string> visualizations;
-	visualizations.push_back("msw");
 	bool result_line = false;
 	bool ms_files = false;
 	bool plot = false;
-	bool verbose = true;//false;
+	bool visualizePlot = false;
+	bool verbose = false;
 	bool outputAll = false;
 	bool outputBest = false;
 	bool recDif = false;
 	bool clusterDelete = false;
 	bool shiftFillPlane = false;
-	bool addElevation = true;//false;
+	bool addElevation = false;
 	bool resultDir = false;
-	unsigned int iterations = 5;//0;
+	bool combineData = false;
+	unsigned int iterations = 0;
 	unsigned int kMin = 2;
 	unsigned int kMax = 10;
 	unsigned int RNGSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-	double spaceRemoveRatio = 0.3;//0.1;
+	double spaceRemoveRatio = 0.1;
+	std::vector<double> objectiveWeights = {0.5,0.5};
 	int amountOfSpaceRemoval = 0;
 
 	// Go trough the input argument and set the settings correctly for the iterations
 	std::vector<std::string> args(argv+1, argv+argc);
 	auto arg = args.begin();
-	// if (arg == args.end())
-	// {
-	// 	std::stringstream errorMessage;
-	// 	errorMessage << "\nError, expected arguments, received nothing.\n"
-	// 							 << "use -h or --help for help." << std::endl;
-	// 	throw std::invalid_argument(errorMessage.str());
-	// }
+	if (arg == args.end())
+	{
+		std::stringstream errorMessage;
+		errorMessage << "\nError, expected arguments, received nothing.\n"
+								 << "use -h or --help for help." << std::endl;
+		throw std::invalid_argument(errorMessage.str());
+	}
 	while (arg != args.end())
 	{
 		if (*arg == "-h" || *arg == "--help")
@@ -104,7 +106,8 @@ int main(int argc, char* argv[])
 								<<	 "\t" << "Expects an integer number above 1.\n";
 			std::cout << "-m\t" << "or --modification, to specify which modification\n"
 								<<   "\t" << "will be applied: \'sd\' for the sd-modifications;\n"
-								<<   "\t" << "\'bp\' for the bp_modifications; \'sdbp\' to alternate\n"
+								<<   "\t" << "\'bp\' for the bp_modifications; \'weighted\' for sd and bp\n" 
+								<< 	 "\t" << " making half the performance value per space; \'sdbp\' to alternate\n"
 								<<   "\t" << "between sd and bp, starting with sd; \'bpsd\', dito\n"
 								<<   "\t" << "but now starting with bp. Only one option is possible.\n";
 			std::cout << "-n\t" << "or --nModifications, to specify the number of modifications\n"
@@ -125,6 +128,9 @@ int main(int argc, char* argv[])
 								<<   "\t" << "a descriptive outline of the process;\n"
 								<<   "\t" << "\'plot\' will make a data file (needed for plotting), \n"
 								<< 	 "\t" << "visualize the plot to screen and the plot will be written to a png file\n"
+								<<	 "\t" << "\'combine_data\' will make a data file where separate runs of this, \n"
+								<< 	 "\t" << "executable can be copy pasted behind each other. \n"
+								<< 	 "\t" << "This file can be loaded into excel to compare individual runs of this executable.\n"
 								<<   "\t" << "\'ms_files\' will write the ms designs to files\n"
 								<<   "\t" << "\'recdif\' will output the average divergence from a rectangle\n"
 								<<   "\t" << "\'all\' will write all the designs to the specified format\n"
@@ -388,12 +394,21 @@ int main(int argc, char* argv[])
 			{
 				std::string outSpec = *arg;
 				boost::trim(outSpec);
-				if 			(outSpec == "result_line") result_line = true;
+				if (outSpec == "result_line") result_line = true;
 				else if (outSpec == "verbose") verbose = true;
+				else if (outSpec == "combine_data") combineData = true;
 				else if (outSpec == "plot")
 				{
 					plot = true;
 					resultDir = true;
+					if(++arg != args.end())
+					{
+						outSpec = *arg;
+						if(outSpec == "true"){visualizePlot = true;}
+						else if(outSpec == "false"){visualizePlot = false;}
+						else {--arg;}
+					}
+					continue;
 				}
 				else if (outSpec == "ms_files")
 				{
@@ -449,6 +464,13 @@ int main(int argc, char* argv[])
 	{
 		std::stringstream errorMessage;
 		errorMessage << "\nError, expected an input file or line to be specified.\n"
+								 << "use -h or --help for help\n";
+		throw std::invalid_argument(errorMessage.str());
+	}
+	if (modification == "")
+	{
+		std::stringstream errorMessage;
+		errorMessage << "\nError, expected an modification to be specified.\n"
 								 << "use -h or --help for help\n";
 		throw std::invalid_argument(errorMessage.str());
 	}
@@ -521,7 +543,7 @@ int main(int argc, char* argv[])
 		averageRecDif = averageRecDif/spaceCount;
 		std::cout <<"averageRecDif: " << averageRecDif << std::endl;
 	}
-	
+
 
 
 
@@ -537,6 +559,7 @@ int main(int argc, char* argv[])
 	// Start with co-evolutionary design proccess:
 	unsigned int nSpaces = msDesigns.back().getSpacePtrs().size();
 	double floorArea = msDesigns.back().getFloorArea();
+	double averageSpaceSize = msDesigns.back().getAverageSpaceSize();
 	std::vector<structural_design::sd_model> sdModels;
 	std::vector<building_physics::bp_model> bpModels;
 	std::vector<utilities::data_point> designPerformances;
@@ -579,6 +602,7 @@ int main(int argc, char* argv[])
 		if (!visualizations.empty()) for (const auto& visOption : visualizations)
 		{
 			if (visOption == "ms" && i != 0) visualization::visualize(msDesignsTemp.back(),"","ms_N_building",4.0);
+			if (visOption == "msw" && i == 0) visualization::visualize(msDesigns.back());
 			if (visOption == "ms") visualization::visualize(msDesigns.back(),"","ms_N_building",4.0);
 			if (visOption == "sg") visualization::visualize(cf,"space_at_ground");
 			if (visOption == "de") visualization::visualize(cf,"delaunay");
@@ -591,73 +615,82 @@ int main(int argc, char* argv[])
 			if (visOption == "fe") visualization::visualize(sdModels.back(), "element");
 			if (visOption == "fe") visualization::visualize(sdModels.back(), "strain_energy");
 			if (visOption == "bp") visualization::visualize(bpModels.back());
+			out("Sent models to visualization",true,true,verbose);
 		}
-		out("Sent models to visualization",true,true,verbose);
 		if (i >= iterations) break;
 		
 		// Create a new MS model so the original can not be adapted and adapt this version
 		spatial_design::ms_N_building newMS = msDesigns.back();
 
 		if(shiftFillPlane || addElevation)
-		{			
-			if(i % 2)
+		{
+			if(shiftFillPlane)
 			{
-				if(addElevation)
-				{
-					newMS.duplicateElevation();
-					newMS.writeToFile("add_elevation");
-					out("\naddElevation in Iteration: ",false,false,verbose); out(i,true,false,verbose);
-				}
-				if(shiftFillPlane)
-				{
-					newMS.shiftFillPlaneCentre(5000);
-					out("\nshiftFillPlaneCentre in iteration: ",false,false,verbose); out(i,true,false,verbose);
-				}
+				out("\nStart shiftFillPlaneCentre in iteration: ",false,false,verbose); out(i,true,false,verbose);
+				bool shiftInMostHeadingDirection = false;
+				//if(i == 0) {shiftInMostHeadingDirection = true;}
+				//else if(i % 2) {shiftInMostHeadingDirection = true;}
 				
-				msDesignsMidAdaptation.push_back(newMS);
+				newMS.shiftFillPlaneCentre(averageSpaceSize, shiftInMostHeadingDirection);
+				out("\nshiftFillPlaneCentre in iteration: ",false,false,verbose); out(i,true,false,verbose);
+			}
+			if(addElevation)
+			{
+				out("\nStart addElevation in Iteration: ",false,false,verbose); out(i,true,false,verbose);
+				newMS.duplicateElevation();
+				out("\naddElevation in Iteration: ",false,false,verbose); out(i,true,false,verbose);
+			}
 
-				designPerformancesMidAdaptation.push_back(utilities::data_point(2));
-				
-				// step 1, generate SD and BP models and evaluate them.
-				spatial_design::cf_building cfMid(msDesignsMidAdaptation.back(),1e-6);
-				out("\tInitialized conformal model",true,true,verbose);
+			// Check for floatingSpaces:
+			std::vector<spatial_design::ms_space*> floatingSpaces;
+			if (newMS.hasFloatingSpaces(floatingSpaces))
+			{
+				for (auto& i : floatingSpaces) newMS.deleteSpace(i);
+			}
+			
+			msDesignsMidAdaptation.push_back(newMS);
 
-				grammar::grammar grmMid(cfMid);
-				out("\tInitialized grammar",true,true,verbose);
-				
-				sdModelsMidAdaptation.push_back(grmMid.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"))); 
-				out("\tGenerated structural model",true,true,verbose);
-				
-				sdModelsMidAdaptation.back().analyze();
-				out("\tEvaluated structural model: ",false,false,verbose);
-				double sdResultMid = sdModelsMidAdaptation.back().getTotalResults().mTotalStrainEnergy;
-				out(sdResultMid,true,true,verbose);
-				designPerformancesMidAdaptation.back()(0) = sdResultMid;
-				
-				bpModelsMidAdaptation.push_back(grmMid.bp_grammar<grammar::DEFAULT_BP_GRAMMAR>(std::string("settings/bp_settings.txt")));
-				out("\tGenerated building physics model",true,true,verbose);
-				
-				bpModelsMidAdaptation.back().simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
-				out("\tEvaluated building physics model: ",false,false,verbose);
-				double bpResultMid = bpModelsMidAdaptation.back().getTotalResults().mTotalEnergy;
-				out(bpResultMid,true,true,verbose);
-				designPerformancesMidAdaptation.back()(1) = bpResultMid;
-				
-				if (!visualizations.empty()) for (const auto& visOption : visualizations)
-				{
-					if (visOption == "ms") visualization::visualize(msDesignsMidAdaptation.back(),"","ms_N_building_MID",4.0);
-					if (visOption == "sg") visualization::visualize(cfMid,"space_at_ground_MID");
-					if (visOption == "de") visualization::visualize(cfMid,"delaunay_MID");
-					if (visOption == "bo") visualization::visualize(cfMid,"boundarylines_MID");
-					if (visOption == "tr") visualization::visualize(cfMid,"trirec_MID");
-					if (visOption == "tp") visualization::visualize(cfMid,"triangular_prism_MID");
-					if (visOption == "sd") visualization::visualize(sdModelsMidAdaptation.back());
-					if (visOption == "sdC") visualization::visualize(sdModelsMidAdaptation.back(), "component_MID");
-					if (visOption == "sdD") visualization::visualize(sdModelsMidAdaptation.back(), "density_MID");
-					if (visOption == "fe") visualization::visualize(sdModelsMidAdaptation.back(), "element_MID");
-					if (visOption == "fe") visualization::visualize(sdModelsMidAdaptation.back(), "strain_energy_MID");
-					if (visOption == "bp") visualization::visualize(bpModelsMidAdaptation.back());
-				}
+			designPerformancesMidAdaptation.push_back(utilities::data_point(2));
+			
+			// step 1, generate SD and BP models and evaluate them.
+			spatial_design::cf_building cfMid(msDesignsMidAdaptation.back(),1e-6);
+			out("\tInitialized conformal model",true,true,verbose);
+
+			grammar::grammar grmMid(cfMid);
+			out("\tInitialized grammar",true,true,verbose);
+			
+			sdModelsMidAdaptation.push_back(grmMid.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"))); 
+			out("\tGenerated structural model",true,true,verbose);
+			
+			sdModelsMidAdaptation.back().analyze();
+			out("\tEvaluated structural model: ",false,false,verbose);
+			double sdResultMid = sdModelsMidAdaptation.back().getTotalResults().mTotalStrainEnergy;
+			out(sdResultMid,true,true,verbose);
+			designPerformancesMidAdaptation.back()(0) = sdResultMid;
+			
+			bpModelsMidAdaptation.push_back(grmMid.bp_grammar<grammar::DEFAULT_BP_GRAMMAR>(std::string("settings/bp_settings.txt")));
+			out("\tGenerated building physics model",true,true,verbose);
+			
+			bpModelsMidAdaptation.back().simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
+			out("\tEvaluated building physics model: ",false,false,verbose);
+			double bpResultMid = bpModelsMidAdaptation.back().getTotalResults().mTotalEnergy;
+			out(bpResultMid,true,true,verbose);
+			designPerformancesMidAdaptation.back()(1) = bpResultMid;
+			
+			if (!visualizations.empty()) for (const auto& visOption : visualizations)
+			{
+				if (visOption == "ms") visualization::visualize(msDesignsMidAdaptation.back(),"","ms_N_building_MID",4.0);
+				if (visOption == "sg") visualization::visualize(cfMid,"space_at_ground_MID");
+				if (visOption == "de") visualization::visualize(cfMid,"delaunay_MID");
+				if (visOption == "bo") visualization::visualize(cfMid,"boundarylines_MID");
+				if (visOption == "tr") visualization::visualize(cfMid,"trirec_MID");
+				if (visOption == "tp") visualization::visualize(cfMid,"triangular_prism_MID");
+				if (visOption == "sd") visualization::visualize(sdModelsMidAdaptation.back());
+				if (visOption == "sdC") visualization::visualize(sdModelsMidAdaptation.back(), "component_MID");
+				if (visOption == "sdD") visualization::visualize(sdModelsMidAdaptation.back(), "density_MID");
+				if (visOption == "fe") visualization::visualize(sdModelsMidAdaptation.back(), "element_MID");
+				if (visOption == "fe") visualization::visualize(sdModelsMidAdaptation.back(), "strain_energy_MID");
+				if (visOption == "bp") visualization::visualize(bpModelsMidAdaptation.back());
 				out("\tSent MID models to visualization",true,true,verbose);
 			}
 		}
@@ -665,6 +698,9 @@ int main(int argc, char* argv[])
 		// Step 2, get performances per space
 		std::vector<utilities::data_point> performances;
 		std::vector<std::string> axisDataTypes = {"bp","sd"};
+		bool floorAreaDivision = false;
+		bool SurfaceAreaDivision = true;
+		bool VolumeDivision = false;
 		for (const auto& j : newMS.getSpacePtrs())
 		{
 			utilities::data_point tempDataPoint({0,0});
@@ -676,27 +712,22 @@ int main(int argc, char* argv[])
 			auto spaceGeom = j->getGeometry();
 			if (modification != "bp")
 			{
-				if(shiftFillPlane && i % 2|| addElevation && i % 2){tempDataPoint(1) = sdModelsMidAdaptation.back().getPartialResults(&spaceGeom).mTotalStrainEnergy;}
+				if(shiftFillPlane|| addElevation){tempDataPoint(1) = sdModelsMidAdaptation.back().getPartialResults(&spaceGeom).mTotalStrainEnergy;}
 				else {tempDataPoint(1) = sdModels.back().getPartialResults(&spaceGeom).mTotalStrainEnergy;}
 			}
 			if (modification != "sd")
 			{
-				if(shiftFillPlane && i % 2 || addElevation && i % 2){tempDataPoint(0) = bpModelsMidAdaptation.back().getPartialResults(&spaceGeom).mTotalEnergy;}
+				if(shiftFillPlane|| addElevation){tempDataPoint(0) = bpModelsMidAdaptation.back().getPartialResults(&spaceGeom).mTotalEnergy;}
 				else {tempDataPoint(0) = bpModels.back().getPartialResults(&spaceGeom).mTotalEnergy;}
 			} 
-			std::cout << "dataPoint: " << tempDataPoint << std::endl;
-			std::cout << "floor area: " << j->getFloorArea() << std::endl;
-			if(j->getFloorArea() == 0)
-			{
-				std::stringstream errorMessage;
-				errorMessage << "There is a space with floor area zerro and is therefor invalid. " << std::endl
-										<< "The following space is invalid: " << *j << std::endl
-										<< "(mainFile)." << std::endl;
-				throw std::invalid_argument(errorMessage.str());
-			}
-			tempDataPoint /= j->getFloorArea();
+			//std::cout << "performance space: " << *j << std::endl;
+			//std::cout << "prior division: " << tempDataPoint << std::endl;
+			if(floorAreaDivision){tempDataPoint /= j->getFloorArea();}
+			else if(SurfaceAreaDivision){tempDataPoint /= j->getSurfaceArea();}	
+			else if(VolumeDivision){tempDataPoint /= j->getVolume();}
+			//std::cout << "after division: " << tempDataPoint << std::endl;
+
 			performances.push_back(tempDataPoint);
-			std::cout << "dataPoint after division floorArea(): " << tempDataPoint << std::endl;
 		}
 		out("Collected performances for each space",true,true,verbose);	
 
@@ -719,9 +750,11 @@ int main(int argc, char* argv[])
 		{
 			if (visOption == "msw")
 			{
-				std::vector<int> resultModificationFactor = {0,0};
+				float transparency = 1.0;
+				std::vector<double> resultModificationFactor = {0,0};
 				std::string title = "ms_N_worst";
 
+				std::cout << "modification: " << modification << std::endl;
 				if (modification == "sd"){resultModificationFactor[1] = 1; title = "ms_N_worst_sd_" + std::to_string(i);}
 				else if (modification == "bp"){resultModificationFactor[0] = 1; title = "ms_N_worst_bp_" + std::to_string(i);}
 				else if (modification == "sdbp")
@@ -733,15 +766,21 @@ int main(int argc, char* argv[])
 				{
 					if(i % 2){resultModificationFactor[1] = 1; title = "ms_N_worst_sd_" + std::to_string(i);}
 					else{resultModificationFactor[0] = 1; title = "ms_N_worst_bp_" + std::to_string(i);}
-				}	
+				}
+				else if(modification == "weighted")
+				{
+					resultModificationFactor[0] = objectiveWeights[0];
+					resultModificationFactor[1] = objectiveWeights[1];
+					title = "ms_N_worst_weighted_" + std::to_string(i);
+				}
 				
-				float transparency = 1.0;
 				visualization::visualize(performances, resultModificationFactor, transparency, title, 4.0);
 				out("Sent ms performances models to visualization",true,true,verbose);
 			}
 		}
 
 		// Step 4, delete spaces
+		std::vector<utilities::data_point> performancesRemoveSpace = performances;
 		if(clusterDelete)
 		{
 			// step 4, cluster the data
@@ -795,24 +834,35 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			std::vector<utilities::data_point> performancesRemoveSpace = performances;
+			performancesRemoveSpace = performances;
 			if (modification == "sd" || modification == "bp")
 			{
 				std::sort(performancesRemoveSpace.begin(), performancesRemoveSpace.end());
 			}
 			else
 			{ 
-				// remove performance data which is not used so for deleting spaces so the following sorting algorithm works.
+				// Adjust data such that the following sorting algorithm works.
 				int index = 0;
 				if(modification == "sdbp")
 				{
 					if((i+1) % 2){index = 0;}
 					else {index = 1;}
 				}
+				else if(modification == "bp"){;}
+				else if(modification == "sd"){;}
 				else if(modification == "bpsd")
 				{
 					if((i+1) % 2){index = 1;}
 					else {index = 0;}
+				}
+				else if(modification == "weighted")
+				{
+					// Add both objectiveWeights * normalized performances up for a weighted performance per space
+					for(auto &k: performancesRemoveSpace)
+					{
+						k(0) = k(0) * objectiveWeights[0] + k(1) * objectiveWeights[1];
+					} 
+					index = 1;
 				}
 				for(auto &k: performancesRemoveSpace){k(index) = 0;} 
 				std::sort(performancesRemoveSpace.begin(), performancesRemoveSpace.end());
@@ -823,16 +873,30 @@ int main(int argc, char* argv[])
 			if(amountOfSpaceRemoval > 0) {spaceAmountRemoval = amountOfSpaceRemoval;}
 			else 
 			{
-				spaceAmountRemoval = round(nSpaces*spaceRemoveRatio);
+				if(spaceRemoveRatio == 0){spaceAmountRemoval = performancesRemoveSpace.size() - nSpaces;}
+				else{spaceAmountRemoval = round(nSpaces*spaceRemoveRatio);}
 				if(spaceAmountRemoval < 1){spaceAmountRemoval = 1;}
 			}
 
 			// Remove spaces
-			for(int k=performancesRemoveSpace.size()-1; k>=performancesRemoveSpace.size()-spaceAmountRemoval; k--)
+			bool removeMaxValue = false;
+			if(removeMaxValue)
 			{
-				newMS.deleteSpace(performancesRemoveSpace[k].getMSpacePtrs().back());
+				std::reverse(performancesRemoveSpace.begin(), performancesRemoveSpace.end());
+				for(int k=performancesRemoveSpace.size()-1; k>=performancesRemoveSpace.size()-spaceAmountRemoval; k--)
+				{
+					newMS.deleteSpace(performancesRemoveSpace[k].getMSpacePtrs().back());
+				}
+			}
+			else
+			{
+				for(int k=performancesRemoveSpace.size()-1; k>=performancesRemoveSpace.size()-spaceAmountRemoval; k--)
+				{
+					newMS.deleteSpace(performancesRemoveSpace[k].getMSpacePtrs().back());
+				}
 			}
 
+			// Enforce constrains on BSD
 			newMS.setZZero();
 			std::vector<spatial_design::ms_space*> floatingSpaces;
 			if (newMS.hasFloatingSpaces(floatingSpaces))
@@ -852,44 +916,77 @@ int main(int argc, char* argv[])
 		newMS.scale({{0,scaleFactor},{1,scaleFactor}});
 
 		// split the spaces with the longest horizontal rib
-		while (newMS.getSpacePtrs().size() < nSpaces)
+		bool longestRib = true;
+		bool performanceSplit = false;
+		if(longestRib)
 		{
-			auto spaceWithLargestDimension = newMS.getSpacePtrs().front();
-			bso::utilities::geometry::line_segment LongestAxis;
-			double longestLength = 0;
-
-			for (const auto& j : newMS.getSpacePtrs())
+			// split the spaces with the longest horizontal rib
+			while (newMS.getSpacePtrs().size() < nSpaces)
 			{
-				std::vector<bso::utilities::geometry::line_segment> lines = j->getGeometry().getLines();
+				auto spaceWithLargestDimension = newMS.getSpacePtrs().front();
+				bso::utilities::geometry::line_segment LongestAxis;
+				double longestLength = 0;
+
+				for (const auto& j : newMS.getSpacePtrs())
+				{
+					std::vector<bso::utilities::geometry::line_segment> lines = j->getGeometry().getLines();
+					for(const auto k: lines)
+					{
+						if(k.getVector().isVertical())
+						{
+							if(k.getLength() < 6000) continue; // only consider horizontal lines which are long enough for elevation height purposes
+						} 
+						if(longestLength < k.getLength())
+						{
+							longestLength = k.getLength();
+							LongestAxis = k;
+							spaceWithLargestDimension = j;
+						}
+					}
+				}
+				int splitamount = 2;
+				if(LongestAxis.getVector().isVertical())
+				{
+					std::vector<std::pair<unsigned int, unsigned int> > splits = {{2,splitamount}};
+					newMS.splitSpace(spaceWithLargestDimension, splits);
+				}
+				else
+				{
+					newMS.splitSpace(spaceWithLargestDimension, splitamount , LongestAxis);
+				}
+			}
+			out("Split spaces with longest rib to restore number of spaces",true,true,verbose);
+		}
+		else if(performanceSplit)
+		{
+			int splitCount = 0;
+			int splitamount = 2;
+			while (newMS.getSpacePtrs().size() < nSpaces)
+			{				
+				std::vector<bso::utilities::geometry::line_segment> lines = (performancesRemoveSpace[splitCount].getMSpacePtrs().back())->getGeometry().getLines();
+				bso::utilities::geometry::line_segment LongestAxis;
+				double longestLength = 0;
+				bool found = false;
 				for(const auto k: lines)
 				{
 					if(k.getVector().isVertical())
 					{
 						if(k.getLength() < 6000) continue; // only consider horizontal lines which are long enough for elevation height purposes
 					} 
-					if(longestLength < k.getLength())
+					if(longestLength < k.getLength() && k.getLength() > 4000)
 					{
 						longestLength = k.getLength();
 						LongestAxis = k;
-						spaceWithLargestDimension = j;
+						found = true;
 					}
 				}
+
+				if(found){newMS.splitSpace(performancesRemoveSpace[splitCount].getMSpacePtrs().back(), splitamount, LongestAxis);}
+				splitCount++;
 			}
-			int splitamount = 2;
-			if(LongestAxis.getVector().isVertical())
-			{
-				std::vector<std::pair<unsigned int, unsigned int> > splits = {{2,splitamount}};
-				newMS.splitSpace(spaceWithLargestDimension, splits);
-			}
-			else
-			{
-				newMS.splitSpace(spaceWithLargestDimension, splitamount , LongestAxis);
-			}
+			out("Split spaces with best performance to restore number of spaces",true,true,verbose);
 		}
-		// scaleFactor = sqrt(floorArea / newMS.getFloorArea());
-		// newMS.scale({{0,scaleFactor},{1,scaleFactor}});
-		out("Split spaces to restore number of spaces",true,true,verbose);
-		
+
 		// in case the lower spaces were removed reset minimum z coordinate to Z
 		newMS.setZZero();
 		out("Scaled design to initial volume",true,true,verbose);
@@ -1000,7 +1097,13 @@ int main(int argc, char* argv[])
 		std::string plotVector = dir+"vectorPlot_" + inputFile + "_" + modification +".png";
 		dp.plotScatter2D(fileScatter, plotScatter, false, true);
 		dp.plotParetoFront2D(fileParetoFront, fileNonParetoFront, plotParetoFront, false, true);
-		dp.plotVector2D(fileVector, plotVector, true, true);
+		dp.plotVector2D(fileVector, plotVector, visualizePlot, true);
+	}
+	if(combineData)
+	{		
+		utilities::data_plot dp(designPerformances, axisDesignPerformances, "Design Iteration");
+		dp.addToCombinedDataFile("combined_data.csv", modification, inputFile);
+		dp.addToOverviewCombinedDataFile("overView_data.csv", modification, inputFile);
 	}
 	
 	for (const auto& i : outputSpaces)
