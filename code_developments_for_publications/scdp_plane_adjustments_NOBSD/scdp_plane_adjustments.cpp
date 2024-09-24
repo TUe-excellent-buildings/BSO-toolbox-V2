@@ -25,6 +25,7 @@ std::vector<std::string> VIS_OPTIONS = {"ms","msc","msw","tp","tr","de","bo","sd
 std::vector<std::string> MOD_OPTIONS = {"bp","sd","sdbp","bpsd","weighted"};
 std::vector<std::string> OUT_OPTIONS = {"result_line", "verbose", "ms_files","plot","best","all","recDif"};
 std::vector<std::string> DEL_OPTIONS = {"worst", "cluster"};
+std::vector<std::string> SPLIT_OPTIONS = {"longest", "performance"};
 
 int end, begin = 0;
 template<class T>
@@ -68,6 +69,9 @@ int main(int argc, char* argv[])
 	bool addElevation = false;
 	bool resultDir = false;
 	bool combineData = false;
+	bool longestRib = true;
+	bool performanceSplit = false;
+	bool removeSmallerFragments = true;
 	unsigned int iterations = 0;
 	unsigned int kMin = 2;
 	unsigned int kMax = 10;
@@ -115,6 +119,11 @@ int main(int argc, char* argv[])
 			std::cout << "-d\t" << "or --deleteMethod, to specify how spaces are deleted:\n"
 								<<   "\t" << "\'cluster\' for cluster deleting spaces\n"
 								<<   "\t" << "\'worst\' for deleting spaces based on worst performance\n";
+			std::cout << "-so\t" << "or --splitOption, to specify which spaces are split:\n"
+								<<   "\t" << "\'longest\' for cluster deleting spaces\n"
+								<<   "\t" << "\'performance\' for deleting spaces based on worst performance\n";
+			std::cout << "-f\t" << "or --deleteFragments, to specify what to do with spaces which are not connected\n"
+								<<	 "\t" << "as a full building. Option are \'true\' or \'false\'.\n";
 			std::cout << "-ad\t" << "or --adaptation, to specify a adaptation method, the choices are: \n"
 								<<   "\t" << "\'elevation\' for adding an elevation to the building\n"
 								<<   "\t" << "\'shiftfill\' for shifting a section of the \n"
@@ -333,6 +342,42 @@ int main(int argc, char* argv[])
 					std::stringstream errorMessage;
 					errorMessage << "\nError, did not recognize: " << outSpec << " as an\n"
 												<< "argument for -d or --deleteMethod. Use -h or\n"
+												<< "--help for help\n";
+					throw std::invalid_argument(errorMessage.str());
+				}
+			}
+		}
+		else if (*arg == "-so" || *arg == "--splitOption")
+		{
+			while (++arg != args.end() && arg->operator[](0) != '-')
+			{
+				std::string outSpec = *arg;
+				boost::trim(outSpec);
+				if (outSpec == "longest") {longestRib = true;performanceSplit = false;}
+				else if(outSpec == "performance") {longestRib = false;performanceSplit = true;}
+				else
+				{
+					std::stringstream errorMessage;
+					errorMessage << "\nError, did not recognize: " << outSpec << " as an\n"
+												<< "argument for -d or --deleteMethod. Use -h or\n"
+												<< "--help for help\n";
+					throw std::invalid_argument(errorMessage.str());
+				}
+			}
+		}
+		else if (*arg == "-f" || *arg == "--deleteFragments")
+		{
+			while (++arg != args.end() && arg->operator[](0) != '-')
+			{
+				std::string outSpec = *arg;
+				boost::trim(outSpec);
+				if (outSpec == "true") removeSmallerFragments = true;
+				else if(outSpec == "false") removeSmallerFragments = false;
+				else
+				{
+					std::stringstream errorMessage;
+					errorMessage << "\nError, did not recognize: " << outSpec << " as an\n"
+												<< "argument for -f or --deleteFragments. Use -h or\n"
 												<< "--help for help\n";
 					throw std::invalid_argument(errorMessage.str());
 				}
@@ -599,22 +644,25 @@ int main(int argc, char* argv[])
 		out(bpResult,true,true,verbose);
 		designPerformances.back()(1) = bpResult;
 		
-		if (!visualizations.empty()) for (const auto& visOption : visualizations)
+		if (!visualizations.empty()) 
 		{
-			if (visOption == "ms" && i != 0) visualization::visualize(msDesignsTemp.back(),"","ms_N_building",4.0);
-			if (visOption == "msw" && i == 0) visualization::visualize(msDesigns.back());
-			if (visOption == "ms") visualization::visualize(msDesigns.back(),"","ms_N_building",4.0);
-			if (visOption == "sg") visualization::visualize(cf,"space_at_ground");
-			if (visOption == "de") visualization::visualize(cf,"delaunay");
-			if (visOption == "bo") visualization::visualize(cf,"boundarylines");
-			if (visOption == "tr") visualization::visualize(cf,"trirec");
-			if (visOption == "tp") visualization::visualize(cf,"triangular_prism");
-			if (visOption == "sd") visualization::visualize(sdModels.back());
-			if (visOption == "sdC") visualization::visualize(sdModels.back(), "component");
-			if (visOption == "sdD") visualization::visualize(sdModels.back(), "density");
-			if (visOption == "fe") visualization::visualize(sdModels.back(), "element");
-			if (visOption == "fe") visualization::visualize(sdModels.back(), "strain_energy");
-			if (visOption == "bp") visualization::visualize(bpModels.back());
+			for (const auto& visOption : visualizations)
+			{
+				//if (visOption == "ms" && i != 0) visualization::visualize(msDesignsTemp.back(),"","ms_N_building",4.0);
+				if (visOption == "msw" && i == 0) visualization::visualize(msDesigns.back());
+				if (visOption == "ms") visualization::visualize(msDesigns.back(),"","ms_N_building",4.0);
+				if (visOption == "sg") visualization::visualize(cf,"space_at_ground");
+				if (visOption == "de") visualization::visualize(cf,"delaunay");
+				if (visOption == "bo") visualization::visualize(cf,"boundarylines");
+				if (visOption == "tr") visualization::visualize(cf,"trirec");
+				if (visOption == "tp") visualization::visualize(cf,"triangular_prism");
+				if (visOption == "sd") visualization::visualize(sdModels.back());
+				if (visOption == "sdC") visualization::visualize(sdModels.back(), "component");
+				if (visOption == "sdD") visualization::visualize(sdModels.back(), "density");
+				if (visOption == "fe") visualization::visualize(sdModels.back(), "element");
+				if (visOption == "fe") visualization::visualize(sdModels.back(), "strain_energy");
+				if (visOption == "bp") visualization::visualize(bpModels.back());
+			}
 			out("Sent models to visualization",true,true,verbose);
 		}
 		if (i >= iterations) break;
@@ -628,11 +676,12 @@ int main(int argc, char* argv[])
 			{
 				out("\nStart shiftFillPlaneCentre in iteration: ",false,false,verbose); out(i,true,false,verbose);
 				bool shiftInMostHeadingDirection = false;
-				//if(i == 0) {shiftInMostHeadingDirection = true;}
-				//else if(i % 2) {shiftInMostHeadingDirection = true;}
+				if(i == 0) {shiftInMostHeadingDirection = true;}
+				else if(i % 2) {shiftInMostHeadingDirection = true;}
 				
+				averageSpaceSize = newMS.getAverageSpaceSize();
 				newMS.shiftFillPlaneCentre(averageSpaceSize, shiftInMostHeadingDirection);
-				out("\nshiftFillPlaneCentre in iteration: ",false,false,verbose); out(i,true,false,verbose);
+				out("shiftFillPlaneCentre done: ",false,false,verbose); out(i,true,false,verbose);
 			}
 			if(addElevation)
 			{
@@ -641,15 +690,22 @@ int main(int argc, char* argv[])
 				out("\naddElevation in Iteration: ",false,false,verbose); out(i,true,false,verbose);
 			}
 
-			// Check for floatingSpaces:
+			// Apply constrains:
 			std::vector<spatial_design::ms_space*> floatingSpaces;
 			if (newMS.hasFloatingSpaces(floatingSpaces))
 			{
 				for (auto& i : floatingSpaces) newMS.deleteSpace(i);
 			}
+			if(removeSmallerFragments)
+			{
+				std::vector<spatial_design::ms_space*> spaceFragment;
+				if (newMS.isFragmented(spaceFragment, true))
+				{
+					for (auto& i : spaceFragment) newMS.deleteSpace(i);
+				}
+			}
 			
 			msDesignsMidAdaptation.push_back(newMS);
-
 			designPerformancesMidAdaptation.push_back(utilities::data_point(2));
 			
 			// step 1, generate SD and BP models and evaluate them.
@@ -677,20 +733,23 @@ int main(int argc, char* argv[])
 			out(bpResultMid,true,true,verbose);
 			designPerformancesMidAdaptation.back()(1) = bpResultMid;
 			
-			if (!visualizations.empty()) for (const auto& visOption : visualizations)
+			if (!visualizations.empty()) 
 			{
-				if (visOption == "ms") visualization::visualize(msDesignsMidAdaptation.back(),"","ms_N_building_MID",4.0);
-				if (visOption == "sg") visualization::visualize(cfMid,"space_at_ground_MID");
-				if (visOption == "de") visualization::visualize(cfMid,"delaunay_MID");
-				if (visOption == "bo") visualization::visualize(cfMid,"boundarylines_MID");
-				if (visOption == "tr") visualization::visualize(cfMid,"trirec_MID");
-				if (visOption == "tp") visualization::visualize(cfMid,"triangular_prism_MID");
-				if (visOption == "sd") visualization::visualize(sdModelsMidAdaptation.back());
-				if (visOption == "sdC") visualization::visualize(sdModelsMidAdaptation.back(), "component_MID");
-				if (visOption == "sdD") visualization::visualize(sdModelsMidAdaptation.back(), "density_MID");
-				if (visOption == "fe") visualization::visualize(sdModelsMidAdaptation.back(), "element_MID");
-				if (visOption == "fe") visualization::visualize(sdModelsMidAdaptation.back(), "strain_energy_MID");
-				if (visOption == "bp") visualization::visualize(bpModelsMidAdaptation.back());
+				for (const auto& visOption : visualizations)
+				{
+					//if (visOption == "ms") visualization::visualize(msDesignsMidAdaptation.back(),"","ms_N_building_MID",4.0);
+					if (visOption == "sg") visualization::visualize(cfMid,"space_at_ground_MID");
+					if (visOption == "de") visualization::visualize(cfMid,"delaunay_MID");
+					if (visOption == "bo") visualization::visualize(cfMid,"boundarylines_MID");
+					if (visOption == "tr") visualization::visualize(cfMid,"trirec_MID");
+					if (visOption == "tp") visualization::visualize(cfMid,"triangular_prism_MID");
+					if (visOption == "sd") visualization::visualize(sdModelsMidAdaptation.back());
+					if (visOption == "sdC") visualization::visualize(sdModelsMidAdaptation.back(), "component_MID");
+					if (visOption == "sdD") visualization::visualize(sdModelsMidAdaptation.back(), "density_MID");
+					if (visOption == "fe") visualization::visualize(sdModelsMidAdaptation.back(), "element_MID");
+					if (visOption == "fe") visualization::visualize(sdModelsMidAdaptation.back(), "strain_energy_MID");
+					if (visOption == "bp") visualization::visualize(bpModelsMidAdaptation.back());
+				}
 				out("\tSent MID models to visualization",true,true,verbose);
 			}
 		}
@@ -830,6 +889,15 @@ int main(int argc, char* argv[])
 			{
 				for (auto& i : floatingSpaces) newMS.deleteSpace(i);
 			}
+			if(removeSmallerFragments)
+			{
+				std::vector<spatial_design::ms_space*> spaceFragment;
+				if (newMS.isFragmented(spaceFragment, true))
+				{
+					for (auto& i : spaceFragment) newMS.deleteSpace(i);
+				}
+			}
+
 			out("Removed worst performing cluster of spaces in building spatial design",true,true,verbose);
 		}
 		else
@@ -903,21 +971,21 @@ int main(int argc, char* argv[])
 			{
 				for (auto& i : floatingSpaces) newMS.deleteSpace(i);
 			}
+			if(removeSmallerFragments)
+			{
+				std::vector<spatial_design::ms_space*> spaceFragment;
+				if (newMS.isFragmented(spaceFragment, true))
+				{
+					for (auto& i : spaceFragment) newMS.deleteSpace(i);
+				}
+			}
 
 			out("Removed worst performing spaces in building spatial design",true,true,verbose);
 		}
 		msDesignsTemp.push_back(newMS);
 		
 
-
-		// step 6, scale and split spaces to recover initial conditions
-		// scale the dimensions in x and y direction
-		double scaleFactor = sqrt(floorArea / newMS.getFloorArea());
-		newMS.scale({{0,scaleFactor},{1,scaleFactor}});
-
-		// split the spaces with the longest horizontal rib
-		bool longestRib = true;
-		bool performanceSplit = false;
+		// step 6, split spaces to recover initial conditions
 		if(longestRib)
 		{
 			// split the spaces with the longest horizontal rib
@@ -959,6 +1027,7 @@ int main(int argc, char* argv[])
 		}
 		else if(performanceSplit)
 		{
+			// split the spaces with the best performance
 			int splitCount = 0;
 			int splitamount = 2;
 			while (newMS.getSpacePtrs().size() < nSpaces)
@@ -989,7 +1058,13 @@ int main(int argc, char* argv[])
 
 		// in case the lower spaces were removed reset minimum z coordinate to Z
 		newMS.setZZero();
-		out("Scaled design to initial volume",true,true,verbose);
+		out("SetZZero if needed",true,true,verbose);
+
+		// scale the dimensions in x and y direction
+		double scaleFactor = sqrt(floorArea / newMS.getFloorArea());
+		newMS.scale({{0,scaleFactor},{1,scaleFactor}});
+		out("Scaled design to initial floor area",true,true,verbose);
+
 		msDesigns.push_back(newMS);
 		out("Modified building spatial design into a new one",true,true,verbose);
 

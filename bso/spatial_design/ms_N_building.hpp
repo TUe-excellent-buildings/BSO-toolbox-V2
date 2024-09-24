@@ -37,8 +37,10 @@ public:
 	double getAverageRecDif() const;
 	bool hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 		const double tol = 1e-3) const; 
-	// bool isFragmented(std::vector<ms_space*>& toDeleteFragmentSpaces, 
-		//const double tol = 1e-3) const;
+	bool isFragmented(std::vector<ms_space*>& spacesNonBiggestFragment, 
+		const double tol = 1e-3) const;
+	// bool areSpacesOverlapping(std::vector<ms_space*>& spacesNotOverlapping,
+	// 	const double tol = 1e-3) const;
 
 	// Get the NOBSD representation as a certain geometry:
 	void getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, 
@@ -51,6 +53,7 @@ public:
 	std::vector <bso::utilities::geometry::quadrilateral> getQuadAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol = 1e-3);
 	std::vector <bso::utilities::geometry::line_segment> getLinesAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol = 1e-3);
 	bso::utilities::geometry::vertex getCentreBuilding();
+	void getMostHeadingDirection(bso::utilities::geometry::vector& mostHeading, bso::utilities::geometry::vector& secondMostHeading, int amountOfHeadingCatagories = 6, const double& tol = 1e-3);
 
 
 	// Representation adjustment functions:
@@ -71,6 +74,8 @@ public:
 	void duplicateElevation(double atZFromGround = 0, double elevationHeight = 3000, bool duplicateBelowZLevel = true);
 	void shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHeadingDirection = false, int amountOfHeadingCatagories = 6, const double& tol = 1e-3);
 	void shiftFillPlane(const bso::utilities::geometry::vertex& location,
+		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3);
+	void extrude(std::vector<ms_space*> spacePtrs, const bso::utilities::geometry::vertex& location, 
 		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3);
 	//void sweep(const bso::utilities::geometry::vertex& location,
 	//	const std::vector<std::pair<unsigned int, double> >& distances =

@@ -34,7 +34,7 @@ namespace bso { namespace utilities { namespace geometry {
 	{
 		if (this->isZero(tol) || rhs.isZero(tol)) return false;
 		angle = acos(this->normalized().dot(rhs.normalized()))*(180/(2*acos(0.0))); 
-		// Note acos return radiance. Therefore, the therm times "(180/(2*acos(0.0)))" is used to go to degrees with 2*acos(0.0)= mathematical constant pi.
+		// Note: acos return radiance. Therefore, the therm times "(180/(2*acos(0.0)))" is used to go to degrees with 2*acos(0.0)= mathematical constant pi.
 		return true;
 	}
 	

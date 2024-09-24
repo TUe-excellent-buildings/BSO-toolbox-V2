@@ -638,7 +638,7 @@ std::ostream& operator <<(std::ostream& stream, const ms_space& space)
 	}
 	else if(space.getSDefMethod()== "N")
 	{
-		stream << "N" << "," << space.getID() << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10);
+		stream << "N" << "," << space.getID() << std::setprecision(std::numeric_limits<double>::max_digits10);
 		
 		for(const auto i: space.getVertices())
 		{
