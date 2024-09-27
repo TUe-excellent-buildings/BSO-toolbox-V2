@@ -63,6 +63,20 @@ grammar::~grammar()
 	for (auto& i : mSurfaceProperties) delete i.second;
 	for (auto& i : mSpaceProperties) delete i.second;
 } // dtor()
+
+std::vector<bso::utilities::geometry::quadrilateral> grammar::getExteriorWalls()
+{
+	std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls;
+	std::map<spatial_design::conformal::cf_rectangle*, rule_set::rectangle_property*>::iterator it;
+	for (it = mRectangleProperties.begin(); it != mRectangleProperties.end(); it++)
+	{
+		if((it->second)->isWall() && (it->second)->isExternal())
+		{
+			exteriorWalls.push_back(*(it->first));
+		}
+	}
+	return exteriorWalls;
+}
 	
 } // namespace grammar
 } // namespace bso

@@ -7,7 +7,8 @@
 #include <iomanip> // Allowes to use std::setprecision() to be able to enlarge the decimals printed to the console of a double		
 #include <vector>
 #include <map>
-#include <bso/utilities/geometry.hpp>		 
+#include <bso/utilities/geometry.hpp>
+#include <bso/utilities/geometry/polygon_non_convex.hpp>
 
 
 namespace bso { namespace utilities {
@@ -946,9 +947,10 @@ namespace bso { namespace utilities {
 										<< "(bso/utilities/delaunay.cpp)." << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 		}
-
-		while(consideredV != startV)
+		bso::utilities::geometry::vertex lastConsideredV;
+		while(!consideredV.isSameAs(startV, mTol))
 		{
+			lastConsideredV = consideredV;
 			bso::utilities::geometry::vector flipV = (outerBound.back())[0] - (outerBound.back())[1];
 			double currentAzimuth = flipV.getHeading().first;
 			
@@ -961,6 +963,14 @@ namespace bso { namespace utilities {
 			if(c != connectivityVertex.size())
 			{
 				std::vector<utilities::geometry::line_segment> linesAtV = connectivityLines[c];
+				// if(linesAtV.size() <= 1)
+				// {
+				// 	std::stringstream errorMessage;
+				// 	errorMessage << "LinesAtV only consist of zero or one line. By definition, " << std::endl
+				// 							<< "no continuation of the outerBound is possible. " << std::endl
+				// 							<< "(bso/utilities/delaunay.cpp)." << std::endl;
+				// 	throw std::invalid_argument(errorMessage.str());
+				// }
 				int count = 0;
 				for(const auto i: linesAtV)
 				{
@@ -982,6 +992,20 @@ namespace bso { namespace utilities {
 				
 				// Define the other vertex then the considered vertex for searching for next outerBound line:
 				consideredV = (consideredLine)[1];
+				if(lastConsideredV.isSameAs(consideredV, mTol))
+				{
+					std::stringstream errorMessage;
+					errorMessage << "The considered vertex is not changed, as would be expected. " << std::endl
+											<< "The considered start vertex is: " << consideredV << std::endl
+											<< "The lastConsideredV is: " << lastConsideredV << std::endl
+											<< "The just added consideredLine is: " << consideredLine << std::endl
+											<< "The content of outerBound is: " << std::endl;
+											for(auto& add: outerBound) errorMessage << add << std::endl;
+											errorMessage << "The content of linesAtV is: " << std::endl;
+											for(auto& add: linesAtV) errorMessage << add << std::endl;
+											errorMessage << "(bso/utilities/delaunay.cpp)." << std::endl;
+					throw std::invalid_argument(errorMessage.str());
+				}
 			}
 			else
 			{
@@ -1120,6 +1144,189 @@ namespace bso { namespace utilities {
 			else if(i < 0) {done = true;}
 			if(!reverse){i++;}
 		}
+	}
+
+	bool hasCourtyard(std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls, std::vector<std::vector<bso::utilities::geometry::line_segment>>& outerboundsExport, std::vector<bso::utilities::geometry::triangle>& triangleExport, const double mTol /*= 1e-3*/)
+	{
+		bool hasCourtyard = false;
+		
+		// Find all elevations in the building
+		std::vector<std::pair<double,std::vector<bso::utilities::geometry::line_segment>>> linesAtElevation;
+		for(const auto& wall: exteriorWalls)
+		{
+			for(const auto& point: wall)
+			{
+				bool isAdded = false;
+				for(auto k: linesAtElevation)
+				{
+					if(point.z() == k.first) 
+					{
+						isAdded = true;
+						break;
+					}
+				}
+				if(!isAdded){linesAtElevation.emplace_back(point.z(), std::vector<bso::utilities::geometry::line_segment>{});}
+			}
+		}
+
+		// Sort linesAtElevation by the double value in the std::pair and remove the pair with the highest double value (i.e. roof of the building)
+		std::sort(linesAtElevation.begin(), linesAtElevation.end(), comparisonFirstOfPair); //comparisonFirstOfPair function defined in delaunay.hpp
+		if (!linesAtElevation.empty()) {linesAtElevation.pop_back();}
+		
+		// Get the horizontal lines at each elevation
+		for(const auto& wall: exteriorWalls)
+		{
+			bool firstLine = false;
+			bso::utilities::geometry::line_segment line1;
+			for(const auto line: wall.getLines())
+			{
+				if(line.getVector().isHorizontal())
+				{
+					// Get both horizontal lines, by storing and continuing the for loop. 
+					if(firstLine == false)
+					{
+						firstLine = true;
+						line1 = line;
+						continue;
+					}
+		
+					// Add lines if at elevation and not already added
+					bool line1IsBottomLine = line1[0].z() < line[0].z();
+					for(auto& elevation: linesAtElevation)
+					{
+						bool add = false;
+						if(line1IsBottomLine){add = (elevation.first >= line1[0].z()- mTol && elevation.first < line[0].z()- mTol);}
+						else{add = (elevation.first >= line[0].z()- mTol && elevation.first < line1[0].z() - mTol);}
+						if(add) 
+						{ 
+							bso::utilities::geometry::line_segment toAddLine = {{line[0].x(),line[0].y(),elevation.first},{line[1].x(),line[1].y(),elevation.first}};
+							bool toAddLineAlreadyAdded = false;
+							for(const auto& existingLine: elevation.second)
+							{
+								if(toAddLine.isSameAs(existingLine,mTol))
+								{
+									toAddLineAlreadyAdded = true;
+									break;
+								}
+							}
+							if(!toAddLineAlreadyAdded){elevation.second.push_back(toAddLine);}
+						}
+					}
+				}
+			}
+		}
+
+		// Identify each outbound in the exterior walls
+		std::vector<std::pair<double,std::vector<std::vector<bso::utilities::geometry::line_segment>>>> outerBoundPerElevation;
+		for(const auto& elevation: linesAtElevation)
+		{
+			std::vector<bso::utilities::geometry::line_segment> remainingLines = elevation.second;
+			std::vector<std::vector<bso::utilities::geometry::line_segment>> outerBound;
+			while(remainingLines.size() > 0)
+			{
+				if(remainingLines.size() <= 3)
+				{
+					std::stringstream errorMessage;
+					errorMessage << "The are less then three lines in container to get the outer bounds of these lines might form. " << std::endl
+											<< "As such the program is terminated, since otherwise a while loop will not end. "<< std::endl
+											<< "(bso/utilities/delaunay.cpp)." << std::endl;
+					throw std::invalid_argument(errorMessage.str());
+				}
+				std::vector<bso::utilities::geometry::line_segment> outerBoundLines = getOuterBounds2D(remainingLines, mTol);
+				outerBound.push_back(outerBoundLines);
+				remainingLines.clear();
+
+				for(const auto& j: elevation.second)
+				{
+					bool isFoundInAnyOuterBound = false;
+					for(const auto& k: outerBound)
+					{
+						for(const auto& l: k)
+						{
+							if(l.isSameAs(j,mTol))
+							{
+								isFoundInAnyOuterBound = true;
+								break;
+							}
+						}
+						if(isFoundInAnyOuterBound){break;}
+					}
+					if(!isFoundInAnyOuterBound){remainingLines.push_back(j);}
+				}
+			}
+
+			auto pTemp = std::make_pair(elevation.first,outerBound);
+			outerBoundPerElevation.push_back(pTemp);
+		}
+
+		for(auto& o: outerBoundPerElevation)
+		{
+			for(auto l: o.second){outerboundsExport.push_back(l);}
+		}
+
+		// Identify from the outerBoundPerElevation if any are courtyards
+		std::vector<std::pair<double,std::vector<bso::utilities::geometry::polygon_non_convex>>> courtyardsPerElevation;
+		for(const auto& elevation: outerBoundPerElevation)
+		{
+			courtyardsPerElevation.emplace_back(elevation.first, std::vector<bso::utilities::geometry::polygon_non_convex>{});
+			if(elevation.second.size() > 1)
+			{
+				// Redefine the outerbound to a polygon_non_convex, so we can use its geometry checks.
+				std::vector<bso::utilities::geometry::polygon_non_convex> polyOutbounds;
+				for(const auto outboundLines: elevation.second)
+				{
+					std::vector<bso::utilities::geometry::vertex> outerboundVertexes;
+					for(const auto& line: outboundLines) {outerboundVertexes.push_back(line[0]);}
+					if(outerboundVertexes.size()<3)
+					{
+						std::stringstream errorMessage;
+						errorMessage << "The are less then three vertexes in container, " << std::endl
+												<< "therefor a polygon_non_convex would not be possible to be defined. " << std::endl
+												<< "(bso/utilities/delaunay.cpp)." << std::endl;
+						throw std::invalid_argument(errorMessage.str());
+					}
+					polyOutbounds.push_back(bso::utilities::geometry::polygon_non_convex(outerboundVertexes));
+					for(auto& t: polyOutbounds.back().getTriangles())
+					{
+						triangleExport.push_back(t);
+					}
+				}
+				for(int i=0; i<polyOutbounds.size(); i++) // iterate trough each outerBound at elevation
+				{
+					for(int j=i+1; j<polyOutbounds.size(); j++) // iterate trough each outerBound at elevation
+					{
+						// Check if any vertex of outbound j is inside outbound i, if so, then outbound j is a courtyard in outbound i.
+						for(const auto vertexj: polyOutbounds[j])
+						{
+							if(polyOutbounds[i].isInside(vertexj, mTol))
+							{
+								courtyardsPerElevation.back().second.push_back(polyOutbounds[j]);
+								break;
+							}
+						}
+						// Alternatively, check if any vertex of outbound i is inside outbound j, if so, then outbound i is a courtyard in outbound j.
+						for(const auto vertexi: polyOutbounds[i])
+						{
+							if(polyOutbounds[j].isInside(vertexi, mTol))
+							{
+								courtyardsPerElevation.back().second.push_back(polyOutbounds[i]);
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		for(const auto& i: courtyardsPerElevation)
+		{
+			if(i.second.size() > 0)
+			{
+				hasCourtyard = true;
+			}
+		}
+
+		return hasCourtyard;
 	}
 
 

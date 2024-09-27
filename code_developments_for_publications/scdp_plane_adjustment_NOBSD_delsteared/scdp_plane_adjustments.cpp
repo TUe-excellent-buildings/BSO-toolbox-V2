@@ -49,10 +49,10 @@ std::string getCurrentDateTime() {
     return ss.str();
 }
 
-std::vector<bso::utilities::data_point> getPerformancePerSpace(const bso::spatial_design::ms_N_building& ms, bso::structural_design::sd_model& sd, 
+void getPerformancePerSpace(std::vector<bso::utilities::data_point>& performances, bso::spatial_design::ms_N_building& ms, bso::structural_design::sd_model& sd, 
 		bso::building_physics::bp_model& bp, const std::string& modificationType, const std::string& performanceDivisionType)
 {
-	std::vector<bso::utilities::data_point> performances;
+	//std::vector<bso::utilities::data_point> performances;
 	std::vector<std::string> axisDataTypes = {"bp","sd"};
 	for (const auto& j : ms.getSpacePtrs())
 	{
@@ -63,8 +63,8 @@ std::vector<bso::utilities::data_point> getPerformancePerSpace(const bso::spatia
 		tempDataPoint.addSpacePtr(j);
 
 		auto spaceGeom = j->getGeometry();
-		if (modificationType != "bp"){sd.getPartialResults(&spaceGeom).mTotalStrainEnergy;}
-		if (modificationType != "sd"){bp.getPartialResults(&spaceGeom).mTotalEnergy;} 
+		if (modificationType != "bp"){tempDataPoint(1) = sd.getPartialResults(&spaceGeom).mTotalStrainEnergy;}
+		if (modificationType != "sd"){tempDataPoint(0) = bp.getPartialResults(&spaceGeom).mTotalEnergy;} 
 
 		if(performanceDivisionType == "floorArea"){tempDataPoint /= j->getFloorArea();}
 		else if(performanceDivisionType == "surfaceArea"){tempDataPoint /= j->getSurfaceArea();}	
@@ -72,7 +72,6 @@ std::vector<bso::utilities::data_point> getPerformancePerSpace(const bso::spatia
 
 		performances.push_back(tempDataPoint);
 	}
-	return performances;
 }
 
 void normalizeData(std::vector<bso::utilities::data_point>& performances, bso::utilities::data_point& utopianPoint, bso::utilities::data_point& distopianPoint)
@@ -88,6 +87,83 @@ void normalizeData(std::vector<bso::utilities::data_point>& performances, bso::u
 	distopianPoint.setToDistopia(performances);
 }
 
+void visualizeMsw(std::vector<bso::utilities::data_point>& performances, int interationNr, const std::string& modificationType, std::vector<double>& objectiveWeights)
+{
+	float transparency = 1.0;
+	std::vector<double> resultModificationFactor = {0,0};
+	std::string title = "ms_N_worst";
+
+	if (modificationType == "sd"){resultModificationFactor[1] = 1; title = "ms_N_worst_sd_" + std::to_string(interationNr);}
+	else if (modificationType == "bp"){resultModificationFactor[0] = 1; title = "ms_N_worst_bp_" + std::to_string(interationNr);}
+	else if (modificationType == "sdbp")
+	{
+		if(interationNr % 2){resultModificationFactor[0] = 1; title = "ms_N_worst_bp_" + std::to_string(interationNr);}
+		else{resultModificationFactor[1] = 1; title = "ms_N_worst_sd_" + std::to_string(interationNr);}
+	}
+	else if (modificationType == "bpsd")
+	{
+		if(interationNr % 2){resultModificationFactor[1] = 1; title = "ms_N_worst_sd_" + std::to_string(interationNr);}
+		else{resultModificationFactor[0] = 1; title = "ms_N_worst_bp_" + std::to_string(interationNr);}
+	}
+	else if(modificationType == "weighted")
+	{
+		resultModificationFactor[0] = objectiveWeights[0];
+		resultModificationFactor[1] = objectiveWeights[1];
+		title = "ms_N_worst_weighted_" + std::to_string(interationNr);
+	}
+	
+	bso::visualization::visualize(performances, resultModificationFactor, transparency, title, 4.0);
+}
+
+void enforceConstrains(bso::spatial_design::ms_N_building& ms, bool removeSmallerFragments)
+{
+	ms.setZZero();
+	std::vector<bso::spatial_design::ms_space*> floatingSpaces;
+	if (ms.hasFloatingSpaces(floatingSpaces))
+	{
+		for (auto& i : floatingSpaces) ms.deleteSpace(i);
+	}
+	if(removeSmallerFragments)
+	{
+		std::vector<bso::spatial_design::ms_space*> spaceFragment;
+		if (ms.isFragmented(spaceFragment, true))
+		{
+			for (auto& i : spaceFragment) ms.deleteSpace(i);
+		}
+	}
+}
+
+void sortDataPointsForSpaceRemoval(std::vector<bso::utilities::data_point>& performances, const std::string& modificationType, int interationNr, std::vector<double>& objectiveWeights)
+{
+	// Sort data for space removal later
+	if (modificationType == "sd" || modificationType == "bp"){std::sort(performances.begin(), performances.end());}
+	else
+	{ 
+		// Adjust data such that the following sorting algorithm works.
+		int index = 0;
+		if(modificationType == "sdbp")
+		{
+			if((interationNr+1) % 2){index = 0;}
+			else {index = 1;}
+		}
+		else if(modificationType == "bpsd")
+		{
+			if((interationNr+1) % 2){index = 1;}
+			else {index = 0;}
+		}
+		else if(modificationType == "weighted")
+		{
+			// Add both objectiveWeights * normalized performances up for a weighted performance per space
+			for(auto &k: performances)
+			{
+				k(0) = k(0) * objectiveWeights[0] + k(1) * objectiveWeights[1];
+			} 
+			index = 1;
+		}
+		for(auto &k: performances){k(index) = 0;} 
+		std::sort(performances.begin(), performances.end());
+	}	
+}
 
 
 using namespace bso;
@@ -708,6 +784,7 @@ int main(int argc, char* argv[])
 
 
 
+	
 
 
 	// Start with co-evolutionary design proccess:
@@ -722,125 +799,142 @@ int main(int argc, char* argv[])
 	std::vector<utilities::data_point> designPerformancesMidAdaptation;
 	std::vector<spatial_design::ms_N_building> msDesignsMidAdaptation;
 	std::vector<std::string> axisDesignPerformances = {"sd","bp"};
-	for (unsigned int i = 0; i <= iterations; ++i)
+	try
 	{
-		out("\nIteration: ",false,false,verbose); out(i,true,false,verbose);
-		
-		designPerformances.push_back(utilities::data_point(2));
-		
-		// step 1, generate SD and BP models and evaluate them.
-		spatial_design::cf_building cf(msDesigns.back(),1e-6);
-		out("Initialized conformal model",true,true,verbose);
-
-		grammar::grammar grm(cf);
-		out("Initialized grammar",true,true,verbose);
-		
-		sdModels.push_back(grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"))); 
-		out("Generated structural model",true,true,verbose);
-		
-		sdModels.back().analyze();
-		out("Evaluated structural model: ",false,false,verbose);
-		double sdResult = sdModels.back().getTotalResults().mTotalStrainEnergy;
-		out(sdResult,true,true,verbose);
-		designPerformances.back()(0) = sdResult;
-		
-		bpModels.push_back(grm.bp_grammar<grammar::DEFAULT_BP_GRAMMAR>(std::string("settings/bp_settings.txt")));
-		out("Generated building physics model",true,true,verbose);
-		
-		bpModels.back().simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
-		out("Evaluated building physics model: ",false,false,verbose);
-		double bpResult = bpModels.back().getTotalResults().mTotalEnergy;
-		out(bpResult,true,true,verbose);
-		designPerformances.back()(1) = bpResult;
-		
-		if (!visualizations.empty()) 
+		for (unsigned int i = 0; i <= iterations; ++i)
 		{
-			for (const auto& visOption : visualizations)
+			out("\nIteration: ",false,false,verbose); out(i,true,false,verbose);
+			
+			designPerformances.push_back(utilities::data_point(2));
+			
+			// step 1, generate SD and BP models and evaluate them.
+			spatial_design::cf_building cf(msDesigns.back(),1e-6);
+			out("Initialized conformal model",true,true,verbose);
+
+			grammar::grammar grm(cf);
+			out("Initialized grammar",true,true,verbose);
+
+			// Check for courtyard:
+			try
 			{
-				//if (visOption == "ms" && i != 0) visualization::visualize(msDesignsTemp.back(),"","ms_N_building",4.0);
-				if (visOption == "msw" && i == 0) visualization::visualize(msDesigns.back());
-				if (visOption == "ms") visualization::visualize(msDesigns.back(),"","ms_N_building",4.0);
-				if (visOption == "sg") visualization::visualize(cf,"space_at_ground");
-				if (visOption == "de") visualization::visualize(cf,"delaunay");
-				if (visOption == "bo") visualization::visualize(cf,"boundarylines");
-				if (visOption == "tr") visualization::visualize(cf,"trirec");
-				if (visOption == "tp") visualization::visualize(cf,"triangular_prism");
-				if (visOption == "sd") visualization::visualize(sdModels.back());
-				if (visOption == "sdC") visualization::visualize(sdModels.back(), "component");
-				if (visOption == "sdD") visualization::visualize(sdModels.back(), "density");
-				if (visOption == "fe") visualization::visualize(sdModels.back(), "element");
-				if (visOption == "fe") visualization::visualize(sdModels.back(), "strain_energy");
-				if (visOption == "bp") visualization::visualize(bpModels.back());
+				std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls = grm.getExteriorWalls();
+				out("Collected exterior walls",true,true,verbose);
+				std::vector<std::vector<bso::utilities::geometry::line_segment>> outerboundsExport;
+				std::vector<bso::utilities::geometry::triangle> triangleExport;
+				bool hasCourtyards = bso::utilities::hasCourtyard(exteriorWalls, outerboundsExport, triangleExport, 1e-2);
+				out("Checked for courtyards: ",false,false,verbose);out(hasCourtyards,true,true,verbose);
+
+				std::vector<bso::utilities::geometry::quad_hexahedron> QHs;
+				std::vector<bso::utilities::geometry::triangular_prism> triPrisms;
+				std::vector<bso::utilities::geometry::quadrilateral> quads;
+				std::vector<bso::utilities::geometry::line_segment> linesExport;
+				for(const auto b: outerboundsExport)
+				{
+					for(const auto a: b){linesExport.push_back(a);}
+				}
+				if (!visualizations.empty()) visualization::visualize(QHs, triPrisms, quads, triangleExport, linesExport);
 			}
-			out("Sent models to visualization",true,true,verbose);
-		}
-		if (i >= iterations) break;
-		
-		// Create a new MS model so the original can not be adapted and adapt this version
-		spatial_design::ms_N_building newMS = msDesigns.back();
-
-		if(adaptation == "delAdapt" || adaptation == "elevation" || adaptation == "shiftfill")
-		{
-			if(adaptation == "delAdapt")
+			catch(const std::exception& e)
 			{
-				// Step 2, get performancesAdMethod per space
-				std::vector<utilities::data_point> performancesAdMethod = getPerformancePerSpace(newMS, sdModels.back(), bpModels.back(), modification, performanceDivision);
-				out("Collected performancesAdMethod for each space",true,true,verbose);	
-
-				// Sort space performances such that we can determine where the worst is located
-				if (modification == "sd" || modification == "bp"){std::sort(performancesAdMethod.begin(), performancesAdMethod.end());}
-				else
-				{ 
-					// Adjust data such that the following sorting algorithm works.
-					int index = 0;
-					if(modification == "sdbp")
-					{
-						if((i+1) % 2){index = 0;}
-						else {index = 1;}
-					}
-					else if(modification == "bpsd")
-					{
-						if((i+1) % 2){index = 1;}
-						else {index = 0;}
-					}
-					else if(modification == "weighted")
-					{
-						// Add both objectiveWeights * normalized performances up for a weighted performance per space
-						for(auto &k: performancesAdMethod)
-						{
-							k(0) = k(0) * objectiveWeights[0] + k(1) * objectiveWeights[1];
-						} 
-						index = 1;
-					}
-					for(auto &k: performancesAdMethod){k(index) = 0;} 
-					std::sort(performancesAdMethod.begin(), performancesAdMethod.end());
-				}	
-
-				// Determine amount of spaces on which the adaptation method will be determined
-				int spaceAmountRemoval= round(nSpaces*spaceAdjustWorstRatio); 
-				if(spaceAmountRemoval < 1){spaceAmountRemoval = 1;}
-
-				// Determine the centre of to delete spaces:
-				bso::utilities::geometry::vertex deleteCentre = {0,0,0};
-				for(int k=performancesAdMethod.size()-1; k>=performancesAdMethod.size()-spaceAmountRemoval; k--)
+				if(verbose)
 				{
-					//std::cout << "identified deletespace is: " << *(performancesAdMethod[k].getMSpacePtrs().back()) << std::endl;
-					deleteCentre += performancesAdMethod[k].getMSpacePtrs().back()->getGeometry().getCenter(); // get to delete space centre
+					std::stringstream errorMessage;
+					errorMessage << "Unable to get result for the check for courtyards because of\n" << e.what() << std::endl;
 				}
-				deleteCentre = deleteCentre/spaceAmountRemoval;
-				bso::utilities::geometry::vertex centreBuilding = newMS.getCentreBuilding();
-				bso::utilities::geometry::vector deleteDirection = centreBuilding - deleteCentre;
-				std::cout << "deleteCentre is: " << deleteCentre << std::endl;
-				std::cout << "centreBuilding is: " << centreBuilding << std::endl;
-				std::cout << "deleteDirection.getHeading().second: " << deleteDirection.getHeading().second << std::endl;
-				
-				if(deleteDirection.getHeading().second < -inclinationSwitch)
+			}
+
+			sdModels.push_back(grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"))); 
+			out("Generated structural model",true,true,verbose);
+			
+			sdModels.back().analyze();
+			out("Evaluated structural model: ",false,false,verbose);
+			double sdResult = sdModels.back().getTotalResults().mTotalStrainEnergy;
+			out(sdResult,true,true,verbose);
+			designPerformances.back()(0) = sdResult;
+			
+			bpModels.push_back(grm.bp_grammar<grammar::DEFAULT_BP_GRAMMAR>(std::string("settings/bp_settings.txt")));
+			out("Generated building physics model",true,true,verbose);
+			
+			bpModels.back().simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
+			out("Evaluated building physics model: ",false,false,verbose);
+			double bpResult = bpModels.back().getTotalResults().mTotalEnergy;
+			out(bpResult,true,true,verbose);
+			designPerformances.back()(1) = bpResult;
+			
+			if (!visualizations.empty()) 
+			{
+				for (const auto& visOption : visualizations)
 				{
-					out("\nStart addElevation in Iteration: ",false,false,verbose); out(i,true,false,verbose);
-					newMS.duplicateElevation();
-					out("\naddElevation in Iteration: ",false,false,verbose); out(i,true,false,verbose);
+					//if (visOption == "ms" && i != 0) visualization::visualize(msDesignsTemp.back(),"","ms_N_building",4.0);
+					if (visOption == "msw" && i == 0) visualization::visualize(msDesigns.back());
+					if (visOption == "ms") visualization::visualize(msDesigns.back(),"","ms_N_building",4.0);
+					if (visOption == "sg") visualization::visualize(cf,"space_at_ground");
+					if (visOption == "de") visualization::visualize(cf,"delaunay");
+					if (visOption == "bo") visualization::visualize(cf,"boundarylines");
+					if (visOption == "tr") visualization::visualize(cf,"trirec");
+					if (visOption == "tp") visualization::visualize(cf,"triangular_prism");
+					if (visOption == "sd") visualization::visualize(sdModels.back());
+					if (visOption == "sdC") visualization::visualize(sdModels.back(), "component");
+					if (visOption == "sdD") visualization::visualize(sdModels.back(), "density");
+					if (visOption == "fe") visualization::visualize(sdModels.back(), "element");
+					if (visOption == "fe") visualization::visualize(sdModels.back(), "strain_energy");
+					if (visOption == "bp") visualization::visualize(bpModels.back());
 				}
-				else if(deleteDirection.getHeading().second > -inclinationSwitch)
+				out("Sent models to visualization",true,true,verbose);
+			}
+			if (i >= iterations) break;
+			
+			// Create a new MS model so the original can not be adapted and adapt this version
+			spatial_design::ms_N_building newMS = msDesigns.back();
+
+			if(adaptation == "delAdapt" || adaptation == "elevation" || adaptation == "shiftfill")
+			{
+				if(adaptation == "delAdapt")
+				{
+					// Step 2, get and sort performancesAdMethod per space
+					std::vector<utilities::data_point> performancesAdMethod;
+					getPerformancePerSpace(performancesAdMethod, newMS, sdModels.back(), bpModels.back(), modification, performanceDivision);
+					sortDataPointsForSpaceRemoval(performancesAdMethod, modification, i, objectiveWeights); // Sort space performances such that we can determine where the worst is located
+					out("Collected and sorted performancesAdMethod for each space",true,true,verbose);	
+
+					// Determine amount of spaces on which the adaptation method will be determined
+					int spaceAmountRemoval= round(nSpaces*spaceAdjustWorstRatio); 
+					if(spaceAmountRemoval < 1){spaceAmountRemoval = 1;}
+
+					// Determine the centre of to delete spaces:
+					bso::utilities::geometry::vertex deleteCentre = {0,0,0};
+					for(int k=performancesAdMethod.size()-1; k>=performancesAdMethod.size()-spaceAmountRemoval; k--)
+					{
+						//std::cout << "identified deletespace is: " << *(performancesAdMethod[k].getMSpacePtrs().back()) << std::endl;
+						deleteCentre += performancesAdMethod[k].getMSpacePtrs().back()->getGeometry().getCenter(); // get to delete space centre
+					}
+					deleteCentre = deleteCentre/spaceAmountRemoval;
+					bso::utilities::geometry::vertex centreBuilding = newMS.getCentreBuilding();
+					centreBuilding.z()=0; // centre of the building should always be defined on z=0
+					bso::utilities::geometry::vector deleteDirection = deleteCentre - centreBuilding;
+					std::cout << "deleteCentre is: " << deleteCentre << std::endl;
+					std::cout << "centreBuilding is: " << centreBuilding << std::endl;
+					std::cout << "deleteDirection.getHeading().second: " << deleteDirection.getHeading().second << std::endl;
+					
+					if(deleteDirection.getHeading().second < inclinationSwitch)
+					{
+						out("\nStart addElevation in Iteration: ",false,false,verbose); out(i,true,false,verbose);
+						newMS.duplicateElevation();
+						out("\naddElevation in Iteration: ",false,false,verbose); out(i,true,false,verbose);
+					}
+					else if(deleteDirection.getHeading().second > inclinationSwitch)
+					{
+						out("\nStart shiftFillPlaneCentre in iteration: ",false,false,verbose); out(i,true,false,verbose);
+						bool shiftInMostHeadingDirection = false;
+						if(i == 0) {shiftInMostHeadingDirection = true;}
+						else if(i % 2) {shiftInMostHeadingDirection = true;}
+						
+						averageSpaceSize = newMS.getAverageSpaceSize();
+						newMS.shiftFillPlaneCentre(averageSpaceSize, shiftInMostHeadingDirection);
+						out("shiftFillPlaneCentre done: ",false,false,verbose); out(i,true,false,verbose);
+					}
+				}
+				else if(adaptation == "shiftfill")
 				{
 					out("\nStart shiftFillPlaneCentre in iteration: ",false,false,verbose); out(i,true,false,verbose);
 					bool shiftInMostHeadingDirection = false;
@@ -851,556 +945,429 @@ int main(int argc, char* argv[])
 					newMS.shiftFillPlaneCentre(averageSpaceSize, shiftInMostHeadingDirection);
 					out("shiftFillPlaneCentre done: ",false,false,verbose); out(i,true,false,verbose);
 				}
-				
-			}
-			else if(adaptation == "shiftfill")
-			{
-				out("\nStart shiftFillPlaneCentre in iteration: ",false,false,verbose); out(i,true,false,verbose);
-				bool shiftInMostHeadingDirection = false;
-				if(i == 0) {shiftInMostHeadingDirection = true;}
-				else if(i % 2) {shiftInMostHeadingDirection = true;}
-				
-				averageSpaceSize = newMS.getAverageSpaceSize();
-				newMS.shiftFillPlaneCentre(averageSpaceSize, shiftInMostHeadingDirection);
-				out("shiftFillPlaneCentre done: ",false,false,verbose); out(i,true,false,verbose);
-			}
-			else if(adaptation == "elevation")
-			{
-				out("\nStart addElevation in Iteration: ",false,false,verbose); out(i,true,false,verbose);
-				newMS.duplicateElevation();
-				out("\naddElevation in Iteration: ",false,false,verbose); out(i,true,false,verbose);
-			}
-
-			// Apply constrains:
-			std::vector<spatial_design::ms_space*> floatingSpaces;
-			if (newMS.hasFloatingSpaces(floatingSpaces))
-			{
-				for (auto& i : floatingSpaces) newMS.deleteSpace(i);
-			}
-			if(removeSmallerFragments)
-			{
-				std::vector<spatial_design::ms_space*> spaceFragment;
-				if (newMS.isFragmented(spaceFragment, true))
+				else if(adaptation == "elevation")
 				{
-					for (auto& i : spaceFragment) newMS.deleteSpace(i);
+					out("\nStart addElevation in Iteration: ",false,false,verbose); out(i,true,false,verbose);
+					newMS.duplicateElevation();
+					out("\naddElevation in Iteration: ",false,false,verbose); out(i,true,false,verbose);
 				}
-			}
-			
-			bool slowReduce = true;
-			while(slowReduce)
-			{
-				msDesignsMidAdaptation.push_back(newMS);
-				designPerformancesMidAdaptation.push_back(utilities::data_point(2));
+				// Enforce constrains on BSD
+				enforceConstrains(newMS, removeSmallerFragments);
 				
-				// step 1, generate SD and BP models and evaluate them.
-				spatial_design::cf_building cfMid(msDesignsMidAdaptation.back(),1e-6);
-				out("\tInitialized conformal model",true,true,verbose);
-
-				grammar::grammar grmMid(cfMid);
-				out("\tInitialized grammar",true,true,verbose);
-				
-				sdModelsMidAdaptation.push_back(grmMid.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"))); 
-				out("\tGenerated structural model",true,true,verbose);
-				
-				sdModelsMidAdaptation.back().analyze();
-				out("\tEvaluated structural model: ",false,false,verbose);
-				double sdResultMid = sdModelsMidAdaptation.back().getTotalResults().mTotalStrainEnergy;
-				out(sdResultMid,true,true,verbose);
-				designPerformancesMidAdaptation.back()(0) = sdResultMid;
-				
-				bpModelsMidAdaptation.push_back(grmMid.bp_grammar<grammar::DEFAULT_BP_GRAMMAR>(std::string("settings/bp_settings.txt")));
-				out("\tGenerated building physics model",true,true,verbose);
-				
-				bpModelsMidAdaptation.back().simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
-				out("\tEvaluated building physics model: ",false,false,verbose);
-				double bpResultMid = bpModelsMidAdaptation.back().getTotalResults().mTotalEnergy;
-				out(bpResultMid,true,true,verbose);
-				designPerformancesMidAdaptation.back()(1) = bpResultMid;
-				
-				if (!visualizations.empty()) 
+				bool slowReduce = true;
+				while(slowReduce)
 				{
-					for (const auto& visOption : visualizations)
-					{
-						//if (visOption == "ms") visualization::visualize(msDesignsMidAdaptation.back(),"","ms_N_building_MID",4.0);
-						if (visOption == "sg") visualization::visualize(cfMid,"space_at_ground_MID");
-						if (visOption == "de") visualization::visualize(cfMid,"delaunay_MID");
-						if (visOption == "bo") visualization::visualize(cfMid,"boundarylines_MID");
-						if (visOption == "tr") visualization::visualize(cfMid,"trirec_MID");
-						if (visOption == "tp") visualization::visualize(cfMid,"triangular_prism_MID");
-						if (visOption == "sd") visualization::visualize(sdModelsMidAdaptation.back());
-						if (visOption == "sdC") visualization::visualize(sdModelsMidAdaptation.back(), "component_MID");
-						if (visOption == "sdD") visualization::visualize(sdModelsMidAdaptation.back(), "density_MID");
-						if (visOption == "fe") visualization::visualize(sdModelsMidAdaptation.back(), "element_MID");
-						if (visOption == "fe") visualization::visualize(sdModelsMidAdaptation.back(), "strain_energy_MID");
-						if (visOption == "bp") visualization::visualize(bpModelsMidAdaptation.back());
-					}
-					out("\tSent MID models to visualization",true,true,verbose);
-				}
-
-				slowReduce = true;
-				if(slowReduce && newMS.getSpacePtrs().size() > nSpaces)
-				{
-					// Collect performance data per space
-					std::vector<utilities::data_point> performances = getPerformancePerSpace(newMS, sdModelsMidAdaptation.back(), bpModelsMidAdaptation.back(), modification, performanceDivision);;
-					// std::vector<std::string> axisDataTypes = {"bp","sd"};
-					// for (const auto& j : newMS.getSpacePtrs())
-					// {
-					// 	utilities::data_point tempDataPoint({0,0});
-					// 	std::stringstream spaceString;
-					// 	spaceString << *j;
-					// 	tempDataPoint.addLabel(spaceString.str());
-					// 	tempDataPoint.addSpacePtr(j);
-
-					// 	auto spaceGeom = j->getGeometry();
-					// 	if (modification != "bp"){tempDataPoint(1) = sdModelsMidAdaptation.back().getPartialResults(&spaceGeom).mTotalStrainEnergy;}
-					// 	if (modification != "sd"){tempDataPoint(0) = bpModelsMidAdaptation.back().getPartialResults(&spaceGeom).mTotalEnergy;}
-						
-					// 	if(performanceDivision == "floorArea"){tempDataPoint /= j->getFloorArea();}
-					// 	else if(performanceDivision == "surfaceArea"){tempDataPoint /= j->getSurfaceArea();}	
-					// 	else if(performanceDivision == "volumeArea"){tempDataPoint /= j->getVolume();}
-
-					// 	performances.push_back(tempDataPoint);
-					// }
-					out("\tCollected performances for each space",true,true,verbose);	
-
-					// step 3, normalize the data points
-					utilities::data_point utopianPoint;
-					//utopianPoint.setToUtopia(performances);
-					utilities::data_point distopianPoint;
-					normalizeData(performances, utopianPoint, distopianPoint);
-
-					// distopianPoint.setToDistopia(performances);
-					// std::swap(utopianPoint(1),distopianPoint(1));
-					// for (auto& j : performances)
-					// {
-					// 	j.normalize(utopianPoint,distopianPoint,{1});
-					// }
-					// utopianPoint.setToUtopia(performances);
-					// distopianPoint.setToDistopia(performances);
-					out("\tNormalized space performances",true,true,verbose);
-
-					// Visualize the performance of spaces
-					if (!visualizations.empty()) for (const auto& visOption : visualizations)
-					{
-						if (visOption == "msw")
-						{
-							float transparency = 1.0;
-							std::vector<double> resultModificationFactor = {0,0};
-							std::string title = "ms_N_worst";
-
-							if (modification == "sd"){resultModificationFactor[1] = 1; title = "ms_N_worst_sd_" + std::to_string(i);}
-							else if (modification == "bp"){resultModificationFactor[0] = 1; title = "ms_N_worst_bp_" + std::to_string(i);}
-							else if (modification == "sdbp")
-							{
-								if(i % 2){resultModificationFactor[0] = 1; title = "ms_N_worst_bp_" + std::to_string(i);}
-								else{resultModificationFactor[1] = 1; title = "ms_N_worst_sd_" + std::to_string(i);}
-							}
-							else if (modification == "bpsd")
-							{
-								if(i % 2){resultModificationFactor[1] = 1; title = "ms_N_worst_sd_" + std::to_string(i);}
-								else{resultModificationFactor[0] = 1; title = "ms_N_worst_bp_" + std::to_string(i);}
-							}
-							else if(modification == "weighted")
-							{
-								resultModificationFactor[0] = objectiveWeights[0];
-								resultModificationFactor[1] = objectiveWeights[1];
-								title = "ms_N_worst_weighted_" + std::to_string(i);
-							}
-							
-							visualization::visualize(performances, resultModificationFactor, transparency, title, 4.0);
-							out("\tSent ms performances models to visualization",true,true,verbose);
-						}
-					}
-
-					// Sort data for space removal later
-					if (modification == "sd" || modification == "bp"){std::sort(performances.begin(), performances.end());}
-					else
-					{ 
-						// Adjust data such that the following sorting algorithm works.
-						int index = 0;
-						if(modification == "sdbp")
-						{
-							if((i+1) % 2){index = 0;}
-							else {index = 1;}
-						}
-						else if(modification == "bpsd")
-						{
-							if((i+1) % 2){index = 1;}
-							else {index = 0;}
-						}
-						else if(modification == "weighted")
-						{
-							// Add both objectiveWeights * normalized performances up for a weighted performance per space
-							for(auto &k: performances)
-							{
-								k(0) = k(0) * objectiveWeights[0] + k(1) * objectiveWeights[1];
-							} 
-							index = 1;
-						}
-						for(auto &k: performances){k(index) = 0;} 
-						std::sort(performances.begin(), performances.end());
-					}	
-
-					// Determine space removal amount && Remove spaces
-					int spaceAmountRemoval = round(nSpaces*spaceAdjustWorstRatio);;
-					if((performances.size() - spaceAmountRemoval) < nSpaces){spaceAmountRemoval = performances.size() - nSpaces;}
-					for(int k=performances.size()-1; k>=performances.size()-spaceAmountRemoval; k--){newMS.deleteSpace(performances[k].getMSpacePtrs().back());}
+					msDesignsMidAdaptation.push_back(newMS);
+					designPerformancesMidAdaptation.push_back(utilities::data_point(2));
 					
-					// Enforce constrains on BSD
-					newMS.setZZero();
-					std::vector<spatial_design::ms_space*> floatingSpaces;
-					if (newMS.hasFloatingSpaces(floatingSpaces)){for (auto& i : floatingSpaces) newMS.deleteSpace(i);}
-					if(removeSmallerFragments)
+					// step 1, generate SD and BP models and evaluate them.
+					spatial_design::cf_building cfMid(msDesignsMidAdaptation.back(),1e-6);
+					out("\tInitialized conformal model",true,true,verbose);
+
+					grammar::grammar grmMid(cfMid);
+					out("\tInitialized grammar",true,true,verbose);
+					
+					sdModelsMidAdaptation.push_back(grmMid.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"))); 
+					out("\tGenerated structural model",true,true,verbose);
+					
+					sdModelsMidAdaptation.back().analyze();
+					out("\tEvaluated structural model: ",false,false,verbose);
+					double sdResultMid = sdModelsMidAdaptation.back().getTotalResults().mTotalStrainEnergy;
+					out(sdResultMid,true,true,verbose);
+					designPerformancesMidAdaptation.back()(0) = sdResultMid;
+					
+					bpModelsMidAdaptation.push_back(grmMid.bp_grammar<grammar::DEFAULT_BP_GRAMMAR>(std::string("settings/bp_settings.txt")));
+					out("\tGenerated building physics model",true,true,verbose);
+					
+					bpModelsMidAdaptation.back().simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
+					out("\tEvaluated building physics model: ",false,false,verbose);
+					double bpResultMid = bpModelsMidAdaptation.back().getTotalResults().mTotalEnergy;
+					out(bpResultMid,true,true,verbose);
+					designPerformancesMidAdaptation.back()(1) = bpResultMid;
+					
+					if (!visualizations.empty()) 
 					{
-						std::vector<spatial_design::ms_space*> spaceFragment;
-						if (newMS.isFragmented(spaceFragment, true))
+						for (const auto& visOption : visualizations)
 						{
-							for (auto& i : spaceFragment) newMS.deleteSpace(i);
+							if (visOption == "sg") visualization::visualize(cfMid,"space_at_ground_MID");
+							if (visOption == "de") visualization::visualize(cfMid,"delaunay_MID");
+							if (visOption == "bo") visualization::visualize(cfMid,"boundarylines_MID");
+							if (visOption == "tr") visualization::visualize(cfMid,"trirec_MID");
+							if (visOption == "tp") visualization::visualize(cfMid,"triangular_prism_MID");
+							if (visOption == "sd") visualization::visualize(sdModelsMidAdaptation.back());
+							if (visOption == "sdC") visualization::visualize(sdModelsMidAdaptation.back(), "component_MID");
+							if (visOption == "sdD") visualization::visualize(sdModelsMidAdaptation.back(), "density_MID");
+							if (visOption == "fe") visualization::visualize(sdModelsMidAdaptation.back(), "element_MID");
+							if (visOption == "fe") visualization::visualize(sdModelsMidAdaptation.back(), "strain_energy_MID");
+							if (visOption == "bp") visualization::visualize(bpModelsMidAdaptation.back());
 						}
+						out("\tSent MID models to visualization",true,true,verbose);
 					}
-					out("\tRemoved worst performing spaces in building spatial design",true,true,verbose);
-					if(newMS.getSpacePtrs().size() == nSpaces){slowReduce = false;}
+
+					slowReduce = false;
+					if(slowReduce && newMS.getSpacePtrs().size() > nSpaces)
+					{
+						// Collect performance data per space
+						std::vector<utilities::data_point> performances;
+						getPerformancePerSpace(performances, newMS, sdModelsMidAdaptation.back(), bpModelsMidAdaptation.back(), modification, performanceDivision);
+						out("\tCollected performances for each space",true,true,verbose);	
+
+						// step 3, normalize the data points
+						utilities::data_point utopianPoint;
+						utilities::data_point distopianPoint;
+						normalizeData(performances, utopianPoint, distopianPoint);
+						out("\tNormalized space performances",true,true,verbose);
+
+						// Visualize the performance of spaces
+						if (!visualizations.empty()) for (const auto& visOption : visualizations)
+						{
+							if (visOption == "msw")
+							{
+								visualizeMsw(performances, i, modification, objectiveWeights);
+								out("Sent ms performances models to visualization",true,true,verbose);
+								break;
+							}
+						}
+
+						// Sort data for space removal later
+						sortDataPointsForSpaceRemoval(performances, modification, i, objectiveWeights);
+						
+						// Determine space removal amount && Remove spaces
+						int spaceAmountRemoval = round(nSpaces*spaceAdjustWorstRatio);;
+						if((performances.size() - spaceAmountRemoval) < nSpaces){spaceAmountRemoval = performances.size() - nSpaces;}
+						for(int k=performances.size()-1; k>=performances.size()-spaceAmountRemoval; k--){newMS.deleteSpace(performances[k].getMSpacePtrs().back());}
+						
+						// Enforce constrains on BSD
+						enforceConstrains(newMS, removeSmallerFragments);
+						out("\tRemoved worst performing spaces in building spatial design",true,true,verbose);
+						if(newMS.getSpacePtrs().size() == nSpaces){slowReduce = false;}
+					}
 				}
 			}
-		}
 
-		// Step 2, get performances per space
-		std::vector<utilities::data_point> performances;
-		std::vector<std::string> axisDataTypes = {"bp","sd"};
-		for (const auto& j : newMS.getSpacePtrs())
-		{
-			utilities::data_point tempDataPoint({0,0});
-			std::stringstream spaceString;
-			spaceString << *j;
-			tempDataPoint.addLabel(spaceString.str());
-			tempDataPoint.addSpacePtr(j);
+			// Step 2, get performances per space
+			std::vector<utilities::data_point> performances;
+			if(adaptationOn){getPerformancePerSpace(performances, newMS, sdModelsMidAdaptation.back(),  bpModelsMidAdaptation.back(), modification, performanceDivision);}
+			else{getPerformancePerSpace(performances, newMS, sdModels.back(),  bpModels.back(), modification, performanceDivision);}
+			out("Collected performances for each space",true,true,verbose);	
 
-			auto spaceGeom = j->getGeometry();
-			if (modification != "bp")
-			{
-				if(adaptationOn){tempDataPoint(1) = sdModelsMidAdaptation.back().getPartialResults(&spaceGeom).mTotalStrainEnergy;}
-				else {tempDataPoint(1) = sdModels.back().getPartialResults(&spaceGeom).mTotalStrainEnergy;}
-			}
-			if (modification != "sd")
-			{
-				if(adaptationOn){tempDataPoint(0) = bpModelsMidAdaptation.back().getPartialResults(&spaceGeom).mTotalEnergy;}
-				else {tempDataPoint(0) = bpModels.back().getPartialResults(&spaceGeom).mTotalEnergy;}
-			} 
+			// step 3, normalize the data points
+			utilities::data_point utopianPoint;
+			utilities::data_point distopianPoint;
+			normalizeData(performances, utopianPoint, distopianPoint);
+			out("Normalized space performances",true,true,verbose);
 
-			if(performanceDivision == "floorArea"){tempDataPoint /= j->getFloorArea();}
-			else if(performanceDivision == "surfaceArea"){tempDataPoint /= j->getSurfaceArea();}	
-			else if(performanceDivision == "volumeArea"){tempDataPoint /= j->getVolume();}
-
-			performances.push_back(tempDataPoint);
-		}
-		out("Collected performances for each space",true,true,verbose);	
-
-		// step 3, normalize the data points
-		utilities::data_point utopianPoint;
-		utopianPoint.setToUtopia(performances);
-		utilities::data_point distopianPoint;
-		distopianPoint.setToDistopia(performances);
-		std::swap(utopianPoint(1),distopianPoint(1));
-		for (auto& j : performances)
-		{
-			j.normalize(utopianPoint,distopianPoint,{1});
-		}
-		utopianPoint.setToUtopia(performances);
-		distopianPoint.setToDistopia(performances);
-		out("Normalized space performances",true,true,verbose);
-
-		// Visualize the performance of spaces
-		if (!visualizations.empty()) for (const auto& visOption : visualizations)
-		{
-			if (visOption == "msw")
-			{
-				float transparency = 1.0;
-				std::vector<double> resultModificationFactor = {0,0};
-				std::string title = "ms_N_worst";
-
-				if (modification == "sd"){resultModificationFactor[1] = 1; title = "ms_N_worst_sd_" + std::to_string(i);}
-				else if (modification == "bp"){resultModificationFactor[0] = 1; title = "ms_N_worst_bp_" + std::to_string(i);}
-				else if (modification == "sdbp")
-				{
-					if(i % 2){resultModificationFactor[0] = 1; title = "ms_N_worst_bp_" + std::to_string(i);}
-					else{resultModificationFactor[1] = 1; title = "ms_N_worst_sd_" + std::to_string(i);}
-				}
-				else if (modification == "bpsd")
-				{
-					if(i % 2){resultModificationFactor[1] = 1; title = "ms_N_worst_sd_" + std::to_string(i);}
-					else{resultModificationFactor[0] = 1; title = "ms_N_worst_bp_" + std::to_string(i);}
-				}
-				else if(modification == "weighted")
-				{
-					resultModificationFactor[0] = objectiveWeights[0];
-					resultModificationFactor[1] = objectiveWeights[1];
-					title = "ms_N_worst_weighted_" + std::to_string(i);
-				}
-				
-				visualization::visualize(performances, resultModificationFactor, transparency, title, 4.0);
-				out("Sent ms performances models to visualization",true,true,verbose);
-			}
-		}
-
-		// Step 4, delete spaces
-		std::vector<utilities::data_point> performancesRemoveSpace = performances;
-		if(clusterDelete)
-		{
-			// step 4, cluster the data
-			utilities::clustering clus(RNGSeed,performances,kMin,kMax,250);
-			out("Clustered space performances",true,true,verbose);
-
-			// Visualize the clustering if requested
+			// Visualize the performance of spaces
 			if (!visualizations.empty()) for (const auto& visOption : visualizations)
 			{
-				if (visOption == "msc")
+				if (visOption == "msw")
 				{
-					std::string title = "ms_N_clustering" + std::to_string(i);
-					visualization::visualize(clus, title, 4.0);
-					out("Sent ms clustering models to visualization",true,true,verbose);
+					visualizeMsw(performances, i, modification, objectiveWeights);
+					out("Sent ms performances models to visualization",true,true,verbose);
+					break;
 				}
 			}
-			
-			// step 5, select worst performing cluster and remove these spaces
-			unsigned int nRetainedSpaces = std::floor(nSpaces*(1-spaceRemoveRatio));
-			auto clusters = clus.getClusters();
-			while (newMS.getSpacePtrs().size() > nRetainedSpaces && clusters.size() > 1)
+
+			// Step 4, delete spaces
+			std::vector<utilities::data_point> performancesRemoveSpace = performances;
+			if(clusterDelete)
 			{
-				// find cluster with centroid closest to distopianPoint.
-				unsigned int worstClusterIndex = 0;
-				double smallestDistance = distopianPoint.calcDistanceTo(clusters[0].getCentroid());
-				for (unsigned int j = 1; j < clusters.size(); ++j)
+				// step 4, cluster the data
+				utilities::clustering clus(RNGSeed,performances,kMin,kMax,250);
+				out("Clustered space performances",true,true,verbose);
+
+				// Visualize the clustering if requested
+				if (!visualizations.empty()) for (const auto& visOption : visualizations)
 				{
-					double distance = distopianPoint.calcDistanceTo(clusters[j].getCentroid());
-					if (smallestDistance > distance)
+					if (visOption == "msc")
 					{
-						smallestDistance = distance;
-						worstClusterIndex = j;
+						std::string title = "ms_N_clustering" + std::to_string(i);
+						visualization::visualize(clus, title, 4.0);
+						out("Sent ms clustering models to visualization",true,true,verbose);
 					}
 				}
-				// remove spaces within that cluster.
-				for (const auto& j : clusters[worstClusterIndex].getData())
+				
+				// step 5, select worst performing cluster and remove these spaces
+				unsigned int nRetainedSpaces = std::floor(nSpaces*(1-spaceRemoveRatio));
+				auto clusters = clus.getClusters();
+				while (newMS.getSpacePtrs().size() > nRetainedSpaces && clusters.size() > 1)
 				{
-					std::string msSpaceLine = j->getLabels().back();
-					newMS.deleteSpace(j->getMSpacePtrs().back());
-				}
-				// remove that cluster from the vector containing all clusters
-				clusters.erase(clusters.begin() + worstClusterIndex);
-			}
-			newMS.setZZero();
-			std::vector<spatial_design::ms_space*> floatingSpaces;
-			if (newMS.hasFloatingSpaces(floatingSpaces))
-			{
-				for (auto& i : floatingSpaces) newMS.deleteSpace(i);
-			}
-			if(removeSmallerFragments)
-			{
-				std::vector<spatial_design::ms_space*> spaceFragment;
-				if (newMS.isFragmented(spaceFragment, true))
-				{
-					for (auto& i : spaceFragment) newMS.deleteSpace(i);
-				}
-			}
-
-			out("Removed worst performing cluster of spaces in building spatial design",true,true,verbose);
-		}
-		else
-		{
-			performancesRemoveSpace = performances;
-			if (modification == "sd" || modification == "bp")
-			{
-				std::sort(performancesRemoveSpace.begin(), performancesRemoveSpace.end());
-			}
-			else
-			{ 
-				// Adjust data such that the following sorting algorithm works.
-				int index = 0;
-				if(modification == "sdbp")
-				{
-					if((i+1) % 2){index = 0;}
-					else {index = 1;}
-				}
-				else if(modification == "bp"){;}
-				else if(modification == "sd"){;}
-				else if(modification == "bpsd")
-				{
-					if((i+1) % 2){index = 1;}
-					else {index = 0;}
-				}
-				else if(modification == "weighted")
-				{
-					// Add both objectiveWeights * normalized performances up for a weighted performance per space
-					for(auto &k: performancesRemoveSpace)
+					// find cluster with centroid closest to distopianPoint.
+					unsigned int worstClusterIndex = 0;
+					double smallestDistance = distopianPoint.calcDistanceTo(clusters[0].getCentroid());
+					for (unsigned int j = 1; j < clusters.size(); ++j)
 					{
-						k(0) = k(0) * objectiveWeights[0] + k(1) * objectiveWeights[1];
-					} 
-					index = 1;
+						double distance = distopianPoint.calcDistanceTo(clusters[j].getCentroid());
+						if (smallestDistance > distance)
+						{
+							smallestDistance = distance;
+							worstClusterIndex = j;
+						}
+					}
+					// remove spaces within that cluster.
+					for (const auto& j : clusters[worstClusterIndex].getData())
+					{
+						std::string msSpaceLine = j->getLabels().back();
+						newMS.deleteSpace(j->getMSpacePtrs().back());
+					}
+					// remove that cluster from the vector containing all clusters
+					clusters.erase(clusters.begin() + worstClusterIndex);
 				}
-				for(auto &k: performancesRemoveSpace){k(index) = 0;} 
-				std::sort(performancesRemoveSpace.begin(), performancesRemoveSpace.end());
-			}	
-
-			// Determine space removal amount
-			int spaceAmountRemoval;
-			if(amountOfSpaceRemoval > 0) {spaceAmountRemoval = performancesRemoveSpace.size() - nSpaces + amountOfSpaceRemoval;}
-			else 
-			{
-				spaceAmountRemoval = performancesRemoveSpace.size() - nSpaces + round(nSpaces*spaceRemoveRatio);
-				if(spaceAmountRemoval < 1){spaceAmountRemoval = 1;}
-			}
-
-			// Remove spaces
-			bool removeMaxValue = false;
-			if(removeMaxValue)
-			{
-				std::reverse(performancesRemoveSpace.begin(), performancesRemoveSpace.end());
-				for(int k=performancesRemoveSpace.size()-1; k>=performancesRemoveSpace.size()-spaceAmountRemoval; k--)
-				{
-					newMS.deleteSpace(performancesRemoveSpace[k].getMSpacePtrs().back());
-				}
+				out("Removed worst performing cluster of spaces in building spatial design",true,true,verbose);
 			}
 			else
 			{
-				for(int k=performancesRemoveSpace.size()-1; k>=performancesRemoveSpace.size()-spaceAmountRemoval; k--)
-				{
-					newMS.deleteSpace(performancesRemoveSpace[k].getMSpacePtrs().back());
-				}
-			}
+				performancesRemoveSpace = performances;
+				sortDataPointsForSpaceRemoval(performancesRemoveSpace, modification, i, objectiveWeights);
 
+				// Determine space removal amount
+				int spaceAmountRemoval;
+				if(amountOfSpaceRemoval > 0) {spaceAmountRemoval = performancesRemoveSpace.size() - nSpaces + amountOfSpaceRemoval;}
+				else 
+				{
+					spaceAmountRemoval = performancesRemoveSpace.size() - nSpaces + round(nSpaces*spaceRemoveRatio);
+					if(spaceAmountRemoval < 1){spaceAmountRemoval = 1;}
+				}
+
+				// Remove spaces
+				bool removeMaxValue = false;
+				if(removeMaxValue)
+				{
+					std::reverse(performancesRemoveSpace.begin(), performancesRemoveSpace.end());
+					for(int k=performancesRemoveSpace.size()-1; k>=performancesRemoveSpace.size()-spaceAmountRemoval; k--)
+					{
+						newMS.deleteSpace(performancesRemoveSpace[k].getMSpacePtrs().back());
+					}
+				}
+				else
+				{
+					for(int k=performancesRemoveSpace.size()-1; k>=performancesRemoveSpace.size()-spaceAmountRemoval; k--)
+					{
+						newMS.deleteSpace(performancesRemoveSpace[k].getMSpacePtrs().back());
+					}
+				}
+				out("Removed worst performing spaces in building spatial design",true,true,verbose);
+			}
 			// Enforce constrains on BSD
-			newMS.setZZero();
-			std::vector<spatial_design::ms_space*> floatingSpaces;
-			if (newMS.hasFloatingSpaces(floatingSpaces))
+			enforceConstrains(newMS, removeSmallerFragments);
+			msDesignsTemp.push_back(newMS);
+			
+
+			// step 6, split spaces to recover initial conditions
+			if(longestRib)
 			{
-				for (auto& i : floatingSpaces) newMS.deleteSpace(i);
-			}
-			if(removeSmallerFragments)
-			{
-				std::vector<spatial_design::ms_space*> spaceFragment;
-				if (newMS.isFragmented(spaceFragment, true))
+				// split the spaces with the longest horizontal rib
+				while (newMS.getSpacePtrs().size() < nSpaces)
 				{
-					for (auto& i : spaceFragment) newMS.deleteSpace(i);
+					auto spaceWithLargestDimension = newMS.getSpacePtrs().front();
+					bso::utilities::geometry::line_segment LongestAxis;
+					double longestLength = 0;
+
+					for (const auto& j : newMS.getSpacePtrs())
+					{
+						std::vector<bso::utilities::geometry::line_segment> lines = j->getGeometry().getLines();
+						for(const auto k: lines)
+						{
+							if(k.getVector().isVertical())
+							{
+								if(k.getLength() < 6000) continue; // only consider horizontal lines which are long enough for elevation height purposes
+							} 
+							if(longestLength < k.getLength())
+							{
+								longestLength = k.getLength();
+								LongestAxis = k;
+								spaceWithLargestDimension = j;
+							}
+						}
+					}
+					int splitamount = 2;
+					if(LongestAxis.getVector().isVertical())
+					{
+						std::vector<std::pair<unsigned int, unsigned int> > splits = {{2,splitamount}};
+						newMS.splitSpace(spaceWithLargestDimension, splits);
+					}
+					else
+					{
+						newMS.splitSpace(spaceWithLargestDimension, splitamount , LongestAxis);
+					}
 				}
+				out("Split spaces with longest rib to restore number of spaces",true,true,verbose);
 			}
-
-			out("Removed worst performing spaces in building spatial design",true,true,verbose);
-		}
-		msDesignsTemp.push_back(newMS);
-		
-
-		// step 6, split spaces to recover initial conditions
-		if(longestRib)
-		{
-			// split the spaces with the longest horizontal rib
-			while (newMS.getSpacePtrs().size() < nSpaces)
+			else if(performanceSplit)
 			{
-				auto spaceWithLargestDimension = newMS.getSpacePtrs().front();
-				bso::utilities::geometry::line_segment LongestAxis;
-				double longestLength = 0;
-
-				for (const auto& j : newMS.getSpacePtrs())
-				{
-					std::vector<bso::utilities::geometry::line_segment> lines = j->getGeometry().getLines();
+				// split the spaces with the best performance
+				int splitCount = 0;
+				int splitamount = 2;
+				while (newMS.getSpacePtrs().size() < nSpaces)
+				{				
+					std::vector<bso::utilities::geometry::line_segment> lines = (performancesRemoveSpace[splitCount].getMSpacePtrs().back())->getGeometry().getLines();
+					bso::utilities::geometry::line_segment LongestAxis;
+					double longestLength = 0;
+					bool found = false;
 					for(const auto k: lines)
 					{
 						if(k.getVector().isVertical())
 						{
 							if(k.getLength() < 6000) continue; // only consider horizontal lines which are long enough for elevation height purposes
 						} 
-						if(longestLength < k.getLength())
+						if(longestLength < k.getLength() && k.getLength() > 4000)
 						{
 							longestLength = k.getLength();
 							LongestAxis = k;
-							spaceWithLargestDimension = j;
+							found = true;
 						}
 					}
+
+					if(found){newMS.splitSpace(performancesRemoveSpace[splitCount].getMSpacePtrs().back(), splitamount, LongestAxis);}
+					splitCount++;
 				}
-				int splitamount = 2;
-				if(LongestAxis.getVector().isVertical())
-				{
-					std::vector<std::pair<unsigned int, unsigned int> > splits = {{2,splitamount}};
-					newMS.splitSpace(spaceWithLargestDimension, splits);
-				}
-				else
-				{
-					newMS.splitSpace(spaceWithLargestDimension, splitamount , LongestAxis);
-				}
+				out("Split spaces with best performance to restore number of spaces",true,true,verbose);
 			}
-			out("Split spaces with longest rib to restore number of spaces",true,true,verbose);
-		}
-		else if(performanceSplit)
-		{
-			// split the spaces with the best performance
-			int splitCount = 0;
-			int splitamount = 2;
-			while (newMS.getSpacePtrs().size() < nSpaces)
-			{				
-				std::vector<bso::utilities::geometry::line_segment> lines = (performancesRemoveSpace[splitCount].getMSpacePtrs().back())->getGeometry().getLines();
-				bso::utilities::geometry::line_segment LongestAxis;
-				double longestLength = 0;
-				bool found = false;
-				for(const auto k: lines)
-				{
-					if(k.getVector().isVertical())
-					{
-						if(k.getLength() < 6000) continue; // only consider horizontal lines which are long enough for elevation height purposes
-					} 
-					if(longestLength < k.getLength() && k.getLength() > 4000)
-					{
-						longestLength = k.getLength();
-						LongestAxis = k;
-						found = true;
-					}
-				}
 
-				if(found){newMS.splitSpace(performancesRemoveSpace[splitCount].getMSpacePtrs().back(), splitamount, LongestAxis);}
-				splitCount++;
-			}
-			out("Split spaces with best performance to restore number of spaces",true,true,verbose);
-		}
+			// scale the dimensions in x and y direction
+			double scaleFactor = sqrt(floorArea / newMS.getFloorArea());
+			newMS.scale({{0,scaleFactor},{1,scaleFactor}});
+			out("Scaled design to initial floor area",true,true,verbose);
 
-		// in case the lower spaces were removed reset minimum z coordinate to Z
-		newMS.setZZero();
-		out("SetZZero if needed",true,true,verbose);
+			msDesigns.push_back(newMS);
+			out("Modified building spatial design into a new one",true,true,verbose);
 
-		// scale the dimensions in x and y direction
-		double scaleFactor = sqrt(floorArea / newMS.getFloorArea());
-		newMS.scale({{0,scaleFactor},{1,scaleFactor}});
-		out("Scaled design to initial floor area",true,true,verbose);
-
-		msDesigns.push_back(newMS);
-		out("Modified building spatial design into a new one",true,true,verbose);
-
-		if(recDif)
-		{
-			int spaceCount = msDesigns.back().getSpacePtrs().size();
-			double averageRecDif = 0;
-			for(const auto i: msDesigns.back().getSpacePtrs())
+			if(recDif)
 			{
-				bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
-				std::vector<bso::utilities::geometry::quadrilateral> spaceQuads = spaceGeom.getQuadrilateral();
-				averageRecDif = averageRecDif + (spaceQuads[5]).getDifRectangle();
+				int spaceCount = msDesigns.back().getSpacePtrs().size();
+				double averageRecDif = 0;
+				for(const auto i: msDesigns.back().getSpacePtrs())
+				{
+					bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+					std::vector<bso::utilities::geometry::quadrilateral> spaceQuads = spaceGeom.getQuadrilateral();
+					averageRecDif = averageRecDif + (spaceQuads[5]).getDifRectangle();
+				}
+				averageRecDif = averageRecDif/spaceCount;
+				std::cout << "averageRecDif: " << averageRecDif << std::endl;
 			}
-			averageRecDif = averageRecDif/spaceCount;
-			std::cout << "averageRecDif: " << averageRecDif << std::endl;
 		}
+		out("finished SCDP process",true,true,verbose);
 	}
-	out("finished SCDP process",true,true,verbose);
-	
+	catch(const std::exception& e)
+	{
+		// Output the requested outputs:
+		std::vector<unsigned int> outputSpaces;
+		// if best, find which designs are best;
+		if (outputAll)
+		{
+			for (unsigned int i = 0; i < msDesigns.size(); ++i)
+			{
+				outputSpaces.push_back(i);
+			}
+		}
 
 
+		std::string dir = "";
+		if(resultDir)
+		{
+			// create resultDir if not existing yet
+			bool resultDirGen = false;
+			std::string path = "results";
+			if (!std::filesystem::exists(path)) 
+			{
+				if (std::filesystem::create_directory(path)) 
+				{
+					resultDirGen = true;
+					dir = path + "/";
+					out("Directory created successfully.",true,true,verbose);
+				} 
+				else 
+				{
+					out("Failed to create directory.",true,true,verbose);
+				}
+			} 
+			else 
+			{
+				resultDirGen = true;
+				dir = path + "/";
+				out("Directory already exists.",true,true,verbose);
+			}
 
+			if(resultDirGen)
+			{
+				std::string path2 = dir + inputFile + "_" + modification + "_-n=" + std::to_string(iterations) + "_" + getCurrentDateTime();
+				if (!std::filesystem::exists(path2)) 
+				{
+					if (std::filesystem::create_directory(path2)) 
+					{
+						dir = path2 + "/";
+						out("Sub-directory of results created successfully.",true,true,verbose);
+					} 
+					else 
+					{
+						out("Sub-directory of results failed to create directory.",true,true,verbose);
+					}
+				} 
+				else 
+				{
+					dir = path2 + "/";
+					out("Sub-directory of results directory already exists.",true,true,verbose);
+				}
+			}
+		}
 
+		if(plot)
+		{
+			utilities::data_plot dp(designPerformances, axisDesignPerformances, "Design Iteration");
+			std::string fileScatter = dir+"scatterData_" + inputFile + "_" + modification;
+			std::string fileParetoFront = dir+"paretoFrontData_" + inputFile + "_" + modification;
+			std::string fileNonParetoFront = dir+"paretoNonFrontData_" + inputFile + "_" + modification;
+			std::string fileVector = dir+"vectorData_" + inputFile + "_" + modification;
+			std::string plotScatter = dir+"scatterPlot_" + inputFile + "_" + modification +".png";
+			std::string plotParetoFront = dir+"paretoFrontPlot_" + inputFile + "_" + modification +".png";
+			std::string plotVector = dir+"vectorPlot_" + inputFile + "_" + modification +".png";
+			dp.plotScatter2D(fileScatter, plotScatter, false, true);
+			dp.plotParetoFront2D(fileParetoFront, fileNonParetoFront, plotParetoFront, false, true);
+			dp.plotVector2D(fileVector, plotVector, visualizePlot, true);
+		}
+		if(combineData)
+		{		
+			utilities::data_plot dp(designPerformances, axisDesignPerformances, "Design Iteration");
+			dp.addToCombinedDataFile("combined_data.csv", modification, inputFile);
+			dp.addToOverviewCombinedDataFile("overView_data.csv", modification, inputFile);
+		}
+		
+		for (const auto& i : outputSpaces)
+		{
+			if (result_line)
+			{
+				std::cout << designName << "\t"
+									<< modification << "\t"
+									<< i << "\t"
+									<< designPerformances[i](0) << "\t"
+									<< designPerformances[i](1) << "\t" << std::endl;
+									if(clusterDelete)
+									{
+										std::cout << designName << RNGSeed << std::endl;
+									}
+			}
+			if (ms_files)
+			{
+				std::stringstream fileNameStream;
+				fileNameStream << dir << designName << "_"
+											<< modification << "_"
+											<< i << "_"
+											<< designPerformances[i](0) << "_"
+											<< designPerformances[i](1) << "_";
+											if(clusterDelete)
+											{
+												fileNameStream << RNGSeed;
+											}
+				std::string fileName = fileNameStream.str();
+				msDesigns[i].writeToFile(fileName);
+			}
+		}
+		
+		std::cout << "Error, could not finalize the run.\n"
+				  << "Received the following error:\n" << e.what() << std::endl;
 
-
-
-
-
-
-
-
-
-
+		if (!visualizations.empty()) visualization::endVisualization();
+	}
 
 	// Output the requested outputs:
 	std::vector<unsigned int> outputSpaces;
@@ -1502,19 +1469,19 @@ int main(int argc, char* argv[])
 		{
 			std::stringstream fileNameStream;
 			fileNameStream << dir << designName << "_"
-										 << modification << "_"
-										 << i << "_"
-										 << designPerformances[i](0) << "_"
-										 << designPerformances[i](1) << "_";
-										 if(clusterDelete)
-										 {
+										<< modification << "_"
+										<< i << "_"
+										<< designPerformances[i](0) << "_"
+										<< designPerformances[i](1) << "_";
+										if(clusterDelete)
+										{
 											fileNameStream << RNGSeed;
-										 }
+										}
 			std::string fileName = fileNameStream.str();
 			msDesigns[i].writeToFile(fileName);
 		}
 	}
-	
+
 	if (!visualizations.empty()) visualization::endVisualization();
 	
 	return 0;

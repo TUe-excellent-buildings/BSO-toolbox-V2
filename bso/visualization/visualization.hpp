@@ -31,6 +31,7 @@ void forcePThreadLink() {pthread_t t1; pthread_create(&t1,NULL,&simpleFunc,NULL)
 // Visualisation models
 #include <bso/visualization/models/ms_building.hpp>
 #include <bso/visualization/models/sc_building.hpp>
+#include <bso/visualization/models/geometry.hpp>
 
 #include <stdlib.h>
 
@@ -210,6 +211,17 @@ void visualize(const bso::structural_design::sd_model& sd, const std::string& ty
 	vpmanager.addviewport(new viewport(new SD_Model(sd, type, title, ghostly, cuttingPlanes)));
 }
 #endif // SD_MODEL_HPP
+
+void visualize(const std::vector<bso::utilities::geometry::quad_hexahedron> QHs,
+						const std::vector<bso::utilities::geometry::triangular_prism> triPrisms, 
+						const std::vector<bso::utilities::geometry::quadrilateral> quads, 
+						const std::vector<bso::utilities::geometry::triangle> triangles,
+						const std::vector<bso::utilities::geometry::line_segment> lines,
+						const std::string& title = "geometry_model",
+						const double& linewidth = 1.0)
+{
+	vpmanager.addviewport(new viewport(new GEOMETRY_Model(QHs,triPrisms,quads,triangles,lines,title,linewidth)));
+}
 
 } // namespace visualization
 } // namespace BSO

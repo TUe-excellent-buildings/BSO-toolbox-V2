@@ -65,9 +65,34 @@ namespace bso { namespace utilities {  namespace geometry {
 
 	void polygon_non_convex::triangulate(const double& tol /*= 1e-3*/)
 	{
+		vector mNormal = this->normal();
+		if(mNormal.isHorizontal())
+		{
+			std::stringstream errorMessage;
+			errorMessage << "The polygon_non_convex is vertical, since the delaunay triangulation \n"
+									 << "is performed in the z=0 plane, it would be unable to get any results.\n"
+									 << "\n(bso/utilities/geometry/polygon_non_convex.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
 		try 
 		{
-			mTriangles = bso::utilities::delaunayZoned(mVertices, mLineSegments);
+			std::vector<triangle> z0Triangles = bso::utilities::delaunayZoned(mVertices, mLineSegments);
+			// Translate the triangles back to polygon_non_convex plane from z=0 plane
+			vertex unitVertexZ = {0,0,1};
+			for(auto& tri: z0Triangles)
+			{
+				std::vector<vertex> triVertexes;
+				for(auto& triVer: tri)
+				{
+					// Calculate the line (cornerpoint Tri + {0,0,1}) intersects point with the plane
+					vector v1 = triVer + unitVertexZ-triVer;
+					vector v2 = mVertices[0]-triVer;
+					double r = (mNormal.dot(v2))/(mNormal.dot(v1));
+					triVertexes.push_back(triVer + r * v1);
+				}
+				tri = triangle(triVertexes); // replace z0Triangles with translated triangles
+			}
+			mTriangles = z0Triangles;
 		}
 		catch (std::exception& e)
 		{
