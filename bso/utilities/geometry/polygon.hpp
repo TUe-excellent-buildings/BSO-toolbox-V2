@@ -46,6 +46,7 @@ namespace bso { namespace utilities { namespace geometry {
 		// not using this function because it does not generalize well for arbitrary polygons
 		// bool intersectsWith(const polygon& rhs, line_segment lInt, const double& tol = 1e-3) const;
 		// bool intersectsWith(const polygon& rhs, const double& tol = 1e-3) const;
+		//bool isOverlapping(const polygon& pol, const double& tol = 1e-3) const; // function is not fully working yet
 		bool isCoplanar(const vertex& p1, const double& tol = 1e-3) const;
 		bool isParallel(const polygon& pol1, const double& tol = 1e-3) const;
 		bool isParallel(const vector& v1, const double& tol = 1e-3) const;

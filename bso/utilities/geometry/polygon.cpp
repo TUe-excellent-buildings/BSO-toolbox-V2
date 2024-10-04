@@ -198,7 +198,7 @@ namespace bso { namespace utilities {  namespace geometry {
 	}
 	
 	polygon::polygon(const std::initializer_list<vertex>&& l, const double& tol /*= 1e-3*/)
-	{
+	{		
 		this->initFromVertices(l, tol);
 	}
 
@@ -242,6 +242,80 @@ namespace bso { namespace utilities {  namespace geometry {
 		vector v = p - mVertices[0];
 		return p - mNormal.normalized().dot(v)*mNormal.normalized();
 	} // getPointClosestTo()
+
+	//bool polygon::isOverlapping(const polygon& pol, const double& tol /*= 1e-3*/) const // function is not fully working yet
+	//{
+		// Note; this function only holds for convex polygons coplanar polygons. 
+		// You can check for coplanar by checking all vertices with the help of function isCoplanar()
+		// if a non_convex definition is needed then the polygons separated in triangles 
+		// with the accompanied function for triangles will solve this issue.
+		// This function is based on the Separating Axis theorem algorithm.
+		// Described in this link: https://rosettacode.org/wiki/Check_if_two_polygons_overlap#C++
+
+		// Only coplanar polygons are considered in this function.
+		// for(const auto v: pol)
+		// {
+		// 	if(!this->isCoplanar(v,tol))
+		// 	{
+		// 		return false; 
+		// 	}
+		// }
+
+		// // Get the axis
+		// std::vector<bso::utilities::geometry::vector> allAxesThis;
+		// for(const auto i: this->getLines())
+		// {
+		// 	// Get the perpendicular vector to the linesVector and the normal of the plane
+		// 	bso::utilities::geometry::vector axis = (this->getNormal()).cross(i.getVector());
+		// 	allAxesThis.push_back(axis);
+		// }
+		// std::vector<bso::utilities::geometry::vector> allAxesPol;
+		// for(const auto i: pol.getLines())
+		// {
+		// 	// Get the perpendicular vector to the linesVector and the normal of the plane
+		// 	bso::utilities::geometry::vector axis = (this->getNormal()).cross(i.getVector());
+		// 	allAxesPol.push_back(axis);
+		// }
+
+		// std::vector<bso::utilities::geometry::vector> allAxes = allAxesThis;
+		// allAxes.insert(allAxes.end(), allAxesPol.begin(), allAxesPol.end());
+
+		// for(bso::utilities::geometry::vector& axis : allAxes) 
+		// {
+		// 	// axis projection 1 projectionOnAxis
+		// 	float minThis = std::numeric_limits<float>::infinity();
+		// 	float maxThis = -std::numeric_limits<float>::infinity();
+		// 	for (const bso::utilities::geometry::vertex& vertex : *this) // iterate trough polygons vertices
+		// 	{
+		// 		double p = axis.dot(vertex);
+		// 		if ( p < minThis ) {
+		// 			minThis = p;
+		// 		}
+		// 		if ( p > maxThis ) {
+		// 		maxThis = p;
+		// 		}
+		// 	}
+
+		// 	// axis projection 2 projectionOnAxis
+		// 	float minPol = std::numeric_limits<float>::infinity();
+		// 	float maxPol = -std::numeric_limits<float>::infinity();
+		// 	for (const bso::utilities::geometry::vertex& vertex : pol) // iterate trough polygons vertices
+		// 	{
+		// 		double p = axis.dot(vertex);
+		// 		if ( p < minPol ) {
+		// 			minPol = p;
+		// 		}
+		// 		if ( p > maxPol ) {
+		// 		maxPol = p;
+		// 		}
+		// 	}
+
+		// 	// Determine on the found values if polygons are overlapping
+		// 	bool overlaps = !(maxThis < minPol || maxPol < minThis);
+		// 	if (!overlaps) {return false;}
+		// }
+		// return true;
+	//}
 	
 	bool polygon::isSameAs(const polygon& pol, const double& tol /*= 1e-3*/) const
 	{ //
