@@ -55,7 +55,6 @@ public:
 	bso::utilities::geometry::vertex getCentreBuilding();
 	void getMostHeadingDirection(bso::utilities::geometry::vector& mostHeading, bso::utilities::geometry::vector& secondMostHeading, int amountOfHeadingCatagories = 6, const double& tol = 1e-3);
 
-
 	// Representation adjustment functions:
 	void setZZero(); 
 	void resetOrigin(const std::vector<unsigned int>& indices = {0,1,2});
@@ -77,6 +76,7 @@ public:
 		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3);
 	void extrude(std::vector<ms_space*> spacePtrs, const bso::utilities::geometry::vertex& location, 
 		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3);
+	void enforceAverageSpaceSize(double minElevationHeight = 3000, const double& tol = 1e-3);
 	//void sweep(const bso::utilities::geometry::vertex& location,
 	//	const std::vector<std::pair<unsigned int, double> >& distances =
 	//	{{0,1.0},{1,0.0},{2,0.0}}, const double& tol = 1e-3);

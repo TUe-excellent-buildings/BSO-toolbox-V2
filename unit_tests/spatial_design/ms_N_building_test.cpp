@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_SUITE( building_N_initialization )
 		
 		ms_space* s1 = b1.getSpacePtrs()[0];
 		
-		std::vector<bso::utilities::geometry::vertex*> pVertex  = s1->getVertices();
+		std::vector<bso::utilities::geometry::vertex> pVertex  = s1->getVertices();
 		
 		bso::utilities::geometry::vertex p1 = {0,0,0};
 		bso::utilities::geometry::vertex p2 = {6000,0,0};
@@ -59,14 +59,14 @@ BOOST_AUTO_TEST_SUITE( building_N_initialization )
 		bso::utilities::geometry::vertex p8 = {6000,6000,6000};	
 		
 		bool verticesCheck = true;
-		if(std::find(*(pVertex.begin()),*(pVertex.end()),p1) == *(pVertex.end())){verticesCheck = false;}
-		if(std::find(*(pVertex.begin()),*(pVertex.end()),p2) == *(pVertex.end())){verticesCheck = false;}
-		if(std::find(*(pVertex.begin()),*(pVertex.end()),p3) == *(pVertex.end())){verticesCheck = false;}
-		if(std::find(*(pVertex.begin()),*(pVertex.end()),p4) == *(pVertex.end())){verticesCheck = false;}
-		if(std::find(*(pVertex.begin()),*(pVertex.end()),p5) == *(pVertex.end())){verticesCheck = false;}
-		if(std::find(*(pVertex.begin()),*(pVertex.end()),p6) == *(pVertex.end())){verticesCheck = false;}
-		if(std::find(*(pVertex.begin()),*(pVertex.end()),p7) == *(pVertex.end())){verticesCheck = false;}
-		if(std::find(*(pVertex.begin()),*(pVertex.end()),p8) == *(pVertex.end())){verticesCheck = false;}																			   
+		if(std::find(pVertex.begin(),pVertex.end(),p1) == pVertex.end()){verticesCheck = false;}
+		if(std::find(pVertex.begin(),pVertex.end(),p2) == pVertex.end()){verticesCheck = false;}
+		if(std::find(pVertex.begin(),pVertex.end(),p3) == pVertex.end()){verticesCheck = false;}
+		if(std::find(pVertex.begin(),pVertex.end(),p4) == pVertex.end()){verticesCheck = false;}
+		if(std::find(pVertex.begin(),pVertex.end(),p5) == pVertex.end()){verticesCheck = false;}
+		if(std::find(pVertex.begin(),pVertex.end(),p6) == pVertex.end()){verticesCheck = false;}
+		if(std::find(pVertex.begin(),pVertex.end(),p7) == pVertex.end()){verticesCheck = false;}
+		if(std::find(pVertex.begin(),pVertex.end(),p8) == pVertex.end()){verticesCheck = false;}																			   
 
 	BOOST_REQUIRE(verticesCheck = true);
 		BOOST_REQUIRE(sstr.str() == "N,1,	0,0,0,	6000,0,0,	0,6000,0,	6000,6000,0,	0,0,6000,	6000,0,6000,	0,6000,6000,	6000,6000,6000");
@@ -123,10 +123,10 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	{ 
 		ms_N_building b1;
 		
-		std::vector <bso::utilities::geometry::vertex*> pVert;
-		std::vector <bso::utilities::geometry::vertex*> pVert1;
-		std::vector <bso::utilities::geometry::vertex*> pVert2;
-		std::vector <bso::utilities::geometry::vertex*> pVert3;
+		std::vector <bso::utilities::geometry::vertex> pVert;
+		std::vector <bso::utilities::geometry::vertex> pVert1;
+		std::vector <bso::utilities::geometry::vertex> pVert2;
+		std::vector <bso::utilities::geometry::vertex> pVert3;
 
 		// pVert space 0
 		bso::utilities::geometry::vertex v1 = {0,0,0};
@@ -137,14 +137,14 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v6 = {1000,2000,3000};
 		bso::utilities::geometry::vertex v7 = {1000,2000,3000};
 		bso::utilities::geometry::vertex v8 = {0,2000,3000};
-		pVert.push_back(&v1);
-		pVert.push_back(&v2);
-		pVert.push_back(&v3);
-		pVert.push_back(&v4);
-		pVert.push_back(&v5);
-		pVert.push_back(&v6);
-		pVert.push_back(&v7);
-		pVert.push_back(&v8);
+		pVert.push_back(v1);
+		pVert.push_back(v2);
+		pVert.push_back(v3);
+		pVert.push_back(v4);
+		pVert.push_back(v5);
+		pVert.push_back(v6);
+		pVert.push_back(v7);
+		pVert.push_back(v8);
 
 		// pVert space 1
 		bso::utilities::geometry::vertex v11 = {0,0,0};
@@ -155,14 +155,14 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v61 = {1000,2000,3000};
 		bso::utilities::geometry::vertex v71 = {1000,2000,3000};
 		bso::utilities::geometry::vertex v81 = {0,2000,3000};
-		pVert1.push_back(&v11);
-		pVert1.push_back(&v21);
-		pVert1.push_back(&v31);
-		pVert1.push_back(&v41);
-		pVert1.push_back(&v51);
-		pVert1.push_back(&v61);
-		pVert1.push_back(&v71);
-		pVert1.push_back(&v81);
+		pVert1.push_back(v11);
+		pVert1.push_back(v21);
+		pVert1.push_back(v31);
+		pVert1.push_back(v41);
+		pVert1.push_back(v51);
+		pVert1.push_back(v61);
+		pVert1.push_back(v71);
+		pVert1.push_back(v81);
 
 		// pVert space 2
 		bso::utilities::geometry::vertex v12 = {4000,0,0};
@@ -173,14 +173,14 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v62 = {5000,1000,3000};
 		bso::utilities::geometry::vertex v72 = {5000,3000,3000};
 		bso::utilities::geometry::vertex v82 = {4000,3000,3000};
-		pVert2.push_back(&v12);
-		pVert2.push_back(&v22);
-		pVert2.push_back(&v32);
-		pVert2.push_back(&v42);
-		pVert2.push_back(&v52);
-		pVert2.push_back(&v62);
-		pVert2.push_back(&v72);
-		pVert2.push_back(&v82);
+		pVert2.push_back(v12);
+		pVert2.push_back(v22);
+		pVert2.push_back(v32);
+		pVert2.push_back(v42);
+		pVert2.push_back(v52);
+		pVert2.push_back(v62);
+		pVert2.push_back(v72);
+		pVert2.push_back(v82);
 
 		// pVert space 3
 		bso::utilities::geometry::vertex v13 = {4000,0,0};
@@ -191,14 +191,14 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v63 = {5000,1000,3000};
 		bso::utilities::geometry::vertex v73 = {5000,3000,3000};
 		bso::utilities::geometry::vertex v83 = {4000,3000,3000};
-		pVert3.push_back(&v13);
-		pVert3.push_back(&v23);
-		pVert3.push_back(&v33);
-		pVert3.push_back(&v43);
-		pVert3.push_back(&v53);
-		pVert3.push_back(&v63);
-		pVert3.push_back(&v73);
-		pVert3.push_back(&v83);
+		pVert3.push_back(v13);
+		pVert3.push_back(v23);
+		pVert3.push_back(v33);
+		pVert3.push_back(v43);
+		pVert3.push_back(v53);
+		pVert3.push_back(v63);
+		pVert3.push_back(v73);
+		pVert3.push_back(v83);
 
 		// define spaces
 		ms_space s1(1,pVert);
@@ -241,7 +241,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		ms_N_building b1;
 		BOOST_REQUIRE(b1.getLastSpaceID() == 0);
 		
-		std::vector <bso::utilities::geometry::vertex*> pVert;
+		std::vector <bso::utilities::geometry::vertex> pVert;
 		
 		bso::utilities::geometry::vertex v1 = {0,0,1000};
 		bso::utilities::geometry::vertex v2 = {2000,0,1000};
@@ -251,14 +251,14 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v6 = {0,3000,2000};
 		bso::utilities::geometry::vertex v7 = {2000,2000,2000};
 		bso::utilities::geometry::vertex v8 = {2000,0,2000};
-		pVert.push_back(&v1);
-		pVert.push_back(&v2);
-		pVert.push_back(&v3);
-		pVert.push_back(&v4);
-		pVert.push_back(&v5);
-		pVert.push_back(&v6);
-		pVert.push_back(&v7);
-		pVert.push_back(&v8);
+		pVert.push_back(v1);
+		pVert.push_back(v2);
+		pVert.push_back(v3);
+		pVert.push_back(v4);
+		pVert.push_back(v5);
+		pVert.push_back(v6);
+		pVert.push_back(v7);
+		pVert.push_back(v8);
 
 		b1.addSpace(ms_space(1,pVert));					   
 		BOOST_REQUIRE(b1.getLastSpaceID() == 1);
@@ -320,7 +320,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		ms_N_building b2("spatial_design/ms_N_test_3.txt");
 
 		// space 1
-		std::vector <bso::utilities::geometry::vertex*> pVert;
+		std::vector <bso::utilities::geometry::vertex> pVert;
 		bso::utilities::geometry::vertex v1 = {0,0,0};
 		bso::utilities::geometry::vertex v2 = {3000,0,0};
 		bso::utilities::geometry::vertex v3 = {0,3000,0};
@@ -329,17 +329,17 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v6 = {3000,0,3000};
 		bso::utilities::geometry::vertex v7 = {0,3000,3000};
 		bso::utilities::geometry::vertex v8 = {3000,3000,3000};
-		pVert.push_back(&v1);
-		pVert.push_back(&v2);
-		pVert.push_back(&v3);
-		pVert.push_back(&v4);
-		pVert.push_back(&v5);
-		pVert.push_back(&v6);
-		pVert.push_back(&v7);
-		pVert.push_back(&v8);
+		pVert.push_back(v1);
+		pVert.push_back(v2);
+		pVert.push_back(v3);
+		pVert.push_back(v4);
+		pVert.push_back(v5);
+		pVert.push_back(v6);
+		pVert.push_back(v7);
+		pVert.push_back(v8);
 
 		// space 2
-		std::vector <bso::utilities::geometry::vertex*> pVert2;
+		std::vector <bso::utilities::geometry::vertex> pVert2;
 		bso::utilities::geometry::vertex v12 = {0,0,4303};
 		bso::utilities::geometry::vertex v22 = {3000,0,4303};
 		bso::utilities::geometry::vertex v32 = {0,3000,4303};
@@ -348,14 +348,14 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v62 = {3000,0,7303};
 		bso::utilities::geometry::vertex v72 = {0,3000,7303};
 		bso::utilities::geometry::vertex v82 = {3000,3000,7303};
-		pVert2.push_back(&v12);
-		pVert2.push_back(&v22);
-		pVert2.push_back(&v32);
-		pVert2.push_back(&v42);
-		pVert2.push_back(&v52);
-		pVert2.push_back(&v62);
-		pVert2.push_back(&v72);
-		pVert2.push_back(&v82);
+		pVert2.push_back(v12);
+		pVert2.push_back(v22);
+		pVert2.push_back(v32);
+		pVert2.push_back(v42);
+		pVert2.push_back(v52);
+		pVert2.push_back(v62);
+		pVert2.push_back(v72);
+		pVert2.push_back(v82);
 		
 		b1.addSpace(ms_space(1,pVert));
 		b1.addSpace(ms_space(2,pVert2));
@@ -376,7 +376,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		ms_N_building b2;
 
 		// space 1
-		std::vector <bso::utilities::geometry::vertex*> pVert;
+		std::vector <bso::utilities::geometry::vertex> pVert;
 		bso::utilities::geometry::vertex v1 = {0,0,0};
 		bso::utilities::geometry::vertex v2 = {3000,0,0};
 		bso::utilities::geometry::vertex v3 = {3000,3000,0};
@@ -385,17 +385,17 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v6 = {3000,0,3000};
 		bso::utilities::geometry::vertex v7 = {3000,3000,3000};
 		bso::utilities::geometry::vertex v8 = {0,3000,3000};
-		pVert.push_back(&v1);
-		pVert.push_back(&v2);
-		pVert.push_back(&v3);
-		pVert.push_back(&v4);
-		pVert.push_back(&v5);
-		pVert.push_back(&v6);
-		pVert.push_back(&v7);
-		pVert.push_back(&v8);
+		pVert.push_back(v1);
+		pVert.push_back(v2);
+		pVert.push_back(v3);
+		pVert.push_back(v4);
+		pVert.push_back(v5);
+		pVert.push_back(v6);
+		pVert.push_back(v7);
+		pVert.push_back(v8);
 
 		// space 2; the same as space 1 however with different definition order of vertices
-		std::vector <bso::utilities::geometry::vertex*> pVert2;
+		std::vector <bso::utilities::geometry::vertex> pVert2;
 		bso::utilities::geometry::vertex v12 = {3000,3000,3000};
 		bso::utilities::geometry::vertex v22 = {3000,3000,0};
 		bso::utilities::geometry::vertex v32 = {3000,0,0};
@@ -404,14 +404,14 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v62 = {3000,0,3000};
 		bso::utilities::geometry::vertex v72 = {0,0,0};
 		bso::utilities::geometry::vertex v82 = {0,3000,3000};
-		pVert2.push_back(&v12);
-		pVert2.push_back(&v22);
-		pVert2.push_back(&v32);
-		pVert2.push_back(&v42);
-		pVert2.push_back(&v52);
-		pVert2.push_back(&v62);
-		pVert2.push_back(&v72);
-		pVert2.push_back(&v82);
+		pVert2.push_back(v12);
+		pVert2.push_back(v22);
+		pVert2.push_back(v32);
+		pVert2.push_back(v42);
+		pVert2.push_back(v52);
+		pVert2.push_back(v62);
+		pVert2.push_back(v72);
+		pVert2.push_back(v82);
 		
 		b1.addSpace(ms_space(1,pVert));
 		b1.addSpace(ms_space(2,pVert2));
@@ -436,7 +436,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		ms_N_building b4;
 
 		// space 1
-		std::vector <bso::utilities::geometry::vertex*> pVert;
+		std::vector <bso::utilities::geometry::vertex> pVert;
 		bso::utilities::geometry::vertex v1 = {0,0,0};
 		bso::utilities::geometry::vertex v2 = {3000,0,0};
 		bso::utilities::geometry::vertex v3 = {0,3000,0};
@@ -445,17 +445,17 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v6 = {3000,0,3000};
 		bso::utilities::geometry::vertex v7 = {0,3000,3000};
 		bso::utilities::geometry::vertex v8 = {3000,3000,3000};
-		pVert.push_back(&v1);
-		pVert.push_back(&v2);
-		pVert.push_back(&v3);
-		pVert.push_back(&v4);
-		pVert.push_back(&v5);
-		pVert.push_back(&v6);
-		pVert.push_back(&v7);
-		pVert.push_back(&v8);
+		pVert.push_back(v1);
+		pVert.push_back(v2);
+		pVert.push_back(v3);
+		pVert.push_back(v4);
+		pVert.push_back(v5);
+		pVert.push_back(v6);
+		pVert.push_back(v7);
+		pVert.push_back(v8);
 
 		// space 2
-		std::vector <bso::utilities::geometry::vertex*> pVert2;
+		std::vector <bso::utilities::geometry::vertex> pVert2;
 		bso::utilities::geometry::vertex v12 = {0,0,4303};
 		bso::utilities::geometry::vertex v22 = {3000,0,4303};
 		bso::utilities::geometry::vertex v32 = {0,3000,4303};
@@ -464,17 +464,17 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v62 = {3000,0,7303};
 		bso::utilities::geometry::vertex v72 = {0,3000,7303};
 		bso::utilities::geometry::vertex v82 = {3000,3000,7303};
-		pVert2.push_back(&v12);
-		pVert2.push_back(&v22);
-		pVert2.push_back(&v32);
-		pVert2.push_back(&v42);
-		pVert2.push_back(&v52);
-		pVert2.push_back(&v62);
-		pVert2.push_back(&v72);
-		pVert2.push_back(&v82);
+		pVert2.push_back(v12);
+		pVert2.push_back(v22);
+		pVert2.push_back(v32);
+		pVert2.push_back(v42);
+		pVert2.push_back(v52);
+		pVert2.push_back(v62);
+		pVert2.push_back(v72);
+		pVert2.push_back(v82);
 
 		// space 3; diferent order of vertices insertion
-		std::vector <bso::utilities::geometry::vertex*> pVert3;
+		std::vector <bso::utilities::geometry::vertex> pVert3;
 		bso::utilities::geometry::vertex v13 = {0,3000,7303};
 		bso::utilities::geometry::vertex v23 = {0,3000,4303};
 		bso::utilities::geometry::vertex v33 = {3000,0,4303};
@@ -483,14 +483,14 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v63 = {3000,0,7303};
 		bso::utilities::geometry::vertex v73 = {0,0,4303};
 		bso::utilities::geometry::vertex v83 = {3000,3000,7303};
-		pVert3.push_back(&v12);
-		pVert3.push_back(&v22);
-		pVert3.push_back(&v32);
-		pVert3.push_back(&v42);
-		pVert3.push_back(&v52);
-		pVert3.push_back(&v62);
-		pVert3.push_back(&v72);
-		pVert3.push_back(&v82);
+		pVert3.push_back(v12);
+		pVert3.push_back(v22);
+		pVert3.push_back(v32);
+		pVert3.push_back(v42);
+		pVert3.push_back(v52);
+		pVert3.push_back(v62);
+		pVert3.push_back(v72);
+		pVert3.push_back(v82);
 		
 		// base BSD to compare to
 		b1.addSpace(ms_space(1,pVert));
@@ -520,7 +520,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		ms_N_building b2;
 		
 		// space 1
-		std::vector <bso::utilities::geometry::vertex*> pVert;
+		std::vector <bso::utilities::geometry::vertex> pVert;
 		bso::utilities::geometry::vertex v1 = {0,0,0};
 		bso::utilities::geometry::vertex v2 = {1000,0,0};
 		bso::utilities::geometry::vertex v3 = {1000,2000,0};
@@ -529,17 +529,17 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v6 = {1000,0,3000};
 		bso::utilities::geometry::vertex v7 = {1000,2000,3000};
 		bso::utilities::geometry::vertex v8 = {0,2000,3000};
-		pVert.push_back(&v1);
-		pVert.push_back(&v2);
-		pVert.push_back(&v3);
-		pVert.push_back(&v4);
-		pVert.push_back(&v5);
-		pVert.push_back(&v6);
-		pVert.push_back(&v7);
-		pVert.push_back(&v8);
+		pVert.push_back(v1);
+		pVert.push_back(v2);
+		pVert.push_back(v3);
+		pVert.push_back(v4);
+		pVert.push_back(v5);
+		pVert.push_back(v6);
+		pVert.push_back(v7);
+		pVert.push_back(v8);
 
 		// space 2
-		std::vector <bso::utilities::geometry::vertex*> pVert2;
+		std::vector <bso::utilities::geometry::vertex> pVert2;
 		bso::utilities::geometry::vertex v12 = {1000,0,0};
 		bso::utilities::geometry::vertex v22 = {4000,0,0};
 		bso::utilities::geometry::vertex v32 = {1000,4000,0};
@@ -548,17 +548,17 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v62 = {4000,0,3000};
 		bso::utilities::geometry::vertex v72 = {1000,4000,3000};
 		bso::utilities::geometry::vertex v82 = {4000,4000,3000};
-		pVert2.push_back(&v12);
-		pVert2.push_back(&v22);
-		pVert2.push_back(&v32);
-		pVert2.push_back(&v42);
-		pVert2.push_back(&v52);
-		pVert2.push_back(&v62);
-		pVert2.push_back(&v72);
-		pVert2.push_back(&v82);
+		pVert2.push_back(v12);
+		pVert2.push_back(v22);
+		pVert2.push_back(v32);
+		pVert2.push_back(v42);
+		pVert2.push_back(v52);
+		pVert2.push_back(v62);
+		pVert2.push_back(v72);
+		pVert2.push_back(v82);
 
 		// space 3
-		std::vector <bso::utilities::geometry::vertex*> pVert3;
+		std::vector <bso::utilities::geometry::vertex> pVert3;
 		bso::utilities::geometry::vertex v13 = {0,0,4303};
 		bso::utilities::geometry::vertex v23 = {3000,0,4303};
 		bso::utilities::geometry::vertex v33 = {0,3000,4303};
@@ -567,14 +567,14 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		bso::utilities::geometry::vertex v63 = {0,3000,7303};
 		bso::utilities::geometry::vertex v73 = {3000,3000,7303};
 		bso::utilities::geometry::vertex v83 = {0,0,7303};
-		pVert3.push_back(&v13);
-		pVert3.push_back(&v23);
-		pVert3.push_back(&v33);
-		pVert3.push_back(&v43);
-		pVert3.push_back(&v53);
-		pVert3.push_back(&v63);
-		pVert3.push_back(&v73);
-		pVert3.push_back(&v83);
+		pVert3.push_back(v13);
+		pVert3.push_back(v23);
+		pVert3.push_back(v33);
+		pVert3.push_back(v43);
+		pVert3.push_back(v53);
+		pVert3.push_back(v63);
+		pVert3.push_back(v73);
+		pVert3.push_back(v83);
 
 
 		ms_space s1(1,pVert);

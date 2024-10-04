@@ -250,7 +250,7 @@ void ms_N_building::resetOrigin(const std::vector<unsigned int>& indices /*= {0,
 	utilities::geometry::vector coordDifference = {0,0,0};
 	for (const auto& index : indices)
 	{
-		utilities::geometry::vertex initalV = (*(mSpaces[0]->getVertices())[0]);
+		utilities::geometry::vertex initalV = (mSpaces[0]->getVertices())[0];
 		double min = initalV(index); // set an initial value to the minimum
 	
 		// find the minimum value of the x,y, or z-coordinates in the building
@@ -258,7 +258,7 @@ void ms_N_building::resetOrigin(const std::vector<unsigned int>& indices /*= {0,
 		{
 			for (auto j : i->getVertices())
 			{
-				if(min > (*j)(index)) min = (*j)(index);
+				if(min > j(index)) min = j(index);
 			}
 		}			
 
@@ -270,12 +270,12 @@ void ms_N_building::resetOrigin(const std::vector<unsigned int>& indices /*= {0,
 	utilities::geometry::vertex temp;
 	for (auto i : mSpaces)
 	{
-		std::vector<utilities::geometry::vertex*> newVP;
+		std::vector<utilities::geometry::vertex> newVP;
+		newVP.resize(8);
 		for (int j=0; j<8; j++)
 		{
-			newVP.push_back(new utilities::geometry::vertex);
-			temp = 	*((i->getVertices())[j]) + coordDifference;	
-			*newVP[j] = temp;
+			temp = 	(i->getVertices())[j] + coordDifference;	
+			newVP[j] = temp;
 		}
 		i->setPVertex(newVP);
 	} 
@@ -335,7 +335,7 @@ void ms_N_building::deleteSpace(ms_space& space)
 
 void ms_N_building::scale(const std::vector<std::pair<unsigned int, double> >& scales /*= {{0,sqrt(2.0)},{1,sqrt(2.0)}}*/)
 { 
-	std::vector<utilities::geometry::vertex*> vertices;
+	std::vector<utilities::geometry::vertex> vertices;
 	
 	unsigned int axis;
 	double n;
@@ -374,7 +374,7 @@ void ms_N_building::scale(const std::vector<std::pair<unsigned int, double> >& s
 				axis = j.first;
 				n = j.second;
 
-				(*vertices[k])(axis) *= n;
+				(vertices[k])(axis) *= n;
 			}
 		}
 		
@@ -383,7 +383,7 @@ void ms_N_building::scale(const std::vector<std::pair<unsigned int, double> >& s
 } // scale()
 
 void ms_N_building::splitSpace(ms_space* spacePtr, const std::vector<std::pair<unsigned int, unsigned int> >& splits /*= {{0,2},{1,2}}*/)
-{ 
+{
 	//Gather information
 	this->getLastSpaceID(); 
 	bso::utilities::geometry::quad_hexahedron geometry = spacePtr->getGeometry();
@@ -495,7 +495,6 @@ void ms_N_building::splitSpace(ms_space* spacePtr, const std::vector<std::pair<u
 			}
 		}
 
-
 		// check inserted split values and store them in order of axis x-,y-, and z-
 		unsigned int axis, div;
 		bool checkDouble[3] = {false};
@@ -537,7 +536,7 @@ void ms_N_building::splitSpace(ms_space* spacePtr, const std::vector<std::pair<u
 	Vmatrix.resize(splitsdiv[0]+1);
 	for(int i=0; i<splitsdiv[0]+1; i++) //x-axis
 	{
-		Vmatrix[i].resize(splitsdiv[1]+1); //resize to fit the amound of vertixes to be found in the next for-loop
+		Vmatrix[i].resize(splitsdiv[1]+1); //resize to fit the amount of vertexes to be found in the next for-loop
 		
 		bso::utilities::geometry::vertex tempV1, tempV2;
 		tempV1 = (axisL[0])[0] + (((axisL[0]).getVector())/(splitsdiv[0]))*i;
@@ -546,7 +545,7 @@ void ms_N_building::splitSpace(ms_space* spacePtr, const std::vector<std::pair<u
 
 		for(int j=0; j<splitsdiv[1]+1; j++) // y-axis
 		{
-			Vmatrix[i][j].resize(splitsdiv[2]+1); //resize to fit the amound of vertixes to be found in the next for-loop
+			Vmatrix[i][j].resize(splitsdiv[2]+1); //resize to fit the amount of vertexes to be found in the next for-loop
 
 			for(int k=0; k<splitsdiv[2]+1; k++) // z-axis
 			{
@@ -556,30 +555,28 @@ void ms_N_building::splitSpace(ms_space* spacePtr, const std::vector<std::pair<u
 	}
 
 	// Generate and add the new spaces
-	ms_space* temp;
 	for(int i=0; i<splitsdiv[0]; i++) //x-axis
 	{
 		for(int j=0; j<splitsdiv[1]; j++) // y-axis
 		{
 			for(int k=0; k<splitsdiv[2]; k++) // z-axis
 			{
-				temp = new ms_space(*spacePtr);
-				temp->setID(++mLastSpaceID);
+				mSpaces.push_back(new ms_space(*spacePtr));
+				mSpaces.back()->setID(++mLastSpaceID);
 				
-				std::vector <utilities::geometry::vertex*> vertexes;
-				for(int t=0; t<8; t++) vertexes.push_back(new utilities::geometry::vertex);
+				std::vector <utilities::geometry::vertex> vertexes;
+				vertexes.resize(8);
 
-				*vertexes[0] = Vmatrix[i][j][k];
-				*vertexes[1] = Vmatrix[i+1][j][k];
-				*vertexes[2] = Vmatrix[i][j+1][k];
-				*vertexes[3] = Vmatrix[i+1][j+1][k];
-				*vertexes[4] = Vmatrix[i][j][k+1];
-				*vertexes[5] = Vmatrix[i+1][j][k+1];
-				*vertexes[6] = Vmatrix[i][j+1][k+1];
-				*vertexes[7] = Vmatrix[i+1][j+1][k+1];
+				vertexes[0] = Vmatrix[i][j][k];
+				vertexes[1] = Vmatrix[i+1][j][k];
+				vertexes[2] = Vmatrix[i][j+1][k];
+				vertexes[3] = Vmatrix[i+1][j+1][k];
+				vertexes[4] = Vmatrix[i][j][k+1];
+				vertexes[5] = Vmatrix[i+1][j][k+1];
+				vertexes[6] = Vmatrix[i][j+1][k+1];
+				vertexes[7] = Vmatrix[i+1][j+1][k+1];
 				
-				temp->setPVertex(vertexes);
-				mSpaces.push_back(temp);
+				mSpaces.back()->setPVertex(vertexes);
 			}
 		}
 	}
@@ -608,7 +605,6 @@ void ms_N_building::splitSpace(ms_space* spacePtr, int splitAmount, bso::utiliti
 	axisL[0] = {{0,0,0},{0,1,1}}; // to be as close to axis {1,0,0}; hence this far off initiation is used to check if the axis is found
 	axisL[1] = {{0,0,0},{1,0,1}}; // to be as close to axis {0,1,0}; hence this far off initiation is used to check if the axis is found
 
-
 	int count = 0;
 	for (auto i: geometry.getPolygons())
 	{
@@ -631,6 +627,7 @@ void ms_N_building::splitSpace(ms_space* spacePtr, int splitAmount, bso::utiliti
 				errorMessage << "The inserted line has not been found to be part of either the top or botum floor. " << std::endl
 										<< "Therefore, the inserted line has been found invalid. "<< std::endl
 										<< "The inserted line was: " << lineToSplit << std::endl
+										<< "The following space was inserted for splitting: " << *spacePtr << std::endl
 										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 			}
@@ -802,15 +799,14 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 	for(const int i: toShiftSpaces)
 	{
 		// Define the new pVertex vector of considered space
-		std::vector <utilities::geometry::vertex*> pVert;
+		std::vector <utilities::geometry::vertex> pVert;
 		utilities::geometry::vertex temp;
 		for(const auto j: mSpaces[i]->getVertices())
 		{
-			pVert.push_back(new utilities::geometry::vertex);							
-			temp(0) = j->x();
-			temp(1) = j->y();
-			temp(2) = j->z() + elevationHeight;
-			*pVert.back() = temp;
+			temp(0) = j.x();
+			temp(1) = j.y();
+			temp(2) = j.z() + elevationHeight;
+			pVert.push_back(temp);
 		}
 		// Replace the pVertex of the considered space
 		mSpaces[i]->setPVertex(pVert);
@@ -830,19 +826,17 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 				newID++;
 
 				// Define all vertices of new space
-				std::vector <utilities::geometry::vertex*> pVert;
+				std::vector <utilities::geometry::vertex> pVert;
 				utilities::geometry::vertex temp;
 				for(const auto k: j)
-				{
-					pVert.push_back(new utilities::geometry::vertex);							
+				{						
 					temp(0) = k.x();
 					temp(1) = k.y();
 					temp(2) = atZFromGround;
-					*pVert.back() = temp;		
+					pVert.push_back(temp);
 					
-					pVert.push_back(new utilities::geometry::vertex);
 					temp(2) = atZFromGround + elevationHeight;
-					*pVert.back() = temp;
+					pVert.push_back(temp);
 				}
 
 				// Add new space
@@ -881,19 +875,17 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 				newID++;
 
 				// Define all vertices of new space
-				std::vector <utilities::geometry::vertex*> pVert;
+				std::vector <utilities::geometry::vertex> pVert;
 				utilities::geometry::vertex temp;
 				for(const auto k: topFloor)
-				{
-					pVert.push_back(new utilities::geometry::vertex);							
+				{							
 					temp(0) = k.x();
 					temp(1) = k.y();
 					temp(2) = k.z();
-					*pVert.back() = temp;		
+					pVert.push_back(temp);		
 					
-					pVert.push_back(new utilities::geometry::vertex);
 					temp(2) = k.z() + elevationHeight;
-					*pVert.back() = temp;
+					pVert.push_back(temp);
 				}
 
 				// Add new space
@@ -1376,13 +1368,12 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		// Define the new pVertex vector of considered space
 		i->highlightInVisualization1 = true;
 		bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
-		std::vector <utilities::geometry::vertex*> pVert;
+		std::vector <utilities::geometry::vertex> pVert;
 		utilities::geometry::vertex temp;
 		for(const auto j: spaceGeom.getVertices())
 		{
-			pVert.push_back(new utilities::geometry::vertex);							
 			temp = j + n * shiftAmount;
-			*pVert.back() = temp;
+			pVert.push_back(temp);
 		}
 		// Replace the pVertex of the considered space
 		i->setPVertex(pVert);
@@ -1479,24 +1470,21 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 			}
 			
 			// Define vertices of new space
-			std::vector <utilities::geometry::vertex*> vertexes;
+			std::vector <utilities::geometry::vertex> vertexes;
 
-			vertexes.push_back(new utilities::geometry::vertex);
-			*vertexes.back() = linesAtFloor[i][j][0];
-			vertexes.push_back(new utilities::geometry::vertex);
-			*vertexes.back() = linesAtFloor[i][j][1];
-			vertexes.push_back(new utilities::geometry::vertex);
-			*vertexes.back() = linesOpposite[i][j][0];
-			vertexes.push_back(new utilities::geometry::vertex);
-			*vertexes.back() = linesOpposite[i][j][1];
-			vertexes.push_back(new utilities::geometry::vertex);
-			*vertexes.back() = linesAtFloor[i][j][0]+hightVector;
-			vertexes.push_back(new utilities::geometry::vertex);
-			*vertexes.back() = linesAtFloor[i][j][1]+hightVector;
-			vertexes.push_back(new utilities::geometry::vertex);
-			*vertexes.back() = linesOpposite[i][j][0]+hightVector;
-			vertexes.push_back(new utilities::geometry::vertex);
-			*vertexes.back() = linesOpposite[i][j][1]+hightVector;
+			vertexes.push_back(linesAtFloor[i][j][0]);
+			vertexes.push_back(linesAtFloor[i][j][1]);
+			vertexes.push_back(linesOpposite[i][j][0]);
+			vertexes.push_back(linesOpposite[i][j][1]);
+			utilities::geometry::vertex temp;
+			temp = linesAtFloor[i][j][0]+hightVector;
+			vertexes.push_back(temp);
+			temp = linesAtFloor[i][j][1]+hightVector;
+			vertexes.push_back(temp);
+			temp = linesOpposite[i][j][0]+hightVector;
+			vertexes.push_back(temp);
+			temp = linesOpposite[i][j][1]+hightVector;
+			vertexes.push_back(temp);
 		
 			// Define new space
 			int newID = mSpaces.back()->getID();
@@ -1650,13 +1638,11 @@ void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utiliti
 	// Define vertices of new space
 	for(auto i: testSpaces)
 	{
-		//std::cout << "add space\n";
-		std::vector <utilities::geometry::vertex*> vertexes;
+		std::vector <utilities::geometry::vertex> vertexes;
 
 		for(auto v: i)
 		{
-			vertexes.push_back(new utilities::geometry::vertex);
-			*vertexes.back() = v;
+			vertexes.push_back(v);
 		}
 
 		// Define new space
@@ -1667,6 +1653,92 @@ void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utiliti
 		mSpaces.back()->setPVertex(vertexes);
 	}
 }
+
+void ms_N_building::enforceAverageSpaceSize(double minElevationHeight /*=3000*/, const double& tol /*= 1e-3*/)
+{
+	// Determine smallest length of both horizontal and vertical lines
+	bso::utilities::geometry::line_segment smallestHorizontalLine;
+	bso::utilities::geometry::line_segment smallestVerticalLine;
+	double smallestHorizontalLength;
+	double smallestVerticalLength;
+	bool horizontalInit = false;
+	bool verticalInit = false;
+	for(const auto& space: mSpaces)
+	{
+		for(const auto& k: space->getGeometry().getLines())
+		{
+			if(k.getVector().isVertical())
+			{
+				if(k.getLength() < minElevationHeight*2) continue; // only consider horizontal lines which are long enough for elevation height purposes
+				if(!verticalInit)
+				{
+					smallestVerticalLength = k.getLength();
+					smallestVerticalLine = k;
+					verticalInit = true;
+				}
+				if(smallestVerticalLength > k.getLength())
+				{
+					smallestVerticalLength = k.getLength();
+					smallestVerticalLine = k;
+				}
+			}
+			else
+			{
+				if(!horizontalInit && k.getLength() > tol)
+				{
+					smallestHorizontalLength = k.getLength();
+					smallestHorizontalLine = k;
+					horizontalInit = true;
+				}
+				if(smallestHorizontalLength > k.getLength() && k.getLength() > tol)
+				{
+					smallestHorizontalLength = k.getLength();
+					smallestHorizontalLine = k;
+				}
+			}
+		}
+	}
+	
+	std::cout << "smallestHorizontalLength: " << smallestHorizontalLength << std::endl;
+	std::cout << "smallestVerticalLength: " << smallestVerticalLength << std::endl;
+	std::cout << "smallestVerticalLine: " << smallestVerticalLine << " with length: " << smallestVerticalLine.getLength() <<  std::endl;
+	std::cout << "smallestHorizontalLine : " << smallestHorizontalLine << " with length: " << smallestHorizontalLine.getLength() << std::endl;
+	std::cout << "horizontalInit is: " << horizontalInit << std::endl;
+	std::cout << "verticalInit is: " << verticalInit << std::endl;
+
+	// See how to split the other spaces to go near the smallest space size, but not over and split.
+	for(int id = 0; id < mSpaces.size(); id++)
+	{
+		std::vector<bso::utilities::geometry::line_segment> lines = mSpaces[id]->getGeometry().getLines();
+		for(auto&j: lines)
+		{
+			if(j.getVector().isVertical())
+			{
+				if(verticalInit)
+				{
+					double splitAmount = std::round(j.getLength()/(smallestVerticalLength*2));
+					if(splitAmount > 1) 
+					{
+						std::vector<std::pair<unsigned int, unsigned int> > splits = {{2,splitAmount}};
+						this->splitSpace(mSpaces[id], splits);
+						id--;
+						break;
+					}
+				}
+			}
+			else if(horizontalInit)
+			{
+				double splitAmount = std::round(j.getLength()/smallestHorizontalLength);
+				if(splitAmount > 1) 
+				{
+					this->splitSpace(mSpaces[id], splitAmount , j);
+					id--;
+					break;
+				}
+			}
+		}
+	}
+} // enforceAverageSpaceSize()
 
 std::vector<ms_space*> ms_N_building::selectSpacesGeometrically(
 		const bso::utilities::geometry::vertex& location,
@@ -2615,14 +2687,14 @@ void ms_N_building::addBoundary()
 	// Look through each pre-existing space
 	std::for_each(mSpaces.begin(),mSpaces.end(),[&](const auto& elem) { 
 		// Get bounding vertices of a given space
-		std::vector<utilities::geometry::vertex*> v = elem->getVertices();
+		std::vector<utilities::geometry::vertex> v = elem->getVertices();
 	
 		
 		// Iterate over each vertex (point)
 		std::for_each(v.begin(),v.end(),[&](const auto& vert) {
 			// Set a counter
 			i=0;
-			std::for_each(vert->begin(),vert->end(),[&](double coordinate) {
+			std::for_each(vert.begin(),vert.end(),[&](double coordinate) {
 				if(!i && coordinate < min_x) min_x = coordinate;
 				if(!i && coordinate > max_x) max_x = coordinate;
 

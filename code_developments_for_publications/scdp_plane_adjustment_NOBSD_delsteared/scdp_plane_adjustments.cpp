@@ -52,7 +52,6 @@ std::string getCurrentDateTime() {
 void getPerformancePerSpace(std::vector<bso::utilities::data_point>& performances, bso::spatial_design::ms_N_building& ms, bso::structural_design::sd_model& sd, 
 		bso::building_physics::bp_model& bp, const std::string& modificationType, const std::string& performanceDivisionType)
 {
-	//std::vector<bso::utilities::data_point> performances;
 	std::vector<std::string> axisDataTypes = {"bp","sd"};
 	for (const auto& j : ms.getSpacePtrs())
 	{
@@ -717,30 +716,6 @@ int main(int argc, char* argv[])
 	out("Initialized visualization", true, true, verbose);
 	
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	// Initialize initial design:
 	std::vector<spatial_design::ms_N_building> msDesigns;
 	std::vector<spatial_design::ms_N_building> msDesignsTemp;
@@ -760,37 +735,16 @@ int main(int argc, char* argv[])
 	}
 	out("Initialized initial MS_N building model", true, true, verbose);
 
-	if(recDif)
-	{
-		int spaceCount = msDesigns.back().getSpacePtrs().size();
-		double averageRecDif = 0;
-		for(const auto i: msDesigns.back().getSpacePtrs())
-		{
-			bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
-			std::vector<bso::utilities::geometry::quadrilateral> spaceQuads = spaceGeom.getQuadrilateral();
-			averageRecDif = averageRecDif + (spaceQuads[5]).getDifRectangle();
-		}
-		averageRecDif = averageRecDif/spaceCount;
-		std::cout <<"averageRecDif: " << averageRecDif << std::endl;
-	}
-
-
-
-
-
-
-
-
-
-
-
-	
-
 
 	// Start with co-evolutionary design proccess:
 	unsigned int nSpaces = msDesigns.back().getSpacePtrs().size();
 	double floorArea = msDesigns.back().getFloorArea();
 	double averageSpaceSize = msDesigns.back().getAverageSpaceSize();
+
+	// Enforce AverageSpace Size
+	msDesigns.back().enforceAverageSpaceSize();
+	out("Enforce averageSpaceSize", true, true, verbose);
+
 	std::vector<structural_design::sd_model> sdModels;
 	std::vector<building_physics::bp_model> bpModels;
 	std::vector<utilities::data_point> designPerformances;
@@ -805,6 +759,9 @@ int main(int argc, char* argv[])
 		{
 			out("\nIteration: ",false,false,verbose); out(i,true,false,verbose);
 			
+			// msDesigns.back().enforceAverageSpaceSize();
+			// out("Enforce averageSpaceSize", true, true, verbose);
+			
 			designPerformances.push_back(utilities::data_point(2));
 			
 			// step 1, generate SD and BP models and evaluate them.
@@ -815,33 +772,33 @@ int main(int argc, char* argv[])
 			out("Initialized grammar",true,true,verbose);
 
 			// Check for courtyard:
-			try
-			{
-				std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls = grm.getExteriorWalls();
-				out("Collected exterior walls",true,true,verbose);
-				std::vector<std::vector<bso::utilities::geometry::line_segment>> outerboundsExport;
-				std::vector<bso::utilities::geometry::triangle> triangleExport;
-				bool hasCourtyards = bso::utilities::hasCourtyard(exteriorWalls, outerboundsExport, triangleExport, 1e-2);
-				out("Checked for courtyards: ",false,false,verbose);out(hasCourtyards,true,true,verbose);
+			// try
+			// {
+			// 	std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls = grm.getExteriorWalls();
+			// 	out("Collected exterior walls",true,true,verbose);
+			// 	std::vector<std::vector<bso::utilities::geometry::line_segment>> outerboundsExport;
+			// 	std::vector<bso::utilities::geometry::triangle> triangleExport;
+			// 	bool hasCourtyards = bso::utilities::hasCourtyard(exteriorWalls, outerboundsExport, triangleExport, 1e-2);
+			// 	out("Checked for courtyards: ",false,false,verbose);out(hasCourtyards,true,true,verbose);
 
-				std::vector<bso::utilities::geometry::quad_hexahedron> QHs;
-				std::vector<bso::utilities::geometry::triangular_prism> triPrisms;
-				std::vector<bso::utilities::geometry::quadrilateral> quads;
-				std::vector<bso::utilities::geometry::line_segment> linesExport;
-				for(const auto b: outerboundsExport)
-				{
-					for(const auto a: b){linesExport.push_back(a);}
-				}
-				if (!visualizations.empty()) visualization::visualize(QHs, triPrisms, quads, triangleExport, linesExport);
-			}
-			catch(const std::exception& e)
-			{
-				if(verbose)
-				{
-					std::stringstream errorMessage;
-					errorMessage << "Unable to get result for the check for courtyards because of\n" << e.what() << std::endl;
-				}
-			}
+			// 	std::vector<bso::utilities::geometry::quad_hexahedron> QHs;
+			// 	std::vector<bso::utilities::geometry::triangular_prism> triPrisms;
+			// 	std::vector<bso::utilities::geometry::quadrilateral> quads;
+			// 	std::vector<bso::utilities::geometry::line_segment> linesExport;
+			// 	for(const auto b: outerboundsExport)
+			// 	{
+			// 		for(const auto a: b){linesExport.push_back(a);}
+			// 	}
+			// 	if (!visualizations.empty()) visualization::visualize(QHs, triPrisms, quads, triangleExport, linesExport);
+			// }
+			// catch(const std::exception& e)
+			// {
+			// 	if(verbose)
+			// 	{
+			// 		std::stringstream errorMessage;
+			// 		errorMessage << "Unable to get result for the check for courtyards because of\n" << e.what() << std::endl;
+			// 	}
+			// }
 
 			sdModels.push_back(grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"))); 
 			out("Generated structural model",true,true,verbose);
@@ -865,7 +822,6 @@ int main(int argc, char* argv[])
 			{
 				for (const auto& visOption : visualizations)
 				{
-					//if (visOption == "ms" && i != 0) visualization::visualize(msDesignsTemp.back(),"","ms_N_building",4.0);
 					if (visOption == "msw" && i == 0) visualization::visualize(msDesigns.back());
 					if (visOption == "ms") visualization::visualize(msDesigns.back(),"","ms_N_building",4.0);
 					if (visOption == "sg") visualization::visualize(cf,"space_at_ground");
@@ -955,6 +911,8 @@ int main(int argc, char* argv[])
 				enforceConstrains(newMS, removeSmallerFragments);
 				
 				bool slowReduce = true;
+				int slowReduceCount = 2;
+				int count =0;
 				while(slowReduce)
 				{
 					msDesignsMidAdaptation.push_back(newMS);
@@ -1004,7 +962,7 @@ int main(int argc, char* argv[])
 						out("\tSent MID models to visualization",true,true,verbose);
 					}
 
-					slowReduce = false;
+					slowReduce = true;
 					if(slowReduce && newMS.getSpacePtrs().size() > nSpaces)
 					{
 						// Collect performance data per space
@@ -1031,6 +989,7 @@ int main(int argc, char* argv[])
 
 						// Sort data for space removal later
 						sortDataPointsForSpaceRemoval(performances, modification, i, objectiveWeights);
+						out("Sort dataPoints for space removal",true,true,verbose);
 						
 						// Determine space removal amount && Remove spaces
 						int spaceAmountRemoval = round(nSpaces*spaceAdjustWorstRatio);;
@@ -1040,7 +999,9 @@ int main(int argc, char* argv[])
 						// Enforce constrains on BSD
 						enforceConstrains(newMS, removeSmallerFragments);
 						out("\tRemoved worst performing spaces in building spatial design",true,true,verbose);
+						count++;
 						if(newMS.getSpacePtrs().size() == nSpaces){slowReduce = false;}
+						if(count == slowReduceCount){slowReduce = false;}
 					}
 				}
 			}
@@ -1119,6 +1080,7 @@ int main(int argc, char* argv[])
 			{
 				performancesRemoveSpace = performances;
 				sortDataPointsForSpaceRemoval(performancesRemoveSpace, modification, i, objectiveWeights);
+				out("Sort data points for space removal",true,true,verbose);
 
 				// Determine space removal amount
 				int spaceAmountRemoval;
@@ -1148,10 +1110,10 @@ int main(int argc, char* argv[])
 				}
 				out("Removed worst performing spaces in building spatial design",true,true,verbose);
 			}
+
 			// Enforce constrains on BSD
 			enforceConstrains(newMS, removeSmallerFragments);
 			msDesignsTemp.push_back(newMS);
-			
 
 			// step 6, split spaces to recover initial conditions
 			if(longestRib)
@@ -1250,6 +1212,9 @@ int main(int argc, char* argv[])
 	}
 	catch(const std::exception& e)
 	{
+		std::cout << "Error, could not finalize the run.\n";
+		std::cout << "start output generation despite not finishing.\n";
+		
 		// Output the requested outputs:
 		std::vector<unsigned int> outputSpaces;
 		// if best, find which designs are best;

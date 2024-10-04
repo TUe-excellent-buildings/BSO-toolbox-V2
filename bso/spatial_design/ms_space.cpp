@@ -59,7 +59,7 @@ ms_space::ms_space(unsigned int id, utilities::geometry::vertex coords, utilitie
 	}
 } // ms_space()
 
-ms_space::ms_space(unsigned int id, std::vector <utilities::geometry::vertex*> pVert, const std::string& spaceType /*= std::string()*/, const std::vector<std::string>& surfaceTypes /*= std::vector<std::string>()*/)
+ms_space::ms_space(unsigned int id, std::vector <utilities::geometry::vertex> pVert, const std::string& spaceType /*= std::string()*/, const std::vector<std::string>& surfaceTypes /*= std::vector<std::string>()*/)
 {
 	sDefMethod = "N";
 	pVertex = pVert;
@@ -142,15 +142,14 @@ ms_space::ms_space(std::string line)
 			
 			if(number_of_tokens >= 25) // avoid tokens which are non-existing
 			{
+				pVertex.resize(8);
 				for(int i=0; i<8; i++)
-				{
-					pVertex.push_back(new utilities::geometry::vertex);
-							
+				{							
 					temp(0) = utilities::trim_and_cast_double(*(++token));
 					temp(1) = utilities::trim_and_cast_double(*(++token));
 					temp(2) = utilities::trim_and_cast_double(*(++token));
 					
-					*pVertex[i] = temp;		
+					pVertex[i] = temp;		
 				}
 			}
 			
@@ -382,7 +381,7 @@ bool ms_space::checkValidity() const
 	return check;
 } // checkValidity()
 
-void ms_space::setPVertex(const std::vector <utilities::geometry::vertex*> vertexes)
+void ms_space::setPVertex(const std::vector <utilities::geometry::vertex> vertexes)
 {
 	try
 	{
@@ -476,9 +475,9 @@ utilities::geometry::vector ms_space::getDimensions() const
 	return mDimensions;
 } // getDimensions
 
-std::vector<utilities::geometry::vertex*> ms_space::getVertices() const
+std::vector<utilities::geometry::vertex> ms_space::getVertices() const
 {
-	std::vector<utilities::geometry::vertex*> vertices;
+	std::vector<utilities::geometry::vertex> vertices;
 
 	if (sDefMethod == "R" || sDefMethod == "r")
 	{
@@ -494,7 +493,7 @@ std::vector<utilities::geometry::vertex*> ms_space::getVertices() const
 				if (std::bitset<3>(i)[j]) tempPoint[j] += mDimensions[j];
 			}
 			cornerPoints.push_back(tempPoint);
-			vertices.push_back(&cornerPoints.back());
+			vertices.push_back(cornerPoints.back());
 		}
 	}
 	else if (sDefMethod == "N" || sDefMethod == "n")
@@ -524,7 +523,7 @@ utilities::geometry::quad_hexahedron ms_space::getGeometry() const
 	}
 	else if (sDefMethod == "N" || sDefMethod == "n")
 	{
-		for (int i=0; i<pVertex.size(); i++) cornerPoints.push_back(*pVertex[i]);
+		for (int i=0; i<pVertex.size(); i++) cornerPoints.push_back(pVertex[i]);
 	}
 
 	return bso::utilities::geometry::quad_hexahedron(cornerPoints);
@@ -599,7 +598,7 @@ bool ms_space::operator == (const ms_space& rhs) const
 	if (pVertex.size() != rhs.pVertex.size()) return false;
 	for (unsigned int i = 0; i < pVertex.size(); i++)
 	{	
-		if (!(*(pVertex[i])).isSameAs(*(rhs.pVertex[i]))) 
+		if (!(pVertex[i]).isSameAs(rhs.pVertex[i])) 
 		{
 			return false;
 		}
@@ -645,9 +644,9 @@ std::ostream& operator <<(std::ostream& stream, const ms_space& space)
 			// The std::setprecision statement makes sure that the output file does not lose precision in value,
 			// This is important when a scaled design needs to be inputted again.
 			stream << ",	";
-			stream << (*i) (0); 
-			stream << "," << (*i) (1);
-			stream << "," << (*i) (2);
+			stream << i (0); 
+			stream << "," << i (1);
+			stream << "," << i (2);
 		}
 		std::string tempStr;
 		if (space.getSpaceType(tempStr)) stream << "," << tempStr;
