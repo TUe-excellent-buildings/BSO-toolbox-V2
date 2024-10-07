@@ -498,6 +498,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		
 		// Declarations for needed information per building spatial design
 		std::vector<double> allLevels; // stores all the floor levels
+		allLevels.push_back(0); // Always add the z=0 plane to ensure correct load application in the later stages, i.e. below ground vs. above ground.
 		int count =0; //counts the amount of spaces
 		
 		// Get the above information
@@ -549,10 +550,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 			count++;
 		}
 		
-		// Add z=0 plane to all levels, if not existing. And sort allLevels for later use in triangular prism cell definition.
-		auto it = find(allLevels.begin(), allLevels.end(), 0);
-		if (it!=allLevels.end()){/* do nothing since z=0 was included*/} // Always add the z=0 plane to ensure correct load application in the later stages, i.e. below ground vs. above ground.
-		else {allLevels.push_back(0);}
+		// Sort allLevels for later use in triangular prism cell definition.
 		sort(allLevels.begin(), allLevels.end());
 		
 		// Declaration delaunay variables
