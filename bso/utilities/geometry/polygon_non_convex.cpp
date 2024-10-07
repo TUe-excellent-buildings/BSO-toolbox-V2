@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <bso/utilities/geometry/polygon.hpp>
 #include <bso/utilities/delaunay.hpp>
+#include <bso/utilities/geometry_functions.hpp>
 
 namespace bso { namespace utilities {  namespace geometry {
 	
@@ -212,10 +213,10 @@ namespace bso { namespace utilities {  namespace geometry {
 		return false;
 	} //  isInside()
 
-	void polygon_non_convex::convertToQuads(std::vector<quadrilateral>& quads)
-	{
-		bso::utilities::convertToQuads(mVertices, mLineSegments, quads, 0.001, true);
-	}
+	// void polygon_non_convex::convertToQuads(std::vector<quadrilateral>& quads)
+	// {
+	// 	bso::utilities::convertToQuads(mVertices, mLineSegments, quads, 0.001, true);
+	// }
 
 } // namespace geometry
 } // namespace utilities

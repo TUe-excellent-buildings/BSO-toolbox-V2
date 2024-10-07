@@ -27,7 +27,7 @@ namespace bso { namespace utilities { namespace geometry {
 		bool isInside(const vertex& p1, const double& tol = 1e-3) const;
 		bool isInsideOrOn(const vertex& p1, const double& tol = 1e-3) const;
 
-		void convertToQuads(std::vector<quadrilateral>& quads);
+		// void convertToQuads(std::vector<quadrilateral>& quads);
 
 		const auto& getTriangles() const {return mTriangles;}
 

@@ -25,7 +25,7 @@ std::vector<std::string> VIS_OPTIONS = {"ms","msc","msw","tp","tr","de","bo","sd
 std::vector<std::string> MOD_OPTIONS = {"bp","sd","sdbp","bpsd","weighted"};
 std::vector<std::string> OUT_OPTIONS = {"result_line", "verbose", "ms_files","plot","best","all","recDif"};
 std::vector<std::string> DEL_OPTIONS = {"worst", "cluster"};
-std::vector<std::string> SPLIT_OPTIONS = {"longest", "performance"};
+std::vector<std::string> SPLIT_OPTIONS = {"longest", "performance", "off"};
 std::vector<std::string> ADD_OPTIONS = {"elevation", "shiftfill", "delAdapt"};
 std::vector<std::string> PER_OPTIONS = {"floorArea", "surfaceArea", "volumeArea", "nothing"};
 
@@ -164,6 +164,54 @@ void sortDataPointsForSpaceRemoval(std::vector<bso::utilities::data_point>& perf
 	}	
 }
 
+void getResultDir(std::string& dir, std::string inputFile, std::string modification, int interationNr, bool verbose)
+{
+	// create resultDir if not existing yet
+	bool resultDirGen = false;
+	std::string path = "results";
+	if (!std::filesystem::exists(path)) 
+	{
+		if (std::filesystem::create_directory(path)) 
+		{
+			resultDirGen = true;
+			dir = path + "/";
+			out("Directory created successfully.",true,true,verbose);
+		} 
+		else 
+		{
+			out("Failed to create directory.",true,true,verbose);
+		}
+	} 
+	else 
+	{
+		resultDirGen = true;
+		dir = path + "/";
+		out("Directory already exists.",true,true,verbose);
+	}
+
+	if(resultDirGen)
+	{
+		std::string path2 = dir + inputFile + "_" + modification + "_-n=" + std::to_string(interationNr) + "_" + getCurrentDateTime();
+		if (!std::filesystem::exists(path2)) 
+		{
+			if (std::filesystem::create_directory(path2)) 
+			{
+				dir = path2 + "/";
+				out("Sub-directory of results created successfully.",true,true,verbose);
+			} 
+			else 
+			{
+				out("Sub-directory of results failed to create directory.",true,true,verbose);
+			}
+		} 
+		else 
+		{
+			dir = path2 + "/";
+			out("Sub-directory of results directory already exists.",true,true,verbose);
+		}
+	}
+}
+
 
 using namespace bso;
 int main(int argc, char* argv[])
@@ -242,7 +290,8 @@ int main(int argc, char* argv[])
 								<<   "\t" << "\'worst\' for deleting spaces based on worst performance\n";
 			std::cout << "-so\t" << "or --splitOption, to specify which spaces are split:\n"
 								<<   "\t" << "\'longest\' for cluster deleting spaces\n"
-								<<   "\t" << "\'performance\' for deleting spaces based on worst performance\n";
+								<<   "\t" << "\'performance\' for deleting spaces based on worst performance\n"
+								<<   "\t" << "\'off\' no splitting of spaces\n";
 			std::cout << "-f\t" << "or --deleteFragments, to specify what to do with spaces which are not connected\n"
 								<<	 "\t" << "as a full building. Option are \'true\' or \'false\'.\n";
 			std::cout << "-p\t" << "or --performanceDivision, to specify by which the performances \n"
@@ -485,6 +534,7 @@ int main(int argc, char* argv[])
 				boost::trim(outSpec);
 				if (outSpec == "longest") {longestRib = true;performanceSplit = false;}
 				else if(outSpec == "performance") {longestRib = false;performanceSplit = true;}
+				else if(outSpec == "off") {longestRib = false;performanceSplit = false;}
 				else
 				{
 					std::stringstream errorMessage;
@@ -911,8 +961,6 @@ int main(int argc, char* argv[])
 				enforceConstrains(newMS, removeSmallerFragments);
 				
 				bool slowReduce = true;
-				int slowReduceCount = 2;
-				int count =0;
 				while(slowReduce)
 				{
 					msDesignsMidAdaptation.push_back(newMS);
@@ -962,7 +1010,7 @@ int main(int argc, char* argv[])
 						out("\tSent MID models to visualization",true,true,verbose);
 					}
 
-					slowReduce = true;
+					slowReduce = false;
 					if(slowReduce && newMS.getSpacePtrs().size() > nSpaces)
 					{
 						// Collect performance data per space
@@ -999,9 +1047,7 @@ int main(int argc, char* argv[])
 						// Enforce constrains on BSD
 						enforceConstrains(newMS, removeSmallerFragments);
 						out("\tRemoved worst performing spaces in building spatial design",true,true,verbose);
-						count++;
 						if(newMS.getSpacePtrs().size() == nSpaces){slowReduce = false;}
-						if(count == slowReduceCount){slowReduce = false;}
 					}
 				}
 			}
@@ -1084,10 +1130,10 @@ int main(int argc, char* argv[])
 
 				// Determine space removal amount
 				int spaceAmountRemoval;
-				if(amountOfSpaceRemoval > 0) {spaceAmountRemoval = performancesRemoveSpace.size() - nSpaces + amountOfSpaceRemoval;}
+				if(amountOfSpaceRemoval > 0) {spaceAmountRemoval = /*performancesRemoveSpace.size() - nSpaces +*/ amountOfSpaceRemoval;}
 				else 
 				{
-					spaceAmountRemoval = performancesRemoveSpace.size() - nSpaces + round(nSpaces*spaceRemoveRatio);
+					spaceAmountRemoval = /*performancesRemoveSpace.size() - nSpaces +*/ round(performancesRemoveSpace.size()*spaceRemoveRatio);
 					if(spaceAmountRemoval < 1){spaceAmountRemoval = 1;}
 				}
 
@@ -1226,55 +1272,8 @@ int main(int argc, char* argv[])
 			}
 		}
 
-
 		std::string dir = "";
-		if(resultDir)
-		{
-			// create resultDir if not existing yet
-			bool resultDirGen = false;
-			std::string path = "results";
-			if (!std::filesystem::exists(path)) 
-			{
-				if (std::filesystem::create_directory(path)) 
-				{
-					resultDirGen = true;
-					dir = path + "/";
-					out("Directory created successfully.",true,true,verbose);
-				} 
-				else 
-				{
-					out("Failed to create directory.",true,true,verbose);
-				}
-			} 
-			else 
-			{
-				resultDirGen = true;
-				dir = path + "/";
-				out("Directory already exists.",true,true,verbose);
-			}
-
-			if(resultDirGen)
-			{
-				std::string path2 = dir + inputFile + "_" + modification + "_-n=" + std::to_string(iterations) + "_" + getCurrentDateTime();
-				if (!std::filesystem::exists(path2)) 
-				{
-					if (std::filesystem::create_directory(path2)) 
-					{
-						dir = path2 + "/";
-						out("Sub-directory of results created successfully.",true,true,verbose);
-					} 
-					else 
-					{
-						out("Sub-directory of results failed to create directory.",true,true,verbose);
-					}
-				} 
-				else 
-				{
-					dir = path2 + "/";
-					out("Sub-directory of results directory already exists.",true,true,verbose);
-				}
-			}
-		}
+		if(resultDir) {getResultDir(dir, inputFile, modification, iterations, verbose);}
 
 		if(plot)
 		{
@@ -1345,55 +1344,8 @@ int main(int argc, char* argv[])
 		}
 	}
 
-
 	std::string dir = "";
-	if(resultDir)
-	{
-		// create resultDir if not existing yet
-		bool resultDirGen = false;
-		std::string path = "results";
-		if (!std::filesystem::exists(path)) 
-		{
-			if (std::filesystem::create_directory(path)) 
-			{
-				resultDirGen = true;
-				dir = path + "/";
-				out("Directory created successfully.",true,true,verbose);
-			} 
-			else 
-			{
-				out("Failed to create directory.",true,true,verbose);
-			}
-		} 
-		else 
-		{
-			resultDirGen = true;
-			dir = path + "/";
-			out("Directory already exists.",true,true,verbose);
-		}
-
-		if(resultDirGen)
-		{
-			std::string path2 = dir + inputFile + "_" + modification + "_-n=" + std::to_string(iterations) + "_" + getCurrentDateTime();
-			if (!std::filesystem::exists(path2)) 
-			{
-				if (std::filesystem::create_directory(path2)) 
-				{
-					dir = path2 + "/";
-					out("Sub-directory of results created successfully.",true,true,verbose);
-				} 
-				else 
-				{
-					out("Sub-directory of results failed to create directory.",true,true,verbose);
-				}
-			} 
-			else 
-			{
-				dir = path2 + "/";
-				out("Sub-directory of results directory already exists.",true,true,verbose);
-			}
-		}
-	}
+	if(resultDir) {getResultDir(dir, inputFile, modification, iterations, verbose);}
 
 	if(plot)
 	{
