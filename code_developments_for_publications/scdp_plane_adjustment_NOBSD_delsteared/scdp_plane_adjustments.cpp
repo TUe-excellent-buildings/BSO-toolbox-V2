@@ -822,33 +822,33 @@ int main(int argc, char* argv[])
 			out("Initialized grammar",true,true,verbose);
 
 			// Check for courtyard:
-			// try
-			// {
-			// 	std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls = grm.getExteriorWalls();
-			// 	out("Collected exterior walls",true,true,verbose);
-			// 	std::vector<std::vector<bso::utilities::geometry::line_segment>> outerboundsExport;
-			// 	std::vector<bso::utilities::geometry::triangle> triangleExport;
-			// 	bool hasCourtyards = bso::utilities::hasCourtyard(exteriorWalls, outerboundsExport, triangleExport, 1e-2);
-			// 	out("Checked for courtyards: ",false,false,verbose);out(hasCourtyards,true,true,verbose);
+			try
+			{
+				std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls = grm.getExteriorWalls();
+				out("Collected exterior walls",true,true,verbose);
+				std::vector<std::vector<bso::utilities::geometry::line_segment>> outerboundsExport;
+				std::vector<bso::utilities::geometry::triangle> triangleExport;
+				bool hasCourtyards = bso::utilities::hasCourtyard(exteriorWalls, outerboundsExport, triangleExport, 1e-2);
+				out("Checked for courtyards: ",false,false,verbose);out(hasCourtyards,true,true,verbose);
 
-			// 	std::vector<bso::utilities::geometry::quad_hexahedron> QHs;
-			// 	std::vector<bso::utilities::geometry::triangular_prism> triPrisms;
-			// 	std::vector<bso::utilities::geometry::quadrilateral> quads;
-			// 	std::vector<bso::utilities::geometry::line_segment> linesExport;
-			// 	for(const auto b: outerboundsExport)
-			// 	{
-			// 		for(const auto a: b){linesExport.push_back(a);}
-			// 	}
-			// 	if (!visualizations.empty()) visualization::visualize(QHs, triPrisms, quads, triangleExport, linesExport);
-			// }
-			// catch(const std::exception& e)
-			// {
-			// 	if(verbose)
-			// 	{
-			// 		std::stringstream errorMessage;
-			// 		errorMessage << "Unable to get result for the check for courtyards because of\n" << e.what() << std::endl;
-			// 	}
-			// }
+				std::vector<bso::utilities::geometry::quad_hexahedron> QHs;
+				std::vector<bso::utilities::geometry::triangular_prism> triPrisms;
+				std::vector<bso::utilities::geometry::quadrilateral> quads;
+				std::vector<bso::utilities::geometry::line_segment> linesExport;
+				for(const auto b: outerboundsExport)
+				{
+					for(const auto a: b){linesExport.push_back(a);}
+				}
+				if (!visualizations.empty()) visualization::visualize(QHs, triPrisms, quads, triangleExport, linesExport);
+			}
+			catch(const std::exception& e)
+			{
+				if(verbose)
+				{
+					std::stringstream errorMessage;
+					errorMessage << "Unable to get result for the check for courtyards because of\n" << e.what() << std::endl;
+				}
+			}
 
 			sdModels.push_back(grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"))); 
 			out("Generated structural model",true,true,verbose);

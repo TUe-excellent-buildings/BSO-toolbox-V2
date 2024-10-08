@@ -54,6 +54,7 @@ namespace bso { namespace structural_design {
 		sd_results getTotalResults();
 		sd_results getPartialResults(bso::utilities::geometry::polygon* geom);
 		sd_results getPartialResults(bso::utilities::geometry::polyhedron* geom);
+		double getTotalLoad();
 		
 		fea* getFEA() {return mFEA;}
 		fea* const getFEA() const {return mFEA;}
