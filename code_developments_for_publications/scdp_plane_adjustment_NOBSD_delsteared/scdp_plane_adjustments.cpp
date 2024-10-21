@@ -23,8 +23,8 @@
 
 std::vector<std::string> VIS_OPTIONS = {"ms","msc","msw","tp","tr","de","bo","sd","fe","bp"};
 std::vector<std::string> MOD_OPTIONS = {"bp","sd","sdbp","bpsd","weighted"};
-std::vector<std::string> OUT_OPTIONS = {"result_line", "verbose", "ms_files","plot","best","all","recDif"};
-std::vector<std::string> DEL_OPTIONS = {"worst", "cluster"};
+std::vector<std::string> OUT_OPTIONS = {"result_line", "verbose", "ms_files","plot","best","all"};
+std::vector<std::string> DEL_OPTIONS = {"worst", "cluster", "off"};
 std::vector<std::string> SPLIT_OPTIONS = {"longest", "performance", "off"};
 std::vector<std::string> ADD_OPTIONS = {"elevation", "shiftfill", "delAdapt"};
 std::vector<std::string> PER_OPTIONS = {"floorArea", "surfaceArea", "volumeArea", "nothing"};
@@ -223,6 +223,7 @@ int main(int argc, char* argv[])
 	std::string modification = "";
 	std::string adaptation = "";
 	std::string performanceDivision = "";
+	std::string deleteMethod = "";
 	bool adaptationOn = false;
 	double inclinationSwitch = 20;
 	std::vector<std::string> visualizations;
@@ -233,14 +234,14 @@ int main(int argc, char* argv[])
 	bool verbose = false;
 	bool outputAll = false;
 	bool outputBest = false;
-	bool recDif = false;
-	bool clusterDelete = false;
 	bool resultDir = false;
 	bool combineData = false;
 	bool longestRib = true;
 	bool performanceSplit = false;
 	bool removeSmallerFragments = false;
+	bool averageSpace = false;
 	unsigned int iterations = 0;
+	unsigned int maxIterationsInSequence = 0; // in case a combined data file is made, this should be set the maximum nr. of iterations. 
 	unsigned int kMin = 2;
 	unsigned int kMax = 10;
 	unsigned int RNGSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
@@ -297,6 +298,8 @@ int main(int argc, char* argv[])
 			std::cout << "-p\t" << "or --performanceDivision, to specify by which the performances \n"
 								<<	 "\t" << "of the spaces should be divided. Option are \'floorArea\', \'surfaceArea\',\n"
 								<<   "\t" << "\'volumeArea\' or \'nothing\'.\n";
+			std::cout << "-av\t"<< "or --averageDivision, to split all the spaces towards the smallest rib length in the building, \n"
+								<< 	 "\t" << "without making any rib smaller then the smallest one. \n";
 			std::cout << "-ad\t" << "or --adaptation, to specify an adaptation method, the choices are: \n"
 								<<   "\t" << "\'elevation\' for adding an elevation to the building\n"
 								<<   "\t" << "\'shiftfill\' for shifting a section of the \n"
@@ -318,9 +321,11 @@ int main(int argc, char* argv[])
 								<< 	 "\t" << "visualize the plot to screen and the plot will be written to a png file\n"
 								<<	 "\t" << "\'combine_data\' will make a data file where separate runs of this, \n"
 								<< 	 "\t" << "executable can be copy pasted behind each other. \n"
+								<< 	 "\t" << "For this, the maximum amount of iterations for all runs in the sequence should be set. \n"
+								<< 	 "\t" << "For the formatting of the excel file. As such, \'combine_data\' key should be followed by \n"
+								<< 	 "\t" << "by an unsigned integer value of the maximum iterations. \n"
 								<< 	 "\t" << "This file can be loaded into excel to compare individual runs of this executable.\n"
 								<<   "\t" << "\'ms_files\' will write the ms designs to files\n"
-								<<   "\t" << "\'recdif\' will output the average divergence from a rectangle\n"
 								<<   "\t" << "\'all\' will write all the designs to the specified format\n"
 								<<   "\t" << "\'best\' (default) will only write the best all the designs to\n"
 								<<   "\t" << "the specified format. More than one option can be given,\n"
@@ -512,14 +517,15 @@ int main(int argc, char* argv[])
 		{
 			while (++arg != args.end() && arg->operator[](0) != '-')
 			{
-				std::string outSpec = *arg;
-				boost::trim(outSpec);
-				if (outSpec == "cluster") clusterDelete = true;
-				else if(outSpec == "worst") clusterDelete = false;
+				deleteMethod = *arg;
+				boost::trim(deleteMethod);
+				if (deleteMethod == "cluster"){;}
+				else if(deleteMethod == "worst"){;}
+				else if(deleteMethod == "off"){;}
 				else
 				{
 					std::stringstream errorMessage;
-					errorMessage << "\nError, did not recognize: " << outSpec << " as an\n"
+					errorMessage << "\nError, did not recognize: " << deleteMethod << " as an\n"
 												<< "argument for -d or --deleteMethod. Use -h or\n"
 												<< "--help for help\n";
 					throw std::invalid_argument(errorMessage.str());
@@ -590,6 +596,24 @@ int main(int argc, char* argv[])
 										 << "-p or --performanceDivision. Use -h or -- help for help\n";
 				throw std::invalid_argument(errorMessage.str());
 			}				
+		}
+		else if(*arg == "-av" ||  *arg == "--averageDivision")
+		{
+			while (++arg != args.end() && arg->operator[](0) != '-')
+			{
+				std::string outSpec = *arg;
+				boost::trim(outSpec);
+				if (outSpec == "true") averageSpace = true;
+				else if(outSpec == "false") averageSpace = false;
+				else
+				{
+					std::stringstream errorMessage;
+					errorMessage << "\nError, did not recognize: " << outSpec << " as an\n"
+												<< "argument for -av or --averageDivision. Use -h or\n"
+												<< "--help for help\n";
+					throw std::invalid_argument(errorMessage.str());
+				}
+			}
 		}
 		else if (*arg == "-ad" || *arg == "--adaptation")
 		{
@@ -675,7 +699,6 @@ int main(int argc, char* argv[])
 				boost::trim(outSpec);
 				if (outSpec == "result_line") result_line = true;
 				else if (outSpec == "verbose") verbose = true;
-				else if (outSpec == "combine_data") combineData = true;
 				else if (outSpec == "plot")
 				{
 					plot = true;
@@ -696,7 +719,38 @@ int main(int argc, char* argv[])
 				} 
 				else if (outSpec == "all") outputAll = true;
 				else if (outSpec == "best") outputBest = true;
-				else if (outSpec == "recdif") recDif = true;
+				else if (outSpec == "combine_data")
+				{
+					combineData = true;
+					if(++arg != args.end())
+					{
+						if(arg->operator[](0) == '-')
+						{
+							std::stringstream errorMessage;
+							errorMessage << "\nError, expected an unsigned integer value to be defined to \n"
+													<< "state the maximum nr. of iteration in the sequence. \n"
+													<< "argument for -o or --output. Use -h or\n"
+													<< "--help for help\n";
+							throw std::invalid_argument(errorMessage.str());
+						}
+						try
+						{
+							maxIterationsInSequence = bso::utilities::trim_and_cast_int(*arg);
+						}
+						catch(const std::exception& e)
+						{
+							std::stringstream errorMessage;
+							errorMessage << "\nError, expected an unsigned integer value to be defined to \n"
+													<< "state the maximum nr. of iteration in the sequence. \n"
+													<< "however, during trim anc cast integer got the following error: "
+													<< e.what()
+													<< "argument for -o or --output. Use -h or\n"
+													<< "--help for help\n";
+							throw std::invalid_argument(errorMessage.str());
+						}
+					}
+					continue;
+				} 
 				else
 				{
 					std::stringstream errorMessage;
@@ -789,12 +843,14 @@ int main(int argc, char* argv[])
 	// Start with co-evolutionary design proccess:
 	unsigned int nSpaces = msDesigns.back().getSpacePtrs().size();
 	double floorArea = msDesigns.back().getFloorArea();
-	double averageSpaceSize = msDesigns.back().getAverageSpaceSize();
+	double averageSpaceSize = msDesigns.back().getAverageHorizontalRibSize();
 
 	// Enforce AverageSpace Size
-	msDesigns.back().enforceAverageSpaceSize();
-	out("Enforce averageSpaceSize", true, true, verbose);
-
+	if(averageSpace && adaptation == "delAdapt" || averageSpace && adaptation == "elevation" || averageSpace && adaptation == "shiftfill")
+	{
+		msDesigns.back().enforceAverageSpaceSize();
+		out("Enforce averageSpaceSize", true, true, verbose);
+	}
 	std::vector<structural_design::sd_model> sdModels;
 	std::vector<building_physics::bp_model> bpModels;
 	std::vector<utilities::data_point> designPerformances;
@@ -803,14 +859,18 @@ int main(int argc, char* argv[])
 	std::vector<utilities::data_point> designPerformancesMidAdaptation;
 	std::vector<spatial_design::ms_N_building> msDesignsMidAdaptation;
 	std::vector<std::string> axisDesignPerformances = {"sd","bp"};
+	int finalIteration = 0;
 	try
 	{
 		for (unsigned int i = 0; i <= iterations; ++i)
 		{
 			out("\nIteration: ",false,false,verbose); out(i,true,false,verbose);
 			
-			// msDesigns.back().enforceAverageSpaceSize();
-			// out("Enforce averageSpaceSize", true, true, verbose);
+			if(deleteMethod == "worst" && averageSpace || deleteMethod == "cluster" && averageSpace)
+			{
+				msDesigns.back().enforceAverageSpaceSize();
+				out("Enforce averageSpaceSize", true, true, verbose);
+			}
 			
 			designPerformances.push_back(utilities::data_point(2));
 			
@@ -822,33 +882,33 @@ int main(int argc, char* argv[])
 			out("Initialized grammar",true,true,verbose);
 
 			// Check for courtyard:
-			try
-			{
-				std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls = grm.getExteriorWalls();
-				out("Collected exterior walls",true,true,verbose);
-				std::vector<std::vector<bso::utilities::geometry::line_segment>> outerboundsExport;
-				std::vector<bso::utilities::geometry::triangle> triangleExport;
-				bool hasCourtyards = bso::utilities::hasCourtyard(exteriorWalls, outerboundsExport, triangleExport, 1e-2);
-				out("Checked for courtyards: ",false,false,verbose);out(hasCourtyards,true,true,verbose);
+			// try
+			// {
+			// 	std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls = grm.getExteriorWalls();
+			// 	out("Collected exterior walls",true,true,verbose);
+			// 	std::vector<std::vector<bso::utilities::geometry::line_segment>> outerboundsExport;
+			// 	std::vector<bso::utilities::geometry::triangle> triangleExport;
+			// 	bool hasCourtyards = bso::utilities::hasCourtyard(exteriorWalls, outerboundsExport, triangleExport, 1e-2);
+			// 	out("Checked for courtyards: ",false,false,verbose);out(hasCourtyards,true,true,verbose);
 
-				std::vector<bso::utilities::geometry::quad_hexahedron> QHs;
-				std::vector<bso::utilities::geometry::triangular_prism> triPrisms;
-				std::vector<bso::utilities::geometry::quadrilateral> quads;
-				std::vector<bso::utilities::geometry::line_segment> linesExport;
-				for(const auto b: outerboundsExport)
-				{
-					for(const auto a: b){linesExport.push_back(a);}
-				}
-				if (!visualizations.empty()) visualization::visualize(QHs, triPrisms, quads, triangleExport, linesExport);
-			}
-			catch(const std::exception& e)
-			{
-				if(verbose)
-				{
-					std::stringstream errorMessage;
-					errorMessage << "Unable to get result for the check for courtyards because of\n" << e.what() << std::endl;
-				}
-			}
+			// 	std::vector<bso::utilities::geometry::quad_hexahedron> QHs;
+			// 	std::vector<bso::utilities::geometry::triangular_prism> triPrisms;
+			// 	std::vector<bso::utilities::geometry::quadrilateral> quads;
+			// 	std::vector<bso::utilities::geometry::line_segment> linesExport;
+			// 	for(const auto b: outerboundsExport)
+			// 	{
+			// 		for(const auto a: b){linesExport.push_back(a);}
+			// 	}
+			// 	if (!visualizations.empty()) visualization::visualize(QHs, triPrisms, quads, triangleExport, linesExport);
+			// }
+			// catch(const std::exception& e)
+			// {
+			// 	if(verbose)
+			// 	{
+			// 		std::stringstream errorMessage;
+			// 		errorMessage << "Unable to get result for the check for courtyards because of\n" << e.what() << std::endl;
+			// 	}
+			// }
 
 			sdModels.push_back(grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"))); 
 			out("Generated structural model",true,true,verbose);
@@ -935,7 +995,7 @@ int main(int argc, char* argv[])
 						if(i == 0) {shiftInMostHeadingDirection = true;}
 						else if(i % 2) {shiftInMostHeadingDirection = true;}
 						
-						averageSpaceSize = newMS.getAverageSpaceSize();
+						averageSpaceSize = newMS.getAverageHorizontalRibSize();
 						newMS.shiftFillPlaneCentre(averageSpaceSize, shiftInMostHeadingDirection);
 						out("shiftFillPlaneCentre done: ",false,false,verbose); out(i,true,false,verbose);
 					}
@@ -947,7 +1007,7 @@ int main(int argc, char* argv[])
 					if(i == 0) {shiftInMostHeadingDirection = true;}
 					else if(i % 2) {shiftInMostHeadingDirection = true;}
 					
-					averageSpaceSize = newMS.getAverageSpaceSize();
+					averageSpaceSize = newMS.getAverageHorizontalRibSize();
 					newMS.shiftFillPlaneCentre(averageSpaceSize, shiftInMostHeadingDirection);
 					out("shiftFillPlaneCentre done: ",false,false,verbose); out(i,true,false,verbose);
 				}
@@ -1077,7 +1137,7 @@ int main(int argc, char* argv[])
 
 			// Step 4, delete spaces
 			std::vector<utilities::data_point> performancesRemoveSpace = performances;
-			if(clusterDelete)
+			if(deleteMethod == "cluster")
 			{
 				// step 4, cluster the data
 				utilities::clustering clus(RNGSeed,performances,kMin,kMax,250);
@@ -1239,98 +1299,15 @@ int main(int argc, char* argv[])
 
 			msDesigns.push_back(newMS);
 			out("Modified building spatial design into a new one",true,true,verbose);
-
-			if(recDif)
-			{
-				int spaceCount = msDesigns.back().getSpacePtrs().size();
-				double averageRecDif = 0;
-				for(const auto i: msDesigns.back().getSpacePtrs())
-				{
-					bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
-					std::vector<bso::utilities::geometry::quadrilateral> spaceQuads = spaceGeom.getQuadrilateral();
-					averageRecDif = averageRecDif + (spaceQuads[5]).getDifRectangle();
-				}
-				averageRecDif = averageRecDif/spaceCount;
-				std::cout << "averageRecDif: " << averageRecDif << std::endl;
-			}
+			finalIteration++;
 		}
 		out("finished SCDP process",true,true,verbose);
 	}
 	catch(const std::exception& e)
-	{
-		std::cout << "Error, could not finalize the run.\n";
-		std::cout << "start output generation despite not finishing.\n";
-		
-		// Output the requested outputs:
-		std::vector<unsigned int> outputSpaces;
-		// if best, find which designs are best;
-		if (outputAll)
-		{
-			for (unsigned int i = 0; i < msDesigns.size(); ++i)
-			{
-				outputSpaces.push_back(i);
-			}
-		}
-
-		std::string dir = "";
-		if(resultDir) {getResultDir(dir, inputFile, modification, iterations, verbose);}
-
-		if(plot)
-		{
-			utilities::data_plot dp(designPerformances, axisDesignPerformances, "Design Iteration");
-			std::string fileScatter = dir+"scatterData_" + inputFile + "_" + modification;
-			std::string fileParetoFront = dir+"paretoFrontData_" + inputFile + "_" + modification;
-			std::string fileNonParetoFront = dir+"paretoNonFrontData_" + inputFile + "_" + modification;
-			std::string fileVector = dir+"vectorData_" + inputFile + "_" + modification;
-			std::string plotScatter = dir+"scatterPlot_" + inputFile + "_" + modification +".png";
-			std::string plotParetoFront = dir+"paretoFrontPlot_" + inputFile + "_" + modification +".png";
-			std::string plotVector = dir+"vectorPlot_" + inputFile + "_" + modification +".png";
-			dp.plotScatter2D(fileScatter, plotScatter, false, true);
-			dp.plotParetoFront2D(fileParetoFront, fileNonParetoFront, plotParetoFront, false, true);
-			dp.plotVector2D(fileVector, plotVector, visualizePlot, true);
-		}
-		if(combineData)
-		{		
-			utilities::data_plot dp(designPerformances, axisDesignPerformances, "Design Iteration");
-			dp.addToCombinedDataFile("combined_data.csv", modification, inputFile);
-			dp.addToOverviewCombinedDataFile("overView_data.csv", modification, inputFile);
-		}
-		
-		for (const auto& i : outputSpaces)
-		{
-			if (result_line)
-			{
-				std::cout << designName << "\t"
-									<< modification << "\t"
-									<< i << "\t"
-									<< designPerformances[i](0) << "\t"
-									<< designPerformances[i](1) << "\t" << std::endl;
-									if(clusterDelete)
-									{
-										std::cout << designName << RNGSeed << std::endl;
-									}
-			}
-			if (ms_files)
-			{
-				std::stringstream fileNameStream;
-				fileNameStream << dir << designName << "_"
-											<< modification << "_"
-											<< i << "_"
-											<< designPerformances[i](0) << "_"
-											<< designPerformances[i](1) << "_";
-											if(clusterDelete)
-											{
-												fileNameStream << RNGSeed;
-											}
-				std::string fileName = fileNameStream.str();
-				msDesigns[i].writeToFile(fileName);
-			}
-		}
-		
+	{		
 		std::cout << "Error, could not finalize the run.\n"
-				  << "Received the following error:\n" << e.what() << std::endl;
-
-		if (!visualizations.empty()) visualization::endVisualization();
+				  << "Received the following error:\n" << e.what() << " \n"
+				  << "start output generation despite not finishing: " << std::endl;
 	}
 
 	// Output the requested outputs:
@@ -1357,15 +1334,18 @@ int main(int argc, char* argv[])
 		std::string plotScatter = dir+"scatterPlot_" + inputFile + "_" + modification +".png";
 		std::string plotParetoFront = dir+"paretoFrontPlot_" + inputFile + "_" + modification +".png";
 		std::string plotVector = dir+"vectorPlot_" + inputFile + "_" + modification +".png";
-		dp.plotScatter2D(fileScatter, plotScatter, false, true);
-		dp.plotParetoFront2D(fileParetoFront, fileNonParetoFront, plotParetoFront, false, true);
-		dp.plotVector2D(fileVector, plotVector, visualizePlot, true);
+		try{dp.plotScatter2D(fileScatter, plotScatter, false, true);}
+		catch(const std::exception& e){std::cout << "During the generation of the scatter plots, the following error occurred:" << e.what() << '\n';}
+		try{dp.plotParetoFront2D(fileParetoFront, fileNonParetoFront, plotParetoFront, false, true);}
+		catch(const std::exception& e){std::cout << "During the generation of the paretoFront plots, the following error occurred:" << e.what() << '\n';}
+		try{dp.plotVector2D(fileVector, plotVector, visualizePlot, true);}
+		catch(const std::exception& e){std::cout << "During the generation of the Vector2D plots, the following error occurred:" << e.what() << '\n';}
 	}
 	if(combineData)
 	{		
 		utilities::data_plot dp(designPerformances, axisDesignPerformances, "Design Iteration");
-		dp.addToCombinedDataFile("combined_data.csv", modification, inputFile);
-		dp.addToOverviewCombinedDataFile("overView_data.csv", modification, inputFile);
+		dp.addToCombinedDataFile("combined_data.csv", modification, inputFile, maxIterationsInSequence);
+		dp.addToOverviewCombinedDataFile("overView_data.csv", modification, inputFile, finalIteration);
 	}
 	
 	for (const auto& i : outputSpaces)
@@ -1377,7 +1357,7 @@ int main(int argc, char* argv[])
 								<< i << "\t"
 								<< designPerformances[i](0) << "\t"
 								<< designPerformances[i](1) << "\t" << std::endl;
-								if(clusterDelete)
+								if(deleteMethod == "cluster")
 								{
 									std::cout << designName << RNGSeed << std::endl;
 								}
@@ -1390,7 +1370,7 @@ int main(int argc, char* argv[])
 										<< i << "_"
 										<< designPerformances[i](0) << "_"
 										<< designPerformances[i](1) << "_";
-										if(clusterDelete)
+										if(deleteMethod == "cluster")
 										{
 											fileNameStream << RNGSeed;
 										}

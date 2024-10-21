@@ -152,7 +152,7 @@ void data_plot::writeVectorStyleFile(const std::vector<std::shared_ptr<data_poin
     vectorStyleData = fileName;
 } // writeVectorStyleFile()
 
-void data_plot::addToCombinedDataFile(std::string fileName, std::string runKind, std::string designName)
+void data_plot::addToCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int& nrIterations)
 { 
     if(fileName == "")
     {
@@ -172,14 +172,6 @@ void data_plot::addToCombinedDataFile(std::string fileName, std::string runKind,
     {
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected a runKind with at least one character, but the runKind name did not had any.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
-				throw std::invalid_argument(errorMessage.str());
-    }
-    if(mData.size() == 0)
-    {
-        std::stringstream errorMessage;
-				errorMessage << "\nError, expected some data to be stored within the input variable data\n"
-										 << "The found size of data is: " << mData.size() << "\n"
                                          << "(bso/utilities/data_plot.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
@@ -218,38 +210,49 @@ void data_plot::addToCombinedDataFile(std::string fileName, std::string runKind,
     int kneePointIteration = 0;
     int sdBestIteration = 0;
     int bpBestIteration = 0;
-    utilities::data_point sdBest = *(mData[0]);
-    utilities::data_point sdBestNormalized = mDataNormalized[0];
-    utilities::data_point bpBest = *(mData[0]);
-    utilities::data_point bpBestNormalized = mDataNormalized[0];
+    utilities::data_point sdBest;
+    utilities::data_point sdBestNormalized;
+    utilities::data_point bpBest;
+    utilities::data_point bpBestNormalized;
     utilities::data_point kneePoint;
     utilities::data_point kneePointObjective({0,1});
-    std::vector<data_point> kneePointVectorNor = kneePointObjective.findClosestIn(mDataNormalized);
-    for(int i=0; i < mData.size(); i++)
+    std::vector<data_point> kneePointVectorNor;
+    double SDBestImprovementPercentage;
+    double BPBestImprovementPercentage;
+    double SDLastImprovementPercentage;
+    double BPLastImprovementPercentage;
+    if(mData.size() != 0)
     {
-        if(mDataNormalized[i](0) < sdBestNormalized(0))
-        { // determine the best design in SD
-            sdBest = *(mData[i]);
-            sdBestNormalized = mDataNormalized[i];
-            sdBestIteration = i;
-        }
-        if(mDataNormalized[i](1) > bpBestNormalized(1))
-        { // determine the best design in BP
-            bpBest = *(mData[i]);
-            bpBestNormalized = mDataNormalized[i];
-            bpBestIteration = i;
-        }
-        if(kneePointVectorNor[0] == mDataNormalized[i])
+        sdBest = *(mData[0]);
+        sdBestNormalized = mDataNormalized[0];
+        bpBest = *(mData[0]);
+        bpBestNormalized = mDataNormalized[0];
+        kneePointVectorNor = kneePointObjective.findClosestIn(mDataNormalized);
+        for(int i=0; i < mData.size(); i++)
         {
-            kneePoint = *(mData[i]);
-            kneePointIteration = i;
+            if(mDataNormalized[i](0) < sdBestNormalized(0))
+            { // determine the best design in SD
+                sdBest = *(mData[i]);
+                sdBestNormalized = mDataNormalized[i];
+                sdBestIteration = i;
+            }
+            if(mDataNormalized[i](1) > bpBestNormalized(1))
+            { // determine the best design in BP
+                bpBest = *(mData[i]);
+                bpBestNormalized = mDataNormalized[i];
+                bpBestIteration = i;
+            }
+            if(kneePointVectorNor[0] == mDataNormalized[i])
+            {
+                kneePoint = *(mData[i]);
+                kneePointIteration = i;
+            }
         }
+        SDBestImprovementPercentage = (1-((*(mData[sdBestIteration]))(0)/(*(mData[0]))(0)))*100;
+        BPBestImprovementPercentage = (1-((*(mData[bpBestIteration]))(1)/(*(mData[0]))(1)))*100;
+        SDLastImprovementPercentage = (1-((*(mData[mData.size()-1]))(0)/(*(mData[0]))(0)))*100;
+        BPLastImprovementPercentage = (1-((*(mData[mData.size()-1]))(1)/(*(mData[0]))(1)))*100;
     }
-
-    double SDBestImprovementPercentage = (1-((*(mData[sdBestIteration]))(0)/(*(mData[0]))(0)))*100;
-    double BPBestImprovementPercentage = (1-((*(mData[bpBestIteration]))(1)/(*(mData[0]))(1)))*100;
-    double SDLastImprovementPercentage = (1-((*(mData[mData.size()-1]))(0)/(*(mData[0]))(0)))*100;
-    double BPLastImprovementPercentage = (1-((*(mData[mData.size()-1]))(1)/(*(mData[0]))(1)))*100;
     
     if (!inputFile.is_open())
     {
@@ -263,32 +266,59 @@ void data_plot::addToCombinedDataFile(std::string fileName, std::string runKind,
         outputFile << std::endl;
         int iteration = 0;
         
+        // Generate data and empty line if nr. of iteration was not reached
         for(const auto& i: mData)
         {
             outputFile << iteration << ",";
-            for(int j=0; j< (*i).size(); j++)
+            for(int j=0; j< axisDataTypes.size(); j++)
             {     
                 outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*i)(j) << ",";
             }
             outputFile << std::endl;
             iteration++;
         }
+        while(iteration <= nrIterations)
+        {
+            outputFile << iteration << ",";
+            for(int j=0; j< axisDataTypes.size(); j++)
+            {     
+                outputFile << ","; // insert blanks for the places where no values where found
+            }
+            outputFile << std::endl;
+            iteration++;
+        }
         outputFile << "kneePoint,";
-        for(int j=0; j< kneePoint.size(); j++){outputFile << kneePoint(j) << ",";} 
+        if(mData.size() == 0){for(int j=0; j< axisDataTypes.size(); j++){outputFile << ",";}}
+        else{for(int j=0; j< kneePoint.size(); j++){outputFile << kneePoint(j) << ",";}}
         outputFile << std::endl;
         outputFile << "sdBest,";
-        for(int j=0; j< sdBest.size(); j++){outputFile << sdBest(j) << ",";} 
+        if(mData.size() == 0){for(int j=0; j< axisDataTypes.size(); j++){outputFile << ",";}}
+        else{for(int j=0; j< sdBest.size(); j++){outputFile << sdBest(j) << ",";}}
         outputFile << std::endl;
         outputFile << "bpBest,";
-        for(int j=0; j< bpBest.size(); j++){outputFile << bpBest(j) << ",";} 
+        if(mData.size() == 0){for(int j=0; j< axisDataTypes.size(); j++){outputFile << ",";}}
+        else{for(int j=0; j< bpBest.size(); j++){outputFile << bpBest(j) << ",";}}
         outputFile << std::endl;
-        outputFile << "kneePoint iteration," << kneePointIteration << ",," << std::endl;
-        outputFile << "sdBest iteration," << sdBestIteration << ",," << std::endl;
-        outputFile << "bpBest iteration," << bpBestIteration << ",," << std::endl;
-        outputFile << "SD last iteration vs. first iteration," << SDLastImprovementPercentage << ",," << std::endl;
-        outputFile << "BP last iteration vs. first iteration," << BPLastImprovementPercentage << ",," << std::endl;
-        outputFile << "SD best iteration vs. first iteration," << SDBestImprovementPercentage << ",," << std::endl;
-        outputFile << "BP best iteration vs. first iteration," << BPBestImprovementPercentage << ",," << std::endl;
+        if(mData.size() == 0)
+        {
+            outputFile << "kneePoint iteration," << ",," << std::endl;
+            outputFile << "sdBest iteration," << ",," << std::endl;
+            outputFile << "bpBest iteration," << ",," << std::endl;
+            outputFile << "SD last iteration vs. first iteration," << ",," << std::endl;
+            outputFile << "BP last iteration vs. first iteration," << ",," << std::endl;
+            outputFile << "SD best iteration vs. first iteration," << ",," << std::endl;
+            outputFile << "BP best iteration vs. first iteration," << ",," << std::endl;
+        }
+        else
+        {
+            outputFile << "kneePoint iteration," << kneePointIteration << ",," << std::endl;
+            outputFile << "sdBest iteration," << sdBestIteration << ",," << std::endl;
+            outputFile << "bpBest iteration," << bpBestIteration << ",," << std::endl;
+            outputFile << "SD last iteration vs. first iteration," << SDLastImprovementPercentage << ",," << std::endl;
+            outputFile << "BP last iteration vs. first iteration," << BPLastImprovementPercentage << ",," << std::endl;
+            outputFile << "SD best iteration vs. first iteration," << SDBestImprovementPercentage << ",," << std::endl;
+            outputFile << "BP best iteration vs. first iteration," << BPBestImprovementPercentage << ",," << std::endl;
+        }
 
         inputFile.close();
         outputFile.close();
@@ -311,7 +341,7 @@ void data_plot::addToCombinedDataFile(std::string fileName, std::string runKind,
             }
             else if(dataCount < mData.size())
             {
-                for(int j=0; j< (*(mData[dataCount])).size(); j++)
+                for(int j=0; j< axisDataTypes.size(); j++)
                 {     
                     // Use ostringstream to format the double with full precision
                     std::ostringstream oss;
@@ -321,46 +351,68 @@ void data_plot::addToCombinedDataFile(std::string fileName, std::string runKind,
                 }
                 dataCount++;
             }
+            else if(dataCount <= nrIterations)
+            {
+                for(int j=0; j< axisDataTypes.size(); j++)
+                {     
+                    // Use ostringstream to format the double with full precision
+                    std::ostringstream oss;
+                    oss << ",";
+                    // Append the formatted value to the line
+                    line += oss.str();
+                }
+                dataCount++;
+            }
+            else if(mData.size() == 0)
+            {
+                std::ostringstream oss;
+                while(dataCount+11 != lineCount)
+                {
+                    for(int j=0; j< axisDataTypes.size(); j++){oss << ",";}
+                    lineCount++;
+                }
+                line += oss.str();
+            }
             else
             {
                 std::ostringstream oss;
-                if(mData.size()+2 == lineCount)
+                if(dataCount+2 == lineCount)
                 {
                     for(int j=0; j< kneePoint.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << kneePoint(j) << ",";} 
                 }
-                else if(mData.size()+3 == lineCount)
+                else if(dataCount+3 == lineCount)
                 {
                     for(int j=0; j< sdBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
                 }
-                else if(mData.size()+4 == lineCount)
+                else if(dataCount+4 == lineCount)
                 {
                     for(int j=0; j< bpBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
                 }
-                else if(mData.size()+5 == lineCount)
+                else if(dataCount+5 == lineCount)
                 {
                     oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << kneePointIteration << ",,";
                 }
-                else if(mData.size()+6 == lineCount)
+                else if(dataCount+6 == lineCount)
                 {
                     oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBestIteration << ",,";
                 }
-                else if(mData.size()+7 == lineCount)
+                else if(dataCount+7 == lineCount)
                 {
                     oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBestIteration << ",,";
                 }
-                else if(mData.size()+8 == lineCount)
+                else if(dataCount+8 == lineCount)
                 {
                     oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << SDLastImprovementPercentage << ",,";
                 }
-                else if(mData.size()+9 == lineCount)
+                else if(dataCount+9 == lineCount)
                 {
                     oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << BPLastImprovementPercentage << ",,";
                 }
-                else if(mData.size()+10 == lineCount)
+                else if(dataCount+10 == lineCount)
                 {
                     oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << SDBestImprovementPercentage << ",,";
                 }
-                else if(mData.size()+11 == lineCount)
+                else if(dataCount+11 == lineCount)
                 {
                     oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << BPBestImprovementPercentage << ",,";
                 }
@@ -400,7 +452,7 @@ void data_plot::addToCombinedDataFile(std::string fileName, std::string runKind,
     
 } // addToCombinedDataFile()
 
-void data_plot::addToOverviewCombinedDataFile(std::string fileName, std::string runKind, std::string designName)
+void data_plot::addToOverviewCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int numberOfIterationsPerformed)
 { 
     if(fileName == "")
     {
@@ -420,14 +472,6 @@ void data_plot::addToOverviewCombinedDataFile(std::string fileName, std::string 
     {
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected a runKind with at least one character, but the runKind name did not had any.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
-				throw std::invalid_argument(errorMessage.str());
-    }
-    if(mData.size() == 0)
-    {
-        std::stringstream errorMessage;
-				errorMessage << "\nError, expected some data to be stored within the input variable data\n"
-										 << "The found size of data is: " << mData.size() << "\n"
                                          << "(bso/utilities/data_plot.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
@@ -508,7 +552,7 @@ void data_plot::addToOverviewCombinedDataFile(std::string fileName, std::string 
         for(std::string i: axisDataTypes) { outputFile << ",";}
         outputFile << "Last design of sd run";
         for(std::string i: axisDataTypes) { outputFile << ",";}
-        for(int j=0; j < 6; j++) outputFile << ",";
+        for(int j=0; j < 7; j++) outputFile << ",";
 
         outputFile << "best bp design in bp run";
         for(std::string i: axisDataTypes) { outputFile << ",";}
@@ -516,7 +560,7 @@ void data_plot::addToOverviewCombinedDataFile(std::string fileName, std::string 
         for(std::string i: axisDataTypes) { outputFile << ",";}
         outputFile << "Last design of bp run";
         for(std::string i: axisDataTypes) { outputFile << ",";}
-        for(int j=0; j < 6; j++) outputFile << ",";
+        for(int j=0; j < 7; j++) outputFile << ",";
 
         outputFile << "best sd design in weighted run";
         for(std::string i: axisDataTypes) { outputFile << ",";}
@@ -535,7 +579,7 @@ void data_plot::addToOverviewCombinedDataFile(std::string fileName, std::string 
                 outputFile <<  i  + ",";
             }
         }
-        outputFile << "sd best iteration,bp best iteration,sd improvement last vs. initial,bp improvement last vs. initial,sd improvement best vs. initial,bp improvement best vs. initial,";
+        outputFile << "sd best iteration,bp best iteration,sd improvement last vs. initial,bp improvement last vs. initial,sd improvement best vs. initial,bp improvement best vs. initial,number Of iteration Performed,";
         for(int j=0; j < 3; j++)
         {
             for(std::string i: axisDataTypes)
@@ -543,7 +587,7 @@ void data_plot::addToOverviewCombinedDataFile(std::string fileName, std::string 
                 outputFile <<  i  + ",";
             }
         }
-        outputFile << "sd best iteration,bp best iteration,sd improvement last vs. initial,bp improvement last vs. initial,sd improvement best vs. initial,bp improvement best vs. initial,";
+        outputFile << "sd best iteration,bp best iteration,sd improvement last vs. initial,bp improvement last vs. initial,sd improvement best vs. initial,bp improvement best vs. initial,number Of iteration Performed,";
         for(int j=0; j < 3; j++)
         {
             for(std::string i: axisDataTypes)
@@ -551,21 +595,34 @@ void data_plot::addToOverviewCombinedDataFile(std::string fileName, std::string 
                 outputFile <<  i  + ",";
             }
         }
-        outputFile << "sd best iteration,bp best iteration,sd improvement last vs. initial,bp improvement last vs. initial,sd improvement best vs. initial,bp improvement best vs. initial,";
+        outputFile << "sd best iteration,bp best iteration,sd improvement last vs. initial,bp improvement last vs. initial,sd improvement best vs. initial,bp improvement best vs. initial,number Of iteration Performed,";
         outputFile << std::endl;
 
         // output performance rule of data:
-        int lastIndex =  mData.size()-1;
-        outputFile << designName << ",";
-        for(int j=0; j < sdBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
-        for(int j=0; j < bpBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
-        for(int j=0; j < (*(mData[lastIndex])).size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[lastIndex]))(j) << ",";} // performance of last design of run
-        outputFile << sdBestIteration << "," ;
-        outputFile << bpBestIteration << "," ;
-        outputFile << SDLastImprovementPercentage << "," ;
-        outputFile << BPLastImprovementPercentage << "," ;
-        outputFile << SDBestImprovementPercentage << "," ;
-        outputFile << BPBestImprovementPercentage << "," ;
+        if(mData.size() == 0)
+        {
+            // output enough ',' to fill the space of the run
+            outputFile << designName << ",";
+            for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
+            for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
+            for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";}
+            for(int j=0; j < 7; j++) outputFile << ",";
+        }
+        else
+        {
+            int lastIndex =  mData.size()-1;
+            outputFile << designName << ",";
+            for(int j=0; j < sdBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
+            for(int j=0; j < bpBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
+            for(int j=0; j < (*(mData[lastIndex])).size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[lastIndex]))(j) << ",";} // performance of last design of run
+            outputFile << sdBestIteration << "," ;
+            outputFile << bpBestIteration << "," ;
+            outputFile << SDLastImprovementPercentage << "," ;
+            outputFile << BPLastImprovementPercentage << "," ;
+            outputFile << SDBestImprovementPercentage << "," ;
+            outputFile << BPBestImprovementPercentage << "," ;
+            outputFile << numberOfIterationsPerformed << "," ;
+        }
 
         inputFile.close();
         outputFile.close();
@@ -588,16 +645,28 @@ void data_plot::addToOverviewCombinedDataFile(std::string fileName, std::string 
             { 
                 // output performance rule of data at the end of the design data line:
                 std::ostringstream oss;
-                int lastIndex =  mData.size()-1;
-                for(int j=0; j < sdBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
-                for(int j=0; j < bpBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
-                for(int j=0; j < (*(mData[lastIndex])).size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[lastIndex]))(j) << ",";} // performance of last design of run
-                oss << sdBestIteration << "," ;
-                oss << bpBestIteration << "," ;
-                oss << SDLastImprovementPercentage << "," ;
-                oss << BPLastImprovementPercentage << "," ;
-                oss << SDBestImprovementPercentage << "," ;
-                oss << BPBestImprovementPercentage << "," ;
+                if(mData.size() == 0)
+                {
+                    // output enough ',' to fill the space of the run
+                    for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
+                    for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
+                    for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";}
+                    for(int j=0; j < 7; j++) outputFile << ",";
+                }
+                else
+                {
+                    int lastIndex =  mData.size()-1;
+                    for(int j=0; j < sdBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
+                    for(int j=0; j < bpBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
+                    for(int j=0; j < (*(mData[lastIndex])).size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[lastIndex]))(j) << ",";} // performance of last design of run
+                    oss << sdBestIteration << "," ;
+                    oss << bpBestIteration << "," ;
+                    oss << SDLastImprovementPercentage << "," ;
+                    oss << BPLastImprovementPercentage << "," ;
+                    oss << SDBestImprovementPercentage << "," ;
+                    oss << BPBestImprovementPercentage << "," ;
+                    oss << numberOfIterationsPerformed << "," ;
+                }
                 
                 lineFound = true;
 
@@ -616,17 +685,30 @@ void data_plot::addToOverviewCombinedDataFile(std::string fileName, std::string 
         if(!lineFound)
         {
             // output performance rule of data:
-            int lastIndex =  mData.size()-1;
-            outputFile << designName << ",";
-            for(int j=0; j < sdBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
-            for(int j=0; j < bpBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
-            for(int j=0; j < (*(mData[lastIndex])).size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[lastIndex]))(j) << ",";} // performance of last design of run
-            outputFile << sdBestIteration << "," ;
-            outputFile << bpBestIteration << "," ;
-            outputFile << SDLastImprovementPercentage << "," ;
-            outputFile << BPLastImprovementPercentage << "," ;
-            outputFile << SDBestImprovementPercentage << "," ;
-            outputFile << BPBestImprovementPercentage << "," ;
+            if(mData.size() == 0)
+            {
+                // output enough ',' to fill the space of the run
+                outputFile << designName << ",";
+                for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
+                for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
+                for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";}
+                for(int j=0; j < 7; j++) outputFile << ",";
+            }
+            else
+            {
+                int lastIndex =  mData.size()-1;
+                outputFile << designName << ",";
+                for(int j=0; j < sdBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
+                for(int j=0; j < bpBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
+                for(int j=0; j < (*(mData[lastIndex])).size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[lastIndex]))(j) << ",";} // performance of last design of run
+                outputFile << sdBestIteration << "," ;
+                outputFile << bpBestIteration << "," ;
+                outputFile << SDLastImprovementPercentage << "," ;
+                outputFile << BPLastImprovementPercentage << "," ;
+                outputFile << SDBestImprovementPercentage << "," ;
+                outputFile << BPBestImprovementPercentage << "," ;
+                outputFile << numberOfIterationsPerformed << "," ;
+            }
         }
     
         inputFile.close();

@@ -187,7 +187,7 @@ double ms_N_building::getFloorArea() const
 	return area;
 }
 
-double ms_N_building::getAverageSpaceSize() const
+double ms_N_building::getAverageHorizontalRibSize() const
 {
 	double averageSize;
 	int lineCount=0;
@@ -207,16 +207,70 @@ double ms_N_building::getAverageSpaceSize() const
 	return averageSize;
 }
 
-double ms_N_building::getSpaceDifRatioVolume() const
+double ms_N_building::getSpaceVolumeRatio() const
 {
-	double ratio = (this->getVolume())/(mSpaces.size());
-	return ratio;
+	if(mSpaces.size() <= 1)
+	{
+		std::stringstream errorMessage;
+			errorMessage << "Can not get get space difference ration volume, since there are" << std::endl
+									<<  "too little spaces inside the mSpace container: " << mSpaces.size() << std::endl
+									<< "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+	}
+
+	double maxVolume = mSpaces[0]->getVolume();
+	double minVolume =mSpaces[0]->getVolume();
+
+	for(const auto i: mSpaces)
+	{
+		if(i->getVolume() > maxVolume){maxVolume = i->getVolume();}
+		else if(i->getVolume() < minVolume){minVolume = i->getVolume();}
+	}
+	
+	return minVolume/maxVolume;
 }
 
-double ms_N_building::getSpaceDifRatioFloorArea() const
+double ms_N_building::getSpaceFloorAreaRatio() const
 {
-	double ratio = (this->getFloorArea())/(mSpaces.size());
-	return ratio;
+	if(mSpaces.size() <= 1)
+	{
+		std::stringstream errorMessage;
+			errorMessage << "Can not get get space difference ration volume, since there are" << std::endl
+									<<  "too little spaces inside the mSpace container: " << mSpaces.size() << std::endl
+									<< "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+	}
+
+	std::vector<double> spaceFloorArea;
+	for(const auto i : mSpaces) spaceFloorArea.push_back(i->getFloorArea());
+	sort(spaceFloorArea.begin(), spaceFloorArea.end());
+
+	int datasize = spaceFloorArea.size();
+	double median;
+	if(datasize % 2 == 0)
+	{
+		median = spaceFloorArea[]
+	}
+	int medianLocation = spaceFloorArea.size();
+
+	double firstKwartileLocation = spaceFloorArea.size()/4;
+	if(firstKwartileLocation)
+
+
+	double median = spaceFloorArea[round(spaceFloorArea.size()/2)];
+	double firstKwarter = spaceFloorArea[round(spaceFloorArea.size()/4)];
+	double firstKwarter = spaceFloorArea[round(spaceFloorArea.size()/4*3)];
+
+	double maxFloorArea = mSpaces[0]->getFloorArea();
+	double minFloorArea =mSpaces[0]->getFloorArea();
+	
+	for(const auto i : mSpaces)
+	{
+		if(i->getFloorArea() > maxFloorArea){maxFloorArea = i->getFloorArea();}
+		else if(i->getFloorArea() < minFloorArea){minFloorArea = i->getFloorArea();}
+	}
+
+	return spaceFloorArea[0]/spaceFloorArea.back();
 }
 
 double ms_N_building::getAverageRecDif() const
@@ -2489,8 +2543,8 @@ void ms_N_building::getMostHeadingDirection(bso::utilities::geometry::vector& mo
 			secondCategorySize = headingInCategories[i].size();
 		}
 	}
-	std::cout << "biggestCategory: " << biggestCategory << std::endl;
-	std::cout << "secondBiggestCategory: " << secondBiggestCategory << std::endl;
+	//std::cout << "biggestCategory: " << biggestCategory << std::endl;
+	//std::cout << "secondBiggestCategory: " << secondBiggestCategory << std::endl;
 
 	// Determine the heading of the most found category
 	// Are there headings found more often then take that heading, otherwise use the middle of the heading category

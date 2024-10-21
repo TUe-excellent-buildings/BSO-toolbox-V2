@@ -31,9 +31,9 @@ public:
 	unsigned int getLastSpaceID() const;
 	double getVolume() const;
 	double getFloorArea() const;
-	double getAverageSpaceSize() const;
-	double getSpaceDifRatioVolume() const;
-	double getSpaceDifRatioFloorArea() const;
+	double getAverageHorizontalRibSize() const;
+	double getSpaceVolumeRatio() const;
+	double getSpaceFloorAreaRatio() const;
 	double getAverageRecDif() const;
 	bool hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 		const double tol = 1e-3) const; 
