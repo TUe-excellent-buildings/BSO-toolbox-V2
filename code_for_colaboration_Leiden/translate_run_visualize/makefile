@@ -7,7 +7,7 @@ FADE    = /home/tessa/Libaries/fadeRelease_v1.93/fadeRelease_v1.93
 ALL_LIB = -I$(BOOST) -I$(EIGEN) -I$(BSO)
 
 #compiler settings
-CPP   = g++ -std=c++17 -fmax-errors=5 
+CPP   = g++ -std=c++17
 FLAGS  = -O3 -march=native -lglut -lGL -lGLU -lpthread -lfade2d
 D_LIB  = -I${FADE}/include_fade2d
 

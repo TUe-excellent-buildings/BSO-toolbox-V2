@@ -74,6 +74,7 @@ int main(int argc, char* argv[])
 			std::cout << "-v\t" << "or --visualization, to specify which models are\n"
 								<<   "\t" << "visualized: \'ms\' for \'Movable Sizable\', \n"
 								<<   "\t" << "\'msc\' for \'Movable Sizable\' view with alternate coloring according to input file, \n"
+								<<   "\t" << "(note: insert the input file's name directly after the msc key, example: msc colorSetting -b etc.), \n"
 								<<   "\t" << "\'rc\' for \'conformal model with Rectangles for R insertion method\', \n"
 								<<   "\t" << "\'cb\' for \'conformal model with Cuboids for R insertion method\', \n"
 								<<   "\t" << "\'tr\' for \'conformal model with Triangles and Rectangles for N insertion method\', \n"
@@ -151,7 +152,7 @@ int main(int argc, char* argv[])
 
 				if(visualizations.back() == "msc")
 				{
-					if(arg == args.end() || arg->operator[](0) == '-')
+					if(++arg == args.end() || arg->operator[](0) == '-')
 					{
 						std::stringstream errorMessage;
 							errorMessage << "\nError, expected an colour input file to be specified after 'msc'.\n"
@@ -159,7 +160,6 @@ int main(int argc, char* argv[])
 							throw std::invalid_argument(errorMessage.str());
 					}
 						
-					++arg;
 					colorinputFile = *arg;
 					boost::trim(colorinputFile);
 					colourFileName = colorinputFile;
@@ -257,9 +257,6 @@ int main(int argc, char* argv[])
 		for (const auto& visOption : visualizations)
 		{
 			if (visOption == "tb") visualization::visualize(CM_bounded,"triangular_prism_no_errors");
-			//if (visOption == "tb") visualization::visualize(CM_bounded,"delaunay");
-			//if (visOption == "tb") visualization::visualize(CM_bounded,"boundarylines");
-			//if (visOption == "tb") visualization::visualize(CM_bounded,"space_at_ground");
 		}
 		if (!visualizations.empty()) out("Sent bounded conformal model to visualization",true,true,verbose);
 	}
@@ -301,7 +298,19 @@ int main(int argc, char* argv[])
 		if (!visualizations.empty()) for (const auto& visOption : visualizations)
 		{
 			if (visOption == "ms") bso::visualization::visualize(MS);
-			if (visOption == "msc")	bso::visualization::visualize(colourFileName,MS);
+			try
+			{
+				if (visOption == "msc")	bso::visualization::visualize(colourFileName,MS);
+			}
+			catch(std::exception& e)
+			{
+				std::stringstream errorMessage;
+				errorMessage << "Something when wrong while generating the msc visualization" << std::endl
+										<< "(main.cpp)." << std::endl
+										<< "Got the following error: " << std::endl
+										<< e.what() << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+			}
 			if (visOption == "rc") visualization::visualize(CM,"rectangle");
 			if (visOption == "cb") visualization::visualize(CM,"cuboid");
 			if (visOption == "tr") visualization::visualize(CM,"trirec");
