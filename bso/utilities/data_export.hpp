@@ -1,5 +1,5 @@
-#ifndef BSO_DATA_PLOT_HPP
-#define BSO_DATA_PLOT_HPP
+#ifndef BSO_EXPORT_HPP
+#define BSO_EXPORT_HPP
 
 #include <bso/utilities/data_point.hpp>
 #include <vector>
@@ -9,7 +9,7 @@
 
 namespace bso { namespace utilities {
 	
-class data_plot
+class data_export
 {
 private:
 	// Data descriptions
@@ -23,10 +23,10 @@ private:
 	std::string nonParetoData = "";
 	std::string vectorStyleData = "";
 public:
-	data_plot();
-	data_plot(const std::vector<data_point>& data, std::vector<std::string> axisDataTypes, std::string plotName);
-	data_plot(utilities::data_plot& rhs);
-	~data_plot();
+	data_export();
+	data_export(const std::vector<data_point>& data, std::vector<std::string> axisDataTypes, std::string plotName);
+	data_export(utilities::data_export& rhs);
+	~data_export();
 	
 	// Write data to file
 	void writeDataToFile(const std::vector<std::shared_ptr<data_point> >& data, std::string fileName, std::string dataKind = "");
@@ -41,13 +41,11 @@ public:
 
 	// Get certain data
 	void getParetoFrontData(std::vector<std::shared_ptr<data_point> >& data, std::vector<std::shared_ptr<data_point> >& dataPareto, std::vector<std::shared_ptr<data_point> >& dataNonPareto);
-
-	// Get object variable
 };
 	
 } // namespace utilities
 } // namespace bso
 
-#include <bso/utilities/data_plot.cpp>
+#include <bso/utilities/data_export.cpp>
 
-#endif // BSO__DATA_PLOT_HPP
+#endif // BSO_EXPORT_HPP

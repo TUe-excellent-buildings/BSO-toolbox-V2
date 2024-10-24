@@ -5,7 +5,7 @@
 #include <bso/utilities/geometry.hpp>
 #include <bso/utilities/data_point.hpp>
 #include <bso/utilities/clustering.hpp>
-#include <bso/utilities/data_plot.hpp>
+#include <bso/utilities/data_export.hpp>
 #include <bso/structural_design/sd_model.hpp>
 #include <bso/building_physics/bp_model.hpp>
 #include <bso/grammar/grammar.hpp>
@@ -922,7 +922,7 @@ int main(int argc, char* argv[])
 
 	if(plot)
 	{
-		utilities::data_plot dp(designPerformances, axisDesignPerformances, "Design Iteration");
+		utilities::data_export dp(designPerformances, axisDesignPerformances, "Design Iteration");
 		std::string fileScatter = dir+"scatterData_" + inputFile + "_" + modification;
 		std::string fileParetoFront = dir+"paretoFrontData_" + inputFile + "_" + modification;
 		std::string fileNonParetoFront = dir+"paretoNonFrontData_" + inputFile + "_" + modification;
@@ -936,7 +936,7 @@ int main(int argc, char* argv[])
 	}
 	if(combineData)
 	{		
-		utilities::data_plot dp(designPerformances, axisDesignPerformances, "Design Iteration");
+		utilities::data_export dp(designPerformances, axisDesignPerformances, "Design Iteration");
 		dp.addToCombinedDataFile("combined_data.csv", modification, inputFile);
 	}
 	

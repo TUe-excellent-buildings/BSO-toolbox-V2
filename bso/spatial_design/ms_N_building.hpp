@@ -33,7 +33,9 @@ public:
 	double getFloorArea() const;
 	double getAverageHorizontalRibSize() const;
 	double getSpaceVolumeRatio() const;
+	void getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);
 	double getSpaceFloorAreaRatio() const;
+	void getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);
 	double getAverageRecDif() const;
 	bool hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 		const double tol = 1e-3) const; 

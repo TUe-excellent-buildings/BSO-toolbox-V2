@@ -1,5 +1,5 @@
-#ifndef BSO_DATA_PLOT_CPP
-#define BSO_DATA_PLOT_CPP
+#ifndef BSO_EXPORT_CPP
+#define BSO_EXPORT_CPP
 
 #include <fstream>
 #include <string>
@@ -7,12 +7,12 @@
 
 namespace bso { namespace utilities {
 
-data_plot::data_plot()
+data_export::data_export()
 {
 
 } // ctor()
 
-data_plot::data_plot(const std::vector<data_point>& data, std::vector<std::string> axisDataTypes, std::string plotName)
+data_export::data_export(const std::vector<data_point>& data, std::vector<std::string> axisDataTypes, std::string plotName)
 :   axisDataTypes(axisDataTypes), dataName(plotName)
 {
 	for (const auto& i : data)
@@ -21,7 +21,7 @@ data_plot::data_plot(const std::vector<data_point>& data, std::vector<std::strin
 	}
 } // ctor()
 
-data_plot::data_plot(utilities::data_plot& rhs)
+data_export::data_export(utilities::data_export& rhs)
 {
 	mData = rhs.mData;
     axisDataTypes = rhs.axisDataTypes;
@@ -31,18 +31,18 @@ data_plot::data_plot(utilities::data_plot& rhs)
 	vectorStyleData = rhs.vectorStyleData;
 } // ctor()
 
-data_plot::~data_plot()
+data_export::~data_export()
 {
 	
 } // dtor()
 
-void data_plot::writeDataToFile(const std::vector<std::shared_ptr<data_point> >& data, std::string fileName, std::string dataKind /*= ""*/)
+void data_export::writeDataToFile(const std::vector<std::shared_ptr<data_point> >& data, std::string fileName, std::string dataKind /*= ""*/)
 { 
     if(fileName == "")
     {
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected a file name with at least one character, but the file name did not had any.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
     if(data.size() == 0)
@@ -50,7 +50,7 @@ void data_plot::writeDataToFile(const std::vector<std::shared_ptr<data_point> >&
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected some data to be stored within the input variable data\n"
 										 << "The found size of data is: " << data.size() << "\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
     
@@ -63,7 +63,7 @@ void data_plot::writeDataToFile(const std::vector<std::shared_ptr<data_point> >&
 		std::stringstream errorMessage;
 		errorMessage << "Could not open the following file to write a dataFile for plotting to:" << std::endl
 								 << ((fileName.empty())? "no input file given" : fileName) << std::endl
-								 << "(bso/utilities/data_plot.cpp). " << std::endl;
+								 << "(bso/utilities/data_export.cpp). " << std::endl;
 		throw std::invalid_argument(errorMessage.str());
 	}
 	
@@ -87,13 +87,13 @@ void data_plot::writeDataToFile(const std::vector<std::shared_ptr<data_point> >&
     if(dataKind == "nonParetoData") {nonParetoData = fileName;}
 } // writeDataToFile()
 
-void data_plot::writeVectorStyleFile(const std::vector<std::shared_ptr<data_point> >& data, std::string fileName)
+void data_export::writeVectorStyleFile(const std::vector<std::shared_ptr<data_point> >& data, std::string fileName)
 {
     if(fileName == "")
     {
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected a file name with at least one character, but the file name did not had any.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
     if(data.size() == 0)
@@ -101,7 +101,7 @@ void data_plot::writeVectorStyleFile(const std::vector<std::shared_ptr<data_poin
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected some data to be stored within the input variable data\n"
 										 << "The found size of data is: " << data.size() << "\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
 
@@ -114,7 +114,7 @@ void data_plot::writeVectorStyleFile(const std::vector<std::shared_ptr<data_poin
 		std::stringstream errorMessage;
 		errorMessage << "Could not open the following file to write a dataFile for plotting to:" << std::endl
 								 << ((fileName.empty())? "no input file given" : fileName) << std::endl
-								 << "(bso/utilities/data_plot.cpp). " << std::endl;
+								 << "(bso/utilities/data_export.cpp). " << std::endl;
 		throw std::invalid_argument(errorMessage.str());
 	}
 	
@@ -152,27 +152,27 @@ void data_plot::writeVectorStyleFile(const std::vector<std::shared_ptr<data_poin
     vectorStyleData = fileName;
 } // writeVectorStyleFile()
 
-void data_plot::addToCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int& nrIterations)
+void data_export::addToCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int& nrIterations)
 { 
     if(fileName == "")
     {
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected a file name with at least one character, but the file name did not had any.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
     if(designName == "")
     {
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected a designName with at least one character, but the designName name did not had any.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
     if(runKind == "")
     {
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected a runKind with at least one character, but the runKind name did not had any.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
 
@@ -183,7 +183,7 @@ void data_plot::addToCombinedDataFile(const std::string& fileName, const std::st
     { 
         std::stringstream errorMessage;
 				errorMessage << "\nError, unable to open file.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
 
@@ -431,7 +431,7 @@ void data_plot::addToCombinedDataFile(const std::string& fileName, const std::st
         {
             std::stringstream errorMessage;
                 errorMessage << "\nError, while deleting original file.\n"
-                                        << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                        << "(bso/utilities/data_export.cpp). " << std::endl;
                 throw std::invalid_argument(errorMessage.str());
         } 
     }
@@ -442,7 +442,7 @@ void data_plot::addToCombinedDataFile(const std::string& fileName, const std::st
     {
         std::stringstream errorMessage;
             errorMessage << "\nError, renaming temporary file.\n"
-                                    << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                    << "(bso/utilities/data_export.cpp). " << std::endl;
             throw std::invalid_argument(errorMessage.str());
     } 
     else 
@@ -452,27 +452,27 @@ void data_plot::addToCombinedDataFile(const std::string& fileName, const std::st
     
 } // addToCombinedDataFile()
 
-void data_plot::addToOverviewCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int numberOfIterationsPerformed)
+void data_export::addToOverviewCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int numberOfIterationsPerformed)
 { 
     if(fileName == "")
     {
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected a file name with at least one character, but the file name did not had any.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
     if(designName == "")
     {
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected a designName with at least one character, but the designName name did not had any.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
     if(runKind == "")
     {
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected a runKind with at least one character, but the runKind name did not had any.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
 
@@ -483,7 +483,7 @@ void data_plot::addToOverviewCombinedDataFile(const std::string& fileName, const
     { 
         std::stringstream errorMessage;
 				errorMessage << "\nError, unable to open file.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
 
@@ -719,7 +719,7 @@ void data_plot::addToOverviewCombinedDataFile(const std::string& fileName, const
         {
             std::stringstream errorMessage;
                 errorMessage << "\nError, while deleting original file.\n"
-                                        << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                        << "(bso/utilities/data_export.cpp). " << std::endl;
                 throw std::invalid_argument(errorMessage.str());
         } 
     }
@@ -730,7 +730,7 @@ void data_plot::addToOverviewCombinedDataFile(const std::string& fileName, const
     {
         std::stringstream errorMessage;
             errorMessage << "\nError, renaming temporary file.\n"
-                                    << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                    << "(bso/utilities/data_export.cpp). " << std::endl;
             throw std::invalid_argument(errorMessage.str());
     } 
     else 
@@ -740,13 +740,13 @@ void data_plot::addToOverviewCombinedDataFile(const std::string& fileName, const
     
 } // addToCombinedDataFile()
 
-void data_plot::plotScatter2D(std::string fileNameScatter /*= "scatterData"*/, std::string pngName /*="plotScatter.png"*/, bool visualize /*= true*/, bool writeToPNG /*= true*/)
+void data_export::plotScatter2D(std::string fileNameScatter /*= "scatterData"*/, std::string pngName /*="plotScatter.png"*/, bool visualize /*= true*/, bool writeToPNG /*= true*/)
 {
     if(fileNameScatter == "")
     {
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected a file name with at least one character, but the file name did not had any.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
     if(!visualize && !writeToPNG)
@@ -754,7 +754,7 @@ void data_plot::plotScatter2D(std::string fileNameScatter /*= "scatterData"*/, s
         std::stringstream errorMessage;
 				errorMessage << "\nError, no plot will be generated since both booleans 'visualize' and 'writeToPNG' are false.\n"
 										 << "Make sure either one or both are set to true when this function is called to get results.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
     if(axisDataTypes.size() != 2)
@@ -763,7 +763,7 @@ void data_plot::plotScatter2D(std::string fileNameScatter /*= "scatterData"*/, s
 				errorMessage << "\nError, expected two axis types to be defined to know which data is which and to give the plot axis variables.\n"
 										 << "The current amount of axisDataTypes is: " << axisDataTypes.size() << " and it contains these variables: " << std::endl;
                                          for(const auto i: axisDataTypes) errorMessage << i << "; ";
-                                         errorMessage << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         errorMessage << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
 
@@ -788,7 +788,7 @@ void data_plot::plotScatter2D(std::string fileNameScatter /*= "scatterData"*/, s
             std::stringstream errorMessage;
 				errorMessage << "\nError, the plotting of the graph did not go as expected and an error has been returned.\n"
 										 << "The following fileName was used for plotting: " << fileNameScatter << "\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
         }
     }
@@ -801,19 +801,19 @@ void data_plot::plotScatter2D(std::string fileNameScatter /*= "scatterData"*/, s
             std::stringstream errorMessage;
 				errorMessage << "\nError, the plotting of the graph did not go as expected and an error has been returned.\n"
 										 << "The following fileName was used for plotting: " << fileNameScatter << "\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
         }
     }
 }
 
-void data_plot::plotParetoFront2D(std::string fileNamePareto /*= "Pareto"*/, std::string fileNameNonPareto /*= "NonPareto"*/, std::string pngName /*="plot.png"*/, bool visualize /*= true*/, bool writeToPNG /*= true*/)
+void data_export::plotParetoFront2D(std::string fileNamePareto /*= "Pareto"*/, std::string fileNameNonPareto /*= "NonPareto"*/, std::string pngName /*="plot.png"*/, bool visualize /*= true*/, bool writeToPNG /*= true*/)
 {    
     if(fileNamePareto == "" || fileNameNonPareto == "")
     {
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected a file name with at least one character, but the file name did not had any.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
     if(!visualize && !writeToPNG)
@@ -821,7 +821,7 @@ void data_plot::plotParetoFront2D(std::string fileNamePareto /*= "Pareto"*/, std
         std::stringstream errorMessage;
 				errorMessage << "\nError, no plot will be generated since both booleans 'visualize' and 'writeToPNG' are false.\n"
 										 << "Make sure either one or both are set to true when this function is called to get results.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
     if(axisDataTypes.size() != 2)
@@ -830,7 +830,7 @@ void data_plot::plotParetoFront2D(std::string fileNamePareto /*= "Pareto"*/, std
 				errorMessage << "\nError, expected two axis types to be defined to know which data is which and to give the plot axis variables.\n"
 										 << "The current amount of axisDataTypes is: " << axisDataTypes.size() << " and it contains these variables: " << std::endl;
                                          for(const auto i: axisDataTypes) errorMessage << i << "; ";
-                                         errorMessage << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         errorMessage << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
     
@@ -841,7 +841,7 @@ void data_plot::plotParetoFront2D(std::string fileNamePareto /*= "Pareto"*/, std
             std::stringstream errorMessage;
                     errorMessage << "\nError, no data is stored within mData (i.e. this object) to plot. \n"
                                             << "Make sure there is data stored in mData. \n"
-                                            << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                            << "(bso/utilities/data_export.cpp). " << std::endl;
                     throw std::invalid_argument(errorMessage.str());
         }
         
@@ -870,7 +870,7 @@ void data_plot::plotParetoFront2D(std::string fileNamePareto /*= "Pareto"*/, std
             std::stringstream errorMessage;
 				errorMessage << "\nError, the plotting of the graph did not go as expected and an error has been returned.\n"
 										 << "The following fileName was used for plotting: " << fileNameNonPareto << " and  " << fileNameNonPareto << "\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
         }
     }
@@ -881,7 +881,7 @@ void data_plot::plotParetoFront2D(std::string fileNamePareto /*= "Pareto"*/, std
             std::stringstream errorMessage;
 				errorMessage << "\nError, no name for the to generate png has been given. \n"
 										 << "Therefore, the png can not be generated.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
         }
         
@@ -892,19 +892,19 @@ void data_plot::plotParetoFront2D(std::string fileNamePareto /*= "Pareto"*/, std
             std::stringstream errorMessage;
 				errorMessage << "\nError, the plotting of the graph did not go as expected and an error has been returned.\n"
 										 << "The following fileName was used for plotting: " << fileNameNonPareto << " and  " << fileNameNonPareto << "\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
         }
     }
 }
 
-void data_plot::plotVector2D(std::string fileNameVector /*= "vectorStyleData"*/, std::string pngName /*="plotVector.png"*/, bool visualize /*= true*/, bool writeToPNG /*= true*/)
+void data_export::plotVector2D(std::string fileNameVector /*= "vectorStyleData"*/, std::string pngName /*="plotVector.png"*/, bool visualize /*= true*/, bool writeToPNG /*= true*/)
 {    
     if(fileNameVector == "")
     {
         std::stringstream errorMessage;
 				errorMessage << "\nError, expected a file name with at least one character, but the file name did not had any.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
     if(!visualize && !writeToPNG)
@@ -912,7 +912,7 @@ void data_plot::plotVector2D(std::string fileNameVector /*= "vectorStyleData"*/,
         std::stringstream errorMessage;
 				errorMessage << "\nError, no plot will be generated since both boolians 'visualize' and 'writeToPNG' are false.\n"
 										 << "Make sure either one or both are set to true when this function is called to get results.\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
     if(axisDataTypes.size() != 2)
@@ -921,7 +921,7 @@ void data_plot::plotVector2D(std::string fileNameVector /*= "vectorStyleData"*/,
 				errorMessage << "\nError, expected two axis types to be defined to know which data is which and to give the plot axis variables.\n"
 										 << "The current amount of axisDataTypes is: " << axisDataTypes.size() << " and it contains these variables: " << std::endl;
                                          for(const auto i: axisDataTypes) errorMessage << i << "; ";
-                                         errorMessage << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         errorMessage << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
 
@@ -946,7 +946,7 @@ void data_plot::plotVector2D(std::string fileNameVector /*= "vectorStyleData"*/,
             std::stringstream errorMessage;
 				errorMessage << "\nError, the plotting of the graph did not go as expected and an error has been returned.\n"
 										 << "The following fileName was used for plotting: " << fileNameVector << "\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
         }
     }
@@ -959,20 +959,20 @@ void data_plot::plotVector2D(std::string fileNameVector /*= "vectorStyleData"*/,
             std::stringstream errorMessage;
 				errorMessage << "\nError, the plotting of the graph did not go as expected and an error has been returned.\n"
 										 << "The following fileName was used for plotting: " << fileNameVector << "\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
         }
     }
 } // plotArrow2D()
 
-void data_plot::getParetoFrontData(std::vector<std::shared_ptr<data_point> >& data, std::vector<std::shared_ptr<data_point> >& dataPareto, std::vector<std::shared_ptr<data_point> >& dataNonPareto)
+void data_export::getParetoFrontData(std::vector<std::shared_ptr<data_point> >& data, std::vector<std::shared_ptr<data_point> >& dataPareto, std::vector<std::shared_ptr<data_point> >& dataNonPareto)
 {
     if(data.size() == 0)
     {
         std::stringstream errorMessage;
 				errorMessage << "\nError, there is no data input given for the separation of data into Pareto and non pareto data.\n"
 										 << "The size of data was found: " << data.size() << "\n"
-                                         << "(bso/utilities/data_plot.cpp). " << std::endl;
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
     
@@ -998,4 +998,4 @@ void data_plot::getParetoFrontData(std::vector<std::shared_ptr<data_point> >& da
 } // namespace utilities
 } // namespace bso
 
-#endif // BSO_DATA_PLOT_CPP
+#endif // BSO_EXPORT_CPP

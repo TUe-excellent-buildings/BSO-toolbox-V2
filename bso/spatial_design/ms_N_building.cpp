@@ -13,6 +13,7 @@
 
 #include <bso/utilities/delaunay.hpp>
 #include <bso/utilities/geometry/polygon_non_convex.hpp>
+#include <bso/utilities/data_analysis.hpp>
 
 namespace bso { namespace spatial_design {
 
@@ -230,6 +231,22 @@ double ms_N_building::getSpaceVolumeRatio() const
 	return minVolume/maxVolume;
 }
 
+void ms_N_building::getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers)
+{
+	std::vector<double> spaceVolume;
+	for(const auto i: mSpaces)
+	{
+		spaceVolume.push_back(i->getVolume());
+		average += i->getVolume();
+	}
+	average = average/(mSpaces.size());
+	
+	median = bso::utilities::calculateQuartile(spaceVolume, 0.5);
+	firstQuartile = bso::utilities::calculateQuartile(spaceVolume, 0.25);
+	thirdQuartile = bso::utilities::calculateQuartile(spaceVolume, 0.75);
+	outliers = bso::utilities::findOutliers(spaceVolume);
+}
+
 double ms_N_building::getSpaceFloorAreaRatio() const
 {
 	if(mSpaces.size() <= 1)
@@ -245,32 +262,23 @@ double ms_N_building::getSpaceFloorAreaRatio() const
 	for(const auto i : mSpaces) spaceFloorArea.push_back(i->getFloorArea());
 	sort(spaceFloorArea.begin(), spaceFloorArea.end());
 
-	int datasize = spaceFloorArea.size();
-	double median;
-	if(datasize % 2 == 0)
-	{
-		median = spaceFloorArea[]
-	}
-	int medianLocation = spaceFloorArea.size();
-
-	double firstKwartileLocation = spaceFloorArea.size()/4;
-	if(firstKwartileLocation)
-
-
-	double median = spaceFloorArea[round(spaceFloorArea.size()/2)];
-	double firstKwarter = spaceFloorArea[round(spaceFloorArea.size()/4)];
-	double firstKwarter = spaceFloorArea[round(spaceFloorArea.size()/4*3)];
-
-	double maxFloorArea = mSpaces[0]->getFloorArea();
-	double minFloorArea =mSpaces[0]->getFloorArea();
-	
-	for(const auto i : mSpaces)
-	{
-		if(i->getFloorArea() > maxFloorArea){maxFloorArea = i->getFloorArea();}
-		else if(i->getFloorArea() < minFloorArea){minFloorArea = i->getFloorArea();}
-	}
-
 	return spaceFloorArea[0]/spaceFloorArea.back();
+}
+
+void ms_N_building::getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers)
+{
+	std::vector<double> spaceFloorArea;
+	for(const auto i: mSpaces)
+	{
+		spaceFloorArea.push_back(i->getVolume());
+		average += i->getFloorArea();
+	}
+	average = average/(mSpaces.size());
+	
+	median = bso::utilities::calculateQuartile(spaceFloorArea, 0.5);
+	firstQuartile = bso::utilities::calculateQuartile(spaceFloorArea, 0.25);
+	thirdQuartile = bso::utilities::calculateQuartile(spaceFloorArea, 0.75);
+	outliers = bso::utilities::findOutliers(spaceFloorArea);
 }
 
 double ms_N_building::getAverageRecDif() const
