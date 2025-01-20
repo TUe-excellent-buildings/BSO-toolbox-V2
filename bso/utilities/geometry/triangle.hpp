@@ -19,6 +19,7 @@ namespace bso { namespace utilities { namespace geometry {
 		double getArea() const;
 		bool isInside(const vertex& p1, const double& tol = 1e-3) const;
 		bool isInsideOrOn(const vertex& p1, const double& tol = 1e-3) const;
+		bool isOverlapping(const triangle& tri, const double& tol = 1e-3) const; // Note; this function is not yet checked for correctness.
 	};
 	
 } // namespace geometry

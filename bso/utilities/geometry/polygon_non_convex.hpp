@@ -26,6 +26,8 @@ namespace bso { namespace utilities { namespace geometry {
 		double getArea() const;
 		bool isInside(const vertex& p1, const double& tol = 1e-3) const;
 		bool isInsideOrOn(const vertex& p1, const double& tol = 1e-3) const;
+		bool isOverlapping(const polygon_non_convex& pol, const double& tol = 1e-3) const; // Note: this function is not working as it should yet!!
+		bool isSameAs(const polygon_non_convex& pol, const double& tol = 1e-3) const;
 
 		// void convertToQuads(std::vector<quadrilateral>& quads);
 

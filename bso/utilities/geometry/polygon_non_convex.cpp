@@ -26,7 +26,7 @@ namespace bso { namespace utilities {  namespace geometry {
 		if(!(lineSegments[lineSegments.size()-1])[1].isSameAs((lineSegments[0])[0], tol)){correct =false;}
 		else
 		{
-			for(int i=0; i<lineSegments.size()-1; i++)	
+			for(long unsigned int i=0; i<lineSegments.size()-1; i++)	
 			{
 				if(!(lineSegments[i])[1].isSameAs((lineSegments[i+1])[0], tol)){correct = false;}
 			}
@@ -37,24 +37,24 @@ namespace bso { namespace utilities {  namespace geometry {
 					errorMessage << "The inserted polygon (which may be convex) has lines in its sequence\n"
 											<< "which does not start and end with the next line as it should.\n"
 											<< "Received the following vertices: \n";
-											for(const auto i: mVertices) errorMessage << i << "; ";
+											for(const auto& i: mVertices) errorMessage << i << "; ";
 											errorMessage << "Resulting in the following lines: \n";
-											for(const auto i: lineSegments) errorMessage << i << "; ";
+											for(const auto& i: lineSegments) errorMessage << i << "; ";
 											errorMessage << "\n(bso/utilities/geometry/polygon_non_convex.cpp)" << std::endl;
 					throw std::invalid_argument(errorMessage.str());
 		}
 
 		// check if the line_segments intersect each other, since this would definitely be an invalid polygon
-		for(const auto i: this->getLines())
+		for(const auto& i: this->getLines())
 		{
-			for(const auto j: this->getLines())
+			for(const auto& j: this->getLines())
 			{
 				if(i.intersectsWith(j,tol))
 				{
 					std::stringstream errorMessage;
 					errorMessage << "The inserted polygon (which may be convex) has two lines which intersect, are the inserted points already sorted? points in the class are invalid for initializing polygon_non_convex from container.\n"
 											<< "Received the following vertices: \n";
-											for(const auto i: mVertices) errorMessage << i << "; ";
+											for(const auto& i: mVertices) errorMessage << i << "; ";
 											errorMessage << "\n(bso/utilities/geometry/polygon_non_convex.cpp)" << std::endl;
 					throw std::invalid_argument(errorMessage.str());
 				}
@@ -177,7 +177,7 @@ namespace bso { namespace utilities {  namespace geometry {
 	double polygon_non_convex::getArea() const
 	{ 
 		double area = 0;
-		for(const auto i: mTriangles)
+		for(const auto& i: mTriangles)
 		{
 			area = area + i.getArea();
 		}
@@ -203,7 +203,7 @@ namespace bso { namespace utilities {  namespace geometry {
 
 	bool polygon_non_convex::isInsideOrOn(const vertex& p1, const double& tol /*= 1e-3*/) const
 	{ 
-		for(const auto i: mTriangles)
+		for(const auto& i: mTriangles)
 		{
 			if(i.isInsideOrOn(p1,tol))
 			{
@@ -212,6 +212,99 @@ namespace bso { namespace utilities {  namespace geometry {
 		}
 		return false;
 	} //  isInside()
+
+	// This function checks if the polygon_non_convex is overlapping with another polygon_non_convex at any location, 
+	// however when the polygons_non_convex are only touching each others line_segments or edges, then they are considered non-overlapping.
+	bool polygon_non_convex::isOverlapping(const polygon_non_convex& pol, const double& tol /*= 1e-3*/) const
+	{
+		// Note: this function is not working as it should yet!!
+
+		// To determine if two polygons intersect :
+
+		// If two polygons have a non-void intersection then one of the following will happen:
+
+		// A) One of them has a corner inside the interior of the other one.
+		// B) One of them has a whole edge inside the interior of the other one (the corners of that edge may not necessarily be in the interior). This means the middle of that edge will be inside the interior.
+		// C) The polygons are identical.
+
+		// First check if the polygon_non_convex are coplanar
+		for(const auto& i: mVertices)
+		{
+			if(!pol.isCoplanar(i,tol))
+			{
+				return false;
+			}
+		}
+
+		// A) Check the vertices of the polygons are inside at any location
+		for(const auto& i: pol.mVertices)
+		{
+			if(this->isInside(i,tol))
+			{
+				return true;
+			}
+		}
+		for(const auto& i: this->mVertices)
+		{
+			if(pol.isInside(i,tol))
+			{
+				return true;
+			}
+		}
+
+		// B) Check if any of the line_segments intersect, split lines at intersection and see if the middle of the line_segment is inside a polygon
+		std::vector<vertex> intsecV;
+		std::vector<line_segment> allLines;
+		vertex pInt;
+		for(const auto& i: mLineSegments)
+		{
+			allLines.push_back(i);
+			for(const auto& j: pol.mLineSegments)
+			{
+				if(i.intersectsWith(j,pInt,tol)){intsecV.push_back(pInt);}
+			}
+		}
+		for(const auto& j: pol.mLineSegments) {allLines.push_back(j);}
+		for(const auto& i: pol.mVertices){intsecV.push_back(i);}
+		for(const auto& i: mVertices){intsecV.push_back(i);}
+		bso::utilities::splitLines(intsecV,allLines,tol);
+		for(const auto& i: allLines)
+		{
+			if(pol.isInside(i.getCenter(),tol)){return true;}
+			if(this->isInside(i.getCenter(),tol)){return true;}
+		}
+
+		// C) Check if the polygons are identical
+		if(this->isSameAs(pol,tol))
+		{
+			return true;
+		}
+
+		return false;
+	} //isOverlapping()
+
+	bool polygon_non_convex::isSameAs(const polygon_non_convex& pol, const double& tol /*= 1e-3*/) const
+	{
+		// Check if the polygons are the same
+		if(mVertices.size() != pol.mVertices.size())
+		{
+			return false;
+		}
+		for(const auto& i: mVertices)
+		{
+			bool foundTheSame = false;
+			for(const auto& j: pol.mVertices)
+			{
+				if(i.isSameAs(j,tol))
+				{
+					foundTheSame = true;
+					
+				}
+			}
+			if(!foundTheSame){return false;}
+		}
+		return true;
+	}
 
 	// void polygon_non_convex::convertToQuads(std::vector<quadrilateral>& quads)
 	// {
