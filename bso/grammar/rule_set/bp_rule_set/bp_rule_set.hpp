@@ -9,7 +9,7 @@ private:
 	
 public:
 	bp_rule_set();
-	~bp_rule_set();
+	virtual ~bp_rule_set(); // virtual destructor to make sure it is called when a derived class destructor is called
 	
 	virtual void apply(bso::building_physics::bp_model& bp) const = 0;
 

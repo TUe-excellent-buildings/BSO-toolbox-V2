@@ -387,7 +387,12 @@ MS_Model::MS_Model(const utilities::clustering& clus, const std::string& title /
 		}
 		else
 		{
-			/*not a possible option duo to definition of ratio*/
+			std::stringstream errorMessage;
+			errorMessage << "\nError in visualizing ms_N_buildings clusters.\n"
+									 << "The range value is not within the expected range of 0 to 1: " << range << "\n"
+									 << "Therefor f1, f2, and f3 could not be defined properly\n"
+									 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
+			throw std::runtime_error(errorMessage.str());
 		}
 				
 		temp.ambient = rgba(f1, f2, f3, f4);
@@ -448,7 +453,7 @@ MS_Model::MS_Model(const std::vector<utilities::data_point>& spaceData, const st
 	// Generate color for each performance and add space to visualization:
 	float f1, f2, f3, f4 = transparency;
 	performanceProps.resize(spaceData.size());
-	for(int i=0; i<spaceData.size(); i++)
+	for(long unsigned int i=0; i<spaceData.size(); i++)
 	{
 		// check if the spaceData has the same amount of numbers stored then the provided resultWeightFactor, if not error:
 		if(spaceData[i].size() != resultWeightFactor.size())
@@ -661,7 +666,7 @@ MS_Model::MS_Model(const std::string& fileName, const spatial_design::ms_N_build
 
 		// define default:
 		bool defaultDefined = false;
-		for(const auto i: spaceIDProps)
+		for(const auto& i: spaceIDProps)
 		{
 			if(i.first == 0)
 			{
@@ -675,7 +680,7 @@ MS_Model::MS_Model(const std::string& fileName, const spatial_design::ms_N_build
 		{
 			int spaceID = i->getID();
 			bool found = false;
-			int index = 0;
+			long unsigned int index = 0;
 			while(index < spaceIDProps.size())
 			{
 				if(spaceIDProps[index].first == spaceID)

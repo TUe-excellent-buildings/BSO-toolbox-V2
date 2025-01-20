@@ -111,6 +111,32 @@ namespace bso { namespace visualization
 
           //returns a normalised temporary
           const vect4<T> normalise() const;
+
+          // Copy assignment operator
+            vect4& operator=(const vect4& other) {
+                  if (this != &other) {
+                        x = other.x;
+                        y = other.y;
+                        z = other.z;
+                        w = other.w;
+                  }
+                  return *this;
+            }
+
+            // Move assignment operator
+            vect4& operator=(vect4&& other) noexcept {
+                  if (this != &other) {
+                        x = other.x;
+                        y = other.y;
+                        z = other.z;
+                        w = other.w;
+                        other.x = other.y = other.z = other.w = 0;
+                  }
+                  return *this;
+            }
+
+            // Destructor
+            ~vect4() = default;
     };
 
 

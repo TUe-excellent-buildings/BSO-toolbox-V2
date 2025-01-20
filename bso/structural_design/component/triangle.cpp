@@ -59,7 +59,7 @@ namespace bso { namespace structural_design { namespace component {
 		// Resize mMeshedPoints to the future final amount of meshPoints
 		mMeshedPoints.clear();
 		int resizeCount = 0;
-		for(int i=0; i < n1/2; i++)	resizeCount = resizeCount + (n1-2*i)*3;
+		for(unsigned int i=0; i < n1/2; i++)	resizeCount = resizeCount + (n1-2*i)*3;
 		resizeCount++;
 		mMeshedPoints.resize(resizeCount);
 
@@ -71,7 +71,7 @@ namespace bso { namespace structural_design { namespace component {
 		for(double i=0; i < 0.999; i=i+1/((double)n1/2))// smaller then 0.999 to take into acount a tolerance
 		{// define triangles from the outside in starting with the initial triangular geometry
 			std::vector<geom::vertex> triVertex;
-			for(const auto j: mVertices)
+			for(const auto& j: mVertices)
 			{
 				geom::vertex vPtr = j+(center-j)*i;
 				triVertex.push_back(vPtr);
@@ -144,7 +144,7 @@ namespace bso { namespace structural_design { namespace component {
 		// Resize mElementPoints to the future final amount of elements
 		mElementPoints.clear();
 		resizeCount = 0;
-		for(int i=0; i < n1/2; i++)	resizeCount = resizeCount + (n1-1-2*i)*3;
+		for(unsigned int i=0; i < n1/2; i++)	resizeCount = resizeCount + (n1-1-2*i)*3;
 		mElementPoints.resize(resizeCount);
 
 		// Pair the points that define an element together

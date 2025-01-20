@@ -76,7 +76,7 @@ void sd_model::topologyOptimization<topology_optimization::STRESS_BASED>(
 	// initialise iteration
 	xPhys = x;
 	const unsigned long freeDOFs = mFEA->getDOFCount();
-	double change = 1.0;
+	//double change = 1.0;
 	double changevol = 1.0;
 	int loop = 0;
 	double loopStart = clock(), iterationStart, startMMA, endMMA, timeEnd = 0.0;

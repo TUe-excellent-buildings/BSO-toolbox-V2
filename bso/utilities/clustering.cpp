@@ -16,7 +16,7 @@ void clustering::mMakeClustering()
 	for (unsigned int i = mKMin-1; i <= mKMax+1; ++i)
 	{
 		std::vector<cluster> clustering;
-		double variance;
+		double variance = 0;
 		unsigned int successfulKMeansRuns = 0;
 		for (unsigned int j = 0; j < mRuns; ++j)
 		{

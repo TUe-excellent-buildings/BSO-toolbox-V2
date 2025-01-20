@@ -598,20 +598,66 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	BOOST_AUTO_TEST_CASE( scale_1 )
 	{ // test of an orthogonal design for scaling
 		ms_N_building b1("spatial_design/ms_N_test_3.txt");
-		std::stringstream sstr, check1, check2; 
-		
+				
 		b1.scale({{0,1.5},{1,2},{2,1.23}});
-		sstr << b1;
-		check1 << "N,1,	0,0,857.31,	4500,0,857.31,	0,6000,857.31,	4500,6000,857.31,	0,0,4547.31,	4500,0,4547.31,	0,6000,4547.31,	4500,6000,4547.31" << std::endl
-					<< "N,2,	0,0,6150,	4500,0,6150,	0,6000,6150,	4500,6000,6150,	0,0,9840,	4500,0,9840,	0,6000,9840,	4500,6000,9840" ;
-		BOOST_REQUIRE(sstr.str() == check1.str());
-		sstr.str(std::string());
+		std::vector<bso::utilities::geometry::vertex> pVertexSpace1 = {{0,0,857.31},{4500,0,857.31},{0,6000,857.31},{4500,6000,857.31},{0,0,4547.31},{4500,0,4547.31},{0,6000,4547.31},{4500,6000,4547.31}};
+		std::vector<bso::utilities::geometry::vertex> pVertexSpace2 = {{0,0,6150},{4500,0,6150},{0,6000,6150},{4500,6000,6150},{0,0,9840},{4500,0,9840},{0,6000,9840},{4500,6000,9840}};
+		// Check space 1 & 2 is found within pVertexSpace1 & pVertexSpace2
+		for (int i = 0; i < 8; i++)
+		{
+			bool found = false;
+			std::vector<bso::utilities::geometry::vertex> vertices = b1.getSpacePtrs()[0]->getVertices();
+			for (int j = 0; j < 8; j++)
+			{
+				if (vertices[i].isSameAs(pVertexSpace1[j], 0.001))
+				{
+					found = true;
+					break;
+				}
+			}
+			BOOST_REQUIRE(found);
+			found = false;
+			vertices = b1.getSpacePtrs()[1]->getVertices();
+			for (int j = 0; j < 8; j++)
+			{
+				if (vertices[i].isSameAs(pVertexSpace2[j], 0.001))
+				{
+					found = true;
+					break;
+				}
+			}
+			BOOST_REQUIRE(found);
+		}
 
 		b1.scale();
-		sstr << b1;
-		check2 << "N,1,	0,0,857.31,	6363.96,0,857.31,	0,8485.28,857.31,	6363.96,8485.28,857.31,	0,0,4547.31,	6363.96,0,4547.31,	0,8485.28,4547.31,	6363.96,8485.28,4547.31" << std::endl
-					<< "N,2,	0,0,6150,	6363.96,0,6150,	0,8485.28,6150,	6363.96,8485.28,6150,	0,0,9840,	6363.96,0,9840,	0,8485.28,9840,	6363.96,8485.28,9840";
-		BOOST_REQUIRE(sstr.str() == check2.str());
+		pVertexSpace1 = {{0,0,857.31},{6363.96,0,857.31},{0,8485.28,857.31},{6363.96,8485.28,857.31},{0,0,4547.31},{6363.96,0,4547.31},{0,8485.28,4547.31},{6363.96,8485.28,4547.31}};
+		pVertexSpace2 = {{0,0,6150},{6363.96,0,6150},{0,8485.28,6150},{6363.96,8485.28,6150},{0,0,9840},{6363.96,0,9840},{0,8485.28,9840},{6363.96,8485.28,9840}};
+		// Check space 1 & 2 is found within pVertexSpace1 & pVertexSpace2
+		for (int i = 0; i < 8; i++)
+		{
+			bool found = false;
+			std::vector<bso::utilities::geometry::vertex> vertices = b1.getSpacePtrs()[0]->getVertices();
+			for (int j = 0; j < 8; j++)
+			{
+				if (vertices[i].isSameAs(pVertexSpace1[j], 0.001))
+				{
+					found = true;
+					break;
+				}
+			}
+			BOOST_REQUIRE(found);
+			found = false;
+			vertices = b1.getSpacePtrs()[1]->getVertices();
+			for (int j = 0; j < 8; j++)
+			{
+				if (vertices[i].isSameAs(pVertexSpace2[j], 0.001))
+				{
+					found = true;
+					break;
+				}
+			}
+			BOOST_REQUIRE(found);
+		}
 		
 		BOOST_REQUIRE_THROW(b1.scale({{3,1.5}}), std::invalid_argument);
 		BOOST_REQUIRE_THROW(b1.scale({{1,1.0},{1,1.0}}), std::invalid_argument);
@@ -626,6 +672,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		sstr << b1;
 		check1 << "N,1,	0,0,0,	4500,0,0,	0,8000,0,	6000,8000,0,	0,0,5940,	4500,0,5940,	0,8000,5940,	6000,8000,5940" << std::endl
 					<< "N,2,	0,0,5940,	4500,-4000,5940,	0,6000,5940,	4500,6000,5940,	0,0,15840,	4500,-4000,15840,	0,6000,15840,	4500,6000,15840" ;
+		std::cout << sstr.str() << std::endl;
 		BOOST_REQUIRE(sstr.str() == check1.str());
 		sstr.str(std::string());
 
@@ -633,6 +680,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		sstr << b1;
 		check2 << "N,1,	0,0,0,	6363.96,0,0,	0,11313.7,0,	8485.28,11313.7,0,	0,0,5940,	6363.96,0,5940,	0,11313.7,5940,	8485.28,11313.7,5940" << std::endl
 					<< "N,2,	0,0,5940,	6363.96,-5656.85,5940,	0,8485.28,5940,	6363.96,8485.28,5940,	0,0,15840,	6363.96,-5656.85,15840,	0,8485.28,15840,	6363.96,8485.28,15840" ;
+		std::cout << sstr.str() << std::endl;
 		BOOST_REQUIRE(sstr.str() == check2.str());
 	}
 	

@@ -8,7 +8,7 @@
 #include <unit_tests/utilities/geometry_test.cpp>
 #include <unit_tests/utilities/data_handling_test.cpp>
 #include <unit_tests/utilities/delaunay_test.cpp>
-#include <unit_tests/utilities/data_plot_test.cpp>
+#include <unit_tests/utilities/data_export_test.cpp>
 #include <unit_tests/spatial_design/ms_space_test.cpp>
 #include <unit_tests/spatial_design/ms_building_test.cpp>
 #include <unit_tests/spatial_design/ms_N_building_test.cpp>

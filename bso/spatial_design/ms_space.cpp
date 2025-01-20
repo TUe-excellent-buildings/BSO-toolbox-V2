@@ -78,7 +78,7 @@ ms_space::ms_space(unsigned int id, std::vector <utilities::geometry::vertex> pV
 								 << "The following arguments initialized an invalid ms_space:" << std::endl
 								 << "ID: " << id << std::endl
 								 << "Vertices: " ;
-								 for(const auto i: pVert){errorMessage << i << "  ";}
+								 for(const auto& i: pVert){errorMessage << i << "  ";}
 								 errorMessage << std::endl;
 		if (spaceType != "") errorMessage << "spaceType: " << id << std::endl;
 		if (!surfaceTypes.empty())
@@ -338,7 +338,7 @@ void ms_space::reset()
 bool ms_space::checkValidity() const
 {
 	bool check = false;
-	if(sDefMethod == "R" | sDefMethod == "r")
+	if(sDefMethod == "R" || sDefMethod == "r")
 	{
 		bool check = mDimensions.minCoeff() < 0;
 		if (check)
@@ -351,7 +351,7 @@ bool ms_space::checkValidity() const
 			throw std::invalid_argument(errorMessage.str());
 		}
 	}
-	else if (sDefMethod == "N" | sDefMethod == "n")
+	else if (sDefMethod == "N" || sDefMethod == "n")
 	{
 		try
 		{
@@ -393,7 +393,7 @@ void ms_space::setPVertex(const std::vector <utilities::geometry::vertex> vertex
 	{
 		std::stringstream errorMessage;
 		errorMessage << "Could not set the vertices to space with ID \"" << mID << "\": the following vertices: " << std::endl;
-								 for(const auto i: vertexes) errorMessage << i << "; ";
+								 for(const auto& i: vertexes) errorMessage << i << "; ";
 								 errorMessage << "" << std::endl
 								 << "(bso/spatial_design/ms_space.hpp). Got the following error: " << std::endl
 								 << e.what() << std::endl;
@@ -523,7 +523,7 @@ utilities::geometry::quad_hexahedron ms_space::getGeometry() const
 	}
 	else if (sDefMethod == "N" || sDefMethod == "n")
 	{
-		for (int i=0; i<pVertex.size(); i++) cornerPoints.push_back(pVertex[i]);
+		for (long unsigned int i=0; i<pVertex.size(); i++) cornerPoints.push_back(pVertex[i]);
 	}
 
 	return bso::utilities::geometry::quad_hexahedron(cornerPoints);
@@ -560,7 +560,7 @@ double ms_space::getFloorArea() const
 	{
 		// This definition only upholds for as long as the roof and the floor are of the same area!
 		std::vector<bso::utilities::geometry::quadrilateral> Quads = this->getGeometry().getQuadrilateral();
-		for(const auto i: Quads)
+		for(const auto& i: Quads)
 		{
 			if(!i.getNormal().isVertical()) continue;
 			area += i.getArea();
@@ -582,7 +582,7 @@ double ms_space::getSurfaceArea() const
 	else
 	{
 		std::vector<bso::utilities::geometry::quadrilateral> Quads = this->getGeometry().getQuadrilateral();
-		for(const auto i: Quads)
+		for(const auto& i: Quads)
 		{
 			area += i.getArea();
 		}
@@ -639,7 +639,7 @@ std::ostream& operator <<(std::ostream& stream, const ms_space& space)
 	{
 		stream << "N" << "," << space.getID() << std::setprecision(std::numeric_limits<double>::max_digits10);
 		
-		for(const auto i: space.getVertices())
+		for(const auto& i: space.getVertices())
 		{
 			// The std::setprecision statement makes sure that the output file does not lose precision in value,
 			// This is important when a scaled design needs to be inputted again.

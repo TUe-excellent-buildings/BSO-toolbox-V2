@@ -89,8 +89,6 @@ namespace bso { namespace utilities { namespace geometry {
 		vector v1 = mVertices[1] - mVertices[0];
 		vector v2 = rhs[1] - rhs[0];
 		vector v3 = rhs[0] - mVertices[0];
-
-		int dec = (int)(-log10(tol));
 		
 		if (v1.isParallel(v2,tol)) return false;
 		else if (!v3.isPerpendicular(v1.cross(v2), tol)) return false;
@@ -105,7 +103,6 @@ namespace bso { namespace utilities { namespace geometry {
 					(s > 0.0-tol && s < 1.0+tol && t > 0.0+tol && t < 1.0-tol))
 			{ // if the scalars are smaller than one, the intersection point lies on both lines
 			pInt = (mVertices[0] + (s * v1));
-			//pInt.round(dec); // round can not be used in combination with NOBSD, since it leads to wrong intersection found
 			return true;
 			}
 			else return false;

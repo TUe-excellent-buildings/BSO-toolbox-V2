@@ -267,13 +267,13 @@ SD_Model::SD_Model(const bso::structural_design::sd_model& sd,
 		for (const auto& i : sd.getFEA()->getElements())
 		{
 			if (!i->visualize() && !ghostly) continue;
-			polygon_props* eleVisPProps;
-			line_props*		 eleVisLProps;
+			polygon_props* eleVisPProps = nullptr;
+			line_props*		 eleVisLProps = nullptr;
 			if (type == "element")
 			{
 				if (i->visualize())
 				{
-					if (i->isTruss()) eleVisPProps = &trussprops;
+					if (i->isTruss()) eleVisPProps = &trussprops; 
 					else if (i->isBeam()) eleVisPProps = &beamprops;
 					else if (i->isFlatShell()) eleVisPProps = &shellprops;
 					else if (i->isQuadHexahedron()) eleVisPProps = &quadhexprops;
@@ -297,11 +297,14 @@ SD_Model::SD_Model(const bso::structural_design::sd_model& sd,
 				if (type == "density") lookupValue = i->getDensity();
 				else lookupValue = log10(abs(i->getTotalEnergy())+1.0);
 				
+				bool eleVisLFound = false;
+				bool eleVisPFound = false;
 				for (auto& j : clusterPProps)
 				{
 					if (j.first >= lookupValue)
 					{
 						eleVisPProps = j.second;
+						eleVisPFound = true;
 						break;
 					}
 				}
@@ -310,9 +313,26 @@ SD_Model::SD_Model(const bso::structural_design::sd_model& sd,
 					if (j.first >= lookupValue)
 					{
 						eleVisLProps = j.second;
+						eleVisLFound = true;
 						break;
 					}
 				}
+				if(!eleVisLFound || !eleVisPFound)
+				{
+					std::stringstream errorMessage;
+					errorMessage << "\nWhen visualizing a sd model, did not find\n"
+											 << "the eleVisPProps or eleVisLProps.\n"
+											 << "(bso/visualization/models/sd_model.hpp)" << std::endl;
+					throw std::runtime_error(errorMessage.str());
+				}
+			}
+			else if (eleVisLProps == nullptr || eleVisPProps == nullptr)
+			{
+				std::stringstream errorMessage;
+					errorMessage << "\nWhen visualizing a sd model, did not find\n"
+											 << "the eleVisPProps or eleVisLProps.\n"
+											 << "(bso/visualization/models/sd_model.hpp)" << std::endl;
+					throw std::runtime_error(errorMessage.str());
 			}
 			else
 			{

@@ -31,11 +31,12 @@ public:
 	unsigned int getLastSpaceID() const;
 	double getVolume() const;
 	double getFloorArea() const;
+	int getNrElevations(const double mTol = 1e-3) const;
 	double getAverageHorizontalRibSize() const;
 	double getSpaceVolumeRatio() const;
 	void getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);
 	double getSpaceFloorAreaRatio() const;
-	void getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);
+	std::vector<double> getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);
 	double getAverageRecDif() const;
 	bool hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 		const double tol = 1e-3) const; 
@@ -55,7 +56,7 @@ public:
 	std::vector <bso::utilities::geometry::quadrilateral> getQuadAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol = 1e-3);
 	std::vector <bso::utilities::geometry::line_segment> getLinesAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol = 1e-3);
 	bso::utilities::geometry::vertex getCentreBuilding();
-	void getMostHeadingDirection(bso::utilities::geometry::vector& mostHeading, bso::utilities::geometry::vector& secondMostHeading, int amountOfHeadingCatagories = 6, const double& tol = 1e-3);
+	void getMostHeadingDirection(bso::utilities::geometry::vector& mostHeading, bso::utilities::geometry::vector& secondMostHeading, int amountOfHeadingCatagories = 6);
 
 	// Representation adjustment functions:
 	void setZZero(); 
@@ -74,7 +75,7 @@ public:
 	//void enforceSpaceSize(double minimumHeight, double minimumWidth, double minimumDepth);
 	void duplicateElevation(double atZFromGround = 0, double elevationHeight = 3000, bool duplicateBelowZLevel = true);
 	void shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHeadingDirection = false, int amountOfHeadingCatagories = 6, const double& tol = 1e-3);
-	void shiftFillPlane(const bso::utilities::geometry::vertex& location,
+	std::vector<bso::spatial_design::ms_space*> shiftFillPlane(const bso::utilities::geometry::vertex& location,
 		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3);
 	void extrude(std::vector<ms_space*> spacePtrs, const bso::utilities::geometry::vertex& location, 
 		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3);
@@ -89,7 +90,7 @@ public:
 	//void rotate(std::vector<ms_space*> mSpaces);
 	//void rotate(std::vector<ms_space*> mSpaces, bso::utilities::vector axis);
 	//void stretchAt();
-	void replicateSplits(std::vector<ms_space*> spaces); // under development
+	//void replicateSplits(std::vector<ms_space*> spaces); // under development
 	//void recenterBuilding();
 
 	// Space selection functions:

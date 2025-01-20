@@ -404,7 +404,7 @@ namespace bso { namespace utilities {
 		}
 		// split the lines at the end vertices of the lines and remove duplicates
 		std::vector<utilities::geometry::vertex> lineV;
-		for(const auto i: lines)
+		for(const auto& i: lines)
 		{
 			lineV.push_back(i[0]);
 			lineV.push_back(i[1]);
@@ -417,9 +417,9 @@ namespace bso { namespace utilities {
 		std::vector<std::vector<utilities::geometry::line_segment>> connectivityLines;
 		utilities::geometry::vertex startV = (lines[0])[0];
 		std::vector<utilities::geometry::line_segment> connectedLines;
-		int c=0;
+		long unsigned int c=0;
 
-		for(const auto i: lines)
+		for(const auto& i: lines)
 		{
 			c=0;
 			while(c < connectivityVertex.size())
@@ -472,6 +472,16 @@ namespace bso { namespace utilities {
 			}
 		}
 
+		std::cout << "connectivity overview: " << std::endl;
+		for(long unsigned int i=0; i<connectivityVertex.size(); i++)
+		{
+			std::cout << connectivityVertex[i] << " ; " << std::endl;
+			for(long unsigned int j=0; j<connectivityLines[i].size(); j++)
+			{
+				std::cout << connectivityLines[i][j] << std::endl;
+			}
+		}
+
 		// find starting line segment
 		utilities::geometry::line_segment consideredLine;
 		bso::utilities::geometry::vertex consideredV;
@@ -490,7 +500,7 @@ namespace bso { namespace utilities {
 			consideredLine = ((connectivityLines[c])[0]);
 			for(int i=1; i<connectivityLines[c].size(); i++)
 			{
-				double azimuth =  360 - ((connectivityLines[c])[i]).getVector().getHeading().first; // anti clockwise
+				azimuth =  360 - ((connectivityLines[c])[i]).getVector().getHeading().first; // anti clockwise
 				if(azimuth < smallestAzimuth) consideredLine = (connectivityLines[c])[i];
 			}
 			// Found start outerBound line
@@ -532,7 +542,7 @@ namespace bso { namespace utilities {
 				// 	throw std::invalid_argument(errorMessage.str());
 				// }
 				int count = 0;
-				for(const auto i: linesAtV)
+				for(const auto& i: linesAtV)
 				{
 					if(outerBound.back().isSameAs(i, mTol)) continue; // find line other then already know outbound
 					if(count == 0)
@@ -543,12 +553,13 @@ namespace bso { namespace utilities {
 						count++;
 						continue;
 					}
-					double azimuth =  currentAzimuth - i.getVector().getHeading().first; // anti clockwise
+					azimuth =  currentAzimuth - i.getVector().getHeading().first; // anti clockwise
 					if(azimuth < 0) azimuth = 360 + azimuth;
 					if(azimuth < smallestAzimuth) consideredLine = i;
 				}
 				// Found start outerBound line
 				outerBound.push_back(consideredLine);
+				std::cout << "pushed back: " << consideredLine << std::endl;
 				
 				// Define the other vertex then the considered vertex for searching for next outerBound line:
 				consideredV = (consideredLine)[1];
@@ -575,6 +586,7 @@ namespace bso { namespace utilities {
 										<< "(bso/utilities/delaunay.cpp)." << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 			}
+			std::cout << std::setprecision(std::numeric_limits<double>::max_digits10) << "consideredV: " << consideredV << " isSameAs? " << startV << " answer: " << std::endl;
 		}
 
 		return outerBound;
@@ -590,7 +602,7 @@ namespace bso { namespace utilities {
 		}
 		bool reverse = false;
 		bool done = false;
-		int i=0;
+		long unsigned int i=0;
 		int condition = lines.size();
 		int vID = 1;
 		while(!done)
@@ -639,8 +651,8 @@ namespace bso { namespace utilities {
 						int shift = condition-1 - i;
 						std::vector<bso::utilities::geometry::line_segment> temp = lines;
 						
-						int s = shift;
-						for(int count = 0; count < lines.size(); count++)
+						long unsigned int s = shift;
+						for(long unsigned int count = 0; count < lines.size(); count++)
 						{
 							lines[s]= temp[count];
 							s ++;
@@ -706,7 +718,7 @@ namespace bso { namespace utilities {
 		}
 	}
 
-	bool hasCourtyard(std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls, std::vector<std::vector<bso::utilities::geometry::line_segment>>& outerboundsExport, std::vector<bso::utilities::geometry::triangle>& triangleExport, const double mTol /*= 1e-3*/)
+	bool hasCourtyard(std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls, std::vector<std::vector<bso::utilities::geometry::line_segment>>& outerboundsExport, std::vector<bso::utilities::geometry::triangle>& triangleExport, std::vector<std::pair<double,std::vector<bso::utilities::geometry::polygon_non_convex>>>& courtyardsEnclosedPerElevation, std::vector<std::pair<double,std::vector<bso::utilities::geometry::polygon_non_convex>>>& courtyardsConnectedToAirPerElevation, const double mTol /*= 1e-3*/)
 	{
 		bool hasCourtyard = false;
 		
@@ -738,7 +750,7 @@ namespace bso { namespace utilities {
 		{
 			bool firstLine = false;
 			bso::utilities::geometry::line_segment line1;
-			for(const auto line: wall.getLines())
+			for(const auto& line: wall.getLines())
 			{
 				if(line.getVector().isHorizontal())
 				{
@@ -826,14 +838,16 @@ namespace bso { namespace utilities {
 
 		// Identify from the outerBoundPerElevation if any are courtyards
 		std::vector<std::pair<double,std::vector<bso::utilities::geometry::polygon_non_convex>>> courtyardsPerElevation;
+		std::vector<std::pair<double,std::vector<bso::utilities::geometry::polygon_non_convex>>> polyOutboundsPerElevation;
 		for(const auto& elevation: outerBoundPerElevation)
 		{
 			courtyardsPerElevation.emplace_back(elevation.first, std::vector<bso::utilities::geometry::polygon_non_convex>{});
+			polyOutboundsPerElevation.emplace_back(elevation.first, std::vector<bso::utilities::geometry::polygon_non_convex>{});
 			if(elevation.second.size() > 1)
 			{
 				// Redefine the outerbound to a polygon_non_convex, so we can use its geometry checks.
 				std::vector<bso::utilities::geometry::polygon_non_convex> polyOutbounds;
-				for(const auto outboundLines: elevation.second)
+				for(const auto& outboundLines: elevation.second)
 				{
 					std::vector<bso::utilities::geometry::vertex> outerboundVertexes;
 					for(const auto& line: outboundLines) {outerboundVertexes.push_back(line[0]);}
@@ -845,18 +859,19 @@ namespace bso { namespace utilities {
 												<< "(bso/utilities/delaunay.cpp)." << std::endl;
 						throw std::invalid_argument(errorMessage.str());
 					}
+					polyOutboundsPerElevation.back().second.push_back(bso::utilities::geometry::polygon_non_convex(outerboundVertexes));
 					polyOutbounds.push_back(bso::utilities::geometry::polygon_non_convex(outerboundVertexes));
 					for(auto& t: polyOutbounds.back().getTriangles())
 					{
 						triangleExport.push_back(t);
 					}
 				}
-				for(int i=0; i<polyOutbounds.size(); i++) // iterate trough each outerBound at elevation
+				for(long unsigned int i=0; i<polyOutbounds.size(); i++) // iterate trough each outerBound at elevation
 				{
-					for(int j=i+1; j<polyOutbounds.size(); j++) // iterate trough each outerBound at elevation
+					for(long unsigned int j=i+1; j<polyOutbounds.size(); j++) // iterate trough each outerBound at elevation
 					{
 						// Check if any vertex of outbound j is inside outbound i, if so, then outbound j is a courtyard in outbound i.
-						for(const auto vertexj: polyOutbounds[j])
+						for(const auto& vertexj: polyOutbounds[j])
 						{
 							if(polyOutbounds[i].isInside(vertexj, mTol))
 							{
@@ -865,7 +880,7 @@ namespace bso { namespace utilities {
 							}
 						}
 						// Alternatively, check if any vertex of outbound i is inside outbound j, if so, then outbound i is a courtyard in outbound j.
-						for(const auto vertexi: polyOutbounds[i])
+						for(const auto& vertexi: polyOutbounds[i])
 						{
 							if(polyOutbounds[j].isInside(vertexi, mTol))
 							{
@@ -878,11 +893,92 @@ namespace bso { namespace utilities {
 			}
 		}
 
-		for(const auto& i: courtyardsPerElevation)
+		// Check if the found courtyards are connected to the air or if they are fully enclosed courtyards
+		for(long unsigned int i=0; i<courtyardsPerElevation.size(); i++)
 		{
-			if(i.second.size() > 0)
+			courtyardsEnclosedPerElevation.emplace_back(courtyardsPerElevation[i].first, std::vector<bso::utilities::geometry::polygon_non_convex>{});
+			courtyardsConnectedToAirPerElevation.emplace_back(courtyardsPerElevation[i].first, std::vector<bso::utilities::geometry::polygon_non_convex>{});
+			if(courtyardsPerElevation[i].second.size() > 0)
 			{
 				hasCourtyard = true;
+			}
+			else {continue;}
+			
+			for(auto lowerCourtyard: courtyardsPerElevation[i].second)
+			{
+				long unsigned int upperCourtyardIndex=i+1;
+				bool seriesOfCourtyardsConnectedToAir = true;
+				std::vector<std::pair<double,std::vector<bso::utilities::geometry::polygon_non_convex>>> courtyardsConnectedToAir;
+				for(int c=0; courtyardsPerElevation.size(); c++)
+				{
+					courtyardsConnectedToAir.emplace_back(courtyardsPerElevation[c].first, std::vector<bso::utilities::geometry::polygon_non_convex>{});
+					if(courtyardsPerElevation[c].first == courtyardsConnectedToAir[i].first){courtyardsConnectedToAir[i].second.push_back(lowerCourtyard);}
+				}
+				// Check if there are any upperCourtyards which make the connection to the air
+				while(upperCourtyardIndex+1 < courtyardsPerElevation.size())
+				{
+					bool connectedUpperCourtyardFound = false;
+					for(const auto& upperCourtyard: courtyardsPerElevation[upperCourtyardIndex].second)
+					{
+						if(lowerCourtyard.isOverlapping(upperCourtyard, mTol))
+						{
+							// Courtyard not yet fully enclosed
+							courtyardsConnectedToAir[i].second.push_back(upperCourtyard);
+							lowerCourtyard = upperCourtyard;
+							connectedUpperCourtyardFound = true;
+							break;
+						}
+					}
+					if(!connectedUpperCourtyardFound)
+					{
+						// Courtyard is fully enclosed
+						seriesOfCourtyardsConnectedToAir = false;
+						courtyardsEnclosedPerElevation.back().second.push_back(lowerCourtyard);
+						break;
+					}
+
+					upperCourtyardIndex++;
+				}
+				// Check if the courtyards is outside the outerbound of the above elevation
+				bool outSideOutbounds = true;
+				for(const auto& outerbound: polyOutboundsPerElevation[i+1].second)
+				{
+					if(lowerCourtyard.isOverlapping(outerbound, mTol))
+					{
+						// Check if the overlap is full or not
+						bool allInside = true;
+						for(const auto& vertex: lowerCourtyard)
+						{
+							if(outerbound.isInside(vertex, mTol))
+							{
+								allInside = false;
+								break;
+							}
+						}
+						if(allInside)
+						{
+							// fully enclosed courtyard
+							outSideOutbounds = false;
+							courtyardsEnclosedPerElevation.back().second.push_back(lowerCourtyard);
+							break;
+						}
+					}
+				}
+				if(outSideOutbounds)
+				{
+					courtyardsConnectedToAirPerElevation[i].second.push_back(lowerCourtyard);
+				}
+
+				if(seriesOfCourtyardsConnectedToAir)
+				{
+					for(long unsigned int l=0; l<courtyardsConnectedToAirPerElevation.size(); l++)
+					{
+						for(auto& k: courtyardsConnectedToAir[l].second)
+						{
+							courtyardsConnectedToAirPerElevation[l].second.push_back(k);
+						}
+					}
+				}
 			}
 		}
 

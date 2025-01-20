@@ -22,7 +22,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 	void cf_point::checkVertex(cf_vertex* pPtr)
 	{
 		std::stringstream errorMessage;
-		errorMessage << "Cannot call \"split()\" on a cf_vertex\n"
+		errorMessage << "Cannot call \"split()\" on a cf_vertex: " <<  pPtr << " \n"
 								 << "(bso/spatial_design/conformal/cf_vertex.cpp)" << std::endl;
 		throw std::runtime_error(errorMessage.str());
 	}

@@ -10,7 +10,7 @@ namespace bso { namespace utilities { namespace geometry {
 			std::stringstream errorMessage;
 			errorMessage << "Cannot sort triangular prism:\n"
 										<< "received " << mSize << " vertices, expected 6: " << std::endl;
-										for(const auto i: mVertices){errorMessage << i;}
+										for(const auto& i: mVertices){errorMessage << i;}
 										errorMessage << "(bso/utilities/geoemtry/triangular_prism.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}	

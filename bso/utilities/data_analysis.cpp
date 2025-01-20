@@ -9,6 +9,14 @@ namespace bso { namespace utilities {
 	template <typename T>
 	T calculateMedian(std::vector<T> data) 
 	{
+		if(data.empty())
+		{
+			std::stringstream errorMessage;
+				errorMessage << "The dataSet is empty, so no outliers can be fount" << std::endl
+										<< "(bso/utilities/data_analysis.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+		}
+		
 		std::sort(data.begin(), data.end());
 		size_t size = data.size();
 
@@ -22,6 +30,14 @@ namespace bso { namespace utilities {
 	template <typename T>
 	T calculateQuartile(std::vector<T> data, double quartile) 
 	{
+		if(data.empty())
+		{
+			std::stringstream errorMessage;
+				errorMessage << "The dataSet is empty, so no outliers can be fount" << std::endl
+										<< "(bso/utilities/data_analysis.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+		}
+
 		std::sort(data.begin(), data.end());
 		double pos = (data.size() + 1) * quartile;
 		size_t intPos = static_cast<size_t>(pos);
@@ -39,6 +55,14 @@ namespace bso { namespace utilities {
 	template <typename T>
 	std::vector<T> findOutliers(std::vector<T> data) 
 	{
+		if(data.empty())
+		{
+			std::stringstream errorMessage;
+				errorMessage << "The dataSet is empty, so no outliers can be fount" << std::endl
+										<< "(bso/utilities/data_analysis.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+		}
+		
 		T Q1 = calculateQuartile(data, 0.25);
 		T Q3 = calculateQuartile(data, 0.75);
 		T IQR = Q3 - Q1;

@@ -33,7 +33,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		const std::vector<cf_triangle*		>& cfTriangles() 	const { return mCFTriangles;}
 		const std::vector<cf_space*			>& cfSpaces() 		const { return mCFSpaces;}
 		
-		const unsigned int getSpaceID() const {return mSpaceID;}
+		unsigned int getSpaceID() const {return mSpaceID;}
 		const std::string getSpaceType() const {return mSpaceType;}
 	};
 	

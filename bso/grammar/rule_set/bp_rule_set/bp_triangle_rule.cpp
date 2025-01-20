@@ -4,8 +4,8 @@
 namespace bso { namespace grammar { namespace rule_set { namespace bp_rule_set {
 
 bp_triangle_rule::bp_triangle_rule(triangle_property* triangleProperty)
-:	mConstruction(bso::building_physics::properties::construction("",{})),
-	mGlazing(bso::building_physics::properties::glazing("",1,1))
+:	mGlazing(bso::building_physics::properties::glazing("",1,1)),
+	mConstruction(bso::building_physics::properties::construction("",{}))	
 {
 	mTriangleProperty = triangleProperty;
 } // ctor()

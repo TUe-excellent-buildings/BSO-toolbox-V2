@@ -186,12 +186,54 @@ double ms_N_building::getFloorArea() const
 	double area = 0;
 	for (const auto& i : mSpaces) area += i->getFloorArea();
 	return area;
-}
+} // getFloorArea()
+
+int ms_N_building::getNrElevations(const double mTol /*= 1e-3*/) const
+{
+	std::vector<double> elevations;
+	for(const auto i: mSpaces)
+	{
+		bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+		bso::utilities::geometry::quadrilateral firstQuad;
+		bool fistQuadFound = false;
+		for(auto quad: spaceGeom.getQuadrilateral())
+		{
+			if(quad.getNormal().isVertical() && !fistQuadFound)
+			{
+				firstQuad = quad;
+				fistQuadFound = true;
+				continue;
+			}
+			else if(quad.getNormal().isVertical())
+			{
+				// determine the lowest quad
+				double checkLevel;
+				if(firstQuad.getCenter().z() > quad.getCenter().z()){checkLevel = quad.getCenter().z();}
+				else{checkLevel = firstQuad.getCenter().z();}
+				
+				// Check if elevation is already added
+				bool isAdded = false;
+				for(double& level: elevations)
+				{
+					if(checkLevel < level + mTol && checkLevel > level - mTol) 
+					{
+						isAdded = true; 
+						break;
+					}
+				}
+				if(!isAdded){elevations.push_back(checkLevel);}
+			}
+		}
+	}
+
+	return elevations.size();
+} // getNrElevations()
 
 double ms_N_building::getAverageHorizontalRibSize() const
 {
-	double averageSize;
+	double averageSize = 0;
 	int lineCount=0;
+	bool initialized = false;
 	for (const auto i : mSpaces)
 	{
 		//Get original space geometry
@@ -201,8 +243,18 @@ double ms_N_building::getAverageHorizontalRibSize() const
 		{
 			if(k.getVector().isVertical()) continue;
 			averageSize += k.getLength();
+			initialized = true;
 			lineCount++;
 		}
+	}
+	if(mSpaces.size() == 0 || !initialized)
+	{
+		std::stringstream errorMessage;
+			errorMessage << "Can not get average horizontal rib size, since there are" << std::endl
+									<<  "no spaces inside the mSpace container: " << mSpaces.size() << std::endl
+									<<  "or the spaces had no line_segments to consider " << std::endl
+									<< "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
+			throw std::invalid_argument(errorMessage.str());
 	}
 	averageSize = averageSize/lineCount;
 	return averageSize;
@@ -265,12 +317,12 @@ double ms_N_building::getSpaceFloorAreaRatio() const
 	return spaceFloorArea[0]/spaceFloorArea.back();
 }
 
-void ms_N_building::getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers)
+std::vector<double> ms_N_building::getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers)
 {
 	std::vector<double> spaceFloorArea;
 	for(const auto i: mSpaces)
 	{
-		spaceFloorArea.push_back(i->getVolume());
+		spaceFloorArea.push_back(i->getFloorArea());
 		average += i->getFloorArea();
 	}
 	average = average/(mSpaces.size());
@@ -279,6 +331,7 @@ void ms_N_building::getSpaceFloorAreaBoxPlotValues(double& median, double& first
 	firstQuartile = bso::utilities::calculateQuartile(spaceFloorArea, 0.25);
 	thirdQuartile = bso::utilities::calculateQuartile(spaceFloorArea, 0.75);
 	outliers = bso::utilities::findOutliers(spaceFloorArea);
+	return spaceFloorArea;
 }
 
 double ms_N_building::getAverageRecDif() const
@@ -429,7 +482,7 @@ void ms_N_building::scale(const std::vector<std::pair<unsigned int, double> >& s
 	for (auto i : mSpaces)
 	{
 		vertices = i->getVertices();
-		for (int k=0; k < vertices.size(); k++)
+		for (long unsigned int k=0; k < vertices.size(); k++)
 		{
 			for (auto j : scales)
 			{
@@ -490,13 +543,13 @@ void ms_N_building::splitSpace(ms_space* spacePtr, const std::vector<std::pair<u
 		{
 			std::pair<double,double> heading = (j.getVector()).getHeading();
 
-			if(abs((heading.first)-90) < abs(((axis0v.getHeading()).first)-90) && abs((heading.first)-90) < abs(((axis0v.getHeading()).first)-270) || abs((heading.first)-270) < abs(((axis0v.getHeading()).first)-270) && abs((heading.first)-270) < abs(((axis0v.getHeading()).first)-90)) 
+			if((abs((heading.first)-90) < abs(((axis0v.getHeading()).first)-90) && abs((heading.first)-90) < abs(((axis0v.getHeading()).first)-270)) || (abs((heading.first)-270) < abs(((axis0v.getHeading()).first)-270) && abs((heading.first)-270) < abs(((axis0v.getHeading()).first)-90))) 
 			{
 				axisL[0] = j;
 				axis0v = j.getVector();
 				continue;
 			}			
-			else if(abs((heading.first)) < abs(((axis1v.getHeading()).first)) && abs((heading.first)) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)) < abs(((axis1v.getHeading()).first)-360)|| abs((heading.first)-180) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)-180) < abs(((axis1v.getHeading()).first)) && abs((heading.first)-180) < abs(((axis1v.getHeading()).first)-360) || abs((heading.first)-360) < abs(((axis1v.getHeading()).first)-360) && abs((heading.first)-360) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)-360) < abs(((axis1v.getHeading()).first)))
+			else if((abs((heading.first)) < abs(((axis1v.getHeading()).first)) && abs((heading.first)) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)) < abs(((axis1v.getHeading()).first)-360))|| (abs((heading.first)-180) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)-180) < abs(((axis1v.getHeading()).first)) && abs((heading.first)-180) < abs(((axis1v.getHeading()).first)-360)) || (abs((heading.first)-360) < abs(((axis1v.getHeading()).first)-360) && abs((heading.first)-360) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)-360) < abs(((axis1v.getHeading()).first))))
 			{
 				axisL[1] = j;
 				axis1v = j.getVector();
@@ -596,7 +649,7 @@ void ms_N_building::splitSpace(ms_space* spacePtr, const std::vector<std::pair<u
 	// Define a matrix of vertices in the x-y-z direction of the new spaces; Note: these value's are calculated ones, thereby ensures exactly the same vertices for defining the new spaces
 	std::vector<std::vector<std::vector<bso::utilities::geometry::vertex>>> Vmatrix;
 	Vmatrix.resize(splitsdiv[0]+1);
-	for(int i=0; i<splitsdiv[0]+1; i++) //x-axis
+	for(unsigned int i=0; i<splitsdiv[0]+1; i++) //x-axis
 	{
 		Vmatrix[i].resize(splitsdiv[1]+1); //resize to fit the amount of vertexes to be found in the next for-loop
 		
@@ -605,11 +658,11 @@ void ms_N_building::splitSpace(ms_space* spacePtr, const std::vector<std::pair<u
 		tempV2 = (axisLOposite[0])[0] + (((axisLOposite[0]).getVector())/(splitsdiv[0]))*i;
 		bso::utilities::geometry::line_segment xL = {tempV1,tempV2};
 
-		for(int j=0; j<splitsdiv[1]+1; j++) // y-axis
+		for(unsigned int j=0; j<splitsdiv[1]+1; j++) // y-axis
 		{
 			Vmatrix[i][j].resize(splitsdiv[2]+1); //resize to fit the amount of vertexes to be found in the next for-loop
 
-			for(int k=0; k<splitsdiv[2]+1; k++) // z-axis
+			for(unsigned int k=0; k<splitsdiv[2]+1; k++) // z-axis
 			{
 				Vmatrix[i][j][k] = xL[0] + ((xL).getVector())/(splitsdiv[1])*j + heightV/(splitsdiv[2])*k;
 			}
@@ -617,11 +670,11 @@ void ms_N_building::splitSpace(ms_space* spacePtr, const std::vector<std::pair<u
 	}
 
 	// Generate and add the new spaces
-	for(int i=0; i<splitsdiv[0]; i++) //x-axis
+	for(unsigned int i=0; i<splitsdiv[0]; i++) //x-axis
 	{
-		for(int j=0; j<splitsdiv[1]; j++) // y-axis
+		for(unsigned int j=0; j<splitsdiv[1]; j++) // y-axis
 		{
-			for(int k=0; k<splitsdiv[2]; k++) // z-axis
+			for(unsigned int k=0; k<splitsdiv[2]; k++) // z-axis
 			{
 				mSpaces.push_back(new ms_space(*spacePtr));
 				mSpaces.back()->setID(++mLastSpaceID);
@@ -658,7 +711,7 @@ void ms_N_building::splitSpace(ms_space* spacePtr, int splitAmount, bso::utiliti
 	
 	std::pair<double,double> heading = lineToSplit.getVector().getHeading();
 	int axis;
-	if(heading.first >= 45 && heading.first < 135 || heading.first >= 225 && heading.first < 315) axis = 0;
+	if((heading.first >= 45 && heading.first < 135) || (heading.first >= 225 && heading.first < 315)) axis = 0;
 	else axis = 1;
 	
 	bso::utilities::geometry::quad_hexahedron geometry = spacePtr->getGeometry();
@@ -702,13 +755,13 @@ void ms_N_building::splitSpace(ms_space* spacePtr, int splitAmount, bso::utiliti
 		{
 			heading = (j.getVector()).getHeading();
 
-			if(abs((heading.first)-90) < abs(((axis0v.getHeading()).first)-90) && abs((heading.first)-90) < abs(((axis0v.getHeading()).first)-270) || abs((heading.first)-270) < abs(((axis0v.getHeading()).first)-270) && abs((heading.first)-270) < abs(((axis0v.getHeading()).first)-90)) 
+			if((abs((heading.first)-90) < abs(((axis0v.getHeading()).first)-90) && abs((heading.first)-90) < abs(((axis0v.getHeading()).first)-270)) || (abs((heading.first)-270) < abs(((axis0v.getHeading()).first)-270) && abs((heading.first)-270) < abs(((axis0v.getHeading()).first)-90))) 
 			{
 				axisL[0] = j;
 				axis0v = j.getVector();
 				continue;
 			}			
-			else if(abs((heading.first)) < abs(((axis1v.getHeading()).first)) && abs((heading.first)) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)) < abs(((axis1v.getHeading()).first)-360)|| abs((heading.first)-180) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)-180) < abs(((axis1v.getHeading()).first)) && abs((heading.first)-180) < abs(((axis1v.getHeading()).first)-360) || abs((heading.first)-360) < abs(((axis1v.getHeading()).first)-360) && abs((heading.first)-360) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)-360) < abs(((axis1v.getHeading()).first)))
+			else if((abs((heading.first)) < abs(((axis1v.getHeading()).first)) && abs((heading.first)) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)) < abs(((axis1v.getHeading()).first)-360))|| (abs((heading.first)-180) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)-180) < abs(((axis1v.getHeading()).first)) && abs((heading.first)-180) < abs(((axis1v.getHeading()).first)-360)) || (abs((heading.first)-360) < abs(((axis1v.getHeading()).first)-360) && abs((heading.first)-360) < abs(((axis1v.getHeading()).first)-180) && abs((heading.first)-360) < abs(((axis1v.getHeading()).first))))
 			{
 				axisL[1] = j;
 				axis1v = j.getVector();
@@ -822,7 +875,7 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 	std::vector<int> connectedSpaces;
 	std::vector<int> connectedSpacesTop;
 	std::vector<int> toShiftSpaces;
-	for (int i=0; i<mSpaces.size(); i++)
+	for (long unsigned int i=0; i<mSpaces.size(); i++)
 	{
 		bso::utilities::geometry::quad_hexahedron spaceGeom = mSpaces[i]->getGeometry();
 		bso::utilities::geometry::vertex center = spaceGeom.getCenter();
@@ -863,7 +916,7 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 		// Define the new pVertex vector of considered space
 		std::vector <utilities::geometry::vertex> pVert;
 		utilities::geometry::vertex temp;
-		for(const auto j: mSpaces[i]->getVertices())
+		for(const auto& j: mSpaces[i]->getVertices())
 		{
 			temp(0) = j.x();
 			temp(1) = j.y();
@@ -878,7 +931,7 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 	for(const int i: connectedSpaces)
 	{
 		bso::utilities::geometry::quad_hexahedron spaceGeom = mSpaces[i]->getGeometry();
-		for(const utilities::geometry::quadrilateral j: spaceGeom.getQuadrilateral())
+		for(const utilities::geometry::quadrilateral& j: spaceGeom.getQuadrilateral())
 		{
 			// Define new space with horizontal Quad from the original connected space which is located bellow the atZFromGround level
 			if(j.getNormal().isVertical())
@@ -890,7 +943,7 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 				// Define all vertices of new space
 				std::vector <utilities::geometry::vertex> pVert;
 				utilities::geometry::vertex temp;
-				for(const auto k: j)
+				for(const auto& k: j)
 				{						
 					temp(0) = k.x();
 					temp(1) = k.y();
@@ -916,7 +969,7 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 		int count = 0;
 		utilities::geometry::quadrilateral horizontalQuad1;
 		bso::utilities::geometry::quad_hexahedron spaceGeom = mSpaces[i]->getGeometry();
-		for(const auto j: spaceGeom.getQuadrilateral())
+		for(const auto& j: spaceGeom.getQuadrilateral())
 		{
 			// Define new space with horizontal Quad original space
 			if(j.getNormal().isVertical())
@@ -939,7 +992,7 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 				// Define all vertices of new space
 				std::vector <utilities::geometry::vertex> pVert;
 				utilities::geometry::vertex temp;
-				for(const auto k: topFloor)
+				for(const auto& k: topFloor)
 				{							
 					temp(0) = k.x();
 					temp(1) = k.y();
@@ -965,7 +1018,7 @@ void ms_N_building::shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHea
 	bso::utilities::geometry::vertex location = this->getCentreBuilding();
 	bso::utilities::geometry::vector mostHeading;
 	bso::utilities::geometry::vector secondMostHeading;
-	this->getMostHeadingDirection(mostHeading, secondMostHeading, amountOfHeadingCatagories, tol);
+	this->getMostHeadingDirection(mostHeading, secondMostHeading, amountOfHeadingCatagories);
 	std::cout << "mostHeading is: " << mostHeading << std::endl;
 	std::cout << "secondMostHeading is: " << secondMostHeading << std::endl;
 	
@@ -973,11 +1026,11 @@ void ms_N_building::shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHea
 	if(shiftInMostHeadingDirection == false){shiftDirection = {mostHeading.y(),-mostHeading.x(),0};}
 	else{shiftDirection = {mostHeading.x(),mostHeading.y(),0};}
 
-	//std::cout << "the found location/centre of the building is: " << location << std::endl;
-	//std::cout << "the heading found is with ID: " << IDMost << " and is found : " << most << " amount of times. " << std::endl;
-	//std::cout << "the most found frequent Heading is: " << ShiftDirectionPerpendicularHeading << std::endl;
-	//std::cout << "this heading defined in a vector is: " << perpendicularV << std::endl;
-	//std::cout << "the found shiftDirection is: " << shiftDirection << std::endl;
+	 std::cout << "the found location/centre of the building is: " << location << std::endl;
+	// std::cout << "the heading found is with ID: " << IDMost << " and is found : " << most << " amount of times. " << std::endl;
+	// std::cout << "the most found frequent Heading is: " << ShiftDirectionPerpendicularHeading << std::endl;
+	// std::cout << "this heading defined in a vector is: " << perpendicularV << std::endl;
+	 std::cout << "the found shiftDirection is: " << shiftDirection << std::endl;
 
 	// Check if spaces will be found to shift. If not, then go for the extrude option of the partial spaces:
 	std::vector<ms_space*> notSelectedSpaces;
@@ -994,7 +1047,21 @@ void ms_N_building::shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHea
 										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 	}
-	if(selection.size() == 0 && partialSpaces.size() != 0)
+
+	if(selection.size() != 0 && notSelectedSpaces.size() != 0)
+	{
+		std::vector<bso::spatial_design::ms_space*> newSpaces = this->shiftFillPlane(location, shiftDirection, shiftAmount, tol);
+		std::cout << "newSpaces size is: " << newSpaces.size() << std::endl;
+		for(const auto i: newSpaces){std::cout << "newSpaces is: " << *i << std::endl;}
+		if(newSpaces.size() == 0)
+		{
+			std::stringstream errorMessage;
+				errorMessage << "No new spaces are found to be added after the shiftFillPlaneCentre()" << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+		}
+	}
+	else if(selection.size() == 0 && partialSpaces.size() != 0)
 	{
 		this->extrude(partialSpaces, location, shiftDirection, shiftAmount, tol);
 	}
@@ -1005,14 +1072,20 @@ void ms_N_building::shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHea
 	}
 	else
 	{
-		this->shiftFillPlane(location, shiftDirection, shiftAmount, tol);
-	}	
+		std::stringstream errorMessage;
+				errorMessage << "No valid option for either shifting or extruding has been found. " << std::endl
+										<< "the nr of spaces to be shifted are: " << selection.size() << " and the nr of spaces not be be shifted " << notSelectedSpaces.size() << std::endl
+										<< "the nr of partial spaces found are: " << partialSpaces.size() << std::endl
+										<< "Inserted a different plane, not of location: " << location << "and shiftDirection" << shiftDirection << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+	}
 } // shiftFillPlaneCentre()
 
-void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& location,
+std::vector<bso::spatial_design::ms_space*> ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& location,
 		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol /*= 1e-3*/)
 {	
-	if(shiftDirection.z() > 0 || shiftDirection.x() <= tol && shiftDirection.x() >= -tol && shiftDirection.y() <= tol && shiftDirection.y() >= -tol)
+	if(shiftDirection.z() > 0 || (shiftDirection.x() <= tol && shiftDirection.x() >= -tol && shiftDirection.y() <= tol && shiftDirection.y() >= -tol))
 	{
 		std::stringstream errorMessage;
 				errorMessage << "There is no valid shift Direction defined." << std::endl
@@ -1074,7 +1147,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 	std::vector<bso::utilities::geometry::quadrilateral> toughingNSHQuads;
 	std::vector<double> allLevels;
 	bool shiftIssueStartOver = false;
-	for (int i=0; i<selection.size(); i++)
+	for (long unsigned int i=0; i<selection.size(); i++)
 	{
 		if(shiftIssueStartOver)
 		{ // Start over since a space has been found which would, upon shifting and quad sweeping, intersect non shifting spaces!
@@ -1097,18 +1170,18 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 			bso::utilities::geometry::quad_hexahedron spaceGeomNS = j->getGeometry();
 			std::vector<bso::utilities::geometry::quadrilateral> QuadNS = spaceGeomNS.getQuadrilateral();
 
-			for(const auto k: QuadS)
+			for(const auto& k: QuadS)
 			{
 				bool QuadSisVertical = k.getNormal().isVertical(); // if true then a horizontal plane is considered
 				
 				std::vector<bso::utilities::geometry::line_segment> linesk = k.getLines();
-				for(const auto t: QuadNS)
+				for(const auto& t: QuadNS)
 				{
 					if(QuadSisVertical && t.getNormal().isVertical()) // both are horizontal planes
 					{
 						if(!k.isCoplanar(t[0], tol) || !k.isCoplanar(t[2], tol)) continue; // the ID 0 and 2 vertices are opposing vertices therefore if hold then quads are coPlanar
 						bool anyIsInside = false;
-						for(const auto v: t)
+						for(const auto& v: t)
 						{
 							if(k.isInside(v, tol))
 							{
@@ -1118,7 +1191,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 						}
 						if(!anyIsInside)
 						{
-							for(const auto v: k)
+							for(const auto& v: k)
 							{
 								if(t.isInside(v, tol))
 								{
@@ -1182,7 +1255,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 						double upperXBoundk = (*k.begin()).x();
 						double upperYBoundk = (*k.begin()).y();
 						double upperZBoundk = (*k.begin()).z();
-						for(const auto vk: k)
+						for(const auto& vk: k)
 						{
 							if(vk.x()<lowerXBoundk){lowerXBoundk = vk.x();}
 							if(vk.y()<lowerYBoundk){lowerYBoundk = vk.y();}
@@ -1197,7 +1270,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 						double upperXBoundt = (*t.begin()).x();
 						double upperYBoundt = (*t.begin()).y();
 						double upperZBoundt = (*t.begin()).z();
-						for(const auto vt: t)
+						for(const auto& vt: t)
 						{
 							if(vt.x()<lowerXBoundt){lowerXBoundt = vt.x();}
 							if(vt.y()<lowerYBoundt){lowerYBoundt = vt.y();}
@@ -1267,7 +1340,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 									bso::utilities::geometry::line_segment checkLine0 = {pointOnPlaneZ0line0, cornerAtZ00};
 									bso::utilities::geometry::line_segment checkLine1 = {pointOnPlaneZ0line1, cornerAtZ01};
 									
-									for(const auto l: ((spaceGeomNS.getQuadrilateral())[4]).getLines())
+									for(const auto& l: ((spaceGeomNS.getQuadrilateral())[4]).getLines())
 									{
 										bso::utilities::geometry::line_segment lz0 = {{l[0].x(),l[0].y(),0},{l[1].x(),l[1].y(),0}};
 										bso::utilities::geometry::vertex intersectionPoint;
@@ -1357,7 +1430,6 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 	}
-
 	// Sort vector, bring all duplicates to end of vector plus get cut off point, then erase duplicates from the end of vector allLevels:
 	sort(allLevels.begin(), allLevels.end()); 
 	auto it = unique(allLevels.begin(), allLevels.end()); 
@@ -1367,7 +1439,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 	std::vector<std::vector<bso::utilities::geometry::line_segment>> linesAtFloor;
 	linesAtFloor.resize(allLevels.size()-1);
 	
-	for(int i=0; i< toughingSQuads.size(); i++)
+	for(long unsigned int i=0; i< toughingSQuads.size(); i++)
 	{
 		std::vector<bso::utilities::geometry::line_segment> lines = toughingSQuads[i].getLines();
 		// Generally, vertex toughingSQuads[i][2] represent/connect to horizontal line top level quad.
@@ -1386,7 +1458,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 			}
 		}
 		
-		for(int j=0; j<allLevels.size()-1; j++)
+		for(long unsigned int j=0; j<allLevels.size()-1; j++)
 		{
 			if(allLevels[j] >= (toughingSQuads[i][lineNr1]).z() && allLevels[j] < (toughingSQuads[i][lineNr2]).z())
 			{
@@ -1396,7 +1468,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		}
 	}
 	
-	for(int i=0; i< toughingNSQuads.size(); i++)
+	for(long unsigned int i=0; i< toughingNSQuads.size(); i++)
 	{
 		std::vector<bso::utilities::geometry::line_segment> lines = toughingNSQuads[i].getLines();
 		// Generally, vertex toughingSQuads[i][2] represent/connect to horizontal line top level quad.
@@ -1414,7 +1486,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 				lineNr2 = 3;
 			}
 		}
-		for(int j=0; j<allLevels.size()-1; j++)
+		for(long unsigned int j=0; j<allLevels.size()-1; j++)
 		{
 			if(allLevels[j] >= (toughingNSQuads[i][lineNr1]).z() && allLevels[j] < (toughingNSQuads[i][lineNr2]).z())// toughingNSQuads[i][2] represent top level quad and toughingNSQuads[i][0] represent bottom level quad
 			{
@@ -1432,7 +1504,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 		bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
 		std::vector <utilities::geometry::vertex> pVert;
 		utilities::geometry::vertex temp;
-		for(const auto j: spaceGeom.getVertices())
+		for(const auto& j: spaceGeom.getVertices())
 		{
 			temp = j + n * shiftAmount;
 			pVert.push_back(temp);
@@ -1448,7 +1520,7 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 	
 	std::vector<std::vector<bso::utilities::geometry::vertex>> allVertices;
 	allVertices.resize(allLevels.size()-1);
-	for(int i=0; i<linesAtFloor.size(); i++)
+	for(long unsigned int i=0; i<linesAtFloor.size(); i++)
 	{
 		for(auto j: linesAtFloor[i])
 		{
@@ -1456,13 +1528,13 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 			allVertices[i].push_back(j[1]);
 		}
 	}
-	for(int i=0; i<allLevels.size()-1; i++)
+	for(long unsigned int i=0; i<allLevels.size()-1; i++)
 	{
 		bso::utilities::splitLines(allVertices[i], linesAtFloor[i], false, tol);
 
-		for(int j=0; j< linesAtFloor[i].size(); j++)
+		for(long unsigned int j=0; j< linesAtFloor[i].size(); j++)
 		{
-			int index=0;
+			long unsigned int index=0;
 			while(index < linesAtFloor[i].size())
 			{
 				if(j == index)
@@ -1488,15 +1560,15 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 	// Generate lines opposing side i.e. shift the line so they are on the position of the shifted spaces and remove the lines invalid for space generation
 	std::vector<std::vector<bso::utilities::geometry::line_segment>> linesOpposite;
 	linesOpposite.resize(allLevels.size()-1);
-	for(int i=0; i< linesAtFloor.size(); i++)
+	for(long unsigned int i=0; i< linesAtFloor.size(); i++)
 	{
-		for(int j=0; j<linesAtFloor[i].size(); j++)
+		for(long unsigned int j=0; j<linesAtFloor[i].size(); j++)
 		{
 			bso::utilities::geometry::vertex v1 = (linesAtFloor[i][j])[0] + n * shiftAmount;
 			bso::utilities::geometry::vertex v2 = (linesAtFloor[i][j])[1] + n * shiftAmount;
 			bso::utilities::geometry::line_segment l = {v1,v2};
 			
-			// determine if line wil form a valid space:
+			// Determine if line wil form a valid space:
 			bool noSeparation = false;
 			bso::utilities::geometry::vector vec1 = linesAtFloor[i][j].getVector();
 			bso::utilities::geometry::vector vec2 = -1*vec1;
@@ -1516,11 +1588,12 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 	}
 	
 	// Define spaces between the pairs of lines and linesOpposites
-	for(int i=0; i<linesAtFloor.size(); i++)
+	std::vector<bso::spatial_design::ms_space*> newSpaces;
+	for(long unsigned int i=0; i<linesAtFloor.size(); i++)
 	{	
 		// Elevation height
 		bso::utilities::geometry::vector hightVector = {0,0,allLevels[i+1]-allLevels[i]};
-		for(int j=0; j< linesAtFloor[i].size(); j++)
+		for(long unsigned int j=0; j< linesAtFloor[i].size(); j++)
 		{
 			if(linesAtFloor[i].size() != linesOpposite[i].size())
 			{
@@ -1554,8 +1627,10 @@ void ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& locat
 			mSpaces.push_back(new ms_space());
  			mSpaces.back()->setID(newID);
 			mSpaces.back()->setPVertex(vertexes);
+			newSpaces.push_back(mSpaces.back());
 		}
 	}
+	return newSpaces;
 } // shiftFillCutPlane
 
 void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utilities::geometry::vertex& location, const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol /*= 1e-3*/)
@@ -1598,7 +1673,6 @@ void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utiliti
 			// Search which quads are on the planes side for extrusion:
 			bool allVerticesSelected = true;
 			bool oneOrMoreVerticesSelected = false;
-			bool partialSelection = false;
 			for (const auto& j : i)
 			{
 				double checkValue = shiftDirection.dot(j - location);
@@ -1607,7 +1681,6 @@ void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utiliti
 					if (checkValue >= 1e-3) oneOrMoreVerticesSelected = true;
 				}
 				else {allVerticesSelected = false;}
-				if (checkValue >= -1e-3 && checkValue <= 1e-3) partialSelection = true;
 			}
 			if (allVerticesSelected) fullyOnExtrusionSideQuad.push_back(i);
 			else if (oneOrMoreVerticesSelected)
@@ -1746,7 +1819,8 @@ void ms_N_building::enforceAverageSpaceSize(double minElevationHeight /*=3000*/,
 			}
 			else
 			{
-				if(!horizontalInit && k.getLength() > tol)
+				if(k.getLength() < tol) continue; // only consider horizontal lines which are long enough to avoid division by zero
+				if(!horizontalInit)
 				{
 					smallestHorizontalLength = k.getLength();
 					smallestHorizontalLine = k;
@@ -1760,6 +1834,13 @@ void ms_N_building::enforceAverageSpaceSize(double minElevationHeight /*=3000*/,
 			}
 		}
 	}
+	if(!horizontalInit || !verticalInit)
+	{
+		std::stringstream errorMessage;
+				errorMessage << "No horizontal or vertical lines found to enforce the average space size." << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+	}
 	
 	std::cout << "smallestHorizontalLength: " << smallestHorizontalLength << std::endl;
 	std::cout << "smallestVerticalLength: " << smallestVerticalLength << std::endl;
@@ -1769,7 +1850,7 @@ void ms_N_building::enforceAverageSpaceSize(double minElevationHeight /*=3000*/,
 	std::cout << "verticalInit is: " << verticalInit << std::endl;
 
 	// See how to split the other spaces to go near the smallest space size, but not over and split.
-	for(int id = 0; id < mSpaces.size(); id++)
+	for(long unsigned int id = 0; id < mSpaces.size(); id++)
 	{
 		std::vector<bso::utilities::geometry::line_segment> lines = mSpaces[id]->getGeometry().getLines();
 		for(auto&j: lines)
@@ -1853,41 +1934,55 @@ std::vector<ms_space*> ms_N_building::selectSpacesGeometrically(
 	return spaceSelection;
 } // selectSpacesGeometrically
 
-void ms_N_building::replicateSplits(std::vector<ms_space*> spaces)
-{
-	std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>> spaceAtGroundV;
-	std::vector<double> allLevels;
-	std::vector <utilities::geometry::line_segment> linesAtZ;
-
-	// These functions get the above defined information
-	double mTol = 0.001;
-	std::vector<bso::utilities::geometry::vertex> delauneyPoints;
-	std::vector<bso::utilities::geometry::line_segment> delauneyLines;
-
-	
-	// for(auto i: spaces)
+//void ms_N_building::replicateSplits(std::vector<ms_space*> spaces)
+//{
+    // utilities::geometry::vertex pIntersection;
+	// for (auto& space : spaces) 
 	// {
-		
-	// 	utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
-	// 	std::vector<utilities::geometry::line_segment> linesToConsider;
-	// 	for(const auto j: linesAtZ)
+    //     utilities::geometry::quad_hexahedron spaceGeom = space->getGeometry();
+    //     std::vector<utilities::geometry::line_segment> spaceEdges = spaceGeom.getLines();
+
+	// 	std::vector<bso::utilities::geometry::vertex> intersections;
+	// 	std::vector<bso::utilities::geometry::line_segment> intersectingLines;
+    //     for (auto& otherSpace : spaces) 
 	// 	{
-	// 		if(spaceGeom.isInsideOrOn(j[0]) || spaceGeom.isInsideOrOn(j[1])) linesToConsider.push_back(j);
-	// 	}
+    //         if (space == otherSpace) continue;
 
-	// 	if(linesToConsider.size() == 0)
-	// 	{
+    //         utilities::geometry::quad_hexahedron otherSpaceGeom = otherSpace->getGeometry();
+    //         std::vector<utilities::geometry::line_segment> otherSpaceEdges = otherSpaceGeom.getLines();
 
-	// 	}
-	// 	else if(linesToConsider.size() == 0)
-	// 	{
+	// 		// check for line-line intersections
+    //         for (auto& edge : otherSpaceEdges) 
+	// 		{
+    //             for (auto& spaceEdge : spaceEdges) 
+	// 			{
+    //                 if (edge->intersectsWith(spaceEdge, pIntersection, mTol))
+	// 				{
+	// 					intersectingLines.push_back(spaceEdge);
+	// 					intersections.push_back(pIntersection);
+	// 				}
+    //             }
+    //         }
 
-	// 	}
-	// }
+	// 		// check for line-polygon intersections
+	// 		for (auto& edge : otherSpaceEdges)
+	// 		{
+	// 			for (auto& polygon : spaceGeom.getPolygons())
+	// 			{
+	// 				if (polygon->intersectsWith(edge, pIntersection, mTol))
+	// 				{
+	// 					intersectingLines.push_back(spaceEdge);
+	// 					intersections.push_back(pIntersection);
+	// 				}
+	// 			}
+	// 		}
 
+			
+    //     }
+    // }
 
-
-}//replicateSplits()
+    
+//}//replicateSplits()
 
 
 bool ms_N_building::hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
@@ -2107,9 +2202,9 @@ bool ms_N_building::isFragmented(std::vector<ms_space*>& spacesNonBiggestFragmen
 	{
 		// Determine the largest fragment to keep 
 		int fragmentMaxSpaces = 0;	
-		int size = 0;
+		long unsigned int size = 0;
 		int count = 0;
-		for(const auto i: SpaceFragment)
+		for(const auto& i: SpaceFragment)
 		{
 			if(i.size() > size){size = i.size();fragmentMaxSpaces=count;}
 			count++;
@@ -2117,7 +2212,7 @@ bool ms_N_building::isFragmented(std::vector<ms_space*>& spacesNonBiggestFragmen
 		
 		// store the rest of the space in spacesNonBiggestFragment
 		count = -1;
-		for(const auto i: SpaceFragment)
+		for(const auto& i: SpaceFragment)
 		{
 			count++;
 			if(fragmentMaxSpaces == count){continue;}
@@ -2314,7 +2409,7 @@ bool ms_N_building::isFragmented(std::vector<ms_space*>& spacesNonBiggestFragmen
 
 void ms_N_building::getSpacesAtGround(std::vector<bso::spatial_design::ms_space*> spacePtr, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spaceAtGroundV, std::vector<double>& allLevels, const double mTol)
 {
-	for (const auto i : spacePtr)
+	for (const auto& i : spacePtr)
 	{
 		//Get original space geometry
 		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
@@ -2322,7 +2417,7 @@ void ms_N_building::getSpacesAtGround(std::vector<bso::spatial_design::ms_space*
 		//Find the highest and lowest vertex to add to allLevels and for the definition of the shifting vector
 		utilities::geometry::vertex lowVertex = spaceGeom[0];
 		utilities::geometry::vertex highVertex = spaceGeom[0];
-		for (const auto j: spaceGeom)
+		for (const auto& j: spaceGeom)
 		{
 			if(lowVertex.z() > j.z()) lowVertex = j;
 			else if(highVertex.z() < j.z()) highVertex = j;
@@ -2357,7 +2452,7 @@ void ms_N_building::getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::
 		//Find the highest and lowest vertex to add to allLevels and for the definition of the shifting vector
 		utilities::geometry::vertex lowVertex = spaceGeom[0];
 		utilities::geometry::vertex highVertex = spaceGeom[0];
-		for (const auto j: spaceGeom)
+		for (const auto& j: spaceGeom)
 		{
 			if(lowVertex.z() > j.z()) lowVertex = j;
 			else if(highVertex.z() < j.z()) highVertex = j;
@@ -2470,7 +2565,7 @@ bso::utilities::geometry::vertex ms_N_building::getCentreBuilding()
 	return centreOfBuilding;
 } //getCentreBuilding()
 
-void ms_N_building::getMostHeadingDirection(bso::utilities::geometry::vector& mostHeading, bso::utilities::geometry::vector& secondMostHeading, int amountOfHeadingCatagories /*= 6*/, const double& tol /*= 1e-3*/)
+void ms_N_building::getMostHeadingDirection(bso::utilities::geometry::vector& mostHeading, bso::utilities::geometry::vector& secondMostHeading, int amountOfHeadingCatagories /*= 6*/)
 {
 	bso::utilities::geometry::vector shiftDirection;
 
@@ -2536,8 +2631,8 @@ void ms_N_building::getMostHeadingDirection(bso::utilities::geometry::vector& mo
 	// Find most and second most frequent heading category in building
 	int biggestCategory = 0;
 	int secondBiggestCategory = 0;
-	int categorySize = 0;
-	int secondCategorySize = 0;
+	long unsigned int categorySize = 0;
+	long unsigned int secondCategorySize = 0;
 	for(int i=0; i<amountOfHeadingCatagories; i++)
 	{
 		if(headingInCategories[i].size() > categorySize)
@@ -2578,7 +2673,7 @@ void ms_N_building::getMostHeadingDirection(bso::utilities::geometry::vector& mo
 
 	int IDMost = headingFrequency.size() + 1;
 	int most = 1;
-	for(int i=0; i<headingFrequency.size(); i++)
+	for(long unsigned int i=0; i<headingFrequency.size(); i++)
 	{
 		if((headingFrequency[i]).second > most)
 		{
@@ -2627,12 +2722,12 @@ void ms_N_building::getMostHeadingDirection(bso::utilities::geometry::vector& mo
 
 	int IDSecondMost = secondHeadingFrequency.size() + 1;
 	int secondMost = 1;
-	for(int i=0; i<secondHeadingFrequency.size(); i++)
+	for(long unsigned int i=0; i<secondHeadingFrequency.size(); i++)
 	{
 		if((secondHeadingFrequency[i]).second > secondMost)
 		{
 			secondMost = (secondHeadingFrequency[i]).second;
-			IDMost = i;
+			IDSecondMost = i;
 		}
 	}
 	double SecondShiftDirectionPerpendicularHeading;
@@ -2642,7 +2737,7 @@ void ms_N_building::getMostHeadingDirection(bso::utilities::geometry::vector& mo
 	}
 	else // use the heading secondMost frequent
 	{
-		SecondShiftDirectionPerpendicularHeading = (secondHeadingFrequency[IDMost]).first;
+		SecondShiftDirectionPerpendicularHeading = (secondHeadingFrequency[IDSecondMost]).first;
 	}
 
 	// define the secondMostHeading from ShiftDirectionPerpendicularHeading
@@ -2662,7 +2757,7 @@ void ms_N_building::getMostHeadingDirection(bso::utilities::geometry::vector& mo
 
 void ms_N_building::getDelaunayVariables(std::vector <utilities::geometry::vertex>& delaunayPoints, std::vector <utilities::geometry::line_segment>& delaunayLines, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol)
 {
-	for(const auto j: spacePair)
+	for(const auto& j: spacePair)
 	{
 		// Add all unique cornerpoints at z=0 of spaceAtGround to the delaunayPoints
 		for(auto v: j.second)
@@ -2743,20 +2838,22 @@ void ms_N_building::getDelaunayVariables(std::vector <utilities::geometry::verte
 
 void ms_N_building::addBoundary() 
 {
-	double min_x, min_y, max_x, max_y, min_z, max_z = 0.0;
+	double min_x = mSpaces[0]->getVertices()[0](0), min_y = mSpaces[0]->getVertices()[0](1), max_x = 0.0, max_y = 0.0, min_z = mSpaces[0]->getVertices()[0](2), max_z = 0.0;
 	int i = 0;
 	std::string msBoundary;
 	// Look through each pre-existing space
-	std::for_each(mSpaces.begin(),mSpaces.end(),[&](const auto& elem) { 
+	std::for_each(mSpaces.begin(),mSpaces.end(),[&](const auto& elem) 
+	{ 
 		// Get bounding vertices of a given space
 		std::vector<utilities::geometry::vertex> v = elem->getVertices();
 	
-		
 		// Iterate over each vertex (point)
-		std::for_each(v.begin(),v.end(),[&](const auto& vert) {
+		std::for_each(v.begin(),v.end(),[&](const auto& vert) 
+		{
 			// Set a counter
 			i=0;
-			std::for_each(vert.begin(),vert.end(),[&](double coordinate) {
+			std::for_each(vert.begin(),vert.end(),[&](double coordinate) 
+			{
 				if(!i && coordinate < min_x) min_x = coordinate;
 				if(!i && coordinate > max_x) max_x = coordinate;
 

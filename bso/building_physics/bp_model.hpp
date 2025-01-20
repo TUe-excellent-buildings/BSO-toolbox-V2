@@ -69,8 +69,8 @@ public:
 	bp_results getPartialResults(bso::utilities::geometry::polyhedron* geom);
 	
 	const state_space_system& getStateSpaceSystem() const {return mSystem;}
-	const unsigned int getNextDependentIndex() {return mDependentCount++;}
-	const unsigned int getNextIndependentIndex() {return mIndependentCount++;}
+	unsigned int getNextDependentIndex() {return mDependentCount++;}
+	unsigned int getNextIndependentIndex() {return mIndependentCount++;}
 	const std::vector<state::state*>& getStates() const {return mStates;}
 	const std::vector<state::dependent_state*>& getDependentStates() const
 				{return mDependentStates;}

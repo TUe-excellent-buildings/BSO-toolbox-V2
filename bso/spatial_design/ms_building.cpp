@@ -722,7 +722,6 @@ bool ms_building::hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces,
 {
 	std::vector<bso::utilities::geometry::quad_hexahedron> groundedSpaceGeoms;
 	floatingSpaces = mSpaces;
-	bool hasFloatingSpaces = false;
 	bool addedSpaceToGroundedSpaceGeoms = true; // initial
 	while (addedSpaceToGroundedSpaceGeoms)
 	{
@@ -851,7 +850,6 @@ ms_building::operator sc_building() const
 	try
 	{
 		sc_building sc;
-		bso::utilities::geometry::vertex minMSPoint = {0,0,0};
 		std::vector<std::vector<double> > coordValues(3); // {xValues,yValues,Zvalues}
 		
 		// store all coordinate values in this MS building model in the three std::vectors

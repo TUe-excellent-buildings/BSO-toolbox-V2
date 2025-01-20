@@ -18,7 +18,7 @@ namespace bso { namespace structural_design { namespace element {
 
 	void element::generateEFT()
 	{ //
-		mEFT.clear();unsigned int count = 0;
+		mEFT.clear();
 		unsigned int localDOF = 0;
 		for (const auto& i : mNodes)
 		{
@@ -141,6 +141,7 @@ namespace bso { namespace structural_design { namespace element {
 	{
 		std::stringstream errorMessage;
 		errorMessage << "\nCannot call getStressAtCenter() for this element type\n"
+					 << "with alpha: " << alpha << " and beta: " << beta << "\n"
 							<< "(bso/structural_design/element/element.cpp)" << std::endl;
 		throw std::runtime_error(errorMessage.str());
 	} // getStressCenter() gives error (standard) except for elements in which the function is overridden
@@ -149,6 +150,7 @@ namespace bso { namespace structural_design { namespace element {
 	{
 		std::stringstream errorMessage;
 		errorMessage << "\nCannot call getStressSensitivityTermAE() for this element type\n"
+					 << "with freeDOFs: " << freeDOFs << " and alpha: " << alpha << "\n"
 							<< "(bso/structural_design/element/element.cpp)" << std::endl;
 		throw std::runtime_error(errorMessage.str());
 	} // getStressSensitivityTermAE() gives error (standard) except for elements in which the function is over-written
@@ -157,6 +159,7 @@ namespace bso { namespace structural_design { namespace element {
 	{
 		std::stringstream errorMessage;
 		errorMessage << "\nCannot call getStressSensitivity() for this element type\n"
+					 << "with Lamda: " << Lamda << " and penal: " << penal << " and beta: " << beta << "\n"
 							<< "(bso/structural_design/element/element.cpp)" << std::endl;
 		throw std::runtime_error(errorMessage.str());
 	} // getStressSensitivity() gives error (standard) except for elements in which the function is over-written

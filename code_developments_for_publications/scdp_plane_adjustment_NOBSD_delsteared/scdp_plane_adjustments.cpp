@@ -15,6 +15,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <stdexcept>
 #include <map>
@@ -212,6 +213,21 @@ void getResultDir(std::string& dir, std::string inputFile, std::string modificat
 	}
 }
 
+void logError(const std::string& errorMessage, std::string inputFile, std::string modification, int iterations, int errorIteration) 
+{
+    std::ofstream errorLog("error_log", std::ios_base::app); // Open file in append mode
+    if (errorLog.is_open()) 
+	{
+        errorLog << "inputFile:" << inputFile << "\nThe following error message was obtained using modification: " << modification << ", \n"
+				 << "with max iterations: " << iterations << ", error occurred in iteration: " << errorIteration << "\n";
+		errorLog << errorMessage << "\n\n"; // Append error message with a newline for spacing
+        errorLog.close();
+    } 
+	else 
+	{
+        std::cerr << "Unable to open error_log file." << std::endl;
+    }
+}
 
 using namespace bso;
 int main(int argc, char* argv[])
@@ -846,7 +862,7 @@ int main(int argc, char* argv[])
 	double averageSpaceSize = msDesigns.back().getAverageHorizontalRibSize();
 
 	// Enforce AverageSpace Size
-	if(averageSpace && adaptation == "delAdapt" || averageSpace && adaptation == "elevation" || averageSpace && adaptation == "shiftfill")
+	if((averageSpace && adaptation == "delAdapt") || (averageSpace && adaptation == "elevation") || (averageSpace && adaptation == "shiftfill"))
 	{
 		msDesigns.back().enforceAverageSpaceSize();
 		out("Enforce averageSpaceSize", true, true, verbose);
@@ -859,6 +875,8 @@ int main(int argc, char* argv[])
 	std::vector<utilities::data_point> designPerformancesMidAdaptation;
 	std::vector<spatial_design::ms_N_building> msDesignsMidAdaptation;
 	std::vector<std::string> axisDesignPerformances = {"sd","bp"};
+	std::vector<double> sd_total_load;
+	std::vector<double> exteriorSurfaceArea;
 	int finalIteration = 0;
 	try
 	{
@@ -866,7 +884,7 @@ int main(int argc, char* argv[])
 		{
 			out("\nIteration: ",false,false,verbose); out(i,true,false,verbose);
 			
-			if(deleteMethod == "worst" && averageSpace || deleteMethod == "cluster" && averageSpace)
+			if((deleteMethod == "worst" && averageSpace) || (deleteMethod == "cluster" && averageSpace))
 			{
 				msDesigns.back().enforceAverageSpaceSize();
 				out("Enforce averageSpaceSize", true, true, verbose);
@@ -880,35 +898,60 @@ int main(int argc, char* argv[])
 
 			grammar::grammar grm(cf);
 			out("Initialized grammar",true,true,verbose);
+			std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls = grm.getExteriorWalls();
+			double sumExteriorWallArea = 0.0;
+			for(const auto& wall: exteriorWalls){sumExteriorWallArea += wall.getArea();}
+			exteriorSurfaceArea.push_back(sumExteriorWallArea);
+			out("Got exterior wall Area",true,true,verbose);
 
 			// Check for courtyard:
-			// try
-			// {
-			// 	std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls = grm.getExteriorWalls();
-			// 	out("Collected exterior walls",true,true,verbose);
-			// 	std::vector<std::vector<bso::utilities::geometry::line_segment>> outerboundsExport;
-			// 	std::vector<bso::utilities::geometry::triangle> triangleExport;
-			// 	bool hasCourtyards = bso::utilities::hasCourtyard(exteriorWalls, outerboundsExport, triangleExport, 1e-2);
-			// 	out("Checked for courtyards: ",false,false,verbose);out(hasCourtyards,true,true,verbose);
+			try
+			{
+				std::vector<std::vector<bso::utilities::geometry::line_segment>> outerboundsExport;
+				std::vector<bso::utilities::geometry::triangle> triangleExport;
+				std::vector<std::pair<double,std::vector<bso::utilities::geometry::polygon_non_convex>>> courtyardsEnclosedPerElevation;
+				std::vector<std::pair<double,std::vector<bso::utilities::geometry::polygon_non_convex>>> courtyardsConnectedToAirPerElevation;
+				bool hasCourtyards = bso::utilities::hasCourtyard(exteriorWalls, outerboundsExport, triangleExport, courtyardsEnclosedPerElevation, courtyardsConnectedToAirPerElevation, 1e-2);
+				out("Checked for courtyards: ",false,false,verbose);out(hasCourtyards,true,true,verbose);
+				if(hasCourtyards)
+				{
+					std::cout << "courtyardsEnclosedPerElevation is: " << std::endl;
+					for(const auto& a: courtyardsEnclosedPerElevation)
+					{
+						std::cout << "Elevation: " << a.first << std::endl;
+						for(const auto& b: a.second)
+						{
+							std::cout << "Courtyard: " << b << std::endl;
+						}
+					}
+					std::cout << "courtyardsConnectedToAirPerElevation is: " << std::endl;
+					for(const auto& a: courtyardsConnectedToAirPerElevation)
+					{
+						std::cout << "Elevation: " << a.first << std::endl;
+						for(const auto& b: a.second)
+						{
+							std::cout << "Courtyard: " << b << std::endl;
+						}
+					}
+				}
 
-			// 	std::vector<bso::utilities::geometry::quad_hexahedron> QHs;
-			// 	std::vector<bso::utilities::geometry::triangular_prism> triPrisms;
-			// 	std::vector<bso::utilities::geometry::quadrilateral> quads;
-			// 	std::vector<bso::utilities::geometry::line_segment> linesExport;
-			// 	for(const auto b: outerboundsExport)
-			// 	{
-			// 		for(const auto a: b){linesExport.push_back(a);}
-			// 	}
-			// 	if (!visualizations.empty()) visualization::visualize(QHs, triPrisms, quads, triangleExport, linesExport);
-			// }
-			// catch(const std::exception& e)
-			// {
-			// 	if(verbose)
-			// 	{
-			// 		std::stringstream errorMessage;
-			// 		errorMessage << "Unable to get result for the check for courtyards because of\n" << e.what() << std::endl;
-			// 	}
-			// }
+				std::vector<bso::utilities::geometry::quad_hexahedron> QHs;
+				std::vector<bso::utilities::geometry::triangular_prism> triPrisms;
+				std::vector<bso::utilities::geometry::quadrilateral> quads;
+				std::vector<bso::utilities::geometry::line_segment> linesExport;
+				for(const auto& b: outerboundsExport)
+				{
+					for(const auto& a: b){linesExport.push_back(a);}
+				}
+				if (!visualizations.empty()) visualization::visualize(QHs, triPrisms, quads, triangleExport, linesExport);
+			}
+			catch(const std::exception& e)
+			{
+				if(verbose)
+				{
+					std::cout << "Unable to get result for the check for courtyards because of\n" << e.what() << std::endl;
+				}
+			}
 
 			sdModels.push_back(grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"))); 
 			out("Generated structural model",true,true,verbose);
@@ -916,6 +959,7 @@ int main(int argc, char* argv[])
 			sdModels.back().analyze();
 			out("Evaluated structural model: ",false,false,verbose);
 			double sdResult = sdModels.back().getTotalResults().mTotalStrainEnergy;
+			sd_total_load.push_back(sdModels.back().getTotalLoad());
 			out(sdResult,true,true,verbose);
 			designPerformances.back()(0) = sdResult;
 			
@@ -969,7 +1013,7 @@ int main(int argc, char* argv[])
 
 					// Determine the centre of to delete spaces:
 					bso::utilities::geometry::vertex deleteCentre = {0,0,0};
-					for(int k=performancesAdMethod.size()-1; k>=performancesAdMethod.size()-spaceAmountRemoval; k--)
+					for(long unsigned int k=performancesAdMethod.size()-1; k>=performancesAdMethod.size()-spaceAmountRemoval; k--)
 					{
 						//std::cout << "identified deletespace is: " << *(performancesAdMethod[k].getMSpacePtrs().back()) << std::endl;
 						deleteCentre += performancesAdMethod[k].getMSpacePtrs().back()->getGeometry().getCenter(); // get to delete space centre
@@ -1102,7 +1146,7 @@ int main(int argc, char* argv[])
 						// Determine space removal amount && Remove spaces
 						int spaceAmountRemoval = round(nSpaces*spaceAdjustWorstRatio);;
 						if((performances.size() - spaceAmountRemoval) < nSpaces){spaceAmountRemoval = performances.size() - nSpaces;}
-						for(int k=performances.size()-1; k>=performances.size()-spaceAmountRemoval; k--){newMS.deleteSpace(performances[k].getMSpacePtrs().back());}
+						for(long unsigned int k=performances.size()-1; k>=performances.size()-spaceAmountRemoval; k--){newMS.deleteSpace(performances[k].getMSpacePtrs().back());}
 						
 						// Enforce constrains on BSD
 						enforceConstrains(newMS, removeSmallerFragments);
@@ -1118,7 +1162,7 @@ int main(int argc, char* argv[])
 			else{getPerformancePerSpace(performances, newMS, sdModels.back(),  bpModels.back(), modification, performanceDivision);}
 			out("Collected performances for each space",true,true,verbose);	
 
-			// step 3, normalize the data points
+			// Step 3, normalize the data points
 			utilities::data_point utopianPoint;
 			utilities::data_point distopianPoint;
 			normalizeData(performances, utopianPoint, distopianPoint);
@@ -1202,14 +1246,14 @@ int main(int argc, char* argv[])
 				if(removeMaxValue)
 				{
 					std::reverse(performancesRemoveSpace.begin(), performancesRemoveSpace.end());
-					for(int k=performancesRemoveSpace.size()-1; k>=performancesRemoveSpace.size()-spaceAmountRemoval; k--)
+					for(long unsigned int k=performancesRemoveSpace.size()-1; k>=performancesRemoveSpace.size()-spaceAmountRemoval; k--)
 					{
 						newMS.deleteSpace(performancesRemoveSpace[k].getMSpacePtrs().back());
 					}
 				}
 				else
 				{
-					for(int k=performancesRemoveSpace.size()-1; k>=performancesRemoveSpace.size()-spaceAmountRemoval; k--)
+					for(long unsigned int k=performancesRemoveSpace.size()-1; k>=performancesRemoveSpace.size()-spaceAmountRemoval; k--)
 					{
 						newMS.deleteSpace(performancesRemoveSpace[k].getMSpacePtrs().back());
 					}
@@ -1234,7 +1278,7 @@ int main(int argc, char* argv[])
 					for (const auto& j : newMS.getSpacePtrs())
 					{
 						std::vector<bso::utilities::geometry::line_segment> lines = j->getGeometry().getLines();
-						for(const auto k: lines)
+						for(const auto& k: lines)
 						{
 							if(k.getVector().isVertical())
 							{
@@ -1272,7 +1316,7 @@ int main(int argc, char* argv[])
 					bso::utilities::geometry::line_segment LongestAxis;
 					double longestLength = 0;
 					bool found = false;
-					for(const auto k: lines)
+					for(const auto& k: lines)
 					{
 						if(k.getVector().isVertical())
 						{
@@ -1305,11 +1349,16 @@ int main(int argc, char* argv[])
 	}
 	catch(const std::exception& e)
 	{		
+		// Log error message to export file 'log_error'
+		logError(e.what(), inputFile, modification, iterations, finalIteration);
+
+		// Terminal message
 		std::cout << "Error, could not finalize the run.\n"
 				  << "Received the following error:\n" << e.what() << " \n"
 				  << "start output generation despite not finishing: " << std::endl;
 	}
 
+	out("Start outputting data",true,true,verbose);
 	// Output the requested outputs:
 	std::vector<unsigned int> outputSpaces;
 	// if best, find which designs are best;
@@ -1340,12 +1389,15 @@ int main(int argc, char* argv[])
 		catch(const std::exception& e){std::cout << "During the generation of the paretoFront plots, the following error occurred:" << e.what() << '\n';}
 		try{dp.plotVector2D(fileVector, plotVector, visualizePlot, true);}
 		catch(const std::exception& e){std::cout << "During the generation of the Vector2D plots, the following error occurred:" << e.what() << '\n';}
+		out("Made all plots",true,true,verbose);
 	}
+
 	if(combineData)
 	{		
 		utilities::data_export dp(designPerformances, axisDesignPerformances, "Design Iteration");
-		dp.addToCombinedDataFile("combined_data.csv", modification, inputFile, maxIterationsInSequence);
-		dp.addToOverviewCombinedDataFile("overView_data.csv", modification, inputFile, finalIteration);
+		dp.addToCombinedDataFile("combined_data.csv", modification, inputFile, maxIterationsInSequence, msDesigns, sd_total_load, exteriorSurfaceArea);
+		dp.addToOverviewCombinedDataFile("overView_data.csv", modification, inputFile, finalIteration, msDesigns[0]);
+		out("Combined the data in multiple run file",true,true,verbose);
 	}
 	
 	for (const auto& i : outputSpaces)
@@ -1361,6 +1413,7 @@ int main(int argc, char* argv[])
 								{
 									std::cout << designName << RNGSeed << std::endl;
 								}
+			
 		}
 		if (ms_files)
 		{
@@ -1378,6 +1431,9 @@ int main(int argc, char* argv[])
 			msDesigns[i].writeToFile(fileName);
 		}
 	}
+	
+	if (result_line){out("Printed result lines to terminal",true,true,verbose);}
+	if (ms_files){out("Generated ms_files for output",true,true,verbose);}
 
 	if (!visualizations.empty()) visualization::endVisualization();
 	

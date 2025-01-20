@@ -31,7 +31,7 @@ public:
 	~clustering();
 	
 	const std::vector<cluster>& getClusters() const {return mClusters;}
-	const unsigned int getRNGSeed() const {return mRNGSeed;}
+	unsigned int getRNGSeed() const {return mRNGSeed;}
 };
 	
 } // namespace utilities

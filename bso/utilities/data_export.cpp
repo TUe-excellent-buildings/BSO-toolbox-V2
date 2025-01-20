@@ -75,7 +75,7 @@ void data_export::writeDataToFile(const std::vector<std::shared_ptr<data_point> 
     output << std::endl;
     for(const auto& i: data)
     {
-        for(int j=0; j< (*i).size(); j++)
+        for(unsigned int j=0; j< (*i).size(); j++)
         {     
             output << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*i)(j) << "\t";
         }
@@ -136,11 +136,11 @@ void data_export::writeVectorStyleFile(const std::vector<std::shared_ptr<data_po
         {
             const auto& next_i = *std::next(it);
 
-            for(int j=0; j< (*i).size(); j++)
+            for(unsigned int j=0; j< (*i).size(); j++)
             {
                 output  << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*i)(j) << "\t";
             }
-            for(int j=0; j< (*next_i).size(); j++)
+            for(unsigned int j=0; j< (*next_i).size(); j++)
             {
                 output << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << ((*next_i)(j)-(*i)(j)) << "\t";
             }
@@ -152,7 +152,47 @@ void data_export::writeVectorStyleFile(const std::vector<std::shared_ptr<data_po
     vectorStyleData = fileName;
 } // writeVectorStyleFile()
 
-void data_export::addToCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int& nrIterations)
+void data_export::dataPointToStream(const utilities::data_point& data, std::ostringstream& oss) 
+{
+    for (unsigned int j=0; j < data.size(); j++) 
+    {
+        oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << data(j) << ",";
+    }
+}
+
+template <typename T>
+void data_export::vectorToStream(const std::vector<T>& data, unsigned int& iteration, const unsigned int& nrIterations, const int switchLineCount, const int lineCount, std::ostringstream& oss) 
+{
+    if(switchLineCount > lineCount)
+    {
+        oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << data[iteration] << ",";
+        iteration++;
+    }
+    else if(iteration <= nrIterations)
+    {
+        oss << ","; /*insert blanks for the places where no values where found*/
+        iteration++;
+    }
+}
+
+template <typename T>
+void data_export::initVectorToFile(const std::vector<T>& data, const int& nrIterations, std::ofstream& output)
+{
+    int iteration=0;
+    for(const auto& i: data)
+    {
+        output << iteration << ",";
+        output << i << ","<< std::endl;
+        iteration++;
+    }
+    while(iteration <= nrIterations)
+    {
+        output << iteration << ",," << std::endl; // insert blanks for the places where no values where found
+        iteration++;
+    }
+}
+
+void data_export::addToCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int& nrIterations, std::vector<bso::spatial_design::ms_N_building>& msDesigns, std::vector<double>& sd_total_load, std::vector<double>& exteriorWallArea)
 { 
     if(fileName == "")
     {
@@ -190,7 +230,7 @@ void data_export::addToCombinedDataFile(const std::string& fileName, const std::
     // Get relevant data to write to file:
     // Make a normalized copy for space iterations:
     std::vector<utilities::data_point> mDataNormalized;
-    for(const auto i: mData)
+    for(const auto& i: mData)
     {
         mDataNormalized.push_back(*i);
     }
@@ -228,7 +268,7 @@ void data_export::addToCombinedDataFile(const std::string& fileName, const std::
         bpBest = *(mData[0]);
         bpBestNormalized = mDataNormalized[0];
         kneePointVectorNor = kneePointObjective.findClosestIn(mDataNormalized);
-        for(int i=0; i < mData.size(); i++)
+        for(long unsigned int i=0; i < mData.size(); i++)
         {
             if(mDataNormalized[i](0) < sdBestNormalized(0))
             { // determine the best design in SD
@@ -253,7 +293,42 @@ void data_export::addToCombinedDataFile(const std::string& fileName, const std::
         SDLastImprovementPercentage = (1-((*(mData[mData.size()-1]))(0)/(*(mData[0]))(0)))*100;
         BPLastImprovementPercentage = (1-((*(mData[mData.size()-1]))(1)/(*(mData[0]))(1)))*100;
     }
-    
+
+    // Generate output data where the index is equal to the considered iteration in msDesigns 
+    std::vector<double> averageRecDif;
+    std::vector<double> ratioBiggestSmallestFloorAreaSpace;
+    std::vector<double> nrElevations;
+    std::vector<double> median;
+    std::vector<double> firstQuartile;
+    std::vector<double> thirdQuartile;
+    std::vector<double> average;
+    std::vector<bool> isFragmented;
+    std::vector<double> outliers;
+
+    // Temporary storage for the data
+    double medianTemp;
+    double firstQuartileTemp;
+    double thirdQuartileTemp;
+    double averageTemp;
+    std::vector<double> outliersTemp;
+
+    // Get the above data
+    for(auto& design: msDesigns)
+    {
+        averageRecDif.push_back(design.getAverageRecDif());
+        ratioBiggestSmallestFloorAreaSpace.push_back(design.getSpaceFloorAreaRatio());
+        nrElevations.push_back(design.getNrElevations());
+        design.getSpaceFloorAreaBoxPlotValues(medianTemp, firstQuartileTemp, thirdQuartileTemp, averageTemp, outliersTemp);
+        median.push_back(medianTemp);
+        firstQuartile.push_back(firstQuartileTemp);
+        thirdQuartile.push_back(thirdQuartileTemp);
+        average.push_back(averageTemp);
+        std::vector<bso::spatial_design::ms_space*> spacesNonBiggestFragment;
+        isFragmented.push_back(design.isFragmented(spacesNonBiggestFragment));
+        for(const auto& i: outliersTemp){outliers.push_back(i);}
+    }
+
+    // output the data to a file
     if (!inputFile.is_open())
     {
         // File does not exist yet, so initialize with headers and first data values
@@ -264,7 +339,7 @@ void data_export::addToCombinedDataFile(const std::string& fileName, const std::
             outputFile << i << ",";
         }
         outputFile << std::endl;
-        int iteration = 0;
+        unsigned int iteration = 0;
         
         // Generate data and empty line if nr. of iteration was not reached
         for(const auto& i: mData)
@@ -288,16 +363,16 @@ void data_export::addToCombinedDataFile(const std::string& fileName, const std::
             iteration++;
         }
         outputFile << "kneePoint,";
-        if(mData.size() == 0){for(int j=0; j< axisDataTypes.size(); j++){outputFile << ",";}}
-        else{for(int j=0; j< kneePoint.size(); j++){outputFile << kneePoint(j) << ",";}}
+        if(mData.size() == 0){for(long unsigned int j=0; j< axisDataTypes.size(); j++){outputFile << ",";}}
+        else{for(long unsigned int j=0; j< kneePoint.size(); j++){outputFile << kneePoint(j) << ",";}}
         outputFile << std::endl;
         outputFile << "sdBest,";
         if(mData.size() == 0){for(int j=0; j< axisDataTypes.size(); j++){outputFile << ",";}}
-        else{for(int j=0; j< sdBest.size(); j++){outputFile << sdBest(j) << ",";}}
+        else{for(unsigned int j=0; j< sdBest.size(); j++){outputFile << sdBest(j) << ",";}}
         outputFile << std::endl;
         outputFile << "bpBest,";
-        if(mData.size() == 0){for(int j=0; j< axisDataTypes.size(); j++){outputFile << ",";}}
-        else{for(int j=0; j< bpBest.size(); j++){outputFile << bpBest(j) << ",";}}
+        if(mData.size() == 0){for(long unsigned int j=0; j< axisDataTypes.size(); j++){outputFile << ",";}}
+        else{for(unsigned int j=0; j< bpBest.size(); j++){outputFile << bpBest(j) << ",";}}
         outputFile << std::endl;
         if(mData.size() == 0)
         {
@@ -308,6 +383,33 @@ void data_export::addToCombinedDataFile(const std::string& fileName, const std::
             outputFile << "BP last iteration vs. first iteration," << ",," << std::endl;
             outputFile << "SD best iteration vs. first iteration," << ",," << std::endl;
             outputFile << "BP best iteration vs. first iteration," << ",," << std::endl;
+
+            // output the msDesign data:
+            outputFile << "," << designName << runKind << std::endl;
+            outputFile << "MS Design data,Recdif" << std::endl;
+            std::vector<double> emptyDataVector;
+            initVectorToFile(emptyDataVector, nrIterations, outputFile);
+            outputFile << ",Ratio biggest vs. smallest floor area space" << std::endl;
+            initVectorToFile(emptyDataVector, nrIterations, outputFile);
+            outputFile << ",nrElevations" << std::endl;
+            initVectorToFile(emptyDataVector, nrIterations, outputFile);
+            outputFile << ",total loads" << std::endl;
+            initVectorToFile(emptyDataVector, nrIterations, outputFile);
+            outputFile << ",exterior surface area," << std::endl;
+            initVectorToFile(emptyDataVector, nrIterations, outputFile);
+            outputFile << ",median," << std::endl;
+            initVectorToFile(emptyDataVector, nrIterations, outputFile);
+            outputFile << ",firstQuartile," << std::endl;
+            initVectorToFile(emptyDataVector, nrIterations, outputFile);
+            outputFile << ",thirdQuartile," << std::endl;
+            initVectorToFile(emptyDataVector, nrIterations, outputFile);
+            outputFile << ",thirdQuartile," << std::endl;
+            initVectorToFile(emptyDataVector, nrIterations, outputFile);
+            outputFile << ",average," << std::endl;
+            initVectorToFile(emptyDataVector, nrIterations, outputFile);
+            outputFile << ",isFragmented" << std::endl;
+            initVectorToFile(emptyDataVector, nrIterations, outputFile);
+            // initVectorToFile(emptyDataVector, nrIterations, outputFile);
         }
         else
         {
@@ -318,6 +420,29 @@ void data_export::addToCombinedDataFile(const std::string& fileName, const std::
             outputFile << "BP last iteration vs. first iteration," << BPLastImprovementPercentage << ",," << std::endl;
             outputFile << "SD best iteration vs. first iteration," << SDBestImprovementPercentage << ",," << std::endl;
             outputFile << "BP best iteration vs. first iteration," << BPBestImprovementPercentage << ",," << std::endl;
+
+            // output the msDesign data:
+            outputFile << "\n," << designName << runKind << std::endl;
+            outputFile << "MS Design data,Recdif" << std::endl;
+            initVectorToFile(averageRecDif, nrIterations, outputFile);
+            outputFile << ",Ratio biggest vs. smallest floor area space" << std::endl;
+            initVectorToFile(ratioBiggestSmallestFloorAreaSpace, nrIterations, outputFile);
+            outputFile << ",nrElevations" << std::endl;
+            initVectorToFile(nrElevations, nrIterations, outputFile);
+            outputFile << ",total loads" << std::endl;
+            initVectorToFile(sd_total_load, nrIterations, outputFile);
+            outputFile << ",exterior surface area" << std::endl;
+            initVectorToFile(exteriorWallArea, nrIterations, outputFile);
+            outputFile << ",median" << std::endl;
+            initVectorToFile(median, nrIterations, outputFile);
+            outputFile << ",firstQuartile" << std::endl;
+            initVectorToFile(firstQuartile, nrIterations, outputFile);
+            outputFile << ",thirdQuartile" << std::endl;
+            initVectorToFile(thirdQuartile, nrIterations, outputFile);
+            outputFile << ",average" << std::endl;
+            initVectorToFile(average, nrIterations, outputFile);
+            outputFile << ",isFragmented" << std::endl;
+            initVectorToFile(isFragmented, nrIterations, outputFile);
         }
 
         inputFile.close();
@@ -326,10 +451,11 @@ void data_export::addToCombinedDataFile(const std::string& fileName, const std::
     else 
     {
         // File is not empty, process existing lines
-        int lineCount = 0;
-        int dataCount = 0;
+        unsigned int lineCount = 0;
+        unsigned int dataCount = 0;
+        unsigned int iteration = 0;
         std::string line;
-        while (getline(inputFile, line)) 
+        while(getline(inputFile, line)) 
         {
             if(lineCount == 0){line += designName + runKind + "," + designName + runKind + ",";}
             else if(lineCount == 1)
@@ -353,7 +479,7 @@ void data_export::addToCombinedDataFile(const std::string& fileName, const std::
             }
             else if(dataCount <= nrIterations)
             {
-                for(int j=0; j< axisDataTypes.size(); j++)
+                for(long unsigned int j=0; j< axisDataTypes.size(); j++)
                 {     
                     // Use ostringstream to format the double with full precision
                     std::ostringstream oss;
@@ -368,7 +494,7 @@ void data_export::addToCombinedDataFile(const std::string& fileName, const std::
                 std::ostringstream oss;
                 while(dataCount+11 != lineCount)
                 {
-                    for(int j=0; j< axisDataTypes.size(); j++){oss << ",";}
+                    for(long unsigned int j=0; j< axisDataTypes.size(); j++){oss << ",";}
                     lineCount++;
                 }
                 line += oss.str();
@@ -376,46 +502,43 @@ void data_export::addToCombinedDataFile(const std::string& fileName, const std::
             else
             {
                 std::ostringstream oss;
-                if(dataCount+2 == lineCount)
-                {
-                    for(int j=0; j< kneePoint.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << kneePoint(j) << ",";} 
-                }
-                else if(dataCount+3 == lineCount)
-                {
-                    for(int j=0; j< sdBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
-                }
-                else if(dataCount+4 == lineCount)
-                {
-                    for(int j=0; j< bpBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
-                }
-                else if(dataCount+5 == lineCount)
-                {
-                    oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << kneePointIteration << ",,";
-                }
-                else if(dataCount+6 == lineCount)
-                {
-                    oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBestIteration << ",,";
-                }
-                else if(dataCount+7 == lineCount)
-                {
-                    oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBestIteration << ",,";
-                }
-                else if(dataCount+8 == lineCount)
-                {
-                    oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << SDLastImprovementPercentage << ",,";
-                }
-                else if(dataCount+9 == lineCount)
-                {
-                    oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << BPLastImprovementPercentage << ",,";
-                }
-                else if(dataCount+10 == lineCount)
-                {
-                    oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << SDBestImprovementPercentage << ",,";
-                }
-                else if(dataCount+11 == lineCount)
-                {
-                    oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << BPBestImprovementPercentage << ",,";
-                }
+
+                if (dataCount + 2 == lineCount) {dataPointToStream(kneePoint, oss);}
+                else if (dataCount + 3 == lineCount) {dataPointToStream(sdBest, oss);} 
+                else if (dataCount + 4 == lineCount) {dataPointToStream(bpBest, oss);}
+                else if (dataCount + 5 == lineCount) {oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << kneePointIteration << ",,";}
+                else if (dataCount + 6 == lineCount) {oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBestIteration << ",,";}
+                else if (dataCount + 7 == lineCount) {oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBestIteration << ",,";} 
+                else if (dataCount + 8 == lineCount) {oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << SDLastImprovementPercentage << ",,";} 
+                else if (dataCount + 9 == lineCount) {oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << BPLastImprovementPercentage << ",,";} 
+                else if (dataCount + 10 == lineCount) {oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << SDBestImprovementPercentage << ",,";} 
+                else if (dataCount + 11 == lineCount) {oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << BPBestImprovementPercentage << ",,";} 
+                else if (dataCount + 12 == lineCount) {/*do nothing since empty line*/}
+                else if (dataCount + 13 == lineCount) {oss << "," << designName << runKind ;}
+                else if(dataCount+14 == lineCount){oss << ",Recdif" ;}
+                else if(dataCount+15 + nrIterations >= lineCount){vectorToStream(averageRecDif, iteration, nrIterations, msDesigns.size() + dataCount+15 , lineCount, oss);}
+                else if(dataCount+16 + nrIterations == lineCount){oss << ",Ratio biggest vs. smallest floor area space"; iteration = 0;}
+                else if(dataCount+17 + nrIterations*2 >= lineCount){vectorToStream(ratioBiggestSmallestFloorAreaSpace, iteration, nrIterations, msDesigns.size() + dataCount+17 + nrIterations, lineCount, oss);}
+                else if(dataCount+18 + nrIterations*2 == lineCount){oss << ",nrElevations"; iteration = 0;}
+                else if(dataCount+19 + nrIterations*3 >= lineCount){vectorToStream(nrElevations, iteration, nrIterations, msDesigns.size() + dataCount+19 + nrIterations*2 , lineCount, oss);}
+                else if(dataCount+20 + nrIterations*3 == lineCount){oss << ",total loads"; iteration = 0;}
+                else if(dataCount+21 + nrIterations*4 >= lineCount){vectorToStream(sd_total_load, iteration, nrIterations, msDesigns.size() + dataCount+21 + nrIterations*3 , lineCount, oss);}
+                else if(dataCount+22 + nrIterations*4 == lineCount){oss << ",exterior surface area"; iteration = 0;}
+                else if(dataCount+23 + nrIterations*5 >= lineCount){vectorToStream(exteriorWallArea, iteration, nrIterations, msDesigns.size() + dataCount+23 + nrIterations*4 , lineCount, oss);}
+                else if(dataCount+24 + nrIterations*5 == lineCount){oss << ",median"; iteration = 0;}
+                else if(dataCount+25 + nrIterations*6 >= lineCount){vectorToStream(median, iteration, nrIterations, msDesigns.size() + dataCount+25 + nrIterations*5 , lineCount, oss);}
+                else if(dataCount+26 + nrIterations*6 == lineCount){oss << ",firstQuartile"; iteration = 0;}
+                else if(dataCount+27 + nrIterations*7 >= lineCount){vectorToStream(firstQuartile, iteration, nrIterations, msDesigns.size() + dataCount+27 + nrIterations*6 , lineCount, oss);}
+                else if(dataCount+28 + nrIterations*7 == lineCount){oss << ",thirdQuartile"; iteration = 0;}
+                else if(dataCount+29 + nrIterations*8 >= lineCount){vectorToStream(thirdQuartile, iteration, nrIterations, msDesigns.size() + dataCount+29 + nrIterations*7 , lineCount, oss);}
+                else if(dataCount+30 + nrIterations*8 == lineCount){oss << ",average"; iteration = 0;}
+                else if(dataCount+31 + nrIterations*9 >= lineCount){vectorToStream(average, iteration, nrIterations, msDesigns.size() + dataCount+31 + nrIterations*8 , lineCount, oss);}
+                else if(dataCount+32 + nrIterations*9 == lineCount){oss << ",ifragmented"; iteration = 0;}
+                else if(dataCount+33 + nrIterations*10 >= lineCount){vectorToStream(isFragmented, iteration, nrIterations, msDesigns.size() + dataCount+33 + nrIterations*9 , lineCount, oss);}
+                
+                // Add outliers output to the oss export. Important since there are more outliers per iterations that they are outputted per iteration in the file
+
+
                 line += oss.str();
             }
             // Write the modified line to the temporary file
@@ -436,7 +559,6 @@ void data_export::addToCombinedDataFile(const std::string& fileName, const std::
         } 
     }
     
-
     // Rename the temporary file to the original file name
     if (std::rename("temp.txt", fileName.c_str()) != 0) 
     {
@@ -452,7 +574,7 @@ void data_export::addToCombinedDataFile(const std::string& fileName, const std::
     
 } // addToCombinedDataFile()
 
-void data_export::addToOverviewCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int numberOfIterationsPerformed)
+void data_export::addToOverviewCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int numberOfIterationsPerformed, const bso::spatial_design::ms_N_building& initialDesign)
 { 
     if(fileName == "")
     {
@@ -490,7 +612,7 @@ void data_export::addToOverviewCombinedDataFile(const std::string& fileName, con
     // Get relevant data to write to file:
     // Make a normalized copy for space iterations:
     std::vector<utilities::data_point> mDataNormalized;
-    for(const auto i: mData)
+    for(const auto& i: mData)
     {
         mDataNormalized.push_back(*i);
     }
@@ -517,7 +639,7 @@ void data_export::addToOverviewCombinedDataFile(const std::string& fileName, con
     utilities::data_point kneePoint;
     utilities::data_point kneePointObjective({0,1});
     std::vector<data_point> kneePointVectorNor = kneePointObjective.findClosestIn(mDataNormalized);
-    for(int i=0; i < mData.size(); i++)
+    for(long unsigned int i=0; i < mData.size(); i++)
     {
         if(mDataNormalized[i](0) < sdBestNormalized(0))
         { // determine the best design in SD
@@ -546,7 +668,11 @@ void data_export::addToOverviewCombinedDataFile(const std::string& fileName, con
     if (!inputFile.is_open())
     {
         // initiate descriptive line:
-        outputFile << ",best sd design in sd run";
+        // initial design data:
+        outputFile << ",Nr spaces,Floor area,Nr.Elevation,Ratio biggest vs. smallest space,RecDif,";
+
+        // run data
+        outputFile << "best sd design in sd run";
         for(std::string i: axisDataTypes) { outputFile << ",";}
         outputFile << "best bp design in sd run";
         for(std::string i: axisDataTypes) { outputFile << ",";}
@@ -571,7 +697,7 @@ void data_export::addToOverviewCombinedDataFile(const std::string& fileName, con
         outputFile << std::endl;
         
         // make rule with value indicators:
-        outputFile << ",";
+        for(int i=0; i<6; i++) {outputFile << ",";}
         for(int j=0; j < 3; j++)
         {
             for(std::string i: axisDataTypes)
@@ -603,18 +729,28 @@ void data_export::addToOverviewCombinedDataFile(const std::string& fileName, con
         {
             // output enough ',' to fill the space of the run
             outputFile << designName << ",";
-            for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
-            for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
-            for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";}
-            for(int j=0; j < 7; j++) outputFile << ",";
+            outputFile << initialDesign.getSpacePtrs().size() << ",";
+            outputFile << std::setprecision(std::numeric_limits<double>::max_digits10) << initialDesign.getFloorArea() << ",";
+            outputFile << initialDesign.getNrElevations() << ",";
+            outputFile << initialDesign.getSpaceFloorAreaRatio() << ",";
+            outputFile << initialDesign.getAverageRecDif() << ",";
+            for(long unsigned int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
+            for(long unsigned int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
+            for(long unsigned int j=0; j < axisDataTypes.size(); j++){outputFile << ",";}
+            for(long unsigned int j=0; j < 7; j++) outputFile << ",";
         }
         else
         {
             int lastIndex =  mData.size()-1;
             outputFile << designName << ",";
-            for(int j=0; j < sdBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
-            for(int j=0; j < bpBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
-            for(int j=0; j < (*(mData[lastIndex])).size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[lastIndex]))(j) << ",";} // performance of last design of run
+            outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << initialDesign.getSpacePtrs().size() << ",";
+            outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << initialDesign.getFloorArea() << ",";
+            outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << initialDesign.getNrElevations() << ",";
+            outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << initialDesign.getSpaceFloorAreaRatio() << ",";
+            outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << initialDesign.getAverageRecDif() << ",";
+            for(unsigned int j=0; j < sdBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
+            for(unsigned int j=0; j < bpBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
+            for(unsigned int j=0; j < (*(mData[lastIndex])).size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[lastIndex]))(j) << ",";} // performance of last design of run
             outputFile << sdBestIteration << "," ;
             outputFile << bpBestIteration << "," ;
             outputFile << SDLastImprovementPercentage << "," ;
@@ -648,17 +784,17 @@ void data_export::addToOverviewCombinedDataFile(const std::string& fileName, con
                 if(mData.size() == 0)
                 {
                     // output enough ',' to fill the space of the run
-                    for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
-                    for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
-                    for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";}
-                    for(int j=0; j < 7; j++) outputFile << ",";
+                    for(long unsigned int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
+                    for(long unsigned int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
+                    for(long unsigned int j=0; j < axisDataTypes.size(); j++){outputFile << ",";}
+                    for(long unsigned int j=0; j < 7; j++) outputFile << ",";
                 }
                 else
                 {
                     int lastIndex =  mData.size()-1;
-                    for(int j=0; j < sdBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
-                    for(int j=0; j < bpBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
-                    for(int j=0; j < (*(mData[lastIndex])).size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[lastIndex]))(j) << ",";} // performance of last design of run
+                    for(unsigned int j=0; j < sdBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
+                    for(unsigned int j=0; j < bpBest.size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
+                    for(unsigned int j=0; j < (*(mData[lastIndex])).size(); j++){oss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[lastIndex]))(j) << ",";} // performance of last design of run
                     oss << sdBestIteration << "," ;
                     oss << bpBestIteration << "," ;
                     oss << SDLastImprovementPercentage << "," ;
@@ -689,18 +825,28 @@ void data_export::addToOverviewCombinedDataFile(const std::string& fileName, con
             {
                 // output enough ',' to fill the space of the run
                 outputFile << designName << ",";
-                for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
-                for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
-                for(int j=0; j < axisDataTypes.size(); j++){outputFile << ",";}
+                outputFile << initialDesign.getSpacePtrs().size() << ",";
+                outputFile << std::setprecision(std::numeric_limits<double>::max_digits10) << initialDesign.getFloorArea() << ",";
+                outputFile << initialDesign.getNrElevations() << ",";
+                outputFile << initialDesign.getSpaceFloorAreaRatio() << ",";
+                outputFile << initialDesign.getAverageRecDif() << ",";
+                for(long unsigned int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
+                for(long unsigned int j=0; j < axisDataTypes.size(); j++){outputFile << ",";} 
+                for(long unsigned int j=0; j < axisDataTypes.size(); j++){outputFile << ",";}
                 for(int j=0; j < 7; j++) outputFile << ",";
             }
             else
             {
                 int lastIndex =  mData.size()-1;
                 outputFile << designName << ",";
-                for(int j=0; j < sdBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
-                for(int j=0; j < bpBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
-                for(int j=0; j < (*(mData[lastIndex])).size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[lastIndex]))(j) << ",";} // performance of last design of run
+                outputFile << initialDesign.getSpacePtrs().size() << ",";
+                outputFile << std::setprecision(std::numeric_limits<double>::max_digits10) << initialDesign.getFloorArea() << ",";
+                outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << initialDesign.getNrElevations() << ",";
+                outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << initialDesign.getSpaceFloorAreaRatio() << ",";
+                outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << initialDesign.getAverageRecDif() << ",";
+                for(unsigned int j=0; j < sdBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << sdBest(j) << ",";} 
+                for(unsigned int j=0; j < bpBest.size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << bpBest(j) << ",";} 
+                for(unsigned int j=0; j < (*(mData[lastIndex])).size(); j++){outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*(mData[lastIndex]))(j) << ",";} // performance of last design of run
                 outputFile << sdBestIteration << "," ;
                 outputFile << bpBestIteration << "," ;
                 outputFile << SDLastImprovementPercentage << "," ;
@@ -762,7 +908,7 @@ void data_export::plotScatter2D(std::string fileNameScatter /*= "scatterData"*/,
          std::stringstream errorMessage;
 				errorMessage << "\nError, expected two axis types to be defined to know which data is which and to give the plot axis variables.\n"
 										 << "The current amount of axisDataTypes is: " << axisDataTypes.size() << " and it contains these variables: " << std::endl;
-                                         for(const auto i: axisDataTypes) errorMessage << i << "; ";
+                                         for(const auto& i: axisDataTypes) errorMessage << i << "; ";
                                          errorMessage << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
@@ -829,7 +975,7 @@ void data_export::plotParetoFront2D(std::string fileNamePareto /*= "Pareto"*/, s
          std::stringstream errorMessage;
 				errorMessage << "\nError, expected two axis types to be defined to know which data is which and to give the plot axis variables.\n"
 										 << "The current amount of axisDataTypes is: " << axisDataTypes.size() << " and it contains these variables: " << std::endl;
-                                         for(const auto i: axisDataTypes) errorMessage << i << "; ";
+                                         for(const auto& i: axisDataTypes) errorMessage << i << "; ";
                                          errorMessage << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }
@@ -920,7 +1066,7 @@ void data_export::plotVector2D(std::string fileNameVector /*= "vectorStyleData"*
          std::stringstream errorMessage;
 				errorMessage << "\nError, expected two axis types to be defined to know which data is which and to give the plot axis variables.\n"
 										 << "The current amount of axisDataTypes is: " << axisDataTypes.size() << " and it contains these variables: " << std::endl;
-                                         for(const auto i: axisDataTypes) errorMessage << i << "; ";
+                                         for(const auto& i: axisDataTypes) errorMessage << i << "; ";
                                          errorMessage << "(bso/utilities/data_export.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
     }

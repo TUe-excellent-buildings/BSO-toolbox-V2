@@ -6,8 +6,8 @@ namespace bso { namespace building_physics { namespace state { namespace depende
 window::window(const unsigned int& index,  bso::utilities::geometry::polygon* geometry,
 	const bso::building_physics::properties::glazing& glazing,
 	state* side1, state* side2)
-: dependent_state(index), mGeometry(geometry->clone()), mArea(geometry->getArea()*1e-6),
-	mGlazing(glazing), mSide1(side1), mSide2(side2)
+: dependent_state(index), mGlazing(glazing), mSide1(side1), mSide2(side2), 
+	 mArea(geometry->getArea()*1e-6), mGeometry(geometry->clone())
 {
 	mIsWindow = true;
 	mCapacitance = mGlazing.getCapacitancePerArea()*mArea;

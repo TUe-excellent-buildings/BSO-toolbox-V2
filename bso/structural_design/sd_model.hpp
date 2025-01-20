@@ -28,9 +28,10 @@ namespace bso { namespace structural_design {
 		bool mIsMeshed = false;
 		void clearMesh();
 	public:
-		sd_model();
-		sd_model(const sd_model& rhs);
-		~sd_model();
+		sd_model(); // Empty constructor, assignment of value's within class is done in the sd_grammar
+		sd_model(const sd_model& rhs); // Copy constructor
+		sd_model& operator=(const sd_model& rhs); // Copy assignment operator
+		~sd_model(); // Deconstructor
 		
 		component::point* addPoint(bso::utilities::geometry::vertex p);
 		component::geometry* addGeometry(const bso::utilities::geometry::line_segment& g);
@@ -57,7 +58,7 @@ namespace bso { namespace structural_design {
 		double getTotalLoad();
 		
 		fea* getFEA() {return mFEA;}
-		fea* const getFEA() const {return mFEA;}
+		fea* getFEA() const {return mFEA;}
 		const std::vector<component::point*>& getPoints() const {return mPoints;}
 		const std::vector<component::geometry*> getGeometries() const {return mGeometries;}
 	};
