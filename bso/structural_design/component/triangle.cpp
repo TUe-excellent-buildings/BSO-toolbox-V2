@@ -65,7 +65,7 @@ namespace bso { namespace structural_design { namespace component {
 
 		namespace geom = bso::utilities::geometry;
 
-		// Scale the triangle shape to define the triangular devisions of the mesh
+		// Scale the triangle shape to define the triangular divisions of the mesh
 		geom::vertex center = this->getCenter();
 		std::vector<geom::triangle*> scaledTri;
 		for(double i=0; i < 0.999; i=i+1/((double)n1/2))// smaller then 0.999 to take into acount a tolerance
