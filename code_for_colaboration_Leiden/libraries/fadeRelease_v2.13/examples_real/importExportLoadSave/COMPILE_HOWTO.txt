@@ -1,0 +1,11 @@
+Windows:
+ cmake -B VS2019_x64 -G "Visual Studio 16 2019" -A x64 .
+ cmake --build VS2019_x64 --config Release
+
+Linux
+ mkdir build
+ cd build
+ cmake ..
+ make
+
+

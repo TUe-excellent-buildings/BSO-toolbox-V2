@@ -59,18 +59,6 @@ namespace bso { namespace utilities {
 				}
 			}
 		}
-		if(noDelauneyPoint.size() > 0)
-		{
-			std::stringstream errorMessage;
-			errorMessage << "The following vertices are end vertices of the constraint lines, but not a delaunay points (Checked with tolerance): " << std::endl;
-			for(const auto t: noDelauneyPoint){errorMessage << t;}
-			errorMessage << std::endl	
-						 << "The following are the delauney points: " << std::endl;
-			for(const auto t: delaunayPoints){errorMessage << t << " ; ";}	
-			errorMessage << std::endl;
-			errorMessage << "(bso/utilities/delaunay)." << std::endl;
-			throw std::runtime_error(errorMessage.str());
-		}
 		if(pointOnConstraintLine.size() > 0)
 		{
 			std::stringstream errorMessage;
@@ -84,6 +72,19 @@ namespace bso { namespace utilities {
 			errorMessage << "(bso/utilities/delaunay)." << std::endl;
 			throw std::runtime_error(errorMessage.str());
 		}
+		if(noDelauneyPoint.size() > 0)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "The following vertices are end vertices of the constraint lines, but not a delaunay points (Checked with tolerance): " << std::endl;
+			for(const auto t: noDelauneyPoint){errorMessage << t;}
+			errorMessage << std::endl	
+						 << "The following are the delauney points: " << std::endl;
+			for(const auto t: delaunayPoints){errorMessage << t << " ; ";}	
+			errorMessage << std::endl;
+			errorMessage << "(bso/utilities/delaunay)." << std::endl;
+			throw std::runtime_error(errorMessage.str());
+		}
+		
 		
 
 		// Start Delaunay triangulation process
@@ -469,7 +470,8 @@ namespace bso { namespace utilities {
 
 					intsecL.erase(intsecL.begin() + k);
 
-					k--; // Makes sure the for loop isn't snipping a constrain lines when one is erased.
+					if(k == 0){/*do nothing*/;}
+					else {k--;} // Makes sure the for loop isn't snipping a constrain lines when one is erased.
 				}
 			}
 		}
