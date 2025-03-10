@@ -10,6 +10,8 @@
 #include <exception>
 #include <boost/algorithm/string.hpp>
 #include <bitset>
+//#include <bso/utilities/geometry.hpp>
+#include <bso/utilities/delaunay.hpp>
 
 namespace bso { namespace spatial_design {
 
@@ -830,6 +832,260 @@ void ms_N_building::addBoundary()
 			std::to_string(max_x) + "," + std::to_string(max_y) + "," + std::to_string(max_z);
 	mSpaces.push_back(new ms_space(msBoundary));
 } // addBoundary() 
+
+
+void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands for prism-net representation from Leiden
+{
+	this->addBoundary();
+	
+	// Declarations for needed information per space
+	std::vector<double> allLevels; // stores all the floor levels
+	std::vector<utilities::geometry::vertex> highV;
+	std::vector<utilities::geometry::vertex> LowV;
+
+	// First define all levels in the building and make for each level a pair containing the level and an empty std::vector<utilities::geometry::quad_hexahedron>
+	for (const auto& i : mSpaces)
+	{
+		// Get quad_hexahedron geometry
+		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+
+		//Find the highest and lowest vertex
+		utilities::geometry::vertex lowVertex = spaceGeom[0];
+		utilities::geometry::vertex highVertex = spaceGeom[0];
+		for (const auto j: spaceGeom)
+		{
+			if(lowVertex.z() > j.z())
+			{//find the lowest vertex of SpaceGeomTemp_1 for the shifting of the space geometry
+				lowVertex = j;
+			}
+			else if(highVertex.z() < j.z())
+			{
+				highVertex = j;
+			}
+		}
+		highV.push_back(highVertex);
+		LowV.push_back(lowVertex);
+
+		// Determine all the floor levels in the building spatial designs
+		bool highVUnique = true;
+		bool lowVUnique = true;
+		for(double j: allLevels)
+		{
+			if(highVertex.z()<=(j+mTol) && highVertex.z()>=(j-mTol))
+			{
+				highVUnique = false;
+			}
+			if(lowVertex.z()<=(j+mTol) && lowVertex.z()>=(j-mTol))
+			{
+				lowVUnique = false;
+			}
+		}
+		if(highVUnique){allLevels.push_back(highVertex.z());}
+		if(lowVUnique){allLevels.push_back(lowVertex.z());}
+	}
+
+	// Sort allLevels for later use in triangular prism cell definition.
+	sort(allLevels.begin(), allLevels.end());
+	
+	std::vector<std::pair<double,std::vector<utilities::geometry::vertex>>> delaunayPointsAtLevel;
+	std::vector<std::pair<double,std::vector<utilities::geometry::line_segment>>> delaunayLinesAtLevel;
+	
+		
+	for(const auto& level: allLevels)
+	{
+		delaunayPointsAtLevel.push_back(std::make_pair(level,std::vector<utilities::geometry::vertex>()));
+		delaunayLinesAtLevel.push_back(std::make_pair(level,std::vector<utilities::geometry::line_segment>()));
+
+		for (int i=0; i<mSpaces.size(); i++)
+		{
+			// Get quad_hexahedron geometry
+			utilities::geometry::quad_hexahedron spaceGeom = mSpaces[i]->getGeometry();
+
+			if(LowV[i].z()-mTol <= level && highV[i].z()+mTol > level)
+			{
+				// Add all unique cornerpoints spaceGEOM to the delaunayPoints
+				for(const auto& j: spaceGeom)
+				{
+					utilities::geometry::vertex temp = {j.x(),j.y(),level};
+
+					bool doubleInsert = false;
+					for (const auto& m : delaunayPointsAtLevel.back().second)
+					{// check if temp already exist in delauneyPoints
+						if (m == temp)
+						{
+							doubleInsert = true;
+						}
+					}
+					if(doubleInsert == false)
+					{//if not, then add to delaunayPoints
+						delaunayPointsAtLevel.back().second.push_back(temp);
+					}
+				}
+
+				for (const auto& k : spaceGeom.getLines())
+				{
+					// Add the unique lines of each spaceGEOM to delaunayLines
+					utilities::geometry::vertex Ltemp1 = {k[0].x(),k[0].y(),level};
+					utilities::geometry::vertex Ltemp2 = {k[1].x(),k[1].y(),level};
+					utilities::geometry::line_segment Ltemp {{Ltemp1},{Ltemp2}}; //Note the line is newly defined for the case that some round of error occur during the shifting of the lines of the spacesAtGround[i]
+					
+					bool doubleInsert = false;
+					for (const auto& m : delaunayLinesAtLevel.back().second)
+					{// Check if line k already exist in delauneyPoints
+						if (m.isSameAs(Ltemp, mTol))
+						{
+							doubleInsert = true;
+						}
+					}
+					if(Ltemp1.isSameAs(Ltemp2, mTol))
+					{// Check if line has different end points
+						doubleInsert = true;
+					}
+					if(doubleInsert == false)
+					{// If both agree, then add to delaunayLines
+						delaunayLinesAtLevel.back().second.push_back(Ltemp);
+					}
+				}
+			}
+		}
+	}
+
+	// Split lines at intersection vertices and remove duplicated lines
+	for(unsigned int i=0; i<allLevels.size(); i++)
+	{
+		bso::utilities::splitLines(delaunayPointsAtLevel[i].second, delaunayLinesAtLevel[i].second, mTol);// this prevent the generation of triangles on one line or triangles containing duplicate vertices
+	}
+
+	// Send all vertices and constrain lines to the delaunay triangulation and receive all triangles
+	std::vector<std::pair<double,std::vector<utilities::geometry::triangle>>> delaunayTriAtLevel;
+	for(unsigned int i=0; i<allLevels.size(); i++)
+	{
+		delaunayTriAtLevel.push_back(std::make_pair(allLevels[i],bso::utilities::delaunay(delaunayPointsAtLevel[i].second, delaunayLinesAtLevel[i].second, mTol)));
+	}
+
+	// Initiate output file stream
+	std::ofstream output;
+	if (!fileName.empty()) output.open(fileName.c_str());
+	
+	if (fileName.empty() || !output.is_open())
+	{
+		std::stringstream errorMessage;
+		errorMessage << "Could not open the following file to write a conformal model design to:" << std::endl
+								<< ((fileName.empty())? "no input file given" : fileName) << std::endl
+								<< "(bso/spatial_design/conformal/cf_building_model.cpp). " << std::endl;
+		throw std::invalid_argument(errorMessage.str());
+	}
+
+	// Identify which triangles should be used to generate a triangular prism cell in the space and generate that space and accompanying geometric entities
+	int i = 0;
+	for(const auto& t : mSpaces)
+	{
+		// Get spaceGEOM
+		utilities::geometry::quad_hexahedron spaceGeom = t->getGeometry();
+		
+		// Find the triangles in the space
+		std::vector<std::pair<double,std::vector<utilities::geometry::triangle>>> triInCellAtLevel;
+		for(const auto j : delaunayTriAtLevel)
+		{
+			if(!j.first-mTol>LowV[i].z() && !j.first< highV[i].z()-mTol) continue; // triangle is not defined within the level bounds of the considered space, so continue.
+			triInCellAtLevel.push_back(std::make_pair(j.first,std::vector<utilities::geometry::triangle>()));
+
+			for(const auto T: j.second)
+			{
+				bool allNodesInside = true;
+				for(const auto k: T)
+				{
+					if(!spaceGeom.isInsideOrOn(k, mTol))
+					{
+						// Additional checks for prevention malfunctioning, which has been previously observed
+						// Note; the tolerance of 0.001 is applied differently in each geometry check. 
+						// Meaning that in the isOnLine check, the considered vertices onLine are not by definition within +0.001 and -0.001 from the line in distance.
+						// However, within the isSameAs check are the vertices within 0.001 from each other
+						// For this reason are all possible geometry checks applied.
+						
+						bool anyTrue = false;
+						for(const auto l: spaceGeom.getLines())
+						{
+							if(l.isOnLine(k, mTol))
+							{
+								anyTrue = true;
+							}
+						}
+
+						for(const auto l : spaceGeom)
+						{
+							if(l.isSameAs(k, mTol))
+							{
+								anyTrue = true;
+							}
+						}
+
+						if(!anyTrue)
+						{
+							allNodesInside = false;
+						}
+					}
+				}
+				if(allNodesInside)
+				{
+					((triInCellAtLevel.back()).second).push_back(T);
+				}
+			}
+		}
+		
+		for(const auto j: triInCellAtLevel)
+		{		
+			if(j.second.size() < 2)
+			{
+				std::stringstream errorMessage;
+				errorMessage << "The amount of triCell found are to little to form a space fully filled with triPrism cells.\n"
+										<< "The minumum required amount of triCells are 2 and the inserted amount is: " << j.second.size() << "\n"
+										<< "Meaning that there are tricell(s) missing. \n"
+										<< "The possibly found triCell consist of the following: " << std::endl;
+											for(const auto i: j.second)
+											{
+												errorMessage << i << std::endl;
+											}
+						errorMessage << "the considered space is: " << *t << "\n"
+										<< "(bso/spatial_design/ms_N_building.cpp)" << std::endl;
+							throw std::invalid_argument(errorMessage.str());
+			}
+		}
+		
+		// Define all six vertices of the triangular prism and store in triPrism
+		std::vector<utilities::geometry::triangular_prism> triPrism;
+		for(unsigned int IDtriAtLevel = 0; IDtriAtLevel<triInCellAtLevel.size(); IDtriAtLevel++)
+		{
+			for(const auto tri: triInCellAtLevel[IDtriAtLevel].second)
+			{
+				std::vector<utilities::geometry::vertex> triPrismV;
+				triPrismV.reserve(6);
+				
+				//Generate triangular prism
+				triPrismV.clear();
+				for(const auto k: tri)
+				{// bottom row prisms
+					utilities::geometry::vertex high = {0,0,0};
+					if(triInCellAtLevel[IDtriAtLevel+1].first < highV[i].z()){high = {0,0, triInCellAtLevel[IDtriAtLevel+1].first};}
+					else{high = {0,0, highV[i].z()};}
+					triPrismV.push_back(k);
+					triPrismV.push_back(k+high);
+				}
+				triPrism.push_back(utilities::geometry::triangular_prism(triPrismV, mTol));
+			}
+		}
+		
+		// Write the found triangular prisms in space to text file
+		output << *t;
+		for(const auto& TP: triPrism)
+		{
+			output << TP << std::endl;
+		}
+
+		i++;
+	}	
+}
+
 
 bool ms_N_building::operator == (const ms_N_building& rhs)
 {
