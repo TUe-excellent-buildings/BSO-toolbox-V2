@@ -59,18 +59,6 @@ namespace bso { namespace utilities {
 				}
 			}
 		}
-		if(noDelauneyPoint.size() > 0)
-		{
-			std::stringstream errorMessage;
-			errorMessage << "The following vertices are end vertices of the constraint lines, but not a delaunay points (Checked with tolerance): " << std::endl;
-			for(const auto t: noDelauneyPoint){errorMessage << t;}
-			errorMessage << std::endl	
-						 << "The following are the delauney points: " << std::endl;
-			for(const auto t: delaunayPoints){errorMessage << t << " ; ";}	
-			errorMessage << std::endl;
-			errorMessage << "(bso/utilities/delaunay)." << std::endl;
-			throw std::runtime_error(errorMessage.str());
-		}
 		if(pointOnConstraintLine.size() > 0)
 		{
 			std::stringstream errorMessage;
@@ -84,6 +72,19 @@ namespace bso { namespace utilities {
 			errorMessage << "(bso/utilities/delaunay)." << std::endl;
 			throw std::runtime_error(errorMessage.str());
 		}
+		if(noDelauneyPoint.size() > 0)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "The following vertices are end vertices of the constraint lines, but not a delaunay points (Checked with tolerance): " << std::endl;
+			for(const auto t: noDelauneyPoint){errorMessage << t;}
+			errorMessage << std::endl	
+						 << "The following are the delauney points: " << std::endl;
+			for(const auto t: delaunayPoints){errorMessage << t << " ; ";}	
+			errorMessage << std::endl;
+			errorMessage << "(bso/utilities/delaunay)." << std::endl;
+			throw std::runtime_error(errorMessage.str());
+		}
+		
 		
 
 		// Start Delaunay triangulation process
@@ -453,9 +454,10 @@ namespace bso { namespace utilities {
 	
 	
 	void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL, bool removeDuplicates /*= true*/, const double mTol)
-	{					
+	{							
 		// split lines in accordance to intersection points
-		for(int k=0; k<intsecL.size(); k++)
+		int k = 0;
+		while(k<intsecL.size())
 		{
 			for(const auto l :intsecV)
 			{
@@ -464,14 +466,15 @@ namespace bso { namespace utilities {
 					utilities::geometry::line_segment one = {{(intsecL[k])[0]},{l}};
 					utilities::geometry::line_segment two = {{(intsecL[k])[1]},{l}};
 					
-					intsecL.push_back(one);
-					intsecL.push_back(two);
-
 					intsecL.erase(intsecL.begin() + k);
+					intsecL.push_back(one);
+					intsecL.push_back(two);	
 
-					k--; // Makes sure the for loop isn't snipping a constrain lines when one is erased.
+					k--;
+					break;
 				}
 			}
+			k++;
 		}
 		
 		if(removeDuplicates)
@@ -494,7 +497,7 @@ namespace bso { namespace utilities {
 					if (m.isSameAs(intsecL[k], mTol)){intsecL.erase(intsecL.begin() + k);}
 				}
 			}
-		}	
+		}
 	}//splitLines
 
 

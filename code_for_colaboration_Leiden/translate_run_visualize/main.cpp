@@ -220,7 +220,7 @@ int main(int argc, char* argv[])
 		out("Initialized visualization", true, true, verbose);
 	}
 
-	// Execute and obtain a file containing the bounded conformal model for Leiden representation
+	// Obtain a file containing the bounded conformal model for Leiden representation
 	if (bounded)
 	{
 		// Generate the Movable and Sizable (MS) building model
@@ -270,7 +270,7 @@ int main(int argc, char* argv[])
 		bso::spatial_design::cf_building CM(MS, 0.001);
 		out("Created a Conformal Model (CM)",true,true,verbose);
 
-		// Initialize the grammer to specify basic properties per geometry
+		// Initialize the grammar to specify basic properties per geometry
 		bso::grammar::grammar gram(CM);
 		out("Initialized grammar (gram)",true,true,verbose);
 		
@@ -278,17 +278,17 @@ int main(int argc, char* argv[])
 		bso::structural_design::sd_model SD = gram.sd_grammar<bso::grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"));
 		out("Generated Structural Design (SD) model ",true,true,verbose);
 		
-		// Analyse the SD model
+		// Analyze the SD model
 		SD.analyze();
 		out("Evaluated SD: ",false,false,verbose);
 		double SDResult = SD.getTotalResults().mTotalStrainEnergy;
 		out(SDResult,true,true,verbose);
 
-		// Generate the BP model based on the grammer specified basic properties per geometry
+		// Generate the BP model based on the grammar specified basic properties per geometry
 		bso::building_physics::bp_model BP = gram.bp_grammar<bso::grammar::DEFAULT_BP_GRAMMAR>(std::string("settings/bp_settings.txt"));
 		out("Created a Building Physics (BP) model",true,true,verbose);
 		
-		// Analyse the BP model
+		// Analyze the BP model
 		BP.simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
 		double BPResult = BP.getTotalResults().mTotalEnergy;
 		out("Evaluated BP: ",false,false,verbose);
