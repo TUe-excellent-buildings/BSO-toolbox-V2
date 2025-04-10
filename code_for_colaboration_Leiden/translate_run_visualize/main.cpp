@@ -41,6 +41,7 @@ int main(int argc, char* argv[])
 	bool ms_files = false;
 	bool verbose = false;
 	bool bounded = false;
+	bool pn_representation = false;
 	bool run = false;
 	
 	// Handle the given input arguments
@@ -80,13 +81,17 @@ int main(int argc, char* argv[])
 								<<   "\t" << "\'tr\' for \'conformal model with Triangles and Rectangles for N insertion method\', \n"
 								<<   "\t" << "\'tp\' for \'conformal model with Triangular Prism for N insertion method\', \n"
 								<<   "\t" << "\'tb\' for \'conformal model with Triangular Prism for N insertion method and including bounding box \n"
-								<<   "\t" << "(note: for this to be able to be visualized -b should be included in the run statement)\', \n"
+								<<   "\t" << "(note: for this to be able to be visualized -b should be included in the run statement, \n"
+								<< 	 "\t" << "as such this visualization is only possible with the -b option)\', \n"
 								<<   "\t" << "\'sd\' for'\'Structural Design\', \n"
 								<<   "\t" << "\'fe\' for \'Finite Elements of the structural design model\',\n"
 								<<   "\t" << "and \'bp\' for the \'Building Physics model\'.\n"
 								<<   "\t" << "More than one can be specified.\n"
 								<<   "\t" << "Note: for any visualization (apart from 'msc' and 'tb'), the model should be generated with the command -r needs to be specified.\n";
-			std::cout << "-b\t" << "or --bounded, to obtain a model with boundaries.\n";
+			std::cout << "-b\t" << "or --bounded, to obtain to obtain a text file with PN representation (i.e. leiden representation) \n"
+								<< 	 "\t" << "as originally performed resulting in conformal triangles.\n";
+			std::cout << "-pn\t"<< "to obtain a text file with PN representation (i.e. leiden representation) \n"
+								<< 	 "\t" << "with a delaunay triangulation per elevation, i.e. less triangles per elevation as the -b option.\n";
 			std::cout << "-r\t" << "or --run, to run the sd and bps simulation of the building spatial design.\n";
 			std::cout << "\n\n" << "Press ENTER to continue..." << std::endl;
 			std::cin.get();
@@ -127,6 +132,11 @@ int main(int argc, char* argv[])
 		else if (*arg == "-b" || *arg == "--bounded") 
 		{
 			bounded = true;
+			++arg;
+		}
+		else if (*arg == "-pn") 
+		{
+			pn_representation = true;
 			++arg;
 		}
 		else if (*arg == "-r" || *arg == "--run") 
@@ -234,7 +244,7 @@ int main(int argc, char* argv[])
 		
 		// Define file name
 		std::stringstream fileNameStream;
-			fileNameStream << designName << "_PN";
+			fileNameStream << designName << "_b";
 			std::string fileName = fileNameStream.str();
 		
 		// Write to file
@@ -251,7 +261,7 @@ int main(int argc, char* argv[])
 		}
 		
 		CM_bounded.writeToFile(fileName);
-		out("Print PN version of MS_N_building to file", true, true, verbose);
+		out("Print b version of MS_N_building to file", true, true, verbose);
 
 		// send visualization of bounded conformal model
 		for (const auto& visOption : visualizations)
@@ -259,6 +269,20 @@ int main(int argc, char* argv[])
 			if (visOption == "tb") visualization::visualize(CM_bounded,"triangular_prism_no_errors");
 		}
 		if (!visualizations.empty()) out("Sent bounded conformal model to visualization",true,true,verbose);
+	}
+
+	// Obtain a file containing the PN representation of leiden in a text file
+	if (pn_representation)
+	{
+		// Define file name
+		std::stringstream fileNameStream;
+			fileNameStream << designName << "_PN";
+			std::string fileName = fileNameStream.str();
+		
+		// Generate the Movable and Sizable (MS) building model with added bounds and directly output in PN format
+		bso::spatial_design::ms_N_building MS_PN(inputFile);
+		MS_PN.convertMSToPN(fileName, 0.001);
+		out("Created a PN text file representation of the movable and Sizable (MS) building model", true, true, verbose);
 	}
 	
 	// Run and possibly print results to file

@@ -962,7 +962,7 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 	std::vector<std::pair<double,std::vector<utilities::geometry::triangle>>> delaunayTriAtLevel;
 	for(unsigned int i=0; i<allLevels.size()-1; i++)
 	{
-		std::vector<utilities::geometry::triangle> trianglesTemp = bso::utilities::delaunay(delaunayPointsAtLevel[i].second, delaunayLinesAtLevel[i].second, mTol, true);
+		std::vector<utilities::geometry::triangle> trianglesTemp = bso::utilities::delaunay(delaunayPointsAtLevel[i].second, delaunayLinesAtLevel[i].second, mTol);
 		std::vector<utilities::geometry::triangle> triAtLevel;
 		// project triangles to the correct level
 		for(auto& tri: trianglesTemp)
@@ -1090,7 +1090,7 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 		{
 			output << TP << std::endl;
 		}
-	}	
+	}
 }
 
 
