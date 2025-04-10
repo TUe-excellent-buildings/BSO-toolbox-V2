@@ -901,7 +901,9 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 			// Get quad_hexahedron geometry
 			utilities::geometry::quad_hexahedron spaceGeom = mSpaces[i]->getGeometry();
 
-			if(LowV[i].z()-mTol <= allLevels[IDlevel] && LowV[i].z()+mTol > allLevels[IDlevel] || i == (mSpaces.size()-1)) // NOTE: last space is the bounding box, so variables need to be included to get a correct delaunay triangulation per elevation
+			// j.first > LowV[IDSpace].z()-mTol && j.first < highV[IDSpace].z()-mTol
+			if(allLevels[IDlevel] >= LowV[i].z()-mTol && allLevels[IDlevel] < highV[i].z()-mTol || i == (mSpaces.size()-1)) // NOTE: last space is the bounding box added in function addBoundary(), so variables need to be included at every elevation to get a correct delaunay triangulation
+			//if(LowV[i].z()-mTol <= allLevels[IDlevel] && LowV[i].z()+mTol > allLevels[IDlevel] || i == (mSpaces.size()-1)) // NOTE: last space is the bounding box, so variables need to be included to get a correct delaunay triangulation per elevation
 			{
 				// Add all unique cornerpoints spaceGEOM to the delaunayPoints
 				for(const auto& j: spaceGeom)
@@ -1083,7 +1085,7 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 		}
 		
 		// Write the found triangular prisms in space to text file
-		output << IDSpace+1 << ", " << spaceGeom << std::endl;
+		output << mSpaces[IDSpace]->getID() << ", " << spaceGeom << std::endl;
 		for(const auto& TP: triPrism)
 		{
 			output << TP << std::endl;
