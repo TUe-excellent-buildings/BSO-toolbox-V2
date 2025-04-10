@@ -891,22 +891,22 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 	std::vector<std::pair<double,std::vector<utilities::geometry::line_segment>>> delaunayLinesAtLevel;
 	
 		
-	for(const auto& level: allLevels)
-	{
-		delaunayPointsAtLevel.push_back(std::make_pair(level,std::vector<utilities::geometry::vertex>()));
-		delaunayLinesAtLevel.push_back(std::make_pair(level,std::vector<utilities::geometry::line_segment>()));
+	for(int IDlevel=0; IDlevel<allLevels.size()-1; IDlevel++)
+	{	
+		delaunayPointsAtLevel.push_back(std::make_pair(allLevels[IDlevel],std::vector<utilities::geometry::vertex>()));
+		delaunayLinesAtLevel.push_back(std::make_pair(allLevels[IDlevel],std::vector<utilities::geometry::line_segment>()));
 
 		for (int i=0; i<mSpaces.size(); i++)
 		{
 			// Get quad_hexahedron geometry
 			utilities::geometry::quad_hexahedron spaceGeom = mSpaces[i]->getGeometry();
 
-			if(LowV[i].z()-mTol <= level && highV[i].z()+mTol > level)
+			if(LowV[i].z()-mTol <= allLevels[IDlevel] && LowV[i].z()+mTol > allLevels[IDlevel] || i == (mSpaces.size()-1)) // NOTE: last space is the bounding box, so variables need to be included to get a correct delaunay triangulation per elevation
 			{
 				// Add all unique cornerpoints spaceGEOM to the delaunayPoints
 				for(const auto& j: spaceGeom)
 				{
-					utilities::geometry::vertex temp = {j.x(),j.y(),level};
+					utilities::geometry::vertex temp = {j.x(),j.y(),allLevels[IDlevel]};
 
 					bool doubleInsert = false;
 					for (const auto& m : delaunayPointsAtLevel.back().second)
@@ -925,8 +925,8 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 				for (const auto& k : spaceGeom.getLines())
 				{
 					// Add the unique lines of each spaceGEOM to delaunayLines
-					utilities::geometry::vertex Ltemp1 = {k[0].x(),k[0].y(),level};
-					utilities::geometry::vertex Ltemp2 = {k[1].x(),k[1].y(),level};
+					utilities::geometry::vertex Ltemp1 = {k[0].x(),k[0].y(),allLevels[IDlevel]};
+					utilities::geometry::vertex Ltemp2 = {k[1].x(),k[1].y(),allLevels[IDlevel]};
 					utilities::geometry::line_segment Ltemp {{Ltemp1},{Ltemp2}}; //Note the line is newly defined for the case that some round of error occur during the shifting of the lines of the spacesAtGround[i]
 					
 					bool doubleInsert = false;
@@ -951,16 +951,24 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 	}
 
 	// Split lines at intersection vertices and remove duplicated lines
-	for(unsigned int i=0; i<allLevels.size(); i++)
+	for(unsigned int i=0; i<allLevels.size()-1; i++)
 	{
 		bso::utilities::splitLines(delaunayPointsAtLevel[i].second, delaunayLinesAtLevel[i].second, mTol);// this prevent the generation of triangles on one line or triangles containing duplicate vertices
 	}
 
-	// Send all vertices and constrain lines to the delaunay triangulation and receive all triangles
+	// Send all vertices and constrain lines to the delaunay triangulation, receive all triangles, and project them to the correct level for later use
 	std::vector<std::pair<double,std::vector<utilities::geometry::triangle>>> delaunayTriAtLevel;
-	for(unsigned int i=0; i<allLevels.size(); i++)
+	for(unsigned int i=0; i<allLevels.size()-1; i++)
 	{
-		delaunayTriAtLevel.push_back(std::make_pair(allLevels[i],bso::utilities::delaunay(delaunayPointsAtLevel[i].second, delaunayLinesAtLevel[i].second, mTol)));
+		std::vector<utilities::geometry::triangle> trianglesTemp = bso::utilities::delaunay(delaunayPointsAtLevel[i].second, delaunayLinesAtLevel[i].second, mTol, true);
+		std::vector<utilities::geometry::triangle> triAtLevel;
+		// project triangles to the correct level
+		for(auto& tri: trianglesTemp)
+		{
+			utilities::geometry::triangle temp = {{tri[0].x(),tri[0].y(),allLevels[i]}, {tri[1].x(),tri[1].y(),allLevels[i]}, {tri[2].x(),tri[2].y(),allLevels[i]}};
+			triAtLevel.push_back(temp);
+		}
+		delaunayTriAtLevel.push_back(std::make_pair(allLevels[i],triAtLevel));
 	}
 
 	// Initiate output file stream
@@ -977,18 +985,17 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 	}
 
 	// Identify which triangles should be used to generate a triangular prism cell in the space and generate that space and accompanying geometric entities
-	int i = 0;
-	for(const auto& t : mSpaces)
+	for(int IDSpace=0; IDSpace<mSpaces.size(); IDSpace++)
 	{
 		// Get spaceGEOM
-		utilities::geometry::quad_hexahedron spaceGeom = t->getGeometry();
+		utilities::geometry::quad_hexahedron spaceGeom = mSpaces[IDSpace]->getGeometry();
 		
 		// Find the triangles in the space
-		std::vector<std::pair<double,std::vector<utilities::geometry::triangle>>> triInCellAtLevel;
+		std::vector<std::pair<double,std::vector<utilities::geometry::triangle>>> triInSpaceAtLevel;
 		for(const auto j : delaunayTriAtLevel)
 		{
-			if(!j.first-mTol>LowV[i].z() && !j.first< highV[i].z()-mTol) continue; // triangle is not defined within the level bounds of the considered space, so continue.
-			triInCellAtLevel.push_back(std::make_pair(j.first,std::vector<utilities::geometry::triangle>()));
+			if(!(j.first > LowV[IDSpace].z()-mTol && j.first < highV[IDSpace].z()-mTol)) continue; // triangle is not defined within the level bounds of the considered space, so continue.
+			triInSpaceAtLevel.push_back(std::make_pair(j.first,std::vector<utilities::geometry::triangle>()));
 
 			for(const auto T: j.second)
 			{
@@ -1028,12 +1035,12 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 				}
 				if(allNodesInside)
 				{
-					((triInCellAtLevel.back()).second).push_back(T);
+					((triInSpaceAtLevel.back()).second).push_back(T);
 				}
 			}
 		}
 		
-		for(const auto j: triInCellAtLevel)
+		for(const auto j: triInSpaceAtLevel)
 		{		
 			if(j.second.size() < 2)
 			{
@@ -1046,7 +1053,7 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 											{
 												errorMessage << i << std::endl;
 											}
-						errorMessage << "the considered space is: " << *t << "\n"
+						errorMessage << "the considered space is: " << *mSpaces[IDSpace] << "\n"
 										<< "(bso/spatial_design/ms_N_building.cpp)" << std::endl;
 							throw std::invalid_argument(errorMessage.str());
 			}
@@ -1054,9 +1061,9 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 		
 		// Define all six vertices of the triangular prism and store in triPrism
 		std::vector<utilities::geometry::triangular_prism> triPrism;
-		for(unsigned int IDtriAtLevel = 0; IDtriAtLevel<triInCellAtLevel.size(); IDtriAtLevel++)
+		for(unsigned int IDtriAtLevel = 0; IDtriAtLevel<triInSpaceAtLevel.size(); IDtriAtLevel++)
 		{
-			for(const auto tri: triInCellAtLevel[IDtriAtLevel].second)
+			for(const auto tri: triInSpaceAtLevel[IDtriAtLevel].second)
 			{
 				std::vector<utilities::geometry::vertex> triPrismV;
 				triPrismV.reserve(6);
@@ -1066,8 +1073,8 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 				for(const auto k: tri)
 				{// bottom row prisms
 					utilities::geometry::vertex high = {0,0,0};
-					if(triInCellAtLevel[IDtriAtLevel+1].first < highV[i].z()){high = {0,0, triInCellAtLevel[IDtriAtLevel+1].first};}
-					else{high = {0,0, highV[i].z()};}
+					if(IDtriAtLevel+1 >= triInSpaceAtLevel.size()){high = {0,0, highV[IDSpace].z()};}
+					else{high = {0,0, triInSpaceAtLevel[IDtriAtLevel+1].first};}
 					triPrismV.push_back(k);
 					triPrismV.push_back(k+high);
 				}
@@ -1076,13 +1083,11 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 		}
 		
 		// Write the found triangular prisms in space to text file
-		output << *t;
+		output << IDSpace+1 << ", " << spaceGeom << std::endl;
 		for(const auto& TP: triPrism)
 		{
 			output << TP << std::endl;
 		}
-
-		i++;
 	}	
 }
 
