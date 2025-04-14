@@ -51,7 +51,7 @@ public:
 	
 	// Translational function to Leiden
 	void addBoundary(); // Add a boundary line and uses the conformal making process for making a Prism-Net representation
-	void convertMSToPN(std::string fileName, double mTol = 0.001); // Uses less triangles and more spread to make a prism-net (PN) representation from Leiden
+	std::vector<utilities::geometry::triangular_prism> convertMSToPN(std::string fileName, double mTol = 0.001); // Uses less triangles and more spread to make a prism-net (PN) representation from Leiden
 	
 	bool operator == (const ms_N_building& rhs);
 	bool operator != (const ms_N_building& rhs);

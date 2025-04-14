@@ -12,7 +12,7 @@
 #include <vector>
 #include <sstream>
 
-std::vector<std::string> VIS_OPTIONS = {"ms","msc","rc","cb","tr","tp","tb", "sd","fe","bp"};
+std::vector<std::string> VIS_OPTIONS = {"ms","msc","pnf","rc","cb","tr","tp","tb","pn","sd","fe","bp"};
 std::vector<std::string> OUT_OPTIONS = {"result_file", "verbose", "ms_files"};
 
 int end, begin = 0;
@@ -35,6 +35,8 @@ int main(int argc, char* argv[])
 	std::string designName = "";
 	std::string colorinputFile = "";
 	std::string colourFileName = "";
+	std::string PNinputFile = "";
+	std::string PNFileName = "";
 	std::string modification = "";
 	std::vector<std::string> visualizations;
 	bool result_file = false;
@@ -76,18 +78,22 @@ int main(int argc, char* argv[])
 								<<   "\t" << "visualized: \'ms\' for \'Movable Sizable\', \n"
 								<<   "\t" << "\'msc\' for \'Movable Sizable\' view with alternate coloring according to input file, \n"
 								<<   "\t" << "(note: insert the input file's name directly after the msc key, example: msc colorSetting -b etc.), \n"
+								<<   "\t" << "\'pnf\' for \'PN representation\' view with alternate coloring according to input file, \n"
+								<<   "\t" << "(note: insert the input file's name directly after the pnf key, example: pnf colorSetting -b etc.), \n"
 								<<   "\t" << "\'rc\' for \'conformal model with Rectangles for R insertion method\', \n"
 								<<   "\t" << "\'cb\' for \'conformal model with Cuboids for R insertion method\', \n"
 								<<   "\t" << "\'tr\' for \'conformal model with Triangles and Rectangles for N insertion method\', \n"
 								<<   "\t" << "\'tp\' for \'conformal model with Triangular Prism for N insertion method\', \n"
 								<<   "\t" << "\'tb\' for \'conformal model with Triangular Prism for N insertion method and including bounding box \n"
-								<<   "\t" << "(note: for this to be able to be visualized -b should be included in the run statement, \n"
-								<< 	 "\t" << "as such this visualization is only possible with the -b option)\', \n"
+								<<   "\t" << "(note: this visualization is only possible with the -b option included in the run statement) \n"
+								<< 	 "\t" << "\'pn\' for \'visualization of the triangular prims used for the PN representation definition \n"
+								<<   "\t" << "(note: this visualization is only possible with the -pn option included in the run statement) \n"
 								<<   "\t" << "\'sd\' for'\'Structural Design\', \n"
 								<<   "\t" << "\'fe\' for \'Finite Elements of the structural design model\',\n"
 								<<   "\t" << "and \'bp\' for the \'Building Physics model\'.\n"
 								<<   "\t" << "More than one can be specified.\n"
-								<<   "\t" << "Note: for any visualization (apart from 'msc' and 'tb'), the model should be generated with the command -r needs to be specified.\n";
+								<<   "\t" << "Note: for any visualization (apart from 'msc', 'pnf', 'pn' and 'tb'), the model should be \n"
+								<< 	 "\t" << "generated with the command -r needs to be specified.\n";
 			std::cout << "-b\t" << "or --bounded, to obtain to obtain a text file with PN representation (i.e. leiden representation) \n"
 								<< 	 "\t" << "as originally performed resulting in conformal triangles.\n";
 			std::cout << "-pn\t"<< "to obtain a text file with PN representation (i.e. leiden representation) \n"
@@ -189,6 +195,63 @@ int main(int argc, char* argv[])
 						throw std::invalid_argument(errorMessage.str());
 					}
 				}
+
+				if(visualizations.back() == "pnf")
+				{
+					if(++arg == args.end() || arg->operator[](0) == '-')
+					{
+						std::stringstream errorMessage;
+							errorMessage << "\nError, expected an colour input file to be specified after 'msc'.\n"
+													<< "use -h or --help for help\n";
+							throw std::invalid_argument(errorMessage.str());
+					}
+						
+					colorinputFile = *arg;
+					boost::trim(colorinputFile);
+					colourFileName = colorinputFile;
+
+					if(colorinputFile == "")
+					{
+						std::stringstream errorMessage;
+						errorMessage << "\nError, expected an colour input file to be specified after 'msc'.\n"
+												<< "use -h or --help for help\n";
+						throw std::invalid_argument(errorMessage.str());
+					}
+					if (colorinputFile.empty())
+					{
+						std::stringstream errorMessage;
+						errorMessage << "Error, can not visualize an MS_N_building design using\n";
+							errorMessage << "the following colour input file: " << colorinputFile << "\n";		
+						throw std::invalid_argument(errorMessage.str());
+					}
+
+					if(++arg == args.end() || arg->operator[](0) == '-')
+					{
+						std::stringstream errorMessage;
+							errorMessage << "\nError, expected an PN input file to be specified after 'pnf'.\n"
+													<< "use -h or --help for help\n";
+							throw std::invalid_argument(errorMessage.str());
+					}
+						
+					PNinputFile = *arg;
+					boost::trim(PNinputFile);
+					PNFileName = PNinputFile;
+
+					if(PNinputFile == "")
+					{
+						std::stringstream errorMessage;
+						errorMessage << "\nError, expected an colour input file to be specified after 'pnf'.\n"
+												<< "use -h or --help for help\n";
+						throw std::invalid_argument(errorMessage.str());
+					}
+					if (PNinputFile.empty())
+					{
+						std::stringstream errorMessage;
+						errorMessage << "Error, can not visualize an PN representation using\n";
+							errorMessage << "the following colour input file: " << PNinputFile << "\n";		
+						throw std::invalid_argument(errorMessage.str());
+					}
+				}
 			}
 			if (visualizations.size() == 0)
 			{
@@ -206,19 +269,23 @@ int main(int argc, char* argv[])
 			throw std::invalid_argument(errorMessage.str());
 		}
 	}
-	if (inputFile == "")
+	if(!(colorinputFile == "")){/*only if there is a colorinputFile defined, then there is no need for an design inputFile*/}
+	else 
 	{
-		std::stringstream errorMessage;
-		errorMessage << "\nError, expected an input file to be specified after 'i'.\n"
-								 << "use -h or --help for help\n";
-		throw std::invalid_argument(errorMessage.str());
-	}
-	if (inputFile.empty())
-	{
-		std::stringstream errorMessage;
-		errorMessage << "Error, can not initialize MS building design using\n";
-			errorMessage << "the following MS input file: " << inputFile << "\n";		
-		throw std::invalid_argument(errorMessage.str());
+		if (inputFile == "")
+		{
+			std::stringstream errorMessage;
+			errorMessage << "\nError, expected an input file to be specified after 'i'.\n"
+									<< "use -h or --help for help\n";
+			throw std::invalid_argument(errorMessage.str());
+		}
+		if (inputFile.empty())
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Error, can not initialize MS building design using\n";
+				errorMessage << "the following MS input file: " << inputFile << "\n";		
+			throw std::invalid_argument(errorMessage.str());
+		}
 	}
 
 	// start executing the options:
@@ -266,9 +333,12 @@ int main(int argc, char* argv[])
 		// send visualization of bounded conformal model
 		for (const auto& visOption : visualizations)
 		{
-			if (visOption == "tb") visualization::visualize(CM_bounded,"triangular_prism_no_errors");
+			if (visOption == "tb")
+			{
+				visualization::visualize(CM_bounded,"triangular_prism_no_errors");
+				out("Sent bounded conformal model to visualization",true,true,verbose);
+			}
 		}
-		if (!visualizations.empty()) out("Sent bounded conformal model to visualization",true,true,verbose);
 	}
 
 	// Obtain a file containing the PN representation of leiden in a text file
@@ -281,8 +351,18 @@ int main(int argc, char* argv[])
 		
 		// Generate the Movable and Sizable (MS) building model with added bounds and directly output in PN format
 		bso::spatial_design::ms_N_building MS_PN(inputFile);
-		MS_PN.convertMSToPN(fileName, 0.001);
+		std::vector<bso::utilities::geometry::triangular_prism> PNPrism = MS_PN.convertMSToPN(fileName, 0.001);
 		out("Created a PN text file representation of the movable and Sizable (MS) building model", true, true, verbose);
+
+		// send visualization of bounded conformal model
+		for (const auto& visOption : visualizations)
+		{
+			if (visOption == "pn")
+			{
+				visualization::visualize(PNPrism,"PN representations triangular prims");
+				out("Sent PN representations triangular prims to visualization",true,true,verbose);
+			}
+		}
 	}
 	
 	// Run and possibly print results to file
@@ -381,6 +461,12 @@ int main(int argc, char* argv[])
 				out("Created a Movable and Sizable (MS) building model", true, true, verbose);
 				
 				visualization::visualize(colourFileName,MS);
+				out("Sent msc visualization option visualization",true,true,verbose);
+			} 
+			if (visOption == "pnf")
+			{						
+				visualization::visualize(colourFileName,PNFileName);
+				out("Sent pnf visualization option visualization",true,true,verbose);
 			} 
 		}
 	}

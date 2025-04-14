@@ -44,14 +44,14 @@ public:
 					 const std::string& title = "ms_N_building", const double& linewidth = 1.0);
 
 	/*
-	The following constructor contain the abilitiy for defining diferent colors per space defined in a file 
-	(first input contains the file name for this imput)
-	A discribtion of how this file should look like is shown bellow:
+	The following constructor contain the ability for defining different colors per space defined in a file 
+	(first input contains the file name for this input)
+	A description of how this file should look like is shown bellow:
 	
-	# space with ID zerro is considered the standart collor and will overrule the other standarts defined.
-	# this standart color will be used for all spaces without a defined color.
+	# space with ID zero is considered the standard color and will overrule the other standards defined.
+	# this standard color will be used for all spaces without a defined color.
 	# To define a color of a space insert the ID number of the space followed by four times the four rgba value's.
-	# See link: https://www.w3schools.com/css/css_colors_rgb.asp for explenation rgba value's.
+	# See link: https://www.w3schools.com/css/css_colors_rgb.asp for explanation rgba value's.
 	# In the BSO the rgba value's are defined as a ratio. Where 1.0 equals the maximum value.
 
 	#	space_ID	ambient(rgba)		diffuse(rgba)		specular(rgba)	emission(rgba)	shininess(float value)	translucent(bool)		twoSided(bool)

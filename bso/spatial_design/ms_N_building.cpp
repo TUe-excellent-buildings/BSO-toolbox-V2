@@ -834,7 +834,7 @@ void ms_N_building::addBoundary()
 } // addBoundary() 
 
 
-void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands for prism-net representation from Leiden
+std::vector<utilities::geometry::triangular_prism> ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands for prism-net representation from Leiden
 {
 	this->addBoundary();
 	
@@ -987,6 +987,7 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 	}
 
 	// Identify which triangles should be used to generate a triangular prism cell in the space and generate that space and accompanying geometric entities
+	std::vector<utilities::geometry::triangular_prism> triPrismBoundingBox;
 	for(int IDSpace=0; IDSpace<mSpaces.size(); IDSpace++)
 	{
 		// Get spaceGEOM
@@ -1075,10 +1076,10 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 				for(const auto k: tri)
 				{// bottom row prisms
 					utilities::geometry::vertex high = {0,0,0};
-					if(IDtriAtLevel+1 >= triInSpaceAtLevel.size()){high = {0,0, highV[IDSpace].z()};}
-					else{high = {0,0, triInSpaceAtLevel[IDtriAtLevel+1].first};}
+					if(IDtriAtLevel+1 >= triInSpaceAtLevel.size()){high = {k.x(), k.y(), highV[IDSpace].z()};}
+					else{high = {k.x(), k.y(), triInSpaceAtLevel[IDtriAtLevel+1].first};}
 					triPrismV.push_back(k);
-					triPrismV.push_back(k+high);
+					triPrismV.push_back(high);
 				}
 				triPrism.push_back(utilities::geometry::triangular_prism(triPrismV, mTol));
 			}
@@ -1090,7 +1091,14 @@ void ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands
 		{
 			output << TP << std::endl;
 		}
+
+		if(IDSpace == mSpaces.size()-1) // last space is the bounding box, thus contains all triangular prims defined for the PN representation.
+		{
+			triPrismBoundingBox = triPrism;
+		}
 	}
+
+	return triPrismBoundingBox; // return the triPrism defined in the bounding box for later on visualizations
 }
 
 
