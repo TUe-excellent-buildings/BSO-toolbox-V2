@@ -12,6 +12,7 @@
 #include <vector>
 #include <sstream>
 
+std::vector<std::string> MULTI_VIS_OPTIONS = {"ms","msc","pnf"};
 std::vector<std::string> VIS_OPTIONS = {"ms","msc","pnf","rc","cb","tr","tp","tb","pn","sd","fe","bp"};
 std::vector<std::string> OUT_OPTIONS = {"result_file", "verbose", "ms_files"};
 
@@ -39,6 +40,8 @@ int main(int argc, char* argv[])
 	std::string PNFileName = "";
 	std::string modification = "";
 	std::vector<std::string> visualizations;
+	std::string kindMultiVisual = "";
+	std::vector<std::string> multiVisualizations;
 	bool result_file = false;
 	bool ms_files = false;
 	bool verbose = false;
@@ -94,6 +97,10 @@ int main(int argc, char* argv[])
 								<<   "\t" << "More than one can be specified.\n"
 								<<   "\t" << "Note: for any visualization (apart from 'msc', 'pnf', 'pn' and 'tb'), the model should be \n"
 								<< 	 "\t" << "generated with the command -r needs to be specified.\n";
+			std::cout << "-mv"  << "or --multipleVisuals, to specify multiple ms, msc or pn models from text files to be visualized in one visualization window.\n"
+								<<   "\t" << "to do this, follow the -mv with first the kinds of models to be visualized (note only ms, msc or pn models at a time),\n"
+								<<   "\t" << "and then the names of the text files to be visualized.\n"
+								<<   "\t" << "Example: -mv ms MS1.txt MS2.txt MS3.txt\n";
 			std::cout << "-b\t" << "or --bounded, to obtain to obtain a text file with PN representation (i.e. leiden representation) \n"
 								<< 	 "\t" << "as originally performed resulting in conformal triangles.\n";
 			std::cout << "-pn\t"<< "to obtain a text file with PN representation (i.e. leiden representation) \n"
@@ -201,7 +208,7 @@ int main(int argc, char* argv[])
 					if(++arg == args.end() || arg->operator[](0) == '-')
 					{
 						std::stringstream errorMessage;
-							errorMessage << "\nError, expected an colour input file to be specified after 'msc'.\n"
+							errorMessage << "\nError, expected an colour input file to be specified after 'pnf'.\n"
 													<< "use -h or --help for help\n";
 							throw std::invalid_argument(errorMessage.str());
 					}
@@ -213,7 +220,7 @@ int main(int argc, char* argv[])
 					if(colorinputFile == "")
 					{
 						std::stringstream errorMessage;
-						errorMessage << "\nError, expected an colour input file to be specified after 'msc'.\n"
+						errorMessage << "\nError, expected an colour input file to be specified after 'pnf'.\n"
 												<< "use -h or --help for help\n";
 						throw std::invalid_argument(errorMessage.str());
 					}
@@ -262,6 +269,113 @@ int main(int argc, char* argv[])
 				throw std::invalid_argument(errorMessage.str());
 			}
 		}
+		else if (*arg == "-mv" || *arg == "--multipleVisuals")
+		{
+			if (++arg == args.end() || arg->operator[](0) == '-')
+			{
+				std::stringstream errorMessage;
+				errorMessage << "\nError, expected the kind of model to be visualized after -mv or --multipleVisuals\n"
+										 << "Use -h or --help for help" << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+			}			
+			std::string visSpec = *arg;
+			boost::trim(visSpec);
+			if (std::find(MULTI_VIS_OPTIONS.begin(),MULTI_VIS_OPTIONS.end(),visSpec) == MULTI_VIS_OPTIONS.end())
+			{
+				std::stringstream errorMessage;
+				errorMessage << "\nError, did not recognize: \"" << visSpec << "\"\n"
+											<< "as an option for -mv or --multipleVisuals as a specification\n"
+											<< "of a model to visualize, use -h or --help for help\n";
+				throw std::invalid_argument(errorMessage.str());
+			}
+			kindMultiVisual = visSpec;
+		
+			if(kindMultiVisual == "msc")
+			{
+				if (++arg == args.end() || arg->operator[](0) == '-')
+				{
+					std::stringstream errorMessage;
+					errorMessage << "\nError, expected a colorsettings file to be defined next directly after -mv or --multipleVisuals\n"
+											<< "Use -h or --help for help" << std::endl;
+					throw std::invalid_argument(errorMessage.str());
+				}
+				colorinputFile = *arg;
+				boost::trim(colorinputFile);
+				colourFileName = colorinputFile;
+				int count = 0;
+				while (++arg != args.end() && arg->operator[](0) != '-')
+				{
+					std::string modelFile = *arg;
+					boost::trim(modelFile);
+					multiVisualizations.push_back(modelFile);
+					count++;
+				}
+				if(count == 0)
+				{
+					std::stringstream errorMessage;
+					errorMessage << "\nError, expected at least one fileName after colorinputFile\n"
+											 << "-mv or --multipleVisuals, received nothing. Use -h or\n"
+											 << "--help for help\n";
+					throw std::invalid_argument(errorMessage.str());
+				}
+			}
+			else if (kindMultiVisual == "pnf")
+			{
+				if (++arg == args.end() || arg->operator[](0) == '-')
+				{
+					std::stringstream errorMessage;
+					errorMessage << "\nError, expected a colorSettings file to be defined next directly after -mv or --multipleVisuals\n"
+											<< "Use -h or --help for help" << std::endl;
+					throw std::invalid_argument(errorMessage.str());
+				}
+				colorinputFile = *arg;
+				boost::trim(colorinputFile);
+				colourFileName = colorinputFile;
+				int count = 0;
+				while (++arg != args.end() && arg->operator[](0) != '-')
+				{
+					std::string modelFile = *arg;
+					boost::trim(modelFile);
+					multiVisualizations.push_back(modelFile);
+					count++;
+				}
+				if(count == 0)
+				{
+					std::stringstream errorMessage;
+					errorMessage << "\nError, expected at least one fileName after colorinputFile\n"
+											 << "-mv or --multipleVisuals, received nothing. Use -h or\n"
+											 << "--help for help\n";
+					throw std::invalid_argument(errorMessage.str());
+				}
+			}
+			else if (kindMultiVisual == "ms")
+			{
+				int count = 0;
+				while (++arg != args.end() && arg->operator[](0) != '-')
+				{
+					std::string modelFile = *arg;
+					boost::trim(modelFile);
+					multiVisualizations.push_back(modelFile);
+					count++;
+				}
+				if(count == 0)
+				{
+					std::stringstream errorMessage;
+					errorMessage << "\nError, expected at least one fileName after the ms kind specification\n"
+											 << "-mv or --multipleVisuals, received nothing. Use -h or\n"
+											 << "--help for help\n";
+					throw std::invalid_argument(errorMessage.str());
+				}
+			}
+			else
+			{
+				std::stringstream errorMessage;
+				errorMessage << "\nError, did not recognize: \"" << kindMultiVisual << "\"\n"
+											<< "as a option for -mv or --multipleVisuals as a specification\n"
+											<< "of a kind of model to visualize, use -h or --help for help\n";
+				throw std::invalid_argument(errorMessage.str());
+			}
+		}
 		else
 		{
 			std::stringstream errorMessage;
@@ -269,7 +383,7 @@ int main(int argc, char* argv[])
 			throw std::invalid_argument(errorMessage.str());
 		}
 	}
-	if(!(colorinputFile == "")){/*only if there is a colorinputFile defined, then there is no need for an design inputFile*/}
+	if(!(colorinputFile == "") || !(kindMultiVisual == "")){/*there is no need for an design inputFile if there is a colorInputFile or kindMultiVisual defined, however, it may still be defined*/}
 	else 
 	{
 		if (inputFile == "")
@@ -291,7 +405,7 @@ int main(int argc, char* argv[])
 	// start executing the options:
 	
 	// start visualization:
-	if (!visualizations.empty()) 
+	if (!visualizations.empty() || !(kindMultiVisual == "")) 
 	{
 		visualization::initVisualization(argc,argv);
 		out("Initialized visualization", true, true, verbose);
@@ -471,8 +585,63 @@ int main(int argc, char* argv[])
 		}
 	}
 	
+	if (kindMultiVisual == "ms")
+	{
+		for (const auto& modelFile : multiVisualizations)
+		{
+			bso::spatial_design::ms_N_building MS(modelFile);
+			out("Created a Movable and Sizable (MS) building model", true, true, verbose);
+			visualization::visualize(MS);
+			out("Sent ms visualization option visualization",true,true,verbose);
+		}
+	}
+	else if (kindMultiVisual == "msc")
+	{
+		for (const auto& modelFile : multiVisualizations)
+		{
+			bso::spatial_design::ms_N_building MS(modelFile);
+			out("Created a Movable and Sizable (MS) building model", true, true, verbose);
+			try
+			{
+				bso::visualization::visualize(colourFileName,MS);
+				out("Sent msc visualization option visualization",true,true,verbose);
+			}
+			catch(std::exception& e)
+			{
+				std::stringstream errorMessage;
+				errorMessage << "Something when wrong while generating the msc visualization." << std::endl
+										<< "Check if the first file after the msc key is the colorInput file." << std::endl						
+										<< "(main.cpp)." << std::endl
+										<< "Got the following error: " << std::endl
+										<< e.what() << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+			}
+		}
+	}
+	else if (kindMultiVisual == "pnf")
+	{
+		for (const auto& modelFile : multiVisualizations)
+		{
+			try
+			{
+				visualization::visualize(colourFileName,modelFile);
+				out("Sent pnf visualization option visualization",true,true,verbose);
+			}
+			catch(std::exception& e)
+			{
+				std::stringstream errorMessage;
+				errorMessage << "Something when wrong while generating the pnf visualization." << std::endl
+										<< "Check if the first file after the pnf key is the colorInput file." << std::endl						
+										<< "(main.cpp)." << std::endl
+										<< "Got the following error: " << std::endl
+										<< e.what() << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+			}
+		}
+	}
+	
 	// End the visualizations:
-	if (!visualizations.empty()) visualization::endVisualization();
+	if (!visualizations.empty() || !(kindMultiVisual == "")) visualization::endVisualization();
 
 	return 0;
 }
