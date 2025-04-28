@@ -6,7 +6,7 @@ BSO 	= /home/tessa/BSO-toolbox-V2
 ALL_LIB = -I$(BOOST) -I$(EIGEN) -I$(BSO)
 
 #compiler settings
-CPP   = g++ -g -std=c++17 -fmax-errors=5 -Wall -Wextra
+CPP   = g++ -g -std=c++17 -fmax-errors=5 #-Wall -Wextra
 FLAGS  = -O -march=native -lglut -lGL -lGLU -lpthread -lfade2d
 D_LIB  = -I${FADE}/include_fade2d
 
