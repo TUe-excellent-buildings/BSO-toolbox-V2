@@ -986,6 +986,15 @@ std::vector<utilities::geometry::triangular_prism> ms_N_building::convertMSToPN(
 		throw std::invalid_argument(errorMessage.str());
 	}
 
+	// initialize delaunayTriAtLevelInSpace with all bool set to false reflecting the nr. triangles at each level as in delaunayTriAtLevel
+	std::vector<std::pair<double,std::vector<bool>>> delaunayTriAtLevelInSpace;
+	delaunayTriAtLevelInSpace.resize(delaunayTriAtLevel.size());
+	for(unsigned int i=0; i<delaunayTriAtLevel.size(); i++)
+	{
+		delaunayTriAtLevelInSpace[i].first = delaunayTriAtLevel[i].first;
+		delaunayTriAtLevelInSpace[i].second.resize(delaunayTriAtLevel[i].second.size(), false);
+	}
+
 	// Identify which triangles should be used to generate a triangular prism cell in the space and generate that space and accompanying geometric entities
 	std::vector<utilities::geometry::triangular_prism> triPrismBoundingBox;
 	for(int IDSpace=0; IDSpace<mSpaces.size(); IDSpace++)
@@ -995,15 +1004,15 @@ std::vector<utilities::geometry::triangular_prism> ms_N_building::convertMSToPN(
 		
 		// Find the triangles in the space
 		std::vector<std::pair<double,std::vector<utilities::geometry::triangle>>> triInSpaceAtLevel;
-		for(const auto j : delaunayTriAtLevel)
+		for(unsigned int j=0; j<delaunayTriAtLevel.size(); j++)
 		{
-			if(!(j.first > LowV[IDSpace].z()-mTol && j.first < highV[IDSpace].z()-mTol)) continue; // triangle is not defined within the level bounds of the considered space, so continue.
-			triInSpaceAtLevel.push_back(std::make_pair(j.first,std::vector<utilities::geometry::triangle>()));
+			if(!(delaunayTriAtLevel[j].first > LowV[IDSpace].z()-mTol && delaunayTriAtLevel[j].first < highV[IDSpace].z()-mTol)) continue; // triangle is not defined within the level bounds of the considered space, so continue.
+			triInSpaceAtLevel.push_back(std::make_pair(delaunayTriAtLevel[j].first,std::vector<utilities::geometry::triangle>()));
 
-			for(const auto T: j.second)
+			for(unsigned int idT=0; idT<(delaunayTriAtLevel[j].second).size(); idT++) 
 			{
 				bool allNodesInside = true;
-				for(const auto k: T)
+				for(const auto k: (delaunayTriAtLevel[j].second)[idT]) // iterate trough the vertices of the triangle
 				{
 					if(!spaceGeom.isInsideOrOn(k, mTol))
 					{
@@ -1038,7 +1047,8 @@ std::vector<utilities::geometry::triangular_prism> ms_N_building::convertMSToPN(
 				}
 				if(allNodesInside)
 				{
-					((triInSpaceAtLevel.back()).second).push_back(T);
+					((triInSpaceAtLevel.back()).second).push_back((delaunayTriAtLevel[j].second)[idT]);
+					if(IDSpace != mSpaces.size()-1) {delaunayTriAtLevelInSpace[j].second[idT] = true;} // set the triangle as used
 				}
 			}
 		}
@@ -1084,20 +1094,62 @@ std::vector<utilities::geometry::triangular_prism> ms_N_building::convertMSToPN(
 				triPrism.push_back(utilities::geometry::triangular_prism(triPrismV, mTol));
 			}
 		}
-		
+
+		if(IDSpace == mSpaces.size()-1) // last space is the bounding box, thus contains all triangular prims defined for the PN representation.
+		{
+			triPrismBoundingBox = triPrism;
+			break;
+		}
+
 		// Write the found triangular prisms in space to text file
 		output << mSpaces[IDSpace]->getID() << ", " << spaceGeom << std::endl;
 		for(const auto& TP: triPrism)
 		{
 			output << TP << std::endl;
 		}
+	}
 
-		if(IDSpace == mSpaces.size()-1) // last space is the bounding box, thus contains all triangular prims defined for the PN representation.
+	// Write the bounding box triangles not belonging to a space to the text file:
+	// Get spaceGEOM
+	utilities::geometry::quad_hexahedron spaceGeom = mSpaces[mSpaces.size()-1]->getGeometry();
+
+	// Define all six vertices of the triangular prism and store in triPrism
+	std::vector<utilities::geometry::triangular_prism> triPrism;
+	for(unsigned int IDtriAtLevel = 0; IDtriAtLevel<delaunayTriAtLevel.size(); IDtriAtLevel++)
+	{
+		int IDCount = 0;
+		for(const auto tri: delaunayTriAtLevel[IDtriAtLevel].second)
 		{
-			triPrismBoundingBox = triPrism;
+			// Only continue with the triangles that are not used in the previous spaces, i.e. outside of spaces and only existing in the bounding box
+			bool inSpace = (delaunayTriAtLevelInSpace[IDtriAtLevel].second)[IDCount];
+			IDCount++;
+			if(inSpace == true) continue;			
+
+			std::vector<utilities::geometry::vertex> triPrismV;
+			triPrismV.reserve(6);
+			
+			//Generate triangular prism
+			triPrismV.clear();
+			for(const auto k: tri)
+			{// bottom row prisms
+				utilities::geometry::vertex high = {0,0,0};
+				if(IDtriAtLevel+1 >= delaunayTriAtLevel.size()){high = {k.x(), k.y(), highV[mSpaces.size()-1].z()};}
+				else{high = {k.x(), k.y(), delaunayTriAtLevel[IDtriAtLevel+1].first};}
+				triPrismV.push_back(k);
+				triPrismV.push_back(high);
+			}
+			triPrism.push_back(utilities::geometry::triangular_prism(triPrismV, mTol));
 		}
 	}
 
+	// Write the found triangular prisms in space to text file
+	output << mSpaces[mSpaces.size()-1]->getID() << ", " << spaceGeom << std::endl;
+	for(const auto& TP: triPrism)
+	{
+		output << TP << std::endl;
+	}
+
+	output.close(); // close the output file stream
 	return triPrismBoundingBox; // return the triPrism defined in the bounding box for later on visualizations
 }
 

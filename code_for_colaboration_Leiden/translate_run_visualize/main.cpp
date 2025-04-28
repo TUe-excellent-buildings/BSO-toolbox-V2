@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
 								<<   "\t" << "More than one can be specified.\n"
 								<<   "\t" << "Note: for any visualization (apart from 'msc', 'pnf', 'pn' and 'tb'), the model should be \n"
 								<< 	 "\t" << "generated with the command -r needs to be specified.\n";
-			std::cout << "-mv"  << "or --multipleVisuals, to specify multiple ms, msc or pn models from text files to be visualized in one visualization window.\n"
+			std::cout << "-mv\t"  << "or --multipleVisuals, to specify multiple ms, msc or pn models from text files to be visualized in one visualization window.\n"
 								<<   "\t" << "to do this, follow the -mv with first the kinds of models to be visualized (note only ms, msc or pn models at a time),\n"
 								<<   "\t" << "and then the names of the text files to be visualized.\n"
 								<<   "\t" << "Example: -mv ms MS1.txt MS2.txt MS3.txt\n";
