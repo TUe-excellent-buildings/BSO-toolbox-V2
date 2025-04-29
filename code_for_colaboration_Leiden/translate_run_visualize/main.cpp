@@ -102,8 +102,8 @@ int main(int argc, char* argv[])
 								<<   "\t" << "and then the names of the text files to be visualized.\n"
 								<<   "\t" << "Example: -mv ms MS1.txt MS2.txt MS3.txt\n";
 			std::cout << "-b\t" << "or --bounded, to obtain to obtain a text file with PN representation (i.e. leiden representation) \n"
-								<< 	 "\t" << "as originally performed resulting in conformal triangles.\n";
-			std::cout << "-pn\t"<< "to obtain a text file with PN representation (i.e. leiden representation) \n"
+								<< 	 "\t" << "with subscore '_b' as originally performed resulting in conformal triangles.\n";
+			std::cout << "-pn\t"<< "to obtain a text file with PN representation (i.e. leiden representation) with subscore '_PN' \n"
 								<< 	 "\t" << "with a delaunay triangulation per elevation, i.e. less triangles per elevation as the -b option.\n";
 			std::cout << "-r\t" << "or --run, to run the sd and bps simulation of the building spatial design.\n";
 			std::cout << "\n\n" << "Press ENTER to continue..." << std::endl;
