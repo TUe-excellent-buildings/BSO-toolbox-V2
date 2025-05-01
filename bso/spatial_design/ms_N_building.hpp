@@ -56,7 +56,9 @@ public:
 	
 	bool operator == (const ms_N_building& rhs);
 	bool operator != (const ms_N_building& rhs);
-	
+	ms_N_building& operator=(const ms_N_building& rhs); // Assignment operator, needed for proper copy of mSpaces when assigning content of an object to another object
+	//ms_N_building& operator=(ms_N_building&& rhs) noexcept; // Move assignment operator
+
 	friend std::ostream& operator<< (std::ostream& stream, const ms_N_building& building);
 };
 

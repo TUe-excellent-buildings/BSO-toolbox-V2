@@ -760,7 +760,7 @@ int main(int argc, char* argv[])
 		for (const auto& visOption : visualizations)
 		{
 			if (visOption == "ms") bso::visualization::visualize(MS);
-			if (visOption == "msbase") bso::visualization::visualize(MSBaseLine);
+			if (visOption == "msbase") bso::visualization::visualize(MSBaseLine, "ms_building_base");
 			if (visOption == "msc" && !run)
 			{				
 				visualization::visualize(colourFileName,MS);

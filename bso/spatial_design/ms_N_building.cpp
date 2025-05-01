@@ -1202,6 +1202,48 @@ bool ms_N_building::operator != (const ms_N_building& rhs)
 	return !(*this == rhs);
 }
 
+ms_N_building& ms_N_building::operator=(const ms_N_building& rhs) 
+{
+    if (this != &rhs) { // Prevent self-assignment
+        // Deep copy of mSpaces
+        for (auto* space : mSpaces) {
+            delete space; // Clean up existing spaces
+        }
+        mSpaces.clear();
+        for (const auto* space : rhs.mSpaces) {
+            if (space) {
+                mSpaces.push_back(new ms_space(*space)); // Deep copy each ms_space
+            }
+        }
+
+        // Copy other members
+        mLastSpaceID = rhs.mLastSpaceID;
+        insertFileName = rhs.insertFileName;
+    }
+    return *this;
+}
+
+// ms_N_building& ms_N_building::operator=(ms_N_building&& rhs) noexcept 
+// {
+//     if (this != &rhs) {
+//         // Clean up existing resources
+//         for (auto* space : mSpaces) {
+//             delete space;
+//         }
+//         mSpaces.clear();
+
+//         // Transfer ownership of resources
+//         mSpaces = std::move(rhs.mSpaces);
+//         mLastSpaceID = rhs.mLastSpaceID;
+//         insertFileName = std::move(rhs.insertFileName);
+
+//         // Leave rhs in a valid state
+//         rhs.mSpaces.clear();
+//         rhs.mLastSpaceID = 0;
+//     }
+//     return *this;
+// }
+
 std::ostream& operator <<(std::ostream& stream, const ms_N_building& building)
 {
 	bool first = true;
