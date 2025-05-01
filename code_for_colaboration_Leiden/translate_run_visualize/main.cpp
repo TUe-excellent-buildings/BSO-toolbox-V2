@@ -12,8 +12,9 @@
 #include <vector>
 #include <sstream>
 
-std::vector<std::string> MULTI_VIS_OPTIONS = {"ms","msc","pnf"};
-std::vector<std::string> VIS_OPTIONS = {"ms","msc","pnf","rc","cb","tr","tp","tb","pn","sd","fe","bp"};
+std::vector<std::string> MULTI_VIS_OPTIONS = {"ms","msc","pnf","pn"};
+std::vector<std::string> MOD_OPTIONS = {"d","s"};
+std::vector<std::string> VIS_OPTIONS = {"ms","msbase","msc","pnf","rc","cb","tr","tp","tb","pn","sd","fe","bp"};
 std::vector<std::string> OUT_OPTIONS = {"result_file", "verbose", "ms_files"};
 
 int end, begin = 0;
@@ -38,12 +39,15 @@ int main(int argc, char* argv[])
 	std::string colourFileName = "";
 	std::string PNinputFile = "";
 	std::string PNFileName = "";
-	std::string modification = "";
+	std::vector<std::string> modification;
+	std::vector<int> deleteSpacesIDs;
+	std::vector<int> splitSpacesIDs;
 	std::vector<std::string> visualizations;
 	std::string kindMultiVisual = "";
 	std::vector<std::string> multiVisualizations;
 	bool result_file = false;
 	bool ms_files = false;
+	bool modify = false;
 	bool verbose = false;
 	bool bounded = false;
 	bool pn_representation = false;
@@ -77,8 +81,16 @@ int main(int argc, char* argv[])
 								<<   "\t" << "Note option -r should be on to obtain the file. \n"
 								<<   "\t" << "\'verbose\' prints a descriptive outline of the process \n"
 								<<   "\t" << "to the console during running \n";
+			std::cout << "-m\t" << "or --modification, to specify a modification technique to be made prior to analysis with -r (if applied)\n"
+								<<   "\t" << "to the MS input file. The modification can be the following: \n"
+								<<   "\t" << "input: \'-m d,20,1,3 s,5,6,7\', means that we apply the 'd' standing for \n"
+								<< 	 "\t" << "'delete' space option to spaces with index 20, 1, and 3.\n"
+								<<	 "\t" << "additionally, the 's' stand for 'split' and splits the spaces 5, 6, and 7\n"
+								<< 	 "\t" << "in the middle at their longest axis. (Note: the same amount of delete and split"
+								<< 	 "\t" << "spaces needs to be defined and you can not split and delete a space with the same ID value\n";
 			std::cout << "-v\t" << "or --visualization, to specify which models are\n"
-								<<   "\t" << "visualized: \'ms\' for \'Movable Sizable\', \n"
+								<<   "\t" << "visualized: \'ms\' for \'Movable Sizable\' either with modification if applied, \n"
+								<<   "\t" << "visualized: \'msbase\' for \'Movable Sizable\' without modification showing the input file, \n"
 								<<   "\t" << "\'msc\' for \'Movable Sizable\' view with alternate coloring according to input file, \n"
 								<<   "\t" << "(note: insert the input file's name directly after the msc key, example: msc colorSetting -b etc.), \n"
 								<<   "\t" << "\'pnf\' for \'PN representation\' view with alternate coloring according to input file, \n"
@@ -95,10 +107,10 @@ int main(int argc, char* argv[])
 								<<   "\t" << "\'fe\' for \'Finite Elements of the structural design model\',\n"
 								<<   "\t" << "and \'bp\' for the \'Building Physics model\'.\n"
 								<<   "\t" << "More than one can be specified.\n"
-								<<   "\t" << "Note: for any visualization (apart from 'msc', 'pnf', 'pn' and 'tb'), the model should be \n"
-								<< 	 "\t" << "generated with the command -r needs to be specified.\n";
+								<<   "\t" << "Note: for any visualization (apart from 'ms', 'msc', 'pnf', 'pn' and 'tb'), the model should be \n"
+								<< 	 "\t" << "generated with the command -r, and thus needs to be specified.\n";
 			std::cout << "-mv\t"  << "or --multipleVisuals, to specify multiple ms, msc or pn models from text files to be visualized in one visualization window.\n"
-								<<   "\t" << "to do this, follow the -mv with first the kinds of models to be visualized (note only ms, msc or pn models at a time),\n"
+								<<   "\t" << "to do this, follow the -mv with first the kinds of models to be visualized (note only ms, msc , pnf or pn models at a time),\n"
 								<<   "\t" << "and then the names of the text files to be visualized.\n"
 								<<   "\t" << "Example: -mv ms MS1.txt MS2.txt MS3.txt\n";
 			std::cout << "-b\t" << "or --bounded, to obtain to obtain a text file with PN representation (i.e. leiden representation) \n"
@@ -138,6 +150,79 @@ int main(int argc, char* argv[])
 					errorMessage << "\nError, did not recognize: " << outSpec << " as an\n"
 											 << "argument for -o or --output. Use -h or\n"
 											 << "--help for help\n";
+					throw std::invalid_argument(errorMessage.str());
+				}
+			}
+		}
+		else if (*arg == "-m" || *arg == "--modification")
+		{
+			modify = true;
+			while (++arg != args.end() && arg->operator[](0) != '-')
+			{
+				std::string modSpec = *arg;
+				boost::trim(modSpec);
+
+				if (std::find(MOD_OPTIONS.begin(),MOD_OPTIONS.end(),modSpec.substr(0,1)) == MOD_OPTIONS.end())
+				{
+					std::stringstream errorMessage;
+					errorMessage << "\nError, did not recognize: \"" << modSpec << "\"\n"
+											 << "as an option for -m or --modification as a specification\n"
+											 << "for a modification technique, or the space definition might be incorrectly defined\n"
+											 << "Was it possible that a space was placed between the spaces?\n"
+											 << "use -h or --help for help\n";
+					throw std::invalid_argument(errorMessage.str());
+				}
+				modification.push_back(modSpec);
+
+				// tokenize the line
+				boost::char_separator<char> sep(","); // defines what separates tokens in a string
+				typedef boost::tokenizer< boost::char_separator<char> > t_tokenizer; // settings for the boost::tokenizer
+				t_tokenizer tokens(modSpec, sep); // this is where the tokenized line will be stored
+				t_tokenizer::iterator token = tokens.begin(); // set iterator to first token
+				int number_of_tokens = std::distance( tokens.begin(), tokens.end()); // count the number of tokens int the line
+
+				if(modSpec.substr(0,1) == "d")
+				{
+					for(int i=0; i<number_of_tokens-1; i++)
+					{
+						deleteSpacesIDs.push_back(utilities::trim_and_cast_int(*(++token)));
+					}
+				}
+				else if(modSpec.substr(0,1) == "s")
+				{
+					for(int i=0; i<number_of_tokens-1; i++)
+					{
+						splitSpacesIDs.push_back(utilities::trim_and_cast_int(*(++token)));
+					}
+				}
+			}
+			if (deleteSpacesIDs.size() == 0 || splitSpacesIDs.size() == 0)
+			{
+				std::stringstream errorMessage;
+				errorMessage << "\nError, expected at least one to delete space and one to split\n"
+										 << " space to be specified after the specifiers 'd' and 's'\n"
+										 << "-m or --modification, received nothing. Use -h or\n"
+										 << "--help for help\n";
+				throw std::invalid_argument(errorMessage.str());
+			}
+			if (deleteSpacesIDs.size() != splitSpacesIDs.size())
+			{
+				std::stringstream errorMessage;
+				errorMessage << "\nError, expected the same amount of delete and split spaces\n"
+										 << "to be specified to retain the original nr. of spaces.\n"
+										 << "Use -h or --help for help\n";
+				throw std::invalid_argument(errorMessage.str());
+			}
+			// check if there are the same ID values defined in the delete and split spaces vector, if so trow an error
+			for (unsigned int i = 0; i < deleteSpacesIDs.size(); i++)
+			{
+				if (std::find(splitSpacesIDs.begin(),splitSpacesIDs.end(),deleteSpacesIDs[i]) != splitSpacesIDs.end())
+				{
+					std::stringstream errorMessage;
+					errorMessage << "\nError, found the same ID values in the delete and split spaces vector\n"
+											 << "this is not possible to execute and thus not allowed. \n"
+											 << "the duplicate values found is: " << deleteSpacesIDs[i] << "\n"
+											 << "Use -h or --help for help\n";
 					throw std::invalid_argument(errorMessage.str());
 				}
 			}
@@ -367,6 +452,25 @@ int main(int argc, char* argv[])
 					throw std::invalid_argument(errorMessage.str());
 				}
 			}
+			else if (kindMultiVisual == "pn")
+			{
+				int count = 0;
+				while (++arg != args.end() && arg->operator[](0) != '-')
+				{
+					std::string modelFile = *arg;
+					boost::trim(modelFile);
+					multiVisualizations.push_back(modelFile);
+					count++;
+				}
+				if(count == 0)
+				{
+					std::stringstream errorMessage;
+					errorMessage << "\nError, expected at least one fileName after the pn kind specification\n"
+											 << "-mv or --multipleVisuals, received nothing. Use -h or\n"
+											 << "--help for help\n";
+					throw std::invalid_argument(errorMessage.str());
+				}
+			}
 			else
 			{
 				std::stringstream errorMessage;
@@ -383,7 +487,12 @@ int main(int argc, char* argv[])
 			throw std::invalid_argument(errorMessage.str());
 		}
 	}
-	if(!(colorinputFile == "") || !(kindMultiVisual == "")){/*there is no need for an design inputFile if there is a colorInputFile or kindMultiVisual defined, however, it may still be defined*/}
+	if(!(colorinputFile == "") || !(kindMultiVisual == ""))
+	{
+		/*there is no need for an design inputFile if there 
+		is a colorInputFile or kindMultiVisual defined, 
+		however, it may still be defined*/
+	}
 	else 
 	{
 		if (inputFile == "")
@@ -411,11 +520,95 @@ int main(int argc, char* argv[])
 		out("Initialized visualization", true, true, verbose);
 	}
 
+	// Define the base MS building model for all following options
+	bso::spatial_design::ms_N_building MS;
+	bso::spatial_design::ms_N_building MSBaseLine;
+	if(inputFile != "")
+	{
+		MS = bso::spatial_design::ms_N_building(inputFile);	
+		bso::spatial_design::ms_N_building MSBaseLine = MS;
+		out("Created a Movable and Sizable (MS) building model", true, true, verbose);
+	}
+
+	// Apply any modification to the MS model prior to analysis
+	if(modify)
+	{
+		double floorArea = MS.getFloorArea(); // Store original floor area
+		unsigned int nSpaces = MS.getSpacePtrs().size(); // Store original number of spaces
+		
+		// Remove spaces with inserted indexes.
+		for(const auto& i : deleteSpacesIDs)
+		{
+			bso::spatial_design::ms_space* ptrDelSpace =  nullptr;
+			try
+			{
+				ptrDelSpace =  MS.getSpacePtrWithID(i);
+			}
+			catch(const std::exception& e)
+			{
+				std::stringstream errorMessage;
+				errorMessage << "Error, can not find a space with ID value " << i << ", thus cannot be deleted\n";
+					errorMessage << "received the following error: \n" << e.what() << "\n";
+				throw std::invalid_argument(errorMessage.str());
+			}
+			
+			MS.deleteSpace(ptrDelSpace);
+		}
+		out("Removed spaces in building spatial design according to their inserted indexes",true,true,verbose);
+		
+		// Apply constrains of no floating spaces and building should start at ground level
+		MS.setZZero();
+		std::vector<spatial_design::ms_space*> floatingSpaces;
+		if (MS.hasFloatingSpaces(floatingSpaces))
+		{
+			for (auto& i : floatingSpaces) MS.deleteSpace(i);
+		}
+		out("Removed floating spaces and make sure building is at ground level",true,true,verbose);
+
+		// Split spaces with inserted indexes
+		for(const auto& i : splitSpacesIDs)
+		{
+			bso::spatial_design::ms_space* ptrSplitSpace = nullptr;
+			try
+			{
+				ptrSplitSpace =  MS.getSpacePtrWithID(i);
+			}
+			catch(const std::exception& e)
+			{
+				std::stringstream errorMessage;
+				errorMessage << "Error, can not find a space with ID value " << i << ", thus cannot be split\n";
+					errorMessage << "received the following error: \n" << e.what() << "\n";
+				throw std::invalid_argument(errorMessage.str());
+			}
+			
+			bso::utilities::geometry::line_segment LongestAxis;
+			double longestLength = 0;
+			std::vector<bso::utilities::geometry::line_segment> lines = ptrSplitSpace->getGeometry().getLines();
+			for(const auto k: lines)
+			{
+				if(k.getVector().isVertical()) continue; // only consider horizontal lines for the axis
+				if(longestLength < k.getLength())
+				{
+					longestLength = k.getLength();
+					LongestAxis = k;
+				}
+			}
+			int splitamount = 2;
+			MS.splitSpace(ptrSplitSpace, splitamount , LongestAxis);
+		}
+		out("Split spaces to restore number of spaces",true,true,verbose);
+
+		// Scale the dimensions in x and y direction to retrieve original floor area of the building
+		double scaleFactor = sqrt(floorArea / MS.getFloorArea());
+		MS.scale({{0,scaleFactor},{1,scaleFactor}});
+		out("Scaled building to original floor area",true,true,verbose);
+	}
+
 	// Obtain a file containing the bounded conformal model for Leiden representation
 	if (bounded)
 	{
 		// Generate the Movable and Sizable (MS) building model
-		bso::spatial_design::ms_N_building MS_bounded(inputFile);
+		bso::spatial_design::ms_N_building MS_bounded = MS; // use a copy so the base model is not changed
 		MS_bounded.addBoundary();
 		out("Created a bounded Movable and Sizable (MS) building model", true, true, verbose);
 		
@@ -464,7 +657,7 @@ int main(int argc, char* argv[])
 			std::string fileName = fileNameStream.str();
 		
 		// Generate the Movable and Sizable (MS) building model with added bounds and directly output in PN format
-		bso::spatial_design::ms_N_building MS_PN(inputFile);
+		bso::spatial_design::ms_N_building MS_PN = MS; // use a copy so the base model is not changed
 		std::vector<bso::utilities::geometry::triangular_prism> PNPrism = MS_PN.convertMSToPN(fileName, 0.001);
 		out("Created a PN text file representation of the movable and Sizable (MS) building model", true, true, verbose);
 
@@ -483,8 +676,6 @@ int main(int argc, char* argv[])
 	if (run)
 	{
 		// Regular MS building model
-		bso::spatial_design::ms_N_building MS(inputFile);
-		out("Created a Movable and Sizable (MS) building model", true, true, verbose);
 		bso::spatial_design::cf_building CM(MS, 0.001);
 		out("Created a Conformal Model (CM)",true,true,verbose);
 
@@ -515,7 +706,6 @@ int main(int argc, char* argv[])
 		// Visualize the simulations:
 		if (!visualizations.empty()) for (const auto& visOption : visualizations)
 		{
-			if (visOption == "ms") bso::visualization::visualize(MS);
 			try
 			{
 				if (visOption == "msc")	bso::visualization::visualize(colourFileName,MS);
@@ -569,11 +759,10 @@ int main(int argc, char* argv[])
 	{
 		for (const auto& visOption : visualizations)
 		{
+			if (visOption == "ms") bso::visualization::visualize(MS);
+			if (visOption == "msbase") bso::visualization::visualize(MSBaseLine);
 			if (visOption == "msc" && !run)
 			{				
-				bso::spatial_design::ms_N_building MS(inputFile);
-				out("Created a Movable and Sizable (MS) building model", true, true, verbose);
-				
 				visualization::visualize(colourFileName,MS);
 				out("Sent msc visualization option visualization",true,true,verbose);
 			} 
@@ -593,6 +782,14 @@ int main(int argc, char* argv[])
 			out("Created a Movable and Sizable (MS) building model", true, true, verbose);
 			visualization::visualize(MS);
 			out("Sent ms visualization option visualization",true,true,verbose);
+		}
+	}
+	else if (kindMultiVisual == "pn")
+	{
+		for (const auto& modelFile : multiVisualizations)
+		{
+			visualization::visualize(modelFile);
+			out("Sent pn visualization option visualization",true,true,verbose);
 		}
 	}
 	else if (kindMultiVisual == "msc")

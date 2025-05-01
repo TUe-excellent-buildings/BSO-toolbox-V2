@@ -227,6 +227,12 @@ void visualize(const std::string& colorFileName, const std::string& PNFileName,
 	vpmanager.addviewport(new viewport(new PN_BUILDING_Model(colorFileName,PNFileName,title,linewidth)));
 }
 
+void visualize(const std::string& PNFileName, const double& linewidth = 1.0, 
+	const std::string& title = "pn_building")
+{
+	vpmanager.addviewport(new viewport(new PN_BUILDING_Model(PNFileName,linewidth,title)));
+}
+
 } // namespace visualization
 } // namespace BSO
 

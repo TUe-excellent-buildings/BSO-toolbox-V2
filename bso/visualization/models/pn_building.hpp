@@ -55,6 +55,8 @@ public:
 	*/
 	PN_BUILDING_Model(const std::string& colorFileName, const std::string& PNFileName, 
 						const std::string& title = "pn_building", const double& linewidth = 1.0);
+	PN_BUILDING_Model(const std::string& PNFileName, const double& linewidth = 1.0, 
+						const std::string& title = "pn_building");
 
 	~PN_BUILDING_Model();
 	
@@ -187,7 +189,7 @@ PN_BUILDING_Model::PN_BUILDING_Model(const std::string& colorFileName, const std
 		throw std::invalid_argument(errorMessage.str());
 	}
 	std::vector<std::pair<int, std::vector<bso::utilities::geometry::triangular_prism>>> prismPerSpaceID;
-	while (!PNInput.eof()) // Parse the colorInput file line by line
+	while (!PNInput.eof()) // Parse the PN building file line by line
 	{
 		getline(PNInput,line); // get next line from the file
 		try
@@ -283,8 +285,6 @@ PN_BUILDING_Model::PN_BUILDING_Model(const std::string& colorFileName, const std
 	for (const auto& i : prismPerSpaceID)
 	{
 		namespace geom = bso::utilities::geometry;
-		//geom::quad_hexahedron spaceGeometry = i->getGeometry();
-		std::stringstream centerLabel;
 
 		// define default:
 		bool defaultDefined = false;
@@ -325,6 +325,127 @@ PN_BUILDING_Model::PN_BUILDING_Model(const std::string& colorFileName, const std
 			{
 				this->addPolyhedron(polygons, &triPrismOfSpace, &pprops, &lprops);
 			}
+		}
+	}
+
+	pbsp = new random_bsp(polygons);
+} //
+
+PN_BUILDING_Model::PN_BUILDING_Model(const std::string& PNFileName, const double& linewidth /*= 1.0*/, const std::string& title /*= "pn_building"*/)
+{
+	// Read the PN building file
+	std::ifstream PNInput;
+	if (!PNFileName.empty()) PNInput.open(PNFileName.c_str());
+	if (PNFileName.empty() || !PNInput.is_open())
+	{
+		std::stringstream errorMessage;
+		errorMessage << "Could not initialize a visualization of MS_N building spatial design with the following colour input file:" << std::endl
+					<< ((PNFileName.empty())? "no input file given" : PNFileName) << std::endl
+					<< "(bso/visualization/ms_building.hpp). " << std::endl;
+		throw std::invalid_argument(errorMessage.str());
+	}
+	std::vector<std::pair<int, std::vector<bso::utilities::geometry::triangular_prism>>> prismPerSpaceID;
+	std::string line;
+	while (!PNInput.eof()) // Parse the PN building file line by line
+	{
+		getline(PNInput,line); // get next line from the file
+		try
+		{
+			boost::algorithm::trim(line); // remove white space from start and end of line (to see if it is an empty line, removes any incidental white space)
+			if (line == "") //skip empty lines (tokenizer does not like it)
+			{
+				continue; // continue to next line
+			}
+			else if(line.substr(0,1) == "#") // skip comments
+			{
+				continue;
+			}
+			else if(line.substr(0,2) == "0,") // Do not take into acount the bounding box and its following triangular prims
+			{
+				break;
+			}
+			else if(line.substr(0,2) == "{{") // Define the triangular prims within a space
+			{
+				// tokenize the line settings
+				boost::char_separator<char> sep(",{}"); // defines what separates tokens in a string
+				typedef boost::tokenizer< boost::char_separator<char> > t_tokenizer; // settings for the boost::tokenizer
+				t_tokenizer tokens(line, sep); // this is where the tokenized line will be stored
+				t_tokenizer::iterator token = tokens.begin(); // set iterator to first token
+				int number_of_tokens = std::distance( tokens.begin(), tokens.end()); // count the number of tokens int the line
+
+				// Tokenize these kinds of lines: {{0,0,0},{4000,0,0},{0,5000,0},{0,0,3000},{4000,0,3000},{0,5000,3000}}
+				// Tokenize these kinds of lines: {{0	,	0	,	0	},{4000,0,0},{0,5000,0},{0,0,3000},{4000,0,3000},{0,5000,3000}}
+				utilities::geometry::vertex temp;
+				std::vector<utilities::geometry::vertex> triPrismV;
+				if(number_of_tokens >= 18) // avoid tokens which are non-existing
+				{
+					for(int i=0; i<6; i++)
+					{
+						triPrismV.push_back(utilities::geometry::vertex());	
+						(triPrismV.back())(0) = utilities::trim_and_cast_double(*(token));
+						token++;
+						(triPrismV.back())(1) = utilities::trim_and_cast_double(*(token));
+						token++;
+						(triPrismV.back())(2) = utilities::trim_and_cast_double(*(token));	
+						token++;
+					}
+				}
+
+				prismPerSpaceID.back().second.push_back(triPrismV);
+			}
+			else // start a new space
+			{
+				int spaceID;
+
+				// tokenize the line settings
+				boost::char_separator<char> sep(",{}"); // defines what separates tokens in a string
+				typedef boost::tokenizer< boost::char_separator<char> > t_tokenizer; // settings for the boost::tokenizer
+				t_tokenizer tokens(line, sep); // this is where the tokenized line will be stored
+				t_tokenizer::iterator token = tokens.begin(); // set iterator to first token
+
+				try
+				{
+					spaceID = utilities::trim_and_cast_int(*token);
+				}
+				catch(const std::exception& e)
+				{
+					std::stringstream errorMessage;
+						errorMessage << std::endl
+												<< "Was not able to read the first character as an integer value. " << std::endl
+												<< "(bso/visualizations/pn_building.hpp)" << std::endl;
+						throw std::invalid_argument(errorMessage.str());
+				}
+				prismPerSpaceID.push_back(std::make_pair(spaceID, std::vector<bso::utilities::geometry::triangular_prism>()));
+			}
+		}
+		catch(std::exception& e)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Encountered an error while parsing the following line of a visualization ms_N_building input file:" << std::endl
+							<< line << std::endl
+							<< "(bso/visualization/pn_building.cpp). Got the following error: " << std::endl
+							<< e.what() << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+	}
+
+	lprops.width = linewidth;
+	mTitle = title;
+	pprops.ambient = rgba(0.1f, 0.5f, 0.1f, 0.3f);
+	pprops.diffuse = rgba(0.2f, 1.0f, 0.2f, 0.3f);
+	pprops.specular = rgba(0.2f, 1.0f, 0.2f, 0.3f);
+	pprops.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	pprops.shininess = 60.0f;
+	pprops.translucent = true;
+	pprops.twosided = true;
+
+	for (const auto& i : prismPerSpaceID)
+	{
+		namespace geom = bso::utilities::geometry;
+
+		for(const auto& triPrismOfSpace: i.second)
+		{
+			this->addPolyhedron(polygons, &triPrismOfSpace, &pprops, &lprops);
 		}
 	}
 

@@ -91,7 +91,7 @@ ms_N_building::ms_N_building(std::string fileName)
 ms_N_building::ms_N_building(const ms_N_building& rhs)
 { // copy constructor
 	mLastSpaceID = rhs.mLastSpaceID;
-	for (auto i : rhs.mSpaces)
+	for (auto& i : rhs.mSpaces)
 	{
 		mSpaces.push_back(new ms_space(*i));
 	}
@@ -102,7 +102,7 @@ ms_N_building::ms_N_building(const ms_N_building& rhs)
 
 ms_N_building::~ms_N_building()
 { // destructor
-	for (auto i : mSpaces) delete i;
+	for (auto& i : mSpaces) delete i;
 } // ~ms_N_building()
 
 void ms_N_building::checkValidity() const
@@ -161,6 +161,24 @@ ms_space* ms_N_building::getSpacePtr(const ms_space* spacePtr) const
 {
 	return getSpacePtr(*spacePtr);
 }
+
+ms_space* ms_N_building::getSpacePtrWithID(unsigned int id) const
+{
+	ms_space* spacePtr = nullptr;
+	
+	for (auto i : mSpaces)
+	{
+		if (i->getID() == id) return i;
+	}
+	
+	std::stringstream errorMessage;
+	errorMessage << "Could not find the following space in an ms_N building spatial design:" << std::endl
+							 << "ID: " << id << std::endl
+							 << "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
+	throw std::runtime_error(errorMessage.str());
+
+	return spacePtr;
+} // getSpacePtrWithID()
 
 unsigned int ms_N_building::getLastSpaceID() const
 {

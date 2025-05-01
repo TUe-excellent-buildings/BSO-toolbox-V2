@@ -28,6 +28,7 @@ public:
 	std::vector<ms_space*> getSpacePtrs() const;
 	ms_space* getSpacePtr(const ms_space& space) const;
 	ms_space* getSpacePtr(const ms_space* spacePtr) const; // the spacePtr that was passed may belong to another instance of ms_building
+	ms_space* getSpacePtrWithID(unsigned int id) const; // the spacePtr that was passed may belong to another instance of ms_building
 	unsigned int getLastSpaceID() const;
 	double getVolume() const;
 	double getFloorArea() const;
