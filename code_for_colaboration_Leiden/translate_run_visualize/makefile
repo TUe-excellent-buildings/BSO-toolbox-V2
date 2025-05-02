@@ -14,7 +14,7 @@ D_LIB  = -I${FADE}/include_fade2d -L${FADE}/lib_ubuntu22.04_x86_64
 MAINFILE = main.cpp
 
 # specify name of executable
-EXE = main
+EXE = get_results
 
 .PHONY: all cls clean
 

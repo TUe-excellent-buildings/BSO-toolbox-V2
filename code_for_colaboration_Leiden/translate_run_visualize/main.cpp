@@ -81,13 +81,15 @@ int main(int argc, char* argv[])
 								<<   "\t" << "Note option -r should be on to obtain the file. \n"
 								<<   "\t" << "\'verbose\' prints a descriptive outline of the process \n"
 								<<   "\t" << "to the console during running \n";
-			std::cout << "-m\t" << "or --modification, to specify a modification technique to be made prior to analysis with -r (if applied)\n"
+			std::cout << "-m\t" << "or --modification, to specify a modification made prior to analysis with -r option (if applied)\n"
 								<<   "\t" << "to the MS input file. The modification can be the following: \n"
 								<<   "\t" << "input: \'-m d,20,1,3 s,5,6,7\', means that we apply the 'd' standing for \n"
 								<< 	 "\t" << "'delete' space option to spaces with index 20, 1, and 3.\n"
 								<<	 "\t" << "additionally, the 's' stand for 'split' and splits the spaces 5, 6, and 7\n"
-								<< 	 "\t" << "in the middle at their longest axis. (Note: the same amount of delete and split"
-								<< 	 "\t" << "spaces needs to be defined and you can not split and delete a space with the same ID value\n";
+								<< 	 "\t" << "in the middle at their longest axis. (Note: the same amount of delete and split\n"
+								<< 	 "\t" << "spaces needs to be defined and you can not split and delete a space with the same ID value.\n"
+								<<   "\t" << "Measures are taken to prevent floating space and/or a building not at ground level \n"
+								<<	 "\t" << "while still resulting in functioning buildings.\n";
 			std::cout << "-v\t" << "or --visualization, to specify which models are\n"
 								<<   "\t" << "visualized: \'ms\' for \'Movable Sizable\' either with modification if applied, \n"
 								<<   "\t" << "visualized: \'msbase\' for \'Movable Sizable\' without modification showing the input file, \n"
@@ -526,7 +528,7 @@ int main(int argc, char* argv[])
 	if(inputFile != "")
 	{
 		MS = bso::spatial_design::ms_N_building(inputFile);	
-		bso::spatial_design::ms_N_building MSBaseLine = MS;
+		MSBaseLine = MS;
 		out("Created a Movable and Sizable (MS) building model", true, true, verbose);
 	}
 
@@ -563,7 +565,7 @@ int main(int argc, char* argv[])
 		{
 			for (auto& i : floatingSpaces) MS.deleteSpace(i);
 		}
-		out("Removed floating spaces and make sure building is at ground level",true,true,verbose);
+		out("Make sure building is at ground levelChecked and removed floating spaces",true,true,verbose);
 
 		// Split spaces with inserted indexes
 		for(const auto& i : splitSpacesIDs)
@@ -596,7 +598,36 @@ int main(int argc, char* argv[])
 			int splitamount = 2;
 			MS.splitSpace(ptrSplitSpace, splitamount , LongestAxis);
 		}
-		out("Split spaces to restore number of spaces",true,true,verbose);
+		out("Split spaces according to their inserted indexes",true,true,verbose);
+		
+		if(MS.getSpacePtrs().size() < nSpaces)
+		{
+			// split the spaces with the largest dimension in x or y direction (checking x first)
+			while (MS.getSpacePtrs().size() < nSpaces)
+			{
+				auto spaceWithLargestDimension = MS.getSpacePtrs().front();
+				bso::utilities::geometry::line_segment LongestAxis;
+				double longestLength = 0;
+
+				for (const auto& j : MS.getSpacePtrs())
+				{
+					std::vector<bso::utilities::geometry::line_segment> lines = j->getGeometry().getLines();
+					for(const auto k: lines)
+					{
+						if(k.getVector().isVertical()) continue; // only consider horizontal lines for the axis
+						if(longestLength < k.getLength())
+						{
+							longestLength = k.getLength();
+							LongestAxis = k;
+							spaceWithLargestDimension = j;
+						}
+					}
+				}
+				int splitamount = 2;
+				MS.splitSpace(spaceWithLargestDimension, splitamount , LongestAxis);
+			}
+			out("Split additional spaces to keep the nr. of spaces constant. This is necessary duo to the deletion of floating spaces",true,true,verbose);
+		}
 
 		// Scale the dimensions in x and y direction to retrieve original floor area of the building
 		double scaleFactor = sqrt(floorArea / MS.getFloorArea());
@@ -630,7 +661,7 @@ int main(int argc, char* argv[])
 			std::stringstream errorMessage;
 			errorMessage << "Could not open the following file to write an PN building spatial design to:" << std::endl
 									 << ((fileName.empty())? "no input file given" : designName) << std::endl
-									 << "(bso/spatial_design/ms_building.cpp). " << std::endl;
+									 << "(main.cpp). " << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
 		
@@ -745,7 +776,7 @@ int main(int argc, char* argv[])
 				std::stringstream errorMessage;
 				errorMessage << "Could not open the following file to write an MS building spatial design to:" << std::endl
 										<< ((fileName.empty())? "no input file given" : designName) << std::endl
-										<< "(bso/spatial_design/ms_building.cpp). " << std::endl;
+										<< "(main.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 			}
 			
@@ -760,7 +791,7 @@ int main(int argc, char* argv[])
 		for (const auto& visOption : visualizations)
 		{
 			if (visOption == "ms") bso::visualization::visualize(MS);
-			if (visOption == "msbase") bso::visualization::visualize(MSBaseLine, "ms_building_base");
+			if (visOption == "msbase") bso::visualization::visualize(MSBaseLine, "spaces", "ms_N_building_base");
 			if (visOption == "msc" && !run)
 			{				
 				visualization::visualize(colourFileName,MS);
