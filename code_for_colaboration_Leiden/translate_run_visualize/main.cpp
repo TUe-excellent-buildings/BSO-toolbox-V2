@@ -86,10 +86,10 @@ int main(int argc, char* argv[])
 								<<   "\t" << "input: \'-m d,20,1,3 s,5,6,7\', means that we apply the 'd' standing for \n"
 								<< 	 "\t" << "'delete' space option to spaces with index 20, 1, and 3.\n"
 								<<	 "\t" << "additionally, the 's' stand for 'split' and splits the spaces 5, 6, and 7\n"
-								<< 	 "\t" << "in the middle at their longest axis. (Note: the same amount of delete and split\n"
-								<< 	 "\t" << "spaces needs to be defined and you can not split and delete a space with the same ID value.\n"
-								<<   "\t" << "Measures are taken to prevent floating space and/or a building not at ground level \n"
-								<<	 "\t" << "while still resulting in functioning buildings.\n";
+								<< 	 "\t" << "in the middle at their longest axis. (Note: any amount of delete and split can be defined as \n"
+								<< 	 "\t" << "long as they are the same amount for each categoryspaces needs to be defined and you can not split \n"
+								<<   "\t" << "and delete a space with the same ID value. Measures are taken to prevent floating space and/or  \n"
+								<<	 "\t" << "a building not at ground level while still resulting in functioning buildings)\n";
 			std::cout << "-v\t" << "or --visualization, to specify which models are\n"
 								<<   "\t" << "visualized: \'ms\' for \'Movable Sizable\' either with modification if applied, \n"
 								<<   "\t" << "visualized: \'msbase\' for \'Movable Sizable\' without modification showing the input file, \n"
