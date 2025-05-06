@@ -6,8 +6,8 @@ FADE	= $(BSO)/code_for_colaboration_Leiden/libraries/fadeRelease_v2.13
 ALL_LIB = -I$(BOOST) -I$(EIGEN) -I$(BSO)
 
 # compiler settings
-CPP = g++ -g -std=c++20
-FLAGS = -march=native -lglut -lGL -lGLU -lpthread -lfade2d_v2.13 -Wl,-rpath=${FADE}/lib_ubuntu22.04_x86_64
+CPP = g++ -std=c++20
+FLAGS = -O3 -march=native -lglut -lGL -lGLU -lpthread -lfade2d_v2.13 -Wl,-rpath=${FADE}/lib_ubuntu22.04_x86_64
 D_LIB  = -I${FADE}/include_fade2d -L${FADE}/lib_ubuntu22.04_x86_64
 
 # specify file(s) to be compiled

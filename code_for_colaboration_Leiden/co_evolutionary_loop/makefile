@@ -1,17 +1,17 @@
 #libraries
 BOOST   = /usr/include/boost
 EIGEN   = /usr/include/eigen
-FADE	= /home/tessa/Libaries/fadeRelease_v1.93/fadeRelease_v1.93
+FADE	= $(BSO)/code_for_colaboration_Leiden/libraries/fadeRelease_v2.13
 BSO 	= /home/tessa/BSO-toolbox-V2
 ALL_LIB = -I$(BOOST) -I$(EIGEN) -I$(BSO)
 
 #compiler settings
-CPP   = g++ -std=c++17 -fmax-errors=5
-FLAGS  = -O3 -march=native -lglut -lGL -lGLU -lpthread -lfade2d
-D_LIB  = -I${FADE}/include_fade2d
+CPP   = g++ -std=c++20 -fmax-errors=5
+FLAGS  = -O3 -march=native -lglut -lGL -lGLU -lpthread -lfade2d_v2.13 -Wl,-rpath=${FADE}/lib_ubuntu22.04_x86_64
+D_LIB  = -I${FADE}/include_fade2d -L${FADE}/lib_ubuntu22.04_x86_64
 
 #test suites
-MAINFILE = scdp_performance_clusters.cpp
+MAINFILE = co_evolution.cpp
 
 .PHONY: all cls clean
 
@@ -21,6 +21,6 @@ cls:
 	@clear
 	@clear
 all:
-	$(CPP) $(D_LIB) -o scdp_performance_clusters $(ALL_LIB) $(MAINFILE) $(FLAGS)
+	$(CPP) $(D_LIB) -L$(BSO)/libraries -o co_evolution $(ALL_LIB) $(MAINFILE) $(FLAGS)
 clean:
-	@rm -f scdp_performance_clusters
+	@rm -f co_evolution
