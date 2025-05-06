@@ -714,7 +714,7 @@ int main(int argc, char* argv[])
 		bso::grammar::grammar gram(CM);
 		out("Initialized grammar (gram)",true,true,verbose);
 		
-		// Generate the SD model based on the grammer specified basic properties per geometry
+		// Generate the SD model based on the grammar specified basic properties per geometry
 		bso::structural_design::sd_model SD = gram.sd_grammar<bso::grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"));
 		out("Generated Structural Design (SD) model ",true,true,verbose);
 		
