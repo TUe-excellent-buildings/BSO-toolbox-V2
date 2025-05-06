@@ -22,7 +22,7 @@ public:
 	ms_N_building(const ms_N_building& rhs); // copy constructor
 	~ms_N_building(); // destructor
 	
-	// Space analysis functions
+	// Building spatial design analysis functions
 	const std::string getInsertFileName() const{return insertFileName;}																	 
 	void writeToFile(std::string fileName) const;
 	std::vector<ms_space*> getSpacePtrs() const;
@@ -32,8 +32,17 @@ public:
 	unsigned int getLastSpaceID() const;
 	double getVolume() const;
 	double getFloorArea() const;
+	int getNrElevations(const double mTol = 1e-3) const;
+	double getAverageHorizontalRibSize() const;
+	double getSpaceVolumeRatio() const;
+	void getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);
+	double getSpaceFloorAreaRatio() const;
+	std::vector<double> getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);
+	double getAverageRecDif() const;
 	bool hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 		const double tol = 1e-3) const; 
+	bool isFragmented(std::vector<ms_space*>& spacesNonBiggestFragment, 
+			const double tol = 1e-3) const;
 
 	// Representation adjustment functions
 	void setZZero(); 

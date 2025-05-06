@@ -204,6 +204,173 @@ double ms_N_building::getFloorArea() const
 	return area;
 }
 
+int ms_N_building::getNrElevations(const double mTol /*= 1e-3*/) const
+{
+	std::vector<double> elevations;
+	for(const auto i: mSpaces)
+	{
+		bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+		bso::utilities::geometry::quadrilateral firstQuad;
+		bool fistQuadFound = false;
+		for(auto quad: spaceGeom.getQuadrilateral())
+		{
+			if(quad.getNormal().isVertical() && !fistQuadFound)
+			{
+				firstQuad = quad;
+				fistQuadFound = true;
+				continue;
+			}
+			else if(quad.getNormal().isVertical())
+			{
+				// determine the lowest quad
+				double checkLevel;
+				if(firstQuad.getCenter().z() > quad.getCenter().z()){checkLevel = quad.getCenter().z();}
+				else{checkLevel = firstQuad.getCenter().z();}
+				
+				// Check if elevation is already added
+				bool isAdded = false;
+				for(double& level: elevations)
+				{
+					if(checkLevel < level + mTol && checkLevel > level - mTol) 
+					{
+						isAdded = true; 
+						break;
+					}
+				}
+				if(!isAdded){elevations.push_back(checkLevel);}
+			}
+		}
+	}
+
+	return elevations.size();
+} // getNrElevations()
+
+double ms_N_building::getAverageHorizontalRibSize() const
+{
+	double averageSize = 0;
+	int lineCount=0;
+	bool initialized = false;
+	for (const auto i : mSpaces)
+	{
+		//Get original space geometry
+		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+		// Consider all horizontal lines of each space
+		for (const auto& k : spaceGeom.getLines())
+		{
+			if(k.getVector().isVertical()) continue;
+			averageSize += k.getLength();
+			initialized = true;
+			lineCount++;
+		}
+	}
+	if(mSpaces.size() == 0 || !initialized)
+	{
+		std::stringstream errorMessage;
+			errorMessage << "Can not get average horizontal rib size, since there are" << std::endl
+									<<  "no spaces inside the mSpace container: " << mSpaces.size() << std::endl
+									<<  "or the spaces had no line_segments to consider " << std::endl
+									<< "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+	}
+	averageSize = averageSize/lineCount;
+	return averageSize;
+}
+
+double ms_N_building::getSpaceVolumeRatio() const
+{
+	if(mSpaces.size() <= 1)
+	{
+		std::stringstream errorMessage;
+			errorMessage << "Can not get get space difference ration volume, since there are" << std::endl
+									<<  "too little spaces inside the mSpace container: " << mSpaces.size() << std::endl
+									<< "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+	}
+
+	double maxVolume = mSpaces[0]->getVolume();
+	double minVolume =mSpaces[0]->getVolume();
+
+	for(const auto i: mSpaces)
+	{
+		if(i->getVolume() > maxVolume){maxVolume = i->getVolume();}
+		else if(i->getVolume() < minVolume){minVolume = i->getVolume();}
+	}
+	
+	return minVolume/maxVolume;
+}
+
+void ms_N_building::getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers)
+{
+	std::vector<double> spaceVolume;
+	for(const auto i: mSpaces)
+	{
+		spaceVolume.push_back(i->getVolume());
+		average += i->getVolume();
+	}
+	average = average/(mSpaces.size());
+	
+	median = bso::utilities::calculateQuartile(spaceVolume, 0.5);
+	firstQuartile = bso::utilities::calculateQuartile(spaceVolume, 0.25);
+	thirdQuartile = bso::utilities::calculateQuartile(spaceVolume, 0.75);
+	outliers = bso::utilities::findOutliers(spaceVolume);
+}
+
+double ms_N_building::getSpaceFloorAreaRatio() const
+{
+	if(mSpaces.size() <= 1)
+	{
+		std::stringstream errorMessage;
+			errorMessage << "Can not get get space difference ration volume, since there are" << std::endl
+									<<  "too little spaces inside the mSpace container: " << mSpaces.size() << std::endl
+									<< "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+	}
+
+	std::vector<double> spaceFloorArea;
+	for(const auto i : mSpaces) spaceFloorArea.push_back(i->getFloorArea());
+	sort(spaceFloorArea.begin(), spaceFloorArea.end());
+
+	return spaceFloorArea[0]/spaceFloorArea.back();
+}
+
+std::vector<double> ms_N_building::getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers)
+{
+	std::vector<double> spaceFloorArea;
+	for(const auto i: mSpaces)
+	{
+		spaceFloorArea.push_back(i->getFloorArea());
+		average += i->getFloorArea();
+	}
+	average = average/(mSpaces.size());
+	
+	median = bso::utilities::calculateQuartile(spaceFloorArea, 0.5);
+	firstQuartile = bso::utilities::calculateQuartile(spaceFloorArea, 0.25);
+	thirdQuartile = bso::utilities::calculateQuartile(spaceFloorArea, 0.75);
+	outliers = bso::utilities::findOutliers(spaceFloorArea);
+	return spaceFloorArea;
+}
+
+double ms_N_building::getAverageRecDif() const
+{
+	double recDifAverage = 0;
+	for (const auto i : mSpaces)
+	{
+		//Get original space geometry
+		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+		for(auto quad: spaceGeom.getQuadrilateral())
+		{
+			if(quad.getNormal().isVertical()) // take either the roof of floor since they are the same
+			{
+				recDifAverage += quad.getDifRectangle();
+				break;
+			}
+		}
+	}
+	
+	recDifAverage = recDifAverage/(mSpaces.size());
+	return recDifAverage;
+}
+
 void ms_N_building::setZZero()
 {
 	this->resetOrigin({2});
@@ -808,6 +975,150 @@ bool ms_N_building::hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces,
 	
 	return (floatingSpaces.size() != 0);
 } // hasFloatingSpaces()
+
+bool ms_N_building::isFragmented(std::vector<ms_space*>& spacesNonBiggestFragment, 
+	const double tol /*= 1e-3*/) const
+{
+	// Initialize variables
+	std::vector<std::vector<ms_space*>> SpaceFragment;
+	std::vector<ms_space*> unsortedSpaces = mSpaces;
+	std::vector<ms_space*> consideredFragmentSpace;
+	std::vector<bso::utilities::geometry::quad_hexahedron> consideredFragmentGeom;
+
+	// Setup initial variables
+	consideredFragmentGeom.push_back(mSpaces[0]->getGeometry());
+	consideredFragmentSpace.push_back(mSpaces[0]);
+	auto spaceIt = unsortedSpaces.begin();
+	unsortedSpaces.erase(spaceIt);
+	bool addedSpaceFragmentGeoms = true; // initial
+
+	while(unsortedSpaces.size() > 0)
+	{
+		addedSpaceFragmentGeoms = true;
+		while (addedSpaceFragmentGeoms)
+		{
+			addedSpaceFragmentGeoms = false;
+			spaceIt = unsortedSpaces.begin();
+			while (spaceIt != unsortedSpaces.end())
+			{
+				auto spaceGeom = (*spaceIt)->getGeometry();
+				
+				// check if this space is connected to any of the consideredFragment spaces
+				bool isConnectedToFragment = false;
+				for (const auto& i : consideredFragmentGeom)
+				{
+					for (const auto& j : spaceGeom)
+					{
+						if (i.isInside(j,tol))
+						{ // if any vertex j of the space is inside a consideredFragmentGeom
+							isConnectedToFragment = true;
+							break;
+						}
+						for (const auto& k : i.getPolygons())
+						{
+							if (k->isInside(j,tol))
+							{ // if any vertex j of the space is inside the surface of a consideredFragmentGeom
+								isConnectedToFragment = true;
+								break;
+							}
+						}
+						if (isConnectedToFragment) break;
+						for (const auto& k : i.getLines())
+						{
+							if (k.isOnLine(j,tol))
+							{ // if any vertex j of the space is on a line segment of a consideredFragmentGeom
+								isConnectedToFragment = true;
+								break;
+							
+								if(!k.getVector().isVertical())
+								{
+									isConnectedToFragment = true;
+									break;
+								}
+							}
+						}
+						if (isConnectedToFragment) break;
+						for (const auto& k : i)
+						{
+							if (k.isSameAs(j,tol))
+							{ // if any vertex j of the space is collocated with a vertex of a consideredFragmentGeom
+								isConnectedToFragment = true;
+								break;
+							}
+						}
+						if (isConnectedToFragment) break;
+					}
+					for (const auto& j : i)
+					{
+						if (spaceGeom.isInside(j,tol))
+						{ // if any vertex j of a grounded space i is inside the consideredFragmentGeom
+							isConnectedToFragment = true;
+							break;
+						}
+					}
+					if (isConnectedToFragment) break;
+				}
+				
+				if (isConnectedToFragment)
+				{
+					consideredFragmentGeom.push_back(spaceGeom);
+					consideredFragmentSpace.push_back(*spaceIt);
+					addedSpaceFragmentGeoms = true;
+					unsortedSpaces.erase(spaceIt);
+					continue;
+				}
+				
+				++spaceIt;
+			}
+		}
+
+		// One fragment is defined, so store fragment:
+		SpaceFragment.push_back(consideredFragmentSpace);
+		
+		if(unsortedSpaces.size() > 1)
+		{
+			// Reset variables
+			consideredFragmentSpace.clear();
+			consideredFragmentGeom.clear();
+			auto spaceIt = unsortedSpaces.begin();
+			consideredFragmentGeom.push_back((*spaceIt)->getGeometry());
+			consideredFragmentSpace.push_back(*spaceIt);
+			unsortedSpaces.erase(spaceIt);
+		}
+		else if(unsortedSpaces.size() == 1)
+		{
+			SpaceFragment.push_back(unsortedSpaces);
+			unsortedSpaces.clear();
+		}
+	}
+
+	if(SpaceFragment.size() > 1)
+	{
+		// Determine the largest fragment to keep 
+		int fragmentMaxSpaces = 0;	
+		long unsigned int size = 0;
+		int count = 0;
+		for(const auto& i: SpaceFragment)
+		{
+			if(i.size() > size){size = i.size();fragmentMaxSpaces=count;}
+			count++;
+		}
+		
+		// store the rest of the space in spacesNonBiggestFragment
+		count = -1;
+		for(const auto& i: SpaceFragment)
+		{
+			count++;
+			if(fragmentMaxSpaces == count){continue;}
+			for(const auto j:i)
+			{
+				spacesNonBiggestFragment.push_back(j);
+			}
+		}
+		return true;
+	}
+	else{return false;}
+}
 
 void ms_N_building::addBoundary() 
 {
