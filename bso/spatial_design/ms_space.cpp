@@ -602,6 +602,26 @@ double ms_space::getFloorArea() const
 	return area;
 } // getFloorArea()
 
+double ms_space::getSurfaceArea() const
+{
+	double area = 0;
+	if(sDefMethod == "R" || sDefMethod == "r")
+	{
+		area = mDimensions(0)*mDimensions(1)*2;
+		area += mDimensions(1)*mDimensions(2)*2;
+		area += mDimensions(0)*mDimensions(2)*2;
+	}
+	else
+	{
+		std::vector<bso::utilities::geometry::quadrilateral> Quads = this->getGeometry().getQuadrilateral();
+		for(const auto& i: Quads)
+		{
+			area += i.getArea();
+		}
+	}
+	return area;
+} // getSurfaceArea()
+
 bool ms_space::operator == (const ms_space& rhs) const
 {
 	if (mID != rhs.mID) return false;
