@@ -10,8 +10,10 @@
 #include <exception>
 #include <boost/algorithm/string.hpp>
 #include <bitset>
+
 //#include <bso/utilities/geometry.hpp>
 #include <bso/utilities/delaunay.hpp>
+#include <bso/utilities/data_analysis.hpp>
 
 namespace bso { namespace spatial_design {
 
