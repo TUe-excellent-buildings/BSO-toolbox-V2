@@ -35,6 +35,7 @@ int main(int argc, char* argv[])
 {
 	std::string inputFile = "";
 	std::string designName = "";
+	std::string modifyAddition = "";
 	std::string colorinputFile = "";
 	std::string colourFileName = "";
 	std::string PNinputFile = "";
@@ -90,6 +91,8 @@ int main(int argc, char* argv[])
 								<< 	 "\t" << "long as they are the same amount for each categoryspaces needs to be defined and you can not split \n"
 								<<   "\t" << "and delete a space with the same ID value. Measures are taken to prevent floating space and/or  \n"
 								<<	 "\t" << "a building not at ground level while still resulting in functioning buildings)\n";
+			std::cout << "-mf\t"<< "or --modificationfileName, to turn store modified MS_file on and to specify an addition to the original file  \n "
+								<<	 "\t" << "name to indicate modified MS_representation file (only has effect if -m is applied)\n";
 			std::cout << "-v\t" << "or --visualization, to specify which models are\n"
 								<<   "\t" << "visualized: \'ms\' for \'Movable Sizable\' either with modification if applied, \n"
 								<<   "\t" << "visualized: \'msbase\' for \'Movable Sizable\' without modification showing the input file, \n"
@@ -228,6 +231,19 @@ int main(int argc, char* argv[])
 					throw std::invalid_argument(errorMessage.str());
 				}
 			}
+		}
+		else if (*arg == "-mf" || *arg == "--modificationfileName")
+		{
+			if (++arg == args.end() || arg->operator[](0) == '-')
+			{
+				std::stringstream errorMessage;
+				errorMessage << "\nError, expected a addition to the input files name to be specified after -mf\n"
+										 << "Use -h or --help for help" << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+			}
+			modifyAddition = *arg;
+			boost::trim(modifyAddition);
+			++arg;
 		}
 		else if (*arg == "-b" || *arg == "--bounded") 
 		{
@@ -634,9 +650,12 @@ int main(int argc, char* argv[])
 		MS.scale({{0,scaleFactor},{1,scaleFactor}});
 		out("Scaled building to original floor area",true,true,verbose);
 
-		std::string modifiedFileName = designName + "_mod";
-		MS.writeToFile(modifiedFileName);
-		out("Print modified MS_N_building to file", true, true, verbose);
+		if(modifyAddition != "")
+		{
+			std::string modifiedFileName = designName + modifyAddition;
+			MS.writeToFile(modifiedFileName);
+			out("Print modified MS_N_building to file", true, true, verbose);
+		}
 	}
 
 	// Obtain a file containing the bounded conformal model for Leiden representation

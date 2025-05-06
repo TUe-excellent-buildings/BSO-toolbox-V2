@@ -9,6 +9,7 @@
 #include <exception>
 #include <stdexcept>
 #include <bitset>
+#include <iomanip> // allows for std::setprecision use
 
 #include <bso/utilities/trim_and_cast.hpp>
 
@@ -676,9 +677,9 @@ std::ostream& operator <<(std::ostream& stream, const ms_space& space)
 			// The std::setprecision statement makes sure that the output file does not lose precision in value,
 			// This is important when a scaled design needs to be inputted again.
 			stream << ",	";
-			stream << i (0); 
-			stream << "," << i (1);
-			stream << "," << i (2);
+			stream << (*i) (0); 
+			stream << "," << (*i) (1);
+			stream << "," << (*i) (2);
 		}
 		std::string tempStr;
 		if (space.getSpaceType(tempStr)) stream << "," << tempStr;

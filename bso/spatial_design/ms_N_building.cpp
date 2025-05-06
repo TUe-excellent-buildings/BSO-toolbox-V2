@@ -14,6 +14,7 @@
 //#include <bso/utilities/geometry.hpp>
 #include <bso/utilities/delaunay.hpp>
 #include <bso/utilities/data_analysis.hpp>
+#include <iomanip> // allows for std::setprecision use
 
 namespace bso { namespace spatial_design {
 
@@ -1433,7 +1434,7 @@ std::vector<utilities::geometry::triangular_prism> ms_N_building::convertMSToPN(
 		}
 
 		// Write the found triangular prisms in space to text file
-		output << mSpaces[IDSpace]->getID() << ", " << spaceGeom << std::endl;
+		output << mSpaces[IDSpace]->getID() << ", " << std::setprecision(std::numeric_limits<double>::max_digits10) << spaceGeom << std::endl;
 		for(const auto& TP: triPrism)
 		{
 			output << TP << std::endl;
@@ -1474,7 +1475,7 @@ std::vector<utilities::geometry::triangular_prism> ms_N_building::convertMSToPN(
 	}
 
 	// Write the found triangular prisms in space to text file
-	output << mSpaces[mSpaces.size()-1]->getID() << ", " << spaceGeom << std::endl;
+	output << mSpaces[mSpaces.size()-1]->getID() << ", " << std::setprecision(std::numeric_limits<double>::max_digits10) << spaceGeom << std::endl;
 	for(const auto& TP: triPrism)
 	{
 		output << TP << std::endl;
