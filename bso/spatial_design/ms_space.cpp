@@ -669,14 +669,16 @@ std::ostream& operator <<(std::ostream& stream, const ms_space& space)
 	}
 	else if(space.getSDefMethod()== "N")
 	{
-		stream << "N" << "," << space.getID();
+		stream << "N" << "," << space.getID() << std::setprecision(std::numeric_limits<double>::max_digits10);
 		
-		for(const auto i: space.getVertices())
+		for(const auto& i: space.getVertices())
 		{
+			// The std::setprecision statement makes sure that the output file does not lose precision in value,
+			// This is important when a scaled design needs to be inputted again.
 			stream << ",	";
-			stream << (*i) (0);
-			stream << "," << (*i) (1);
-			stream << "," << (*i) (2);
+			stream << i (0); 
+			stream << "," << i (1);
+			stream << "," << i (2);
 		}
 		std::string tempStr;
 		if (space.getSpaceType(tempStr)) stream << "," << tempStr;

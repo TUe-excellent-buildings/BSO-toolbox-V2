@@ -633,6 +633,10 @@ int main(int argc, char* argv[])
 		double scaleFactor = sqrt(floorArea / MS.getFloorArea());
 		MS.scale({{0,scaleFactor},{1,scaleFactor}});
 		out("Scaled building to original floor area",true,true,verbose);
+
+		std::string modifiedFileName = designName + "_mod";
+		MS.writeToFile(modifiedFileName);
+		out("Print modified MS_N_building to file", true, true, verbose);
 	}
 
 	// Obtain a file containing the bounded conformal model for Leiden representation
