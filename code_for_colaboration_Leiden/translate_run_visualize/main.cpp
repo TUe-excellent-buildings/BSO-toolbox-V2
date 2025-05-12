@@ -14,7 +14,7 @@
 
 std::vector<std::string> MULTI_VIS_OPTIONS = {"ms","msc","pnf","pn"};
 std::vector<std::string> MOD_OPTIONS = {"d","s"};
-std::vector<std::string> VIS_OPTIONS = {"ms","msbase","msc","pnf","rc","cb","tr","tp","tb","pn","sd","fe","bp"};
+std::vector<std::string> VIS_OPTIONS = {"ms","msbase","msc","pnf","rc","cb","tr","tp","tb","sd","fe","bp"};
 std::vector<std::string> OUT_OPTIONS = {"result_file", "verbose", "ms_files"};
 
 int end, begin = 0;
@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
 								<<   "\t" << "\'tp\' for \'conformal model with Triangular Prism for N insertion method\', \n"
 								<<   "\t" << "\'tb\' for \'conformal model with Triangular Prism for N insertion method and including bounding box \n"
 								<<   "\t" << "(note: this visualization is only possible with the -b option included in the run statement) \n"
-								<< 	 "\t" << "\'pn\' for \'visualization of the triangular prims used for the PN representation definition \n"
+								//<< 	 "\t" << "\'pn\' for \'visualization of the triangular prims used for the PN representation definition \n"
 								<<   "\t" << "(note: this visualization is only possible with the -pn option included in the run statement) \n"
 								<<   "\t" << "\'sd\' for'\'Structural Design\', \n"
 								<<   "\t" << "\'fe\' for \'Finite Elements of the structural design model\',\n"

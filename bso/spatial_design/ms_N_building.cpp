@@ -1329,7 +1329,7 @@ std::vector<utilities::geometry::triangular_prism> ms_N_building::convertMSToPN(
 
 	// Identify which triangles should be used to generate a triangular prism cell in the space and generate that space and accompanying geometric entities
 	std::vector<utilities::geometry::triangular_prism> triPrismBoundingBox;
-	for(int IDSpace=0; IDSpace<mSpaces.size(); IDSpace++)
+	for(int IDSpace=0; IDSpace<mSpaces.size()-1; IDSpace++)
 	{
 		// Get spaceGEOM
 		utilities::geometry::quad_hexahedron spaceGeom = mSpaces[IDSpace]->getGeometry();
@@ -1427,11 +1427,11 @@ std::vector<utilities::geometry::triangular_prism> ms_N_building::convertMSToPN(
 			}
 		}
 
-		if(IDSpace == mSpaces.size()-1) // last space is the bounding box, thus contains all triangular prims defined for the PN representation.
-		{
-			triPrismBoundingBox = triPrism;
-			break;
-		}
+		// if(IDSpace == mSpaces.size()-1) // last space is the bounding box, thus contains all triangular prims defined for the PN representation.
+		// {
+		// 	triPrismBoundingBox = triPrism;
+		// 	break;
+		// }
 
 		// Write the found triangular prisms in space to text file
 		output << mSpaces[IDSpace]->getID() << ", " << std::setprecision(std::numeric_limits<double>::max_digits10) << spaceGeom << std::endl;
