@@ -1424,14 +1424,9 @@ std::vector<utilities::geometry::triangular_prism> ms_N_building::convertMSToPN(
 					triPrismV.push_back(high);
 				}
 				triPrism.push_back(utilities::geometry::triangular_prism(triPrismV, mTol));
+				triPrismBoundingBox.push_back(triPrism.back());
 			}
 		}
-
-		// if(IDSpace == mSpaces.size()-1) // last space is the bounding box, thus contains all triangular prims defined for the PN representation.
-		// {
-		// 	triPrismBoundingBox = triPrism;
-		// 	break;
-		// }
 
 		// Write the found triangular prisms in space to text file
 		output << mSpaces[IDSpace]->getID() << ", " << std::setprecision(std::numeric_limits<double>::max_digits10) << spaceGeom << std::endl;
@@ -1471,6 +1466,7 @@ std::vector<utilities::geometry::triangular_prism> ms_N_building::convertMSToPN(
 				triPrismV.push_back(high);
 			}
 			triPrism.push_back(utilities::geometry::triangular_prism(triPrismV, mTol));
+			triPrismBoundingBox.push_back(triPrism.back());
 		}
 	}
 
