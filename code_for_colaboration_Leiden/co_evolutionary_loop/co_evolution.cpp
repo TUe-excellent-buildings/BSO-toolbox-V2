@@ -253,8 +253,8 @@ int main(int argc, char* argv[])
 	std::string designName = "";
 	std::string inputLine = "";
 	std::string modification = "";
-	std::string performanceDivision = "";
-	std::string deleteMethod = "";
+	std::string performanceDivision = "floorArea";
+	std::string deleteMethod = "worst";
 	bool removeSmallerFragments = false;
 	unsigned int iterations = 0;
 	unsigned int maxIterationsInSequence = 0; // in case a combined data file is made, this should be set the maximum nr. of iterations. 
@@ -307,10 +307,14 @@ int main(int argc, char* argv[])
 								<<   "\t" << "clustering, expects two integers larger than 1.\n";
 			std::cout << "-r\t" << "or --ratio, to specify a minimum ratio of spaces\n"
 								<<   "\t" << "that should be removed in every iteration.\n"
-								<<	 "\t" << "Expects a number in the range [0,1].\n";
+								<<	 "\t" << "Expects a number in the range [0,1].\n"
+								<<   "\t" << "The default is 0.1.\n";
 			std::cout << "-a\t" << "or --amount, to specify a amount of spaces\n"
 								<<   "\t" << "that should be removed in every iteration.\n"
-								<<	 "\t" << "Expects an integer number above 1.\n";
+								<<	 "\t" << "Expects an integer number above 1.\n"
+								<<   "\t" << "The default is the -r ratio method of space removal \n"
+								<< 	 "\t" << "amount of definition and if an -a is specified then \n"
+								<< 	 "\t" << "that overruled the -r option.\n";
 			std::cout << "-m\t" << "or --modification, to specify which modification\n"
 								<<   "\t" << "will be applied: \'sd\' for the sd-modifications;\n"
 								<<   "\t" << "\'bp\' for the bp_modifications; \'weighted\' for sd and bp\n" 
@@ -321,12 +325,16 @@ int main(int argc, char* argv[])
 								<<   "\t" << "that will be applied. Expects only a positive integer\n";
 			std::cout << "-d\t" << "or --deleteMethod, to specify how spaces are deleted:\n"
 								<<   "\t" << "\'cluster\' for cluster deleting spaces\n"
-								<<   "\t" << "\'worst\' for deleting spaces based on worst performance\n";
+								<<   "\t" << "\'worst\' for deleting spaces based on worst performance\n"
+								<<   "\t" << "\'off\' for no deleting spaces.\n"
+								<<   "\t" << "The default is \'worst\'.\n";
 			std::cout << "-f\t" << "or --deleteFragments, to specify what to do with spaces which are not connected\n"
-								<<	 "\t" << "as a full building. Option are \'true\' or \'false\'.\n";
+								<<	 "\t" << "as a full building. Option are \'true\' or \'false\'.\n"
+								<<   "\t" << "The default is \'false\'.\n";
 			std::cout << "-p\t" << "or --performanceDivision, to specify by which the performances \n"
 								<<	 "\t" << "of the spaces should be divided. Option are \'floorArea\', \'surfaceArea\',\n"
-								<<   "\t" << "\'volumeArea\' or \'nothing\'.\n";
+								<<   "\t" << "\'volumeArea\' or \'nothing\'.\n"
+								<<   "\t" << "The default is \'floorArea\'.\n";
 			std::cout << "-o\t" << "or --output, to specify the different outputs:\n"
 								<<   "\t" << "\'result_line\' prints a line with the input\n"
 								<<   "\t" << "parameters and the results; \'verbose\' prints\n"
@@ -845,7 +853,7 @@ int main(int argc, char* argv[])
 
 			// step 2, get performances per space
 			std::vector<utilities::data_point> performances;
-			getPerformancePerSpace(performances, newMS, sdModels.back(),  bpModels.back(), modification, performanceDivision);
+			retrievePerformancePerSpace(performances, newMS, sdModels.back(),  bpModels.back(), modification, performanceDivision);
 			out("Collected performances for each space",true,true,verbose);
 
 			// step 3, normalize the data points
@@ -912,7 +920,7 @@ int main(int argc, char* argv[])
 				}
 				out("Removed worst performing cluster of spaces in building spatial design",true,true,verbose);
 			}
-			else
+			else if (deleteMethod == "worst")
 			{
 				// step 4, sort data and determine space removal amount
 				performancesRemoveSpace = performances;
@@ -920,10 +928,10 @@ int main(int argc, char* argv[])
 				out("Sort data points for space removal",true,true,verbose);
 
 				int spaceAmountRemoval;
-				if(amountOfSpaceRemoval > 0) {spaceAmountRemoval = /*performancesRemoveSpace.size() - nSpaces +*/ amountOfSpaceRemoval;}
+				if(amountOfSpaceRemoval > 0) {spaceAmountRemoval = amountOfSpaceRemoval;}
 				else 
 				{
-					spaceAmountRemoval = /*performancesRemoveSpace.size() - nSpaces +*/ round(performancesRemoveSpace.size()*spaceRemoveRatio);
+					spaceAmountRemoval = round(performancesRemoveSpace.size()*spaceRemoveRatio);
 					if(spaceAmountRemoval < 1){spaceAmountRemoval = 1;}
 				}
 
@@ -940,6 +948,11 @@ int main(int argc, char* argv[])
 				}
 				out("Removed worst performing spaces in building spatial design",true,true,verbose);
 			}
+			else if (deleteMethod == "off")
+			{
+				out("No spaces removed in building spatial design",true,true,verbose);
+			}
+			else {/*not possible to end up in duo to prior deleteMethod option check in begining*/}
 
 			// step 6, Enforce constrains on BSD
 			enforceConstrains(newMS, removeSmallerFragments);
