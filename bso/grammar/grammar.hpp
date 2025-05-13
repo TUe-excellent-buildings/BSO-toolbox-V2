@@ -92,6 +92,8 @@ public:
 	const std::vector<building_physics::bp_model> getIntermediateBPModels() const
 		{return mIntermediateBPModels;}
 	#endif
+
+	std::vector<bso::utilities::geometry::quadrilateral> getExteriorWalls();
 };
 
 } // namespace grammar
