@@ -614,7 +614,7 @@ int main(int argc, char* argv[])
 		{
 			for (auto& i : floatingSpaces) MS.deleteSpace(i);
 		}
-		out("Make sure building is at ground levelChecked and removed floating spaces",true,true,verbose);
+		out("Make sure building is at ground level and checked and removed floating spaces",true,true,verbose);
 		
 		if(MS.getSpacePtrs().size() < nSpaces)
 		{
