@@ -574,15 +574,6 @@ int main(int argc, char* argv[])
 		}
 		out("Removed spaces in building spatial design according to their inserted indexes",true,true,verbose);
 		
-		// Apply constrains of no floating spaces and building should start at ground level
-		MS.setZZero();
-		std::vector<spatial_design::ms_space*> floatingSpaces;
-		if (MS.hasFloatingSpaces(floatingSpaces))
-		{
-			for (auto& i : floatingSpaces) MS.deleteSpace(i);
-		}
-		out("Make sure building is at ground levelChecked and removed floating spaces",true,true,verbose);
-
 		// Split spaces with inserted indexes
 		for(const auto& i : splitSpacesIDs)
 		{
@@ -615,10 +606,19 @@ int main(int argc, char* argv[])
 			MS.splitSpace(ptrSplitSpace, splitamount , LongestAxis);
 		}
 		out("Split spaces according to their inserted indexes",true,true,verbose);
+
+		// Apply constrains of no floating spaces and building should start at ground level
+		MS.setZZero();
+		std::vector<spatial_design::ms_space*> floatingSpaces;
+		if (MS.hasFloatingSpaces(floatingSpaces))
+		{
+			for (auto& i : floatingSpaces) MS.deleteSpace(i);
+		}
+		out("Make sure building is at ground levelChecked and removed floating spaces",true,true,verbose);
 		
 		if(MS.getSpacePtrs().size() < nSpaces)
 		{
-			// split the spaces with the largest dimension in x or y direction (checking x first)
+			// Split the spaces with the largest dimension in x or y (checking x first) 
 			while (MS.getSpacePtrs().size() < nSpaces)
 			{
 				auto spaceWithLargestDimension = MS.getSpacePtrs().front();

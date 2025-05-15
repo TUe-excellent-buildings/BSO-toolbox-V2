@@ -5,6 +5,8 @@
 #include <bso/visualization/bsp/bsp.hpp>
 #include <bso/spatial_design/ms_building.hpp>
 #include <bso/spatial_design/ms_N_building.hpp>
+#include <bso/utilities/data_point.hpp>
+#include <bso/utilities/clustering.hpp>
 
 #include <boost/algorithm/string.hpp>
 #include <utility>
