@@ -487,6 +487,26 @@ namespace bso { namespace structural_design {
 		}
 		return results;
 	} // getPartialResults()
+
+	double sd_model::getTotalLoad()
+	{
+		double sumOfLoads = 0;
+		for (const auto& node : mFEA->getNodes())
+		{
+			std::map<component::load_case, Eigen::Vector6d> loads = node->getmLoads();
+			for(const auto& load: loads)
+			{
+				sumOfLoads += abs(load.second(0));
+				sumOfLoads += abs(load.second(1));
+				sumOfLoads += abs(load.second(2));
+				sumOfLoads += abs(load.second(3));
+				sumOfLoads += abs(load.second(4));
+				sumOfLoads += abs(load.second(5));
+			}
+		}
+
+		return sumOfLoads;
+	} // getTotalResultsLoad()
 	
 
 } // namespace structural_design
