@@ -5,7 +5,7 @@
 #include <bso/utilities/geometry.hpp>
 #include <bso/utilities/data_point.hpp>
 #include <bso/utilities/clustering.hpp>
-#include <bso/utilities/data_export.hpp>
+#include <bso/utilities/data_export.hpp> // This libary uses gnuPlot to plot the data, generally this is a standard library on a linux computer.
 #include <bso/structural_design/sd_model.hpp>
 #include <bso/building_physics/bp_model.hpp>
 #include <bso/grammar/grammar.hpp>
@@ -180,9 +180,9 @@ void sortDataPointsForSpaceRemoval(std::vector<bso::utilities::data_point>& perf
 // Function to create a result directory for the output files.
 // The directory is created in the current working directory and named "results".
 // The sub-directory is created based on the input file name, modification type, iteration number and current date and time.
-void getResultDir(std::string& dir, std::string inputFile, std::string modification, int interationNr, bool verbose)
+bool createResultDir(std::string& dir, bool verbose)
 {
-	// create resultDir if not existing yet
+	// create resultDir path if not existing yet
 	bool resultDirGen = false;
 	std::string path = "results";
 	if (!std::filesystem::exists(path)) 
@@ -205,9 +205,19 @@ void getResultDir(std::string& dir, std::string inputFile, std::string modificat
 		out("Directory already exists.",true,true,verbose);
 	}
 
+	return resultDirGen;
+} // createResultDir()
+
+void getSubResultDir(std::string& dir, std::string inputFile, std::string modification, int interationNr, bool verbose)
+{
+	// create resultDir if not existing yet
+	std::string path;
+	bool resultDirGen = createResultDir(path, verbose);
+
+	// create sub-directory of results if not existing yet
 	if(resultDirGen)
 	{
-		std::string path2 = dir + inputFile + "_" + modification + "_-n=" + std::to_string(interationNr) + "_" + getCurrentDateTime();
+		std::string path2 = path + inputFile + "_" + modification + "_-n=" + std::to_string(interationNr) + "_" + getCurrentDateTime();
 		if (!std::filesystem::exists(path2)) 
 		{
 			if (std::filesystem::create_directory(path2)) 
@@ -256,7 +266,7 @@ int main(int argc, char* argv[])
 	std::string performanceDivision = "floorArea";
 	std::string deleteMethod = "worst";
 	bool removeSmallerFragments = false;
-	unsigned int iterations = 0;
+	unsigned int iterations = 5;
 	unsigned int maxIterationsInSequence = 0; // in case a combined data file is made, this should be set the maximum nr. of iterations. 
 
 	// Settings for the clustering
@@ -272,14 +282,21 @@ int main(int argc, char* argv[])
 	// Output settings
 	std::vector<std::string> visualizations;
 	bool result_line = false;
+	bool result_file = false;
 	bool ms_files = false;
+	bool pn_files = false;
+	bool runArgs = false;
 	bool plot = false;
 	bool visualizePlot = false;
 	bool verbose = false;
 	bool outputAll = false;
 	bool outputBest = false;
+	bool BestSD = false;
+	bool BestBP = false;
+	bool last = false;
 	bool resultDir = false;
 	bool combineData = false;
+	std::string subDirName = "";
 
 
 	// Read the command line arguments and store in above variables
@@ -293,8 +310,10 @@ int main(int argc, char* argv[])
 		throw std::invalid_argument(errorMessage.str());
 	}
 	
+	std::stringstream inputArg;
 	while (arg != args.end())
 	{
+		inputArg << *arg << " ";
 		if (*arg == "-h" || *arg == "--help")
 		{
 			std::cout << "This program ...." << std::endl;
@@ -308,21 +327,23 @@ int main(int argc, char* argv[])
 			std::cout << "-r\t" << "or --ratio, to specify a minimum ratio of spaces\n"
 								<<   "\t" << "that should be removed in every iteration.\n"
 								<<	 "\t" << "Expects a number in the range [0,1].\n"
-								<<   "\t" << "The default is 0.1.\n";
+								<<   "\t" << "The default is 0.1. Furthermore, if ratio \n"
+								<< 	 "\t" << "generates a to low amount of spaces, then the minimum of 1 space is used. \n";
 			std::cout << "-a\t" << "or --amount, to specify a amount of spaces\n"
 								<<   "\t" << "that should be removed in every iteration.\n"
 								<<	 "\t" << "Expects an integer number above 1.\n"
-								<<   "\t" << "The default is the -r ratio method of space removal \n"
+								<<   "\t" << "The default option is the -r ratio method of space removal \n"
 								<< 	 "\t" << "amount of definition and if an -a is specified then \n"
 								<< 	 "\t" << "that overruled the -r option.\n";
 			std::cout << "-m\t" << "or --modification, to specify which modification\n"
 								<<   "\t" << "will be applied: \'sd\' for the sd-modifications;\n"
 								<<   "\t" << "\'bp\' for the bp_modifications; \'weighted\' for sd and bp\n" 
-								<< 	 "\t" << " making half the performance value per space; \'sdbp\' to alternate\n"
+								<< 	 "\t" << "making half the performance value per space; \'sdbp\' to alternate\n"
 								<<   "\t" << "between sd and bp, starting with sd; \'bpsd\', dito\n"
 								<<   "\t" << "but now starting with bp. Only one option is possible.\n";
 			std::cout << "-n\t" << "or --nModifications, to specify the number of modifications\n"
-								<<   "\t" << "that will be applied. Expects only a positive integer\n";
+								<<   "\t" << "that will be applied. Expects only a positive integer\n"
+								<<   "\t" << "value. The default is 5.\n";
 			std::cout << "-d\t" << "or --deleteMethod, to specify how spaces are deleted:\n"
 								<<   "\t" << "\'cluster\' for cluster deleting spaces\n"
 								<<   "\t" << "\'worst\' for deleting spaces based on worst performance\n"
@@ -335,7 +356,7 @@ int main(int argc, char* argv[])
 								<<	 "\t" << "of the spaces should be divided. Option are \'floorArea\', \'surfaceArea\',\n"
 								<<   "\t" << "\'volumeArea\' or \'nothing\'.\n"
 								<<   "\t" << "The default is \'floorArea\'.\n";
-			std::cout << "-o\t" << "or --output, to specify the different outputs:\n"
+			std::cout << "-o\t" << "or --output, to specify the different outputs (more than one option can be given):\n"
 								<<   "\t" << "\'result_line\' prints a line with the input\n"
 								<<   "\t" << "parameters and the results; \'verbose\' prints\n"
 								<<   "\t" << "a descriptive outline of the process;\n"
@@ -344,14 +365,25 @@ int main(int argc, char* argv[])
 								<<	 "\t" << "\'combine_data\' will make a data file where separate runs of this, \n"
 								<< 	 "\t" << "executable can be copy pasted behind each other. \n"
 								<< 	 "\t" << "For this, the maximum amount of iterations for all runs in the sequence should be set. \n"
-								<< 	 "\t" << "For the formatting of the excel file. As such, \'combine_data\' key should be followed by \n"
+								<< 	 "\t" << "For the formatting of the excel file. As such, \'combine_data\' key should be followed \n"
 								<< 	 "\t" << "by an unsigned integer value of the maximum iterations. \n"
 								<< 	 "\t" << "This file can be loaded into excel to compare individual runs of this executable.\n"
 								<<   "\t" << "\'ms_files\' will write the ms designs to files\n"
-								<<   "\t" << "\'all\' will write all the designs to the specified format\n"
-								<<   "\t" << "\'best\' (default) will only write the best all the designs to\n"
-								<<   "\t" << "the specified format. More than one option can be given,\n"
-								<<   "\t" << "but \'all\' and \'best\' cannot be given simultaneously.\n";
+								<<   "\t" << "\'pn_files\' will write the ms designs to PN format (i.e. leiden format) in a file\n"
+								<<	 "\t" << "\'runArgs\' will write the run arguments to a file including a text summary of the results.\n"
+								<<   "\t" << "The following keys describes which designs are going to be exported in the prior defined \n"
+								<< 	 "\t" << "formats (except option \'plot\' and \'combine_data\' which always output all iterations of the designs) \n"
+								<<   "\t" << "\'all\' will write all the designs to the specified format, \n"
+								<<   "\t" << "\'best\' will only write the best, i.e. kneepoint, \n"
+								<<   "\t" << "\'bestSD\' will only write the best design considering SD performance, \n"
+								<<   "\t" << "\'bestBP\' will only write the best design considering BP performance, \n"
+								<<   "\t" << "and \'last\' will only write the last iteration of all the designs.\n"
+								<<   "\t" << "\'all\', \'best\', \'bestSD\', \'bestBP\' and \'last\' cannot be given simultaneously.\n"
+								<<   "\t" << "The default for design selection is \'all\'.\n";
+			std::cout << "-rd"	<< 	 "\t" << "or --resultDir, to specify a string for a sub-directory name where the results are stored.\n"
+								<<   "\t" << "if name is \'standard\' then the sub-directory will consist of: \n"
+								<< 	 "\t" << "inputFileName_modification_NrOfIterations_currentDateAndTime.\n"
+								<<   "\t" << "The default is the current working directory.\n";
 			std::cout << "-v\t" << "or --visualization, to specify which models are visualized: \n"
 								<<   "\t" << "\'ms\' for \'Movable Sizable\',\n"
 								<<   "\t" << "\'msc\' for \'Movable Sizable with visualization of clustering for -d cluster option\',\n"
@@ -380,6 +412,7 @@ int main(int argc, char* argv[])
 			inputFile = *arg;
 			boost::trim(inputFile);
 			designName = inputFile;
+			inputArg << inputFile << " ";
 			++arg;
 		}
 		else if (*arg == "-k" || *arg == "--kMinMax")
@@ -391,8 +424,8 @@ int main(int argc, char* argv[])
 				errorMessage << "\nError, expected a value after -k or --kMinMax.\n";
 				throw std::invalid_argument(errorMessage.str());
 			}
-			
 			kMin = bso::utilities::trim_and_cast_uint(*arg);
+			inputArg << kMin << " ";
 			
 			if (++arg == args.end() || arg->operator[](0) == '-')
 			{
@@ -400,8 +433,8 @@ int main(int argc, char* argv[])
 				errorMessage << "\nError, expected a second value after -k or --kMinMax.\n";
 				throw std::invalid_argument(errorMessage.str());
 			}
-			
 			kMax = bso::utilities::trim_and_cast_uint(*arg);
+			inputArg << kMax << " ";
 			
 			if (kMax <= kMin)
 			{
@@ -427,8 +460,8 @@ int main(int argc, char* argv[])
 				errorMessage << "\nError, expected a value after -r or --ratio.\n";
 				throw std::invalid_argument(errorMessage.str());
 			}
-			
 			spaceRemoveRatio = bso::utilities::trim_and_cast_double(*arg);
+			inputArg << spaceRemoveRatio << " ";
 			
 			if (spaceRemoveRatio <= 0.0 - 0.00001 || spaceRemoveRatio >= 1.0 + 0.00001)
 			{
@@ -445,7 +478,6 @@ int main(int argc, char* argv[])
 				errorMessage << "\nError, can only specify one value after -r or --ratio.\n";
 				throw std::invalid_argument(errorMessage.str());
 			}
-			
 		}
 		else if (*arg == "-a" || *arg == "--amount")
 		{
@@ -455,8 +487,8 @@ int main(int argc, char* argv[])
 				errorMessage << "\nError, expected a value after -a or --amount.\n";
 				throw std::invalid_argument(errorMessage.str());
 			}
-			
 			amountOfSpaceRemoval = bso::utilities::trim_and_cast_int(*arg);
+			inputArg << amountOfSpaceRemoval << " ";
 			
 			if (amountOfSpaceRemoval  <= 0)
 			{
@@ -486,6 +518,7 @@ int main(int argc, char* argv[])
 			}
 			modification = *arg;
 			boost::trim(modification);
+			inputArg << modification << " ";
 			if (std::find(MOD_OPTIONS.begin(),MOD_OPTIONS.end(),modification) == MOD_OPTIONS.end())
 			{
 				std::stringstream errorMessage;
@@ -516,6 +549,7 @@ int main(int argc, char* argv[])
 			try
 			{
 				iterations = bso::utilities::trim_and_cast_uint(*arg);
+				inputArg << iterations << " ";
 			}
 			catch (std::exception& e)
 			{
@@ -541,6 +575,7 @@ int main(int argc, char* argv[])
 			{
 				deleteMethod = *arg;
 				boost::trim(deleteMethod);
+				inputArg << deleteMethod << " ";
 				if (deleteMethod == "cluster"){;}
 				else if(deleteMethod == "worst"){;}
 				else if(deleteMethod == "off"){;}
@@ -560,6 +595,7 @@ int main(int argc, char* argv[])
 			{
 				std::string outSpec = *arg;
 				boost::trim(outSpec);
+				inputArg << outSpec << " ";
 				if (outSpec == "true") removeSmallerFragments = true;
 				else if(outSpec == "false") removeSmallerFragments = false;
 				else
@@ -584,6 +620,7 @@ int main(int argc, char* argv[])
 			}
 			performanceDivision = *arg;
 			boost::trim(performanceDivision);
+			inputArg << performanceDivision << " ";
 			if (std::find(PER_OPTIONS.begin(),PER_OPTIONS.end(),performanceDivision) == PER_OPTIONS.end())
 			{
 				std::stringstream errorMessage;
@@ -613,6 +650,7 @@ int main(int argc, char* argv[])
 			try
 			{
 				RNGSeed = bso::utilities::trim_and_cast_uint(*arg);
+				inputArg << RNGSeed << " ";
 			}
 			catch (std::exception& e)
 			{
@@ -638,7 +676,9 @@ int main(int argc, char* argv[])
 			{
 				std::string outSpec = *arg;
 				boost::trim(outSpec);
+				inputArg << outSpec << " ";
 				if 			(outSpec == "result_line") result_line = true;
+				else if 			(outSpec == "result_file") result_file = true;
 				else if (outSpec == "verbose") verbose = true;
 				else if (outSpec == "plot")
 				{
@@ -654,8 +694,13 @@ int main(int argc, char* argv[])
 					continue;
 				}
 				else if (outSpec == "ms_files") ms_files = true;
+				else if (outSpec == "pn_files") pn_files = true; 
+				else if (outSpec == "runArgs") runArgs = true; 
 				else if (outSpec == "all") outputAll = true;
 				else if (outSpec == "best") outputBest = true;
+				else if (outSpec == "last") last = true;
+				else if (outSpec == "bestSD") BestSD = true;
+				else if (outSpec == "bestBP") BestBP = true;
 				else if (outSpec == "combine_data")
 				{
 					combineData = true;
@@ -673,6 +718,7 @@ int main(int argc, char* argv[])
 						try
 						{
 							maxIterationsInSequence = bso::utilities::trim_and_cast_int(*arg);
+							inputArg << maxIterationsInSequence << " ";
 						}
 						catch(const std::exception& e)
 						{
@@ -696,6 +742,22 @@ int main(int argc, char* argv[])
 											 << "--help for help\n";
 					throw std::invalid_argument(errorMessage.str());
 				}
+				if(!outputBest && !outputAll && !last && !BestSD && !BestBP){outputAll = true;}// default output
+			}
+		}
+		else if (*arg == "-rd" || *arg == "--resultDir")
+		{
+			if (++arg == args.end() || arg->operator[](0) == '-')
+			{
+				resultDir = false;
+			}
+			else
+			{
+				resultDir = true;
+				subDirName = *arg;
+				boost::trim(subDirName);
+				inputArg << subDirName << " ";
+				++arg;
 			}
 		}
 		else if (*arg == "-v" || *arg == "--visualize")
@@ -704,6 +766,7 @@ int main(int argc, char* argv[])
 			{
 				std::string visSpec = *arg;
 				boost::trim(visSpec);
+				inputArg << visSpec << " ";
 				if (std::find(VIS_OPTIONS.begin(),VIS_OPTIONS.end(),visSpec) == VIS_OPTIONS.end())
 				{
 					std::stringstream errorMessage;
@@ -748,6 +811,13 @@ int main(int argc, char* argv[])
 	{
 		std::stringstream errorMessage;
 		errorMessage << "Cannot specify both \'all\'  and \'best\' for output.\n"
+								 << "use -h or --help for help\n";
+		throw std::invalid_argument(errorMessage.str());
+	}
+	if(iterations <= 0)
+	{
+		std::stringstream errorMessage;
+		errorMessage << "\nError, expected a positive integer higher then zero to be specified after -n or --nModifications.\n"
 								 << "use -h or --help for help\n";
 		throw std::invalid_argument(errorMessage.str());
 	}
@@ -805,10 +875,10 @@ int main(int argc, char* argv[])
 			grammar::grammar grm(cf);
 			out("Initialized grammar",true,true,verbose);
 
-			std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls = grm.getExteriorWalls();
-			double sumExteriorWallArea = 0.0;
-			for(const auto& wall: exteriorWalls){sumExteriorWallArea += wall.getArea();}
-			exteriorSurfaceArea.push_back(sumExteriorWallArea);
+			std::vector<bso::utilities::geometry::quadrilateral> exteriorSurfaces = grm.getExteriorSurfaces();
+			double sumExteriorSurfaceArea = 0.0;
+			for(const auto& surface: exteriorSurfaces){sumExteriorSurfaceArea += surface.getArea();}
+			exteriorSurfaceArea.push_back(sumExteriorSurfaceArea);
 			out("Got exterior wall Area",true,true,verbose);
 			
 			sdModels.push_back(grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt")));
@@ -817,6 +887,7 @@ int main(int argc, char* argv[])
 			sdModels.back().analyze();
 			out("Evaluated structural model: ",false,false,verbose);
 			double sdResult = sdModels.back().getTotalResults().mTotalStrainEnergy;
+			sd_total_load.push_back(sdModels.back().getTotalLoad());
 			out(sdResult,true,true,verbose);
 			designPerformances.back()(0) = sdResult;
 			
@@ -1023,17 +1094,98 @@ int main(int argc, char* argv[])
 	// Start generating the requested outputs:
 	out("Start outputting data",true,true,verbose);
 	std::vector<unsigned int> outputSpaces;
-	
-	if (outputAll) // if best, find which designs are best;
+	if (outputAll)
 	{
 		for (unsigned int i = 0; i < msDesigns.size(); ++i)
 		{
 			outputSpaces.push_back(i);
 		}
 	}
+	else if(outputBest)
+	{
+		// retrieve the kneepoint design
+		
+	}
+	else if(BestSD)
+	{
+		double SDbest = designPerformances[0](0);
+		int SDbestIndex = 0;
+		for (unsigned int i = 1; i < msDesigns.size(); ++i)
+		{
+			if(designPerformances[i](0) < SDbest)
+			{
+				SDbest = designPerformances[i](0);
+				SDbestIndex = i;
+			}
+		}
+		outputSpaces.push_back(SDbestIndex);
+	}
+	else if(BestBP)
+	{
+		double BPbest = designPerformances[0](1);
+		int BPbestIndex = 0;
+		for (unsigned int i = 1; i < msDesigns.size(); ++i)
+		{
+			if(designPerformances[i](1) < BPbest)
+			{
+				BPbest = designPerformances[i](1);
+				BPbestIndex = i;
+			}
+		}
+		outputSpaces.push_back(BPbestIndex);
+	}
+	else if(last)
+	{
+		outputSpaces.push_back(msDesigns.size()-1);
+		std::cout << "last index is: " << msDesigns.size()-1 << std::endl;
+	}
+	else
+	{
+		std::stringstream errorMessage;
+		errorMessage << "\nError, did not recognize the output option.\n"
+								 << "use -h or --help for help\n";
+		throw std::invalid_argument(errorMessage.str());
+	}
 
 	std::string dir = "";
-	if(resultDir) {getResultDir(dir, inputFile, modification, iterations, verbose);}
+	if(resultDir) 
+	{
+		// create sub-resultDir if not existing yet
+		if(subDirName == "standart")
+		{
+			getSubResultDir(dir, inputFile, modification, iterations, verbose);
+			std::cout << "dir is: " << dir << std::endl;
+		}
+		else
+		{
+			// create resultDir if not existing yet
+			std::string path;
+			bool resultDirGen = createResultDir(path, verbose);
+
+			// create sub-directory of results if not existing yet
+			if(resultDirGen)
+			{
+				std::string path2 = path + subDirName;
+				if (!std::filesystem::exists(path2)) 
+				{
+					if (std::filesystem::create_directory(path2)) 
+					{
+						dir = path2 + "/";
+						out("Sub-directory of results created successfully.",true,true,verbose);
+					} 
+					else 
+					{
+						out("Sub-directory of results failed to create directory.",true,true,verbose);
+					}
+				} 
+				else 
+				{
+					dir = path2 + "/";
+					out("Sub-directory of results directory already exists.",true,true,verbose);
+				}
+			}
+		}
+	}
 
 	if(plot)
 	{
@@ -1062,6 +1214,104 @@ int main(int argc, char* argv[])
 		out("Combined the data in multiple run file",true,true,verbose);
 	}
 
+	if (result_line)
+	{
+		std::cout << "DesignName\tModification\titerationNr\tSDResult\tBPResult\tExteriorSurfaceArea\tSDTotalLoad\t";
+		if(deleteMethod == "cluster"){std::cout<< "\tRNGSeed";} 
+		std::cout << std::endl;
+	}
+
+	if(runArgs)
+	{
+		// Define file name
+		std::stringstream fileNameStream;
+			fileNameStream << dir << "runSummary";
+			std::string fileName = fileNameStream.str();
+
+		// Write to file
+		std::ofstream output;
+		if (!fileName.empty()) output.open(fileName.c_str());
+		
+		if (fileName.empty() || !output.is_open())
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Could not open the following file to write an MS building spatial design to:" << std::endl
+									<< ((fileName.empty())? "no input file given" : designName) << std::endl
+									<< "(main.cpp). " << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+
+		// Write the input arguments to the file
+		std::string inputArgString = inputArg.str();
+		output << "Input: ./co_evolution " << inputArgString;
+
+		// Get the relevant designs for output
+		double SDbest = designPerformances[0](0);
+		int SDbestIndex = 0;
+		for (unsigned int i = 1; i < msDesigns.size(); ++i)
+		{
+			if(designPerformances[i](0) < SDbest)
+			{
+				SDbest = designPerformances[i](0);
+				SDbestIndex = i;
+			}
+		}
+		double BPbest = designPerformances[0](1);
+		int BPbestIndex = 0;
+		for (unsigned int i = 1; i < msDesigns.size(); ++i)
+		{
+			if(designPerformances[i](1) < BPbest)
+			{
+				BPbest = designPerformances[i](1);
+				BPbestIndex = i;
+			}
+		}
+
+		// Write the highlighted design results to the file
+		output << "\n\nResultKind\tModification\titerationNr\tSDResult\tBPResult\tExteriorSurfaceArea\tSDTotalLoad\t";
+		if(deleteMethod == "cluster"){output<< "\tRNGSeed";} 
+		output << "\n";
+		// output << "Kneepoint " << "\t" << modification << "\t" << i << "\t"
+		// 					<< designPerformances[i](0) << "\t"	<< designPerformances[i](1) << "\t"
+		// 					<< exteriorSurfaceArea[i] << "\t" << sd_total_load[i] << "\t";								
+		// 					if(deleteMethod == "cluster"){output<< RNGSeed;}
+		// 					output << "\n";
+		output << "bestSD " << "\t" << modification << "\t" << SDbestIndex << "\t"
+							<< designPerformances[SDbestIndex](0) << "\t"	<< designPerformances[SDbestIndex](1) << "\t"
+							<< exteriorSurfaceArea[SDbestIndex] << "\t" << sd_total_load[SDbestIndex] << "\t";								
+							if(deleteMethod == "cluster"){output<< RNGSeed;}
+							output << "\n";
+		output << "bestBP " << "\t" << modification << "\t" << BPbestIndex << "\t"
+							<< designPerformances[BPbestIndex](0) << "\t"	<< designPerformances[BPbestIndex](1) << "\t"
+							<< exteriorSurfaceArea[BPbestIndex] << "\t" << sd_total_load[BPbestIndex] << "\t";								
+							if(deleteMethod == "cluster"){output<< RNGSeed;}
+							output << "\n";
+		output << "last" << "\t" << modification << "\t" << iterations << "\t"
+							<< designPerformances[iterations](0) << "\t"	<< designPerformances[iterations](1) << "\t"
+							<< exteriorSurfaceArea[iterations] << "\t" << sd_total_load[iterations] << "\t";								
+							if(deleteMethod == "cluster"){output<< RNGSeed;}
+							output << "\n";
+
+		// Write the results of all designs to the file
+		output << "\nDesignName\tModification\titerationNr\tSDResult\tBPResult\tExteriorSurfaceArea\tSDTotalLoad\t";
+		if(deleteMethod == "cluster"){output<< "\tRNGSeed";} 
+		output << "\n";
+		for(unsigned int i=0; i<=iterations; ++i)
+		{
+			output << designName << "\t"
+							<< modification << "\t"
+							<< i << "\t"
+							<< designPerformances[i](0) << "\t"
+							<< designPerformances[i](1) << "\t"
+							<< exteriorSurfaceArea[i] << "\t"
+							<< sd_total_load[i] << "\t";								
+							if(deleteMethod == "cluster"){output<< RNGSeed;}
+							output<< std::endl;
+		}
+		
+		output.close();
+	}
+
 	for (const auto& i : outputSpaces)
 	{
 		if (result_line)
@@ -1071,24 +1321,65 @@ int main(int argc, char* argv[])
 								<< i << "\t"
 								<< designPerformances[i](0) << "\t"
 								<< designPerformances[i](1) << "\t"
-								<< RNGSeed << std::endl;
+								<< exteriorSurfaceArea[i] << "\t"
+								<< sd_total_load[i] << "\t";								
+								if(deleteMethod == "cluster"){std::cout<< RNGSeed;}
+								std::cout<< std::endl;				
 		}
 		if (ms_files)
 		{
 			std::stringstream fileNameStream;
-			fileNameStream << designName << "_"
+			fileNameStream << dir << designName << "_"
 										 << modification << "_"
-										 << i << "_"
-										 << designPerformances[i](0) << "_"
-										 << designPerformances[i](1) << "_"
-										 << RNGSeed;
+										 << i;
+			if(deleteMethod == "cluster"){fileNameStream << "_" << RNGSeed;}
 			std::string fileName = fileNameStream.str();
 			msDesigns[i].writeToFile(fileName);
+		}
+		if(pn_files)
+		{
+			// Define file name
+			std::stringstream fileNameStream;
+				fileNameStream << dir << designName << "_PN_" << i;
+				std::string fileName = fileNameStream.str();
+			
+			// Generate the Movable and Sizable (MS) building model with added bounds and directly output in PN format
+			msDesigns[i].convertMSToPN(fileName, 0.001);
+		}
+		if(result_file)
+		{
+			// Define file name
+			std::stringstream fileNameStream;
+				fileNameStream << dir << designName << "_" << i << "_results";
+				std::string fileName = fileNameStream.str();
+			
+			// Write to file
+			std::ofstream output;
+			if (!fileName.empty()) output.open(fileName.c_str());
+			
+			if (fileName.empty() || !output.is_open())
+			{
+				std::stringstream errorMessage;
+				errorMessage << "Could not open the following file to write an MS building spatial design to:" << std::endl
+										<< ((fileName.empty())? "no input file given" : designName) << std::endl
+										<< "(main.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+			}
+			
+			output << designName << "_iteration_" << i << std::endl;
+			output << "SDResult, " << designPerformances[i](0) << std::endl;
+			output << "BPResult, " << designPerformances[i](1) << std::endl;
+			output << "ExteriorSurfaceArea, " << exteriorSurfaceArea[i] << std::endl;
+			output << "SDTotalLoad, " << sd_total_load[i] << std::endl;
+			if(deleteMethod == "cluster"){output << "RNGSeed, " << RNGSeed << std::endl;}
+			output.close();
 		}
 	}
 
 	if (result_line){out("Printed result lines to terminal",true,true,verbose);}
+	if (result_file){out("Printed result files",true,true,verbose);}
 	if (ms_files){out("Generated ms_files for output",true,true,verbose);}
+	if (pn_files){out("Generated pn_files for output",true,true,verbose);}
 	
 	if (!visualizations.empty()) visualization::endVisualization();
 	
