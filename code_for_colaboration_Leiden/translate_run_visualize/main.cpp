@@ -736,6 +736,10 @@ int main(int argc, char* argv[])
 		// Initialize the grammar to specify basic properties per geometry
 		bso::grammar::grammar gram(CM);
 		out("Initialized grammar (gram)",true,true,verbose);
+
+		std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls = gram.getExteriorSurfaces();
+		double sumExteriorSurfaceArea = 0.0;
+		for(const auto& wall: exteriorWalls){sumExteriorSurfaceArea += wall.getArea();}
 		
 		// Generate the SD model based on the grammar specified basic properties per geometry
 		bso::structural_design::sd_model SD = gram.sd_grammar<bso::grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"));
@@ -806,6 +810,8 @@ int main(int argc, char* argv[])
 			output << designName << std::endl;
 			output << "SDResult, " << SDResult << std::endl;
 			output << "BPResult, " << BPResult << std::endl;
+			output << "TotalExteriorSurfaceArea, " << sumExteriorSurfaceArea << std::endl;
+			output << "SDTotalLoad, " << SD.getTotalLoad() << std::endl;
 		}
 	}
 

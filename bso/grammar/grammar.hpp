@@ -94,6 +94,7 @@ public:
 	#endif
 
 	std::vector<bso::utilities::geometry::quadrilateral> getExteriorWalls();
+	std::vector<bso::utilities::geometry::quadrilateral> getExteriorSurfaces();
 };
 
 } // namespace grammar

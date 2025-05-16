@@ -77,6 +77,20 @@ std::vector<bso::utilities::geometry::quadrilateral> grammar::getExteriorWalls()
 	}
 	return exteriorWalls;
 }
+
+std::vector<bso::utilities::geometry::quadrilateral> grammar::getExteriorSurfaces()
+{
+	std::vector<bso::utilities::geometry::quadrilateral> exteriorSurfaces;
+	std::map<spatial_design::conformal::cf_rectangle*, rule_set::rectangle_property*>::iterator it;
+	for (it = mRectangleProperties.begin(); it != mRectangleProperties.end(); it++)
+	{
+		if((it->second)->isExternal())
+		{
+			exteriorSurfaces.push_back(*(it->first));
+		}
+	}
+	return exteriorSurfaces;
+}
 	
 } // namespace grammar
 } // namespace bso
