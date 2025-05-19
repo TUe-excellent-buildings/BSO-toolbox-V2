@@ -229,6 +229,7 @@ void sortDataPointsForSpaceRemoval(std::vector<bso::utilities::data_point>& perf
 bool createResultDir(std::string& dir, bool verbose)
 {
 	// create resultDir path if not existing yet
+	// create resultDir path if not existing yet
 	bool resultDirGen = false;
 	std::string path = "results";
 	if (!std::filesystem::exists(path)) 
@@ -412,6 +413,7 @@ int main(int argc, char* argv[])
 								<< 	 "\t" << "executable can be copy pasted behind each other. \n"
 								<< 	 "\t" << "For this, the maximum amount of iterations for all runs in the sequence should be set. \n"
 								<< 	 "\t" << "For the formatting of the excel file. As such, \'combine_data\' key should be followed \n"
+								<< 	 "\t" << "For the formatting of the excel file. As such, \'combine_data\' key should be followed \n"
 								<< 	 "\t" << "by an unsigned integer value of the maximum iterations. \n"
 								<< 	 "\t" << "This file can be loaded into excel to compare individual runs of this executable.\n"
 								<<   "\t" << "\'ms_files\' will write the ms designs to files\n"
@@ -458,6 +460,7 @@ int main(int argc, char* argv[])
 			inputFile = *arg;
 			boost::trim(inputFile);
 			designName = inputFile;
+			inputArg << inputFile << " ";
 			inputArg << inputFile << " ";
 			++arg;
 		}
@@ -507,6 +510,7 @@ int main(int argc, char* argv[])
 				throw std::invalid_argument(errorMessage.str());
 			}
 			spaceRemoveRatio = bso::utilities::trim_and_cast_double(*arg);
+			inputArg << spaceRemoveRatio << " ";
 			inputArg << spaceRemoveRatio << " ";
 			
 			if (spaceRemoveRatio <= 0.0 - 0.00001 || spaceRemoveRatio >= 1.0 + 0.00001)
@@ -723,8 +727,8 @@ int main(int argc, char* argv[])
 				std::string outSpec = *arg;
 				boost::trim(outSpec);
 				inputArg << outSpec << " ";
-				if 			(outSpec == "result_line") result_line = true;
-				else if 			(outSpec == "result_file") result_file = true;
+				if (outSpec == "result_line") result_line = true;
+				else if (outSpec == "result_file") result_file = true;
 				else if (outSpec == "verbose") verbose = true;
 				else if (outSpec == "plot")
 				{
@@ -964,6 +968,7 @@ int main(int argc, char* argv[])
 			sdModels.back().analyze();
 			out("Evaluated structural model: ",false,false,verbose);
 			double sdResult = sdModels.back().getTotalResults().mTotalStrainEnergy;
+			sd_total_load.push_back(sdModels.back().getTotalLoad());
 			sd_total_load.push_back(sdModels.back().getTotalLoad());
 			out(sdResult,true,true,verbose);
 			designPerformances.back()(0) = sdResult;
@@ -1407,7 +1412,7 @@ int main(int argc, char* argv[])
 								<< exteriorSurfaceArea[i] << "\t"
 								<< sd_total_load[i] << "\t";								
 								if(deleteMethod == "cluster"){std::cout<< RNGSeed;}
-								std::cout<< std::endl;				
+								std::cout<< std::endl;								
 		}
 		if (ms_files)
 		{
