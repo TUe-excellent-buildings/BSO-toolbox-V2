@@ -92,6 +92,52 @@ void normalizeData(std::vector<bso::utilities::data_point>& performances, bso::u
 	distopianPoint.setToDistopia(performances);
 }
 
+// // Function to find the knee point index in the performance data points.
+// // The knee point is the point closest to x=0 and y=0 in the normalized performance space.
+// int findKneePointIndex(std::vector<bso::utilities::data_point> performances)
+// {
+// 	bso::utilities::data_point utopianPoint;
+// 	bso::utilities::data_point distopianPoint;
+// 	//normalizeData(performances, utopianPoint, distopianPoint);
+	
+// 	int kneePointIndex = 0;
+// 	double minDistance = std::numeric_limits<double>::max();
+// 	for (unsigned int i = 0; i < performances.size(); ++i)
+// 	{
+// 		std::cout << performances[i] << std::endl;
+// 		double distance = sqrt(pow(performances[i](0),2) + pow(performances[i](1),2));
+// 		if (distance < minDistance)
+// 		{
+// 			minDistance = distance;
+// 			kneePointIndex = i;
+// 		}
+// 	}
+// 	return kneePointIndex;
+// }
+
+// // Function to find the knee point index in the performance data points.
+// // The knee point is the point closest to x=0 and y=0 in the normalized performance space.
+// int findKneePointNormIndex(std::vector<bso::utilities::data_point> performances)
+// {
+// 	bso::utilities::data_point utopianPoint;
+// 	bso::utilities::data_point distopianPoint;
+// 	normalizeData(performances, utopianPoint, distopianPoint);
+	
+// 	int kneePointIndex = 0;
+// 	double minDistance = std::numeric_limits<double>::max();
+// 	for (unsigned int i = 0; i < performances.size(); ++i)
+// 	{
+// 		std::cout << performances[i] << std::endl;
+// 		double distance = sqrt(pow(performances[i](0),2) + pow(performances[i](1),2));
+// 		if (distance < minDistance)
+// 		{
+// 			minDistance = distance;
+// 			kneePointIndex = i;
+// 		}
+// 	}
+// 	return kneePointIndex;
+// }
+
 // Function to visualize a MS representation with the space colors defined
 // by its performance data points from the modification type for this iteration
 // while profiding an iteration number in the title.
@@ -374,7 +420,7 @@ int main(int argc, char* argv[])
 								<<   "\t" << "The following keys describes which designs are going to be exported in the prior defined \n"
 								<< 	 "\t" << "formats (except option \'plot\' and \'combine_data\' which always output all iterations of the designs) \n"
 								<<   "\t" << "\'all\' will write all the designs to the specified format, \n"
-								<<   "\t" << "\'best\' will only write the best, i.e. kneepoint, \n"
+								// <<   "\t" << "\'best\' will only write the best, i.e. kneepoint, \n"
 								<<   "\t" << "\'bestSD\' will only write the best design considering SD performance, \n"
 								<<   "\t" << "\'bestBP\' will only write the best design considering BP performance, \n"
 								<<   "\t" << "and \'last\' will only write the last iteration of all the designs.\n"
@@ -697,7 +743,7 @@ int main(int argc, char* argv[])
 				else if (outSpec == "pn_files") pn_files = true; 
 				else if (outSpec == "runArgs") runArgs = true; 
 				else if (outSpec == "all") outputAll = true;
-				else if (outSpec == "best") outputBest = true;
+				//else if (outSpec == "best") outputBest = true;
 				else if (outSpec == "last") last = true;
 				else if (outSpec == "bestSD") BestSD = true;
 				else if (outSpec == "bestBP") BestBP = true;
@@ -742,7 +788,6 @@ int main(int argc, char* argv[])
 											 << "--help for help\n";
 					throw std::invalid_argument(errorMessage.str());
 				}
-				if(!outputBest && !outputAll && !last && !BestSD && !BestBP){outputAll = true;}// default output
 			}
 		}
 		else if (*arg == "-rd" || *arg == "--resultDir")
@@ -807,6 +852,38 @@ int main(int argc, char* argv[])
 								 << "use -h or --help for help\n";
 		throw std::invalid_argument(errorMessage.str());
 	}
+	// check if there are multiple output design options specified, i.e. outputAll, outputBest, BestSD, BestBP, and last
+	if (outputAll)
+	{
+		if (outputBest || BestSD || BestBP || last)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Cannot specify both multiple output; \'all\' option is on.\n"
+									 << "use -h or --help for help\n";
+			throw std::invalid_argument(errorMessage.str());
+		}
+	}
+	else if (outputBest)
+	{
+		if (BestSD || BestBP || last)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Cannot specify both multiple output; \'best\' option is on.\n"
+									 << "use -h or --help for help\n";
+			throw std::invalid_argument(errorMessage.str());
+		}
+	}
+	else if (last)
+	{
+		if (BestSD || BestBP)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Cannot specify both multiple output; \'last\' option is on.\n"
+									 << "use -h or --help for help\n";
+			throw std::invalid_argument(errorMessage.str());
+		}
+	}
+
 	if ((ms_files || result_line) && (outputAll && outputBest))
 	{
 		std::stringstream errorMessage;
@@ -821,7 +898,7 @@ int main(int argc, char* argv[])
 								 << "use -h or --help for help\n";
 		throw std::invalid_argument(errorMessage.str());
 	}
-	if (!outputAll && !outputBest) outputBest = true;
+	if (!outputBest && !outputAll && !last && !BestSD && !BestBP){outputAll = true;}// default output
 	out("Parsed program arguments", true, true, verbose);
 	if (!visualizations.empty()) visualization::initVisualization(argc,argv);
 	out("Initialized visualization", true, true, verbose);
@@ -1103,8 +1180,8 @@ int main(int argc, char* argv[])
 	}
 	else if(outputBest)
 	{
-		// retrieve the kneepoint design
-		
+		// retrieve the kneepoint design; yet to be implemented
+
 	}
 	else if(BestSD)
 	{
@@ -1154,7 +1231,6 @@ int main(int argc, char* argv[])
 		if(subDirName == "standart")
 		{
 			getSubResultDir(dir, inputFile, modification, iterations, verbose);
-			std::cout << "dir is: " << dir << std::endl;
 		}
 		else
 		{
@@ -1266,27 +1342,34 @@ int main(int argc, char* argv[])
 				BPbestIndex = i;
 			}
 		}
+		// int kneePointIndex = findKneePointIndex(designPerformances);
+		// int kneePointNormalizedIndex = findKneePointNormIndex(designPerformances);
 
 		// Write the highlighted design results to the file
 		output << "\n\nResultKind\tModification\titerationNr\tSDResult\tBPResult\tExteriorSurfaceArea\tSDTotalLoad\t";
 		if(deleteMethod == "cluster"){output<< "\tRNGSeed";} 
 		output << "\n";
-		// output << "Kneepoint " << "\t" << modification << "\t" << i << "\t"
-		// 					<< designPerformances[i](0) << "\t"	<< designPerformances[i](1) << "\t"
-		// 					<< exteriorSurfaceArea[i] << "\t" << sd_total_load[i] << "\t";								
+		// output << "Kneepoint " << "\t" << modification << "\t" << kneePointIndex << "\t"
+		// 					<< designPerformances[kneePointIndex](0) << "\t"	<< designPerformances[kneePointIndex](1) << "\t"
+		// 					<< exteriorSurfaceArea[kneePointIndex] << "\t" << sd_total_load[kneePointIndex] << "\t";								
 		// 					if(deleteMethod == "cluster"){output<< RNGSeed;}
 		// 					output << "\n";
-		output << "bestSD " << "\t" << modification << "\t" << SDbestIndex << "\t"
+		// output << "KneepointNormalized " << "\t" << modification << "\t" << kneePointNormalizedIndex << "\t"
+		// 					<< designPerformances[kneePointNormalizedIndex](0) << "\t"	<< designPerformances[kneePointNormalizedIndex](1) << "\t"
+		// 					<< exteriorSurfaceArea[kneePointNormalizedIndex] << "\t" << sd_total_load[kneePointNormalizedIndex] << "\t";								
+		// 					if(deleteMethod == "cluster"){output<< RNGSeed;}
+		// 					output << "\n";
+		output << "bestSD " << "\t\t" << modification << "\t" << SDbestIndex << "\t"
 							<< designPerformances[SDbestIndex](0) << "\t"	<< designPerformances[SDbestIndex](1) << "\t"
 							<< exteriorSurfaceArea[SDbestIndex] << "\t" << sd_total_load[SDbestIndex] << "\t";								
 							if(deleteMethod == "cluster"){output<< RNGSeed;}
 							output << "\n";
-		output << "bestBP " << "\t" << modification << "\t" << BPbestIndex << "\t"
+		output << "bestBP " << "\t\t" << modification << "\t" << BPbestIndex << "\t"
 							<< designPerformances[BPbestIndex](0) << "\t"	<< designPerformances[BPbestIndex](1) << "\t"
 							<< exteriorSurfaceArea[BPbestIndex] << "\t" << sd_total_load[BPbestIndex] << "\t";								
 							if(deleteMethod == "cluster"){output<< RNGSeed;}
 							output << "\n";
-		output << "last" << "\t" << modification << "\t" << iterations << "\t"
+		output << "last" << "\t\t" << modification << "\t" << iterations << "\t"
 							<< designPerformances[iterations](0) << "\t"	<< designPerformances[iterations](1) << "\t"
 							<< exteriorSurfaceArea[iterations] << "\t" << sd_total_load[iterations] << "\t";								
 							if(deleteMethod == "cluster"){output<< RNGSeed;}
