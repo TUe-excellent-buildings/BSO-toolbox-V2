@@ -78,7 +78,7 @@ std::vector<bso::utilities::geometry::quadrilateral> grammar::getExteriorWalls()
 	return exteriorWalls;
 }
 
-std::vector<bso::utilities::geometry::quadrilateral> grammar::getExteriorSurfaces()
+std::vector<bso::utilities::geometry::quadrilateral> grammar::getExteriorQuadrilaterals()
 {
 	std::vector<bso::utilities::geometry::quadrilateral> exteriorSurfaces;
 	std::map<spatial_design::conformal::cf_rectangle*, rule_set::rectangle_property*>::iterator it;
@@ -90,6 +90,26 @@ std::vector<bso::utilities::geometry::quadrilateral> grammar::getExteriorSurface
 		}
 	}
 	return exteriorSurfaces;
+}
+
+std::vector<bso::spatial_design::conformal::cf_space*> grammar::getSpacesOnBoundary()
+{
+	std::vector<bso::spatial_design::conformal::cf_space*> boundaryCFSpaces;
+	std::map<spatial_design::conformal::cf_rectangle*, rule_set::rectangle_property*>::iterator it;
+	for (it = mRectangleProperties.begin(); it != mRectangleProperties.end(); it++)
+	{
+		if((it->second)->isExternal())
+		{
+			for (auto& j : it->first->cfSurfaces())
+			{
+				for (auto& space : j->cfSpaces())
+				{
+					boundaryCFSpaces.push_back(space);
+				}
+			}
+		}
+	}
+	return boundaryCFSpaces;
 }
 	
 } // namespace grammar

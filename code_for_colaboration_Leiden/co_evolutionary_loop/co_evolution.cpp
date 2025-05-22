@@ -956,7 +956,7 @@ int main(int argc, char* argv[])
 			grammar::grammar grm(cf);
 			out("Initialized grammar",true,true,verbose);
 
-			std::vector<bso::utilities::geometry::quadrilateral> exteriorSurfaces = grm.getExteriorSurfaces();
+			std::vector<bso::utilities::geometry::quadrilateral> exteriorSurfaces = grm.getExteriorQuadrilaterals();
 			double sumExteriorSurfaceArea = 0.0;
 			for(const auto& surface: exteriorSurfaces){sumExteriorSurfaceArea += surface.getArea();}
 			exteriorSurfaceArea.push_back(sumExteriorSurfaceArea);

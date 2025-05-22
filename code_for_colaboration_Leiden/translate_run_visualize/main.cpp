@@ -737,7 +737,7 @@ int main(int argc, char* argv[])
 		bso::grammar::grammar gram(CM);
 		out("Initialized grammar (gram)",true,true,verbose);
 
-		std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls = gram.getExteriorSurfaces();
+		std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls = gram.getExteriorQuadrilaterals();
 		double sumExteriorSurfaceArea = 0.0;
 		for(const auto& wall: exteriorWalls){sumExteriorSurfaceArea += wall.getArea();}
 		
