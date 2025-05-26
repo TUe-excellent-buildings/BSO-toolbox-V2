@@ -1133,7 +1133,7 @@ int main(int argc, char* argv[])
 								{
 									if(k.getLength() < 6000) continue; // only consider horizontal lines which are long enough for elevation height purposes
 								} 
-								if(longestLength < k.getLength())
+								if(longestLength < k.getLength() && k.getLength() > 2000) // only split spaces wherefrom the longestLength is at least 2000 to avoid to narrow spaces
 								{
 									longestLength = k.getLength();
 									LongestAxis = k;
