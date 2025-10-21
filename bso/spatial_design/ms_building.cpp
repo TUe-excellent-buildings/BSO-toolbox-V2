@@ -55,8 +55,8 @@ ms_building::ms_building(std::string fileName)
 				std::stringstream errorMessage;
 				errorMessage << "Encountered a N indicator while parsing the following line of an MS input file:" << std::endl
 										<< line << std::endl
-										<< "This content can not be read for the ms_building class but is meant for the ms_N_building class"
-										<< "(bso/spatial_design/ms_building.cpp). Got the following error: " << std::endl;
+										<< "This content can not be read for the ms_building class and should be passed to the ms_N_building class instead.\n"
+										<< "(bso/spatial_design/ms_building.cpp)." << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 			}
 			else

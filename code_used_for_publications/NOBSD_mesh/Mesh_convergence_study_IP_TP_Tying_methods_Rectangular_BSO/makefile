@@ -1,8 +1,8 @@
 # specify location of libraries
 BOOST 	= /usr/include/boost
 EIGEN 	= /usr/include/eigen
-FADE	= /usr/include/fadeRelease_v1.93/fadeRelease_v1.93
-BSO   	= /usr/include/BSO-toolbox-V2
+FADE	= /home/tessa/Libaries/fadeRelease_v1.93/fadeRelease_v1.93
+BSO     = /home/tessa/BSO-toolbox-V2
 ALL_LIB = -I$(BOOST) -I$(EIGEN) -I$(BSO)
 
 # compiler settings
@@ -11,10 +11,10 @@ FLAGS = -O3 -march=native -lglut -lGL -lGLU -lpthread -lfade2d
 D_LIB  = -I${FADE}/include_fade2d
 
 # specify file(s) to be compiled
-MAINFILE = main.cpp
+MAINFILE = main_TP_method.cpp
 
 # specify name of executable
-EXE = example
+EXE = Executable_TP_method_time_and_result
 
 .PHONY: all cls clean
 
@@ -24,7 +24,7 @@ cls:
 	@clear
 	@clear
 all:
-	$(CPP) $(D_LIB) -o example $(ALL_LIB) $(MAINFILE) $(FLAGS)
+	$(CPP) $(D_LIB) -o Executable_TP_method_time_and_result $(ALL_LIB) $(MAINFILE) $(FLAGS)
 
 # remove previously compiled executable
 clean:

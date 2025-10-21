@@ -165,14 +165,14 @@ int main(int argc, char* argv[])
 	std::cout.precision(17); //this precision only counts with cout not with the error message handling used in the toolbox
 
 	// Toggle which results are requested:
-	bool partitionIncreaseResult = true;
-	bool partitionIncreaseResultRec = true;
-	bool baseLineResults = true;
-	bool meshConvergencePerPartitionSizeTP = true;
-	bool meshConvergencePerPartitionSizeQH = true;
-	bool partitionShift = true;
-	bool fullBuilding = true;
-	bool NOBSDbuilding = true;
+	bool partitionIncreaseResult = false;//true;
+	bool partitionIncreaseResultRec = false;//true;
+	bool baseLineResults = false;//true;
+	bool meshConvergencePerPartitionSizeTP = false;//true;
+	bool meshConvergencePerPartitionSizeQH = false;//true;
+	bool partitionShift = false;
+	bool fullBuilding = false;
+	bool NOBSDbuilding = true;//false;
 	
 	// Set variables used for studies
 	int nrPartitions = 5; // Partitions subdivided to opposing sides with the generation of triangular prisms in between
