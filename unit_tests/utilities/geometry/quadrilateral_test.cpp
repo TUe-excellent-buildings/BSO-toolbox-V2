@@ -220,6 +220,19 @@ BOOST_AUTO_TEST_SUITE( quadrilateral_tests )
 		BOOST_REQUIRE((q1.normal() - vector({0,0,1})).isZero(1e-9));
 	}
 
+	BOOST_AUTO_TEST_CASE(getDifRectangle_perfect_rectangle_is_zero)
+	{
+		// rectangle 2 x 1 (axis aligned) -> all interior angles 90 deg -> sum diff = 0
+		quadrilateral q = {{0,0,0},{2,0,0},{2,1,0},{0,1,0}};
+
+		double diff = q.getDifRectangle();
+		// Allow tiny numerical tolerance
+		BOOST_CHECK_SMALL(diff, 1e-9);
+
+		quadrilateral empty;
+		BOOST_CHECK_THROW(empty.getDifRectangle(), std::invalid_argument);
+	}
+
 	
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace geometry_test

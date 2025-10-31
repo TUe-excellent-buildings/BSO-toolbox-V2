@@ -17,7 +17,7 @@ namespace bso { namespace utilities { namespace geometry {
 		bool isPerpendicular(const vector& rhs, const double& tol = 1e-3) const; // checks if the vector is perpendicular to rhs
 		bool isParallel(const vector& rhs, const double& tol = 1e-3) const; // checks if the vector is parallel to rhs
 		bool isCodirectional(const vector& rhs, const double& tol = 1e-3) const; // checks if the vector is codirectional with rhs
-		bool getSmallestAngle(const vector& rhs, double& angle, const double& tol = 1e-3);
+		bool getSmallestAngle(const vector& rhs, double& angle, const double& tol = 1e-3); // gets the smallest angle between this vector and rhs
 		bool isVertical(const double& tol = 1e-3) const; // checks if the vector is vertical
 		bool isHorizontal(const double& tol = 1e-3) const; // checks if this vector is horizontal
 		std::pair<double,double> getHeading(const int& dec = 3) const; // returns a pair that describes the heading of the vector (azimuth, inclination)

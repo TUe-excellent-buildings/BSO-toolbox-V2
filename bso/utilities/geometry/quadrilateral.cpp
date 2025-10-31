@@ -126,6 +126,15 @@ namespace bso { namespace utilities { namespace geometry {
 
 	double quadrilateral::getDifRectangle(const double& tol /*= 1e-3*/)
 	{
+		if(mSize !=4)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Cannot compute difference from rectangle for quadrilateral:\n"
+									 << "received " << mSize << "vertices, expected 4.\n"
+									 << "\n(bso/utilities/geometry/quadrilateral.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+		
 		double sumDif=0;
 		double angle;
 		
