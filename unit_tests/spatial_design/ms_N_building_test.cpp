@@ -598,20 +598,94 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	BOOST_AUTO_TEST_CASE( scale_1 )
 	{ // test of an orthogonal design for scaling
 		ms_N_building b1("spatial_design/ms_N_test_3.txt");
-		std::stringstream sstr, check1, check2; 
-		
+
 		b1.scale({{0,1.5},{1,2},{2,1.23}});
-		sstr << b1;
-		check1 << "N,1,	0,0,857.31,	4500,0,857.31,	0,6000,857.31,	4500,6000,857.31,	0,0,4547.31,	4500,0,4547.31,	0,6000,4547.31,	4500,6000,4547.31" << std::endl
-					<< "N,2,	0,0,6150,	4500,0,6150,	0,6000,6150,	4500,6000,6150,	0,0,9840,	4500,0,9840,	0,6000,9840,	4500,6000,9840" ;
-		BOOST_REQUIRE(sstr.str() == check1.str());
-		sstr.str(std::string());
+
+		ms_space space1("N,1,	0,0,857.30999999999995,	4500,0,857.30999999999995,	0,6000,857.30999999999995,	4500,6000,857.30999999999995,   0,0,4547.3099999999995, 4500,0,4547.3099999999995,	0,6000,4547.3099999999995,	4500,6000,4547.3099999999995");
+		ms_space space2("N,2,    0,0,6150,       4500,0,6150,    0,6000,6150,    4500,6000,6150, 0,0,9840,       4500,0,9840,    0,6000,9840,    4500,6000,9840");
+
+		BOOST_REQUIRE(b1.getSpacePtrs().size() == 2);
+		
+		int count = 0;
+		for(auto& sp : b1)
+		{
+			if (count == 0)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space1.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			else if (count == 1)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space2.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			count++;
+		}
 
 		b1.scale();
-		sstr << b1;
-		check2 << "N,1,	0,0,857.31,	6363.96,0,857.31,	0,8485.28,857.31,	6363.96,8485.28,857.31,	0,0,4547.31,	6363.96,0,4547.31,	0,8485.28,4547.31,	6363.96,8485.28,4547.31" << std::endl
-					<< "N,2,	0,0,6150,	6363.96,0,6150,	0,8485.28,6150,	6363.96,8485.28,6150,	0,0,9840,	6363.96,0,9840,	0,8485.28,9840,	6363.96,8485.28,9840";
-		BOOST_REQUIRE(sstr.str() == check2.str());
+		
+		ms_space space3("N,1,      0,0,857.30999999999995, 6363.9610306789282,0,857.30999999999995,        0,8485.2813742385715,857.30999999999995,        6363.9610306789282,8485.2813742385715,857.30999999999995,       0,0,4547.3099999999995, 6363.9610306789282,0,4547.3099999999995,        0,8485.2813742385715,4547.3099999999995,        6363.9610306789282,8485.2813742385715,4547.3099999999995");
+		ms_space space4("N,2,    0,0,6150,       6363.9610306789282,0,6150,      0,8485.2813742385715,6150,      6363.9610306789282,8485.2813742385715,6150,     0,0,9840,       6363.9610306789282,0,9840,      0,8485.2813742385715,9840,      6363.9610306789282,8485.2813742385715,9840");
+
+		count = 0;
+		for(auto& sp : b1)
+		{
+			if (count == 0)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space3.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			else if (count == 1)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space4.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			count++;
+		}
 		
 		BOOST_REQUIRE_THROW(b1.scale({{3,1.5}}), std::invalid_argument);
 		BOOST_REQUIRE_THROW(b1.scale({{1,1.0},{1,1.0}}), std::invalid_argument);
@@ -620,20 +694,96 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	BOOST_AUTO_TEST_CASE( scale_2 )
 	{ // test of an non-orthogonal design for scaling
 		ms_N_building b1("spatial_design/ms_N_test_9.txt");
-		std::stringstream sstr, check1, check2; 
 		
 		b1.scale({{0,1.5},{1,2},{2,1.98}});
-		sstr << b1;
-		check1 << "N,1,	0,0,0,	4500,0,0,	0,8000,0,	6000,8000,0,	0,0,5940,	4500,0,5940,	0,8000,5940,	6000,8000,5940" << std::endl
-					<< "N,2,	0,0,5940,	4500,-4000,5940,	0,6000,5940,	4500,6000,5940,	0,0,15840,	4500,-4000,15840,	0,6000,15840,	4500,6000,15840" ;
-		BOOST_REQUIRE(sstr.str() == check1.str());
-		sstr.str(std::string());
+
+		ms_space space1("N,1,	0,0,0,	4500,0,0,	0,8000,0,	6000,8000,0,	0,0,5940,	4500,0,5940,	0,8000,5940,	6000,8000,5940");
+		ms_space space2("N,2,	0,0,5940,	4500,-4000,5940,	0,6000,5940,	4500,6000,5940,	0,0,15840,	4500,-4000,15840,	0,6000,15840,	4500,6000,15840");
+
+		BOOST_REQUIRE(b1.getSpacePtrs().size() == 2);
+		
+		int count = 0;
+		for(auto& sp : b1)
+		{
+			if (count == 0)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space1.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			else if (count == 1)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space2.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			count++;
+		}
 
 		b1.scale();
-		sstr << b1;
-		check2 << "N,1,	0,0,0,	6363.96,0,0,	0,11313.7,0,	8485.28,11313.7,0,	0,0,5940,	6363.96,0,5940,	0,11313.7,5940,	8485.28,11313.7,5940" << std::endl
-					<< "N,2,	0,0,5940,	6363.96,-5656.85,5940,	0,8485.28,5940,	6363.96,8485.28,5940,	0,0,15840,	6363.96,-5656.85,15840,	0,8485.28,15840,	6363.96,8485.28,15840" ;
-		BOOST_REQUIRE(sstr.str() == check2.str());
+
+		ms_space space3("N,1,       0,0,0,  6363.9610306789282,0,0, 0,11313.708498984761,0, 8485.2813742385715,11313.708498984761,0,        0,0,5940,       6363.9610306789282,0,5940,      0,11313.708498984761,5940,      8485.2813742385715,11313.708498984761,5940");
+		ms_space space4("N,2,    0,0,5940,       6363.9610306789282,-5656.8542494923804,5940,    0,8485.2813742385715,5940,      6363.9610306789282,8485.2813742385715,5940,     0,0,15840,      6363.9610306789282,-5656.8542494923804,15840,   0,8485.2813742385715,15840,   6363.9610306789282,8485.2813742385715,15840");
+
+		BOOST_REQUIRE(b1.getSpacePtrs().size() == 2);
+		
+		count = 0;
+		for(auto& sp : b1)
+		{
+			if (count == 0)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space3.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			else if (count == 1)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space4.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			count++;
+		}
 	}
 	
 	BOOST_AUTO_TEST_CASE( splitSpace_1a )
