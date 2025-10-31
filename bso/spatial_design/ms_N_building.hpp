@@ -31,14 +31,14 @@ public:
 	ms_space* getSpacePtrWithID(unsigned int id) const; // the spacePtr that was passed may belong to another instance of ms_building
 	unsigned int getLastSpaceID() const;
 	double getVolume() const;
-	double getFloorArea() const;
-	int getNrElevations(const double mTol = 1e-3) const;
-	double getAverageHorizontalRibSize() const;
-	double getSpaceVolumeRatio() const;
-	void getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);
-	double getSpaceFloorAreaRatio() const;
+	double getFloorArea() const; 
+	int getNrElevations(const double mTol = 1e-3) const; // returns the number of distinct floor levels in the building, mTol is the tolerance for merging elevation levels
+	double getAverageHorizontalRibSize() const; // returns the average horizontal rib size of all spaces in the building
+	double getSpaceVolumeRatio() const; // returns the ratio between the smallest and largest space volume in the building
+	void getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);// returns box plot values of space volumes in the building; space volume is times *1e-9, i.e. mm3 to m3
+	double getSpaceFloorAreaRatio() const; // returns the ratio between the smallest and largest space floor area in the building
 	std::vector<double> getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);
-	double getAverageRecDif() const;
+	double getAverageRecDif() const; // provide average recDif value of all spaces; Note: recDif is a measure of how rectangular a quadrilateral is, see utilities/geometry/quadrilateral.hpp for more information
 	bool hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 		const double tol = 1e-3) const; 
 	bool isFragmented(std::vector<ms_space*>& spacesNonBiggestFragment, 

@@ -8,16 +8,17 @@ namespace bso { namespace utilities {
 	/*
 	 * The functions in this file are used to analyze a list of data
 	 */
-	 
-	template <typename T>
-	T calculateMedian(std::vector<T> data);
+
+	// This function performs linear interpolation between two values. Used for quantile calculation.
+	template<typename T>
+	static inline double Lerp(T v0, T v1, T t);
 
 	// This functions calculates a quartile of a data set and return the data which is at that quartile.
 	// 'data' is the data set of T value's and quartile is ratio at which the quartile is requested.
 	// i.e. 0.25 is the first quartile, 0.75 is the second quartile.
 	// Note: 0.5 is the median of the data set.
 	template <typename T>
-	T calculateQuartile(std::vector<T> data, double quartile);
+	static inline std::vector<T> Quantile(const std::vector<T>& inData, const std::vector<T>& probs);
 
 	
 	template <typename T>

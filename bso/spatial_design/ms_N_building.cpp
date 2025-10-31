@@ -311,10 +311,12 @@ void ms_N_building::getSpaceVolumeBoxPlotValues(double& median, double& firstQua
 		average += i->getVolume();
 	}
 	average = average/(mSpaces.size());
-	
-	median = bso::utilities::calculateQuartile(spaceVolume, 0.5);
-	firstQuartile = bso::utilities::calculateQuartile(spaceVolume, 0.25);
-	thirdQuartile = bso::utilities::calculateQuartile(spaceVolume, 0.75);
+
+	std::vector<double> boxPlotValues = bso::utilities::Quantile(spaceVolume, {0.25, 0.5, 0.75});
+
+	median = boxPlotValues[1];
+	firstQuartile = boxPlotValues[0];
+	thirdQuartile = boxPlotValues[2];
 	outliers = bso::utilities::findOutliers(spaceVolume);
 }
 
@@ -345,10 +347,12 @@ std::vector<double> ms_N_building::getSpaceFloorAreaBoxPlotValues(double& median
 		average += i->getFloorArea();
 	}
 	average = average/(mSpaces.size());
-	
-	median = bso::utilities::calculateQuartile(spaceFloorArea, 0.5);
-	firstQuartile = bso::utilities::calculateQuartile(spaceFloorArea, 0.25);
-	thirdQuartile = bso::utilities::calculateQuartile(spaceFloorArea, 0.75);
+
+	std::vector<double> boxPlotValues = bso::utilities::Quantile(spaceFloorArea, {0.25, 0.5, 0.75});
+
+	median = boxPlotValues[1];
+	firstQuartile = boxPlotValues[0];
+	thirdQuartile = boxPlotValues[2];
 	outliers = bso::utilities::findOutliers(spaceFloorArea);
 	return spaceFloorArea;
 }
@@ -982,6 +986,8 @@ bool ms_N_building::hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces,
 bool ms_N_building::isFragmented(std::vector<ms_space*>& spacesNonBiggestFragment, 
 	const double tol /*= 1e-3*/) const
 {
+	if(mSpaces.size() < 2) return false; // cannot be fragmented if there are less than two spaces
+	
 	// Initialize variables
 	std::vector<std::vector<ms_space*>> SpaceFragment;
 	std::vector<ms_space*> unsortedSpaces = mSpaces;

@@ -3,53 +3,50 @@
 
 #include <vector>
 #include <algorithm>
+#include <cmath>
+#include <sstream>
 
 namespace bso { namespace utilities {
 
-	template <typename T>
-	T calculateMedian(std::vector<T> data) 
+	template<typename T>
+	static inline double Lerp(T v0, T v1, T t)
 	{
-		if(data.empty())
-		{
-			std::stringstream errorMessage;
-				errorMessage << "The dataSet is empty, so no outliers can be fount" << std::endl
-										<< "(bso/utilities/data_analysis.cpp). " << std::endl;
-				throw std::invalid_argument(errorMessage.str());
-		}
-		
-		std::sort(data.begin(), data.end());
-		size_t size = data.size();
-
-		if (size % 2 == 0) {
-			return (data[size / 2 - 1] + data[size / 2]) / static_cast<T>(2);
-		} else {
-			return data[size / 2];
-		}
+		return (1 - t)*v0 + t*v1;
 	}
 
-	template <typename T>
-	T calculateQuartile(std::vector<T> data, double quartile) 
+	template<typename T>
+	static inline std::vector<T> Quantile(const std::vector<T>& inData, const std::vector<T>& probs)
 	{
-		if(data.empty())
+		if (inData.empty())
 		{
-			std::stringstream errorMessage;
-				errorMessage << "The dataSet is empty, so no outliers can be fount" << std::endl
-										<< "(bso/utilities/data_analysis.cpp). " << std::endl;
-				throw std::invalid_argument(errorMessage.str());
+			return std::vector<T>();
 		}
 
+		if (1 == inData.size())
+		{
+			return std::vector<T>(1, inData[0]);
+		}
+
+		std::vector<T> data = inData;
 		std::sort(data.begin(), data.end());
-		double pos = (data.size() + 1) * quartile;
-		size_t intPos = static_cast<size_t>(pos);
-		double frac = pos - intPos;
+		std::vector<T> quantiles;
 
-		if (intPos >= data.size()) {
-			return data.back();
-		} else if (intPos == 0) {
-			return data.front();
-		} else {
-			return data[intPos - 1] + frac * (data[intPos] - data[intPos - 1]);
+		for (size_t i = 0; i < probs.size(); ++i)
+		{
+			T poi = Lerp<T>(-0.5, data.size() - 0.5, probs[i]);
+
+			size_t left = std::max(int64_t(std::floor(poi)), int64_t(0));
+			size_t right = std::min(int64_t(std::ceil(poi)), int64_t(data.size() - 1));
+
+			T datLeft = data.at(left);
+			T datRight = data.at(right);
+
+			T quantile = Lerp<T>(datLeft, datRight, poi - left);
+
+			quantiles.push_back(quantile);
 		}
+
+		return quantiles;
 	}
 
 	template <typename T>
@@ -58,13 +55,13 @@ namespace bso { namespace utilities {
 		if(data.empty())
 		{
 			std::stringstream errorMessage;
-				errorMessage << "The dataSet is empty, so no outliers can be fount" << std::endl
+				errorMessage << "The dataSet is empty, so no outliers can be found" << std::endl
 										<< "(bso/utilities/data_analysis.cpp). " << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 		}
-		
-		T Q1 = calculateQuartile(data, 0.25);
-		T Q3 = calculateQuartile(data, 0.75);
+
+		T Q1 = bso::utilities::Quantile(data, {0.25})[0];
+		T Q3 = bso::utilities::Quantile(data, {0.75})[0];
 		T IQR = Q3 - Q1;
 		T lowerBound = Q1 - 1.5 * IQR;
 		T upperBound = Q3 + 1.5 * IQR;

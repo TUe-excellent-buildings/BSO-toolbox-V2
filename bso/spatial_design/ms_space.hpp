@@ -41,7 +41,7 @@ public:
 	utilities::geometry::quad_hexahedron getGeometry() const; // return the geometry of the space
 	bool getSpaceType(std::string& spaceType) const; // returns TRUE if space type is assigned FALSE if not. Assigns the space type to the argument that is passed by reference
 	bool getSurfaceTypes(std::vector<std::string>& surfaceTypes) const; // returns TRUE is surface types are assigned FALSE if not. Assigns the surface types to the argument that is passed by reference
-	double getVolume() const;
+	double getVolume() const; // return the volume of the space in *1e-9 m3, so in case of mm3 it returns m3
 	double getFloorArea() const;
 	double getSurfaceArea() const;
 	
