@@ -6,6 +6,11 @@
 
 #include <bso/structural_design/sd_model.hpp>
 
+// Only for getLoadtest:
+#include <bso/spatial_design/ms_N_building.hpp>
+#include <bso/spatial_design/cf_building.hpp>
+#include <bso/grammar/grammar.hpp>
+
 /*
 BOOST_TEST()
 BOOST_REQUIRE_THROW(function, std::domain_error)
@@ -240,7 +245,31 @@ BOOST_AUTO_TEST_SUITE( sd_analysis_test )
 		}
 		BOOST_REQUIRE(abs(compliance/101.5963 - 1) < 1e-5);
 	}
-	
+
+	BOOST_AUTO_TEST_CASE( getTotalLoad )
+	{ // A test to verify if the total load is calculated correctly, verifying the load on a 1x1x1 space build up from shells
+		// Define building with one space
+		bso::spatial_design::ms_N_building ms;
+		bso::spatial_design::ms_space space1("N,1,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000, A");
+		ms.addSpace(space1);
+
+		// Generate structural model
+		bso::spatial_design::cf_building CF(ms);
+		bso::grammar::grammar gram(CF);
+		bso::structural_design::sd_model SD = gram.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string("structural_design/sd_settings_no_wind_load.txt"));
+
+		// Test total load
+		double totalLoad = SD.getTotalLoad();
+		BOOST_REQUIRE(abs(totalLoad - 6000) < 1e-5); // one roof with 0.001 N/mm^2 and one floor with 0.005 N/mm^2 on 1,000,000 mm^2 area each, total load = 6000 N
+
+		bso::structural_design::sd_model SD2 = gram.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string("structural_design/sd_settings.txt"));
+
+		// Test total load
+		totalLoad = SD.getTotalLoad();
+		std::cout << "Total load in N: " << totalLoad << std::endl;
+		// one roof with 0.001 N/mm^2 and one floor with 0.005 N/mm^2 on 1,000,000 mm^2 area each, total load = 6000 N
+		BOOST_REQUIRE(abs(totalLoad - 6000) < 1e-5); 
+	}
 	
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace structural_design_test

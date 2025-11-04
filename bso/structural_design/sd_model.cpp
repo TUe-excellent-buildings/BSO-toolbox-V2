@@ -490,6 +490,23 @@ namespace bso { namespace structural_design {
 
 	double sd_model::getTotalLoad()
 	{
+		if (!mIsMeshed)
+		{
+			try 
+			{
+				this->mesh();
+			}
+			catch(std::exception& e)
+			{
+				std::stringstream errorMessage;
+				errorMessage << "\nWhen analyzing an unmeshed structural design model,\n"
+										 << "failed to mesh the model, received the following exception:\n"
+										 << e.what() << "\n"
+										 << "(bso/structural_design/sd_model.cpp)" << std::endl;
+				throw std::runtime_error(errorMessage.str());
+			}
+		}
+		
 		double sumOfLoads = 0;
 		for (const auto& node : mFEA->getNodes())
 		{

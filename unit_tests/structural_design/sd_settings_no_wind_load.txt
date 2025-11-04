@@ -1,0 +1,34 @@
+#	type_ID_1, type_ID_2, Assigned type wall, Assigned type_ID wall, assigned_type__ID floor
+B, A, A, flat_shell, 1, flat_shell, 1
+B, A, E, flat_shell, 1, flat_shell, 1
+B, A, G, flat_shell, 1, flat_shell, 1
+
+# mesh settings, number of element divisions to be made:
+C, 4
+
+# live loading on floors
+#	load case[-],	load [N/mm²],	azimuth [°],	altitude[°],	type
+D, 1, 0.005, 0, -90, live_load
+D, 1, 0.001, 0, -90, roof_load
+
+# wind loading on external surfaces
+# load_case[-], load [N/mm²], azimuth [°], altitude[°], type
+E, 2, 0.00,  0,   0, wind_pressure
+E, 2, 0.00, 0,   0, wind_shear
+E, 2, 0.00, 0,   0, wind_suction
+
+
+#truss_properties, ID, A [mm²], E [N/mm²],	
+F, 1, 2250, 30000
+
+#beam_properties,	ID, b [mm], h [mm], E [N/mm²], v [-]
+G, 1, 150, 150, 30000, 0.3
+
+#flat_shell_properties, ID, t [mm], E [N/mm²], v [-]
+H, 1, 150, 30000, 0.3
+
+#quad_hexahedron_properties, ID, E [N/mm²], v [-],
+I, 1, 6000, 0.3	
+
+#load_panel_flat_shell, t, E, v
+J, 150, 0.03, 0
