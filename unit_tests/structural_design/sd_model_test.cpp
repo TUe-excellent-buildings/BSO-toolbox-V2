@@ -9,6 +9,7 @@
 // Only for getLoadtest:
 #include <bso/spatial_design/ms_N_building.hpp>
 #include <bso/spatial_design/cf_building.hpp>
+#include <bso/building_physics/bp_model.hpp> // not needed in this test. However, when compiling all unit tests, the bp_model.hpp must be included before grammar.hpp to make the DEFAULT_BP_GRAMMAR available as it contains a conditional compiler statement based on BSO_BP_MODEL_HPP
 #include <bso/grammar/grammar.hpp>
 
 /*
@@ -266,7 +267,6 @@ BOOST_AUTO_TEST_SUITE( sd_analysis_test )
 
 		// Test total load
 		totalLoad = SD.getTotalLoad();
-		std::cout << "Total load in N: " << totalLoad << std::endl;
 		// one roof with 0.001 N/mm^2 and one floor with 0.005 N/mm^2 on 1,000,000 mm^2 area each, total load = 6000 N
 		BOOST_REQUIRE(abs(totalLoad - 6000) < 1e-5); 
 	}

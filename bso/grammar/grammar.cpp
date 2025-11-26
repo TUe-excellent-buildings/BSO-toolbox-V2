@@ -92,7 +92,7 @@ std::vector<bso::utilities::geometry::quadrilateral> grammar::getExteriorQuadril
 	return exteriorSurfaces;
 }
 
-std::vector<bso::spatial_design::conformal::cf_space*> grammar::getSpacesOnBoundary()
+std::vector<bso::spatial_design::conformal::cf_space*> grammar::getSpacesOnBoundary(bool spacesOnBottomIsAlsoBoundary)
 {
 	std::vector<bso::spatial_design::conformal::cf_space*> boundaryCFSpaces;
 	std::map<spatial_design::conformal::cf_rectangle*, rule_set::rectangle_property*>::iterator it;
@@ -100,15 +100,58 @@ std::vector<bso::spatial_design::conformal::cf_space*> grammar::getSpacesOnBound
 	{
 		if((it->second)->isExternal())
 		{
+			// skip space where only the floor is an external surface if spacesOnBottomIsAlsoBoundary is false
+			if(!spacesOnBottomIsAlsoBoundary && (it->second)->isFloor()){continue;} 
 			for (auto& j : it->first->cfSurfaces())
 			{
 				for (auto& space : j->cfSpaces())
 				{
-					boundaryCFSpaces.push_back(space);
+					bool spaceAlreadyIncluded = false;
+					for(auto& existingSpace : boundaryCFSpaces)
+					{
+						if(existingSpace == space)
+						{
+							spaceAlreadyIncluded = true;
+							break;
+						}
+					}
+					if(!spaceAlreadyIncluded)
+					{
+						boundaryCFSpaces.push_back(space);
+					}				
 				}
 			}
 		}
 	}
+	std::map<spatial_design::conformal::cf_triangle*, rule_set::triangle_property*>::iterator itTri;
+	for (itTri = mTriangleProperties.begin(); itTri != mTriangleProperties.end(); itTri++)
+	{
+		if((itTri->second)->isExternal())
+		{
+			// Skip spaces where only the floor is an external surface if spacesOnBottomIsAlsoBoundary is false
+			if(!spacesOnBottomIsAlsoBoundary && (itTri->second)->isFloor()){continue;} 
+			for (auto& j : itTri->first->cfSurfaces())
+			{
+				for (auto& space : j->cfSpaces())
+				{
+					bool spaceAlreadyIncluded = false;
+					for(auto& existingSpace : boundaryCFSpaces)
+					{
+						if(existingSpace == space)
+						{
+							spaceAlreadyIncluded = true;
+							break;
+						}
+					}
+					if(!spaceAlreadyIncluded)
+					{
+						boundaryCFSpaces.push_back(space);
+					}				
+				}
+			}
+		}
+	}
+
 	return boundaryCFSpaces;
 }
 	

@@ -95,7 +95,7 @@ public:
 
 	std::vector<bso::utilities::geometry::quadrilateral> getExteriorWalls();
 	std::vector<bso::utilities::geometry::quadrilateral> getExteriorQuadrilaterals();
-	std::vector<bso::spatial_design::conformal::cf_space*> getSpacesOnBoundary();
+	std::vector<bso::spatial_design::conformal::cf_space*> getSpacesOnBoundary(bool spacesOnBottomIsAlsoBoundary = false);
 };
 
 } // namespace grammar
