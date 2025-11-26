@@ -92,52 +92,6 @@ void normalizeData(std::vector<bso::utilities::data_point>& performances, bso::u
 	distopianPoint.setToDistopia(performances);
 }
 
-// // Function to find the knee point index in the performance data points.
-// // The knee point is the point closest to x=0 and y=0 in the normalized performance space.
-// int findKneePointIndex(std::vector<bso::utilities::data_point> performances)
-// {
-// 	bso::utilities::data_point utopianPoint;
-// 	bso::utilities::data_point distopianPoint;
-// 	//normalizeData(performances, utopianPoint, distopianPoint);
-	
-// 	int kneePointIndex = 0;
-// 	double minDistance = std::numeric_limits<double>::max();
-// 	for (unsigned int i = 0; i < performances.size(); ++i)
-// 	{
-// 		std::cout << performances[i] << std::endl;
-// 		double distance = sqrt(pow(performances[i](0),2) + pow(performances[i](1),2));
-// 		if (distance < minDistance)
-// 		{
-// 			minDistance = distance;
-// 			kneePointIndex = i;
-// 		}
-// 	}
-// 	return kneePointIndex;
-// }
-
-// // Function to find the knee point index in the performance data points.
-// // The knee point is the point closest to x=0 and y=0 in the normalized performance space.
-// int findKneePointNormIndex(std::vector<bso::utilities::data_point> performances)
-// {
-// 	bso::utilities::data_point utopianPoint;
-// 	bso::utilities::data_point distopianPoint;
-// 	normalizeData(performances, utopianPoint, distopianPoint);
-	
-// 	int kneePointIndex = 0;
-// 	double minDistance = std::numeric_limits<double>::max();
-// 	for (unsigned int i = 0; i < performances.size(); ++i)
-// 	{
-// 		std::cout << performances[i] << std::endl;
-// 		double distance = sqrt(pow(performances[i](0),2) + pow(performances[i](1),2));
-// 		if (distance < minDistance)
-// 		{
-// 			minDistance = distance;
-// 			kneePointIndex = i;
-// 		}
-// 	}
-// 	return kneePointIndex;
-// }
-
 // Function to visualize a MS representation with the space colors defined
 // by its performance data points from the modification type for this iteration
 // while profiding an iteration number in the title.
@@ -411,10 +365,9 @@ int main(int argc, char* argv[])
 								<< 	 "\t" << "visualize the plot to screen and the plot will be written to a png file\n"
 								<<	 "\t" << "\'combine_data\' will make a data file where separate runs of this, \n"
 								<< 	 "\t" << "executable can be copy pasted behind each other. \n"
-								<< 	 "\t" << "For this, the maximum amount of iterations for all runs in the sequence should be set. \n"
-								<< 	 "\t" << "For the formatting of the excel file. As such, \'combine_data\' key should be followed \n"
-								<< 	 "\t" << "For the formatting of the excel file. As such, \'combine_data\' key should be followed \n"
-								<< 	 "\t" << "by an unsigned integer value of the maximum iterations. \n"
+								<< 	 "\t" << "For this, the maximum amount of iterations for all runs in the sequence should be set \n"
+								<< 	 "\t" << "for the formatting of the excel file. As such, \'combine_data\' key should be followed \n"
+								<< 	 "\t" << "by an unsigned integer value of the maximum number of iterations. \n"
 								<< 	 "\t" << "This file can be loaded into excel to compare individual runs of this executable.\n"
 								<<   "\t" << "\'ms_files\' will write the ms designs to files\n"
 								<<   "\t" << "\'pn_files\' will write the ms designs to PN format (i.e. leiden format) in a file\n"
