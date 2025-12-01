@@ -31,6 +31,8 @@ void forcePThreadLink() {pthread_t t1; pthread_create(&t1,NULL,&simpleFunc,NULL)
 // Visualisation models
 #include <bso/visualization/models/ms_building.hpp>
 #include <bso/visualization/models/sc_building.hpp>
+#include <bso/visualization/models/geometry.hpp>
+#include <bso/visualization/models/pn_building.hpp>
 
 #include <stdlib.h>
 
@@ -167,6 +169,17 @@ void visualize(const spatial_design::ms_N_building& msN, const std::string& type
 	vpmanager.addviewport(new viewport(new MS_Model(msN, type, title,lineWidth)));
 }
 
+void visualize(const utilities::clustering& clus, const std::string& title = "ms_N_clustering", const double& linewidth = 1.0)
+{
+	vpmanager.addviewport(new viewport(new MS_Model(clus, title, linewidth)));
+}
+
+void visualize(const std::vector<utilities::data_point>& spaceData, const std::vector<double>& resultWeightFactor, float transparency = 1.0, const std::string& title = "ms_N_performances", const double& linewidth = 1.0)
+{
+	vpmanager.addviewport(new viewport(new MS_Model(spaceData, resultWeightFactor, transparency, title, linewidth)));
+}
+
+
 void visualize(const std::string& fileName, const spatial_design::ms_N_building& msN, const std::string& type = "spaces", const std::string& title = "ms_N_building", const double& lineWidth = 1.0)
 {
 	vpmanager.addviewport(new viewport(new MS_Model(fileName, msN, type, title,lineWidth)));
@@ -200,6 +213,36 @@ void visualize(const bso::structural_design::sd_model& sd, const std::string& ty
 	vpmanager.addviewport(new viewport(new SD_Model(sd, type, title, ghostly, cuttingPlanes)));
 }
 #endif // SD_MODEL_HPP
+
+void visualize(const std::vector<bso::utilities::geometry::quad_hexahedron> QHs,
+	const std::vector<bso::utilities::geometry::triangular_prism> triPrisms, 
+	const std::vector<bso::utilities::geometry::quadrilateral> quads, 
+	const std::vector<bso::utilities::geometry::triangle> triangles,
+	const std::vector<bso::utilities::geometry::line_segment> lines,
+	const std::string& title = "geometry_model",
+	const double& linewidth = 1.0)
+{
+	vpmanager.addviewport(new viewport(new GEOMETRY_Model(QHs,triPrisms,quads,triangles,lines,title,linewidth)));
+}
+
+void visualize(const std::vector<bso::utilities::geometry::triangular_prism> triPrisms, 
+	const std::string& title = "geometry_model",
+	const double& linewidth = 1.0)
+{
+	vpmanager.addviewport(new viewport(new GEOMETRY_Model(triPrisms,title,linewidth)));
+}
+
+void visualize(const std::string& colorFileName, const std::string& PNFileName, 
+	const std::string& title = "pn_building", const double& linewidth = 1.0)
+{
+	vpmanager.addviewport(new viewport(new PN_BUILDING_Model(colorFileName,PNFileName,title,linewidth)));
+}
+
+void visualize(const std::string& PNFileName, const double& linewidth = 1.0, 
+	const std::string& title = "pn_building")
+{
+	vpmanager.addviewport(new viewport(new PN_BUILDING_Model(PNFileName,linewidth,title)));
+}
 
 } // namespace visualization
 } // namespace BSO

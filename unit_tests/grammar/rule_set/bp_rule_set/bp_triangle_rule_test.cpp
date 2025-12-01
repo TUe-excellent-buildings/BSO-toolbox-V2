@@ -26,9 +26,9 @@ BOOST_AUTO_TEST_CASE( initialization )
 	auto triPtr = geomModel->addTriangle({{0,0,0},{3000,0,0},{3000,3000,0}}); // Add same triangle as in the conformal model to get the already existing triangle's pointer
 	triangle_property rp1(triPtr);
 	
-	BOOST_REQUIRE_NO_THROW(bp_triangle_rule bpr1(&rp1));
-	bp_triangle_rule bpr1(&rp1);
-	
+	BOOST_REQUIRE_NO_THROW(bp_rule_set::bp_triangle_rule bpr1(&rp1));
+	bp_rule_set::bp_triangle_rule bpr1(&rp1);
+
 	// assign space states
 	auto spacePtr = triPtr->cfSurfaces().front()->cfSpaces().front();
 	bso::building_physics::properties::space_settings
@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE( apply_rule_2 )
 	cf::cf_geometry_model* geomModel = &cfModel;
 	auto triPtr = geomModel->addTriangle({{0,0,0},{3000,0,0},{3000,3000,0}}); // triangle of the conformal model
 	triangle_property rp1(triPtr);
-	bp_triangle_rule bpr1(&rp1);
+	bp_rule_set::bp_triangle_rule bpr1(&rp1);
 	
 	// assign construction
 	Eigen::Vector4d visProps;

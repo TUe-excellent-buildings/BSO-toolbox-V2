@@ -26,9 +26,9 @@ BOOST_AUTO_TEST_CASE( initialization )
 	auto rectPtr = geomModel->addRectangle({{0,0,0},{3000,0,0},{3000,0,3000},{0,0,3000}});
 	rectangle_property rp1(rectPtr);
 	
-	BOOST_REQUIRE_NO_THROW(bp_rectangle_rule bpr1(&rp1));
-	bp_rectangle_rule bpr1(&rp1);
-	
+	BOOST_REQUIRE_NO_THROW(bp_rule_set::bp_rectangle_rule bpr1(&rp1));
+	bp_rule_set::bp_rectangle_rule bpr1(&rp1);
+
 	// assign space states
 	auto spacePtr = rectPtr->cfSurfaces().front()->cfSpaces().front();
 	bso::building_physics::properties::space_settings
@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE( apply_rule_1 )
 	cf::cf_geometry_model* geomModel = &cfModel;
 	auto rectPtr = geomModel->addRectangle({{0,0,0},{3000,0,0},{3000,0,3000},{0,0,3000}});
 	rectangle_property rp1(rectPtr);
-	bp_rectangle_rule bpr1(&rp1);
+	bp_rule_set::bp_rectangle_rule bpr1(&rp1);
 	
 	// assign glazing
 	Eigen::Vector4d visProps;
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE( apply_rule_2 )
 	cf::cf_geometry_model* geomModel = &cfModel;
 	auto rectPtr = geomModel->addRectangle({{0,0,0},{3000,0,0},{3000,3000,0},{0,3000,0}});
 	rectangle_property rp1(rectPtr);
-	bp_rectangle_rule bpr1(&rp1);
+	bp_rule_set::bp_rectangle_rule bpr1(&rp1);
 	
 	// assign construction
 	Eigen::Vector4d visProps;

@@ -249,7 +249,18 @@ namespace bso { namespace utilities { namespace geometry {
 		{
 			std::stringstream errorMessage;
 			errorMessage << "Could not sort points when initializing quadrilateral hexahedron from container.\n"
-									 << "Received the following error: \n"
+									 << "Received the following container content as input: \n";
+									 for(const auto& i : l)
+									 {
+										errorMessage << i << ", ";
+									 }
+						errorMessage << "\nCheck if the container contain duplicate vertices, if so then the \n "
+									 << "inserted quad-hexahedron is not valid. In the sort point function, \n "
+									 << "this will be picked up by removing the duplicate values, followed by\n"
+									 << "checking if the remaining vertices are still the required eight vertices. \n"
+									 << "if so it might indicate that the inserted quad-hexahedron resulting from a space definition is not valid, \n"
+									 << "thus sorting point does not work.\n";
+						errorMessage << "Received the following error: \n"
 									 << e.what()
 									 << "\n(bso/utilities/geometry/quad_hexahedron.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());

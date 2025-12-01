@@ -158,6 +158,49 @@ BOOST_AUTO_TEST_SUITE( vector_tests )
 		vCheck.setHeading(std::make_pair(270,-45));
 		BOOST_REQUIRE((vCheck - v5).isZero(1e-3));
 	}
+
+	BOOST_AUTO_TEST_CASE(getSmallestAngle_parallel_zero_degrees)
+	{
+		vector a; a = Eigen::Vector3d(1.0, 0.0, 0.0);
+		vector b; b = Eigen::Vector3d(2.0, 0.0, 0.0);
+
+		double angle = 0.0;
+		bool ok = a.getSmallestAngle(b, angle);
+		BOOST_CHECK(ok);
+		BOOST_CHECK_CLOSE_FRACTION(angle, 0.0, 1e-6);
+	}
+
+	BOOST_AUTO_TEST_CASE(getSmallestAngle_opposite_onehundredeighty_degrees)
+	{
+		vector a; a = Eigen::Vector3d(1.0, 0.0, 0.0);
+		vector b; b = Eigen::Vector3d(-1.0, 0.0, 0.0);
+
+		double angle = 0.0;
+		bool ok = a.getSmallestAngle(b, angle);
+		BOOST_CHECK(ok);
+		BOOST_CHECK_CLOSE_FRACTION(angle, 180.0, 1e-6);
+	}
+
+	BOOST_AUTO_TEST_CASE(getSmallestAngle_perpendicular_ninety_degrees)
+	{
+		vector a; a = Eigen::Vector3d(1.0, 0.0, 0.0);
+		vector b; b = Eigen::Vector3d(0.0, 1.0, 0.0);
+
+		double angle = 0.0;
+		bool ok = a.getSmallestAngle(b, angle);
+		BOOST_CHECK(ok);
+		BOOST_CHECK_CLOSE_FRACTION(angle, 90.0, 1e-6);
+	}
+
+	BOOST_AUTO_TEST_CASE(getSmallestAngle_returns_false_for_zero_vector)
+	{
+		vector a; a = Eigen::Vector3d(0.0, 0.0, 0.0); // zero vector
+		vector b; b = Eigen::Vector3d(1.0, 0.0, 0.0);
+
+		double angle = 12345.0;
+		bool ok = a.getSmallestAngle(b, angle);
+		BOOST_CHECK(!ok);
+	}
 	
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace geometry_test

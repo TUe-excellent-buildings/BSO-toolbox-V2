@@ -25,9 +25,9 @@ BOOST_AUTO_TEST_CASE( initialization_and_application )
 	auto spacePtr = cfModel.cfSpaces().front();
 	space_property spaceProp(spacePtr);
 	
-	BOOST_REQUIRE_NO_THROW(bp_space_rule bpsr1(&spaceProp));
-	bp_space_rule bpsr1(&spaceProp);
-	
+	BOOST_REQUIRE_NO_THROW(bp_rule_set::bp_space_rule bpsr1(&spaceProp));
+	bp_rule_set::bp_space_rule bpsr1(&spaceProp);
+
 	// assign space settings
 	bso::building_physics::properties::space_settings spaceSettings(
 		"space setting 1",4.5,6.7,24,25,2.3);

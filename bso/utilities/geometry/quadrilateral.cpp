@@ -123,6 +123,33 @@ namespace bso { namespace utilities { namespace geometry {
 
 		return (t1.isInsideOrOn(p1,tol) || t2.isInsideOrOn(p1,tol));
 	} //  isInside()
+
+	double quadrilateral::getDifRectangle(const double& tol /*= 1e-3*/)
+	{
+		if(mSize !=4)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Cannot compute difference from rectangle for quadrilateral:\n"
+									 << "received " << mSize << "vertices, expected 4.\n"
+									 << "\n(bso/utilities/geometry/quadrilateral.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+		
+		double sumDif=0;
+		double angle;
+		
+		// Line segments are sorted in clockwise order
+		mLineSegments[0].getSmallestAngle(mLineSegments[1], angle, tol);
+		sumDif = sumDif + abs(angle-90);
+		mLineSegments[1].getSmallestAngle(mLineSegments[2], angle, tol);
+		sumDif = sumDif + abs(angle-90);
+		mLineSegments[2].getSmallestAngle(mLineSegments[3], angle, tol);
+		sumDif = sumDif + abs(angle-90);
+		mLineSegments[3].getSmallestAngle(mLineSegments[0], angle, tol);
+		sumDif = sumDif + abs(angle-90);
+
+		return sumDif;
+	}
 	
 } // namespace geometry
 } // namespace utilities
