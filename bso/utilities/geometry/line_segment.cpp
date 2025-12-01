@@ -120,16 +120,17 @@ namespace bso { namespace utilities { namespace geometry {
 
 	bool line_segment::getSmallestAngle(const line_segment& rhs, double& smallestAngle, const double& tol /*= 1e-3*/)
 	{
+		// Lines should either intersect or their end vertices should coincide to determine the smallest angle between the lines
 		if(this->getVector().isParallel(rhs.getVector(),tol)) 
-		{ // Note: when lines are parallel, then the orientation of the lines vector is important for determining the smallest angle
+		{
 			if (mVertices[0].isSameAs(rhs[0], tol) || mVertices[1].isSameAs(rhs[1], tol) || mVertices[1].isSameAs(rhs[0], tol) || mVertices[0].isSameAs(rhs[1], tol)) {/*do nothing*/;}
 			else if(!this->isOnLine(rhs[0],tol) && !this->isOnLine(rhs[1],tol)) return false;
 			smallestAngle = 0;
 			return true;
 		}
 		else if(mVertices[0].isSameAs(rhs[0], tol) || mVertices[1].isSameAs(rhs[1], tol) || mVertices[1].isSameAs(rhs[0], tol) || mVertices[0].isSameAs(rhs[1], tol)) {/*do nothing*/;}
-		else if(!this->intersectsWith(rhs, tol)) return false;
-		if(!(this->getVector()).getSmallestAngle((rhs.getVector()), smallestAngle, tol)) return false;
+		else if(!this->intersectsWith(rhs, tol)) return false; 
+		if(!(this->getVector()).getSmallestAngle((rhs.getVector()), smallestAngle, tol)) return false; // This if-statement boolian check determines the value of smallestAngle!
 		return true;
 	} // getSmallestAngle
 	
