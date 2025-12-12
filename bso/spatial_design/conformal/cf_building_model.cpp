@@ -2,8 +2,8 @@
 #define CF_BUILDING_MODEL_CPP
 
 #include <bitset>
-#include <Fade_2D.h>
-#include <FadeExport.h>
+//#include <Fade_2D.h>
+//#include <FadeExport.h>
 #include <iomanip> // Allowes to use std::setprecision() to be able to enlarge the decimals printed to the console of a double					 
 
 #include <bso/utilities/delaunay.hpp>

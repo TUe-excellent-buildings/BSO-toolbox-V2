@@ -1,14 +1,14 @@
 # specify location of libraries
 BOOST 	= /usr/include/boost
 EIGEN 	= /usr/include/eigen
-FADE	= /usr/include/fadeRelease_v1.93/fadeRelease_v1.93
-BSO   	= /usr/include/BSO-toolbox-V2
+#FADE	= /usr/include/fadeRelease_v1.93/fadeRelease_v1.93
+BSO   	= /home/tessa/BSO-toolbox-V2
 ALL_LIB = -I$(BOOST) -I$(EIGEN) -I$(BSO)
 
 # compiler settings
 CPP = g++ -std=c++17
-FLAGS = -O3 -march=native -lglut -lGL -lGLU -lpthread -lfade2d
-D_LIB  = -I${FADE}/include_fade2d
+FLAGS = -O3 -march=native -lglut -lGL -lGLU -lpthread -lgmp #-lfade2d Either use face_2d or -lgmp for CGAl for constrained delaunay triangulation
+D_LIB  = #-I${FADE}/include_fade2d
 
 # specify file(s) to be compiled
 MAINFILE = main.cpp
