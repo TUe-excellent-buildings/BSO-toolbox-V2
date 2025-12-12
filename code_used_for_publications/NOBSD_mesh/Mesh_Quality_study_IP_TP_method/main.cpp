@@ -165,14 +165,14 @@ int main(int argc, char* argv[])
 	std::cout.precision(17); //this precision only counts with cout not with the error message handling used in the toolbox
 
 	// Toggle which results are requested:
-	bool partitionIncreaseResult = false;//true;
-	bool partitionIncreaseResultRec = false;//true;
-	bool baseLineResults = false;//true;
-	bool meshConvergencePerPartitionSizeTP = false;//true;
-	bool meshConvergencePerPartitionSizeQH = false;//true;
-	bool partitionShift = false;
-	bool fullBuilding = false;
-	bool NOBSDbuilding = true;//false;
+	bool partitionIncreaseResult = false;
+	bool partitionIncreaseResultRec = false;
+	bool baseLineResults = false; // This results in the benchmark results executed with 
+	bool meshConvergencePerPartitionSizeTP = false;
+	bool meshConvergencePerPartitionSizeQH = false;
+	bool partitionShift = true; // A mesh convergence study where the size ratio between partitions is increased.
+	bool fullBuilding = false; // A mesh convergence study for rectangle building.
+	bool NOBSDbuilding = false; // A mesh convergence study for all 20 NOBSD.
 	
 	// Set variables used for studies
 	int nrPartitions = 5; // Partitions subdivided to opposing sides with the generation of triangular prisms in between
@@ -425,8 +425,8 @@ int main(int argc, char* argv[])
 			// Generate conformal geometry
 			bso::spatial_design::cf_building CFTP(ms1, tempTP, tol);
 			out("Created an CF model",true,true,true);
-			bso::visualization::visualize(CFTP,"triangular_prism");
-			out("Visualized CF model",true,true,true);
+			//bso::visualization::visualize(CFTP,"triangular_prism");
+			//out("Visualized CF model",true,true,true);
 			
 			// Generate result file name
 			std::string file = "TP_SD_mesh_dif_ratioStep";
@@ -460,16 +460,17 @@ int main(int argc, char* argv[])
 				allFile << "TP " << 2+i*2 << " " << std::setprecision(16) << SDTPmesh.getTotalResults().mTotalStrainEnergy << std::endl;
 				allFile.close();
 
-				if(true) //always visualize
+				if(false) //always visualize
 				{
 					bso::visualization::visualize(SDTPmesh,"component");
 					bso::visualization::visualize(SDTPmesh,"element");
 					continue;
 				}
-				if(i == 0) 
+				if(i == 0)
 				{
 					bso::visualization::visualize(SDTPmesh,"component");
 					bso::visualization::visualize(SDTPmesh,"element");
+					continue;
 				}
 				if(i == nrMeshSteps-1) 
 				{
@@ -691,8 +692,8 @@ int main(int argc, char* argv[])
 			// Generate conformal geometry
 			bso::spatial_design::cf_building CFQH(ms2, tempQH, tol);
 			out("Created an CF model",true,true,true);
-			bso::visualization::visualize(CFQH,"cuboids");
-			out("Visualized CF model",true,true,true);
+			//bso::visualization::visualize(CFQH,"cuboids");
+			//out("Visualized CF model",true,true,true);
 			
 			// Generate result file name
 			std::string file = "QH_SD_mesh_dif_partition";
@@ -727,7 +728,7 @@ int main(int argc, char* argv[])
 				else allFile << "QH " << 2+i*2 << " " << std::setprecision(16) << SDQH.getTotalResults().mTotalStrainEnergy << std::endl;
 				allFile.close();
 
-				if(true) //always visualize
+				if(false) //always visualize
 				{
 					bso::visualization::visualize(SDQH,"component");
 					bso::visualization::visualize(SDQH,"element");
@@ -746,7 +747,7 @@ int main(int argc, char* argv[])
 			}
 		}
 	}
-
+	
 	if(partitionShift)
 	{
 		// Generate conformal geometry
@@ -774,8 +775,8 @@ int main(int argc, char* argv[])
 			// Generate conformal geometry
 			bso::spatial_design::cf_building CFQH(ms2, tempQH, tol);
 			out("Created an CF model",true,true,true);
-			bso::visualization::visualize(CFQH,"triangular_prism");
-			out("Visualized CF model",true,true,true);
+			//bso::visualization::visualize(CFQH,"triangular_prism");
+			//out("Visualized CF model",true,true,true);
 			
 			// Generate result file name
 			std::string file = "QH_QH_mesh_dif_ratioStep";
@@ -810,16 +811,17 @@ int main(int argc, char* argv[])
 				else allFile << "QH " << 2+i*2 << " " << std::setprecision(16) << SDQHmesh.getTotalResults().mTotalStrainEnergy << std::endl;
 				allFile.close();
 
-				if(true) //always visualize
+				if(false) //always visualize
 				{
 					bso::visualization::visualize(SDQHmesh,"component");
 					bso::visualization::visualize(SDQHmesh,"element");
 					continue;
 				}
-				if(i == 0) 
+				if(i == 0)
 				{
 					bso::visualization::visualize(SDQHmesh,"component");
 					bso::visualization::visualize(SDQHmesh,"element");
+					continue;
 				}
 				if(i == nrMeshSteps-1) 
 				{
