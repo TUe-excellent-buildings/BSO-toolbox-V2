@@ -31,6 +31,7 @@ namespace bso { namespace visualization
             lmousestate(GLUT_UP), lclicktime(0) { }
 
         void addviewport(viewport *pviewport);
+        void changeviewport(viewport *pviewport);
 
         //event handlers
         void render(camera &cam);
@@ -39,6 +40,8 @@ namespace bso { namespace visualization
         void mouse_event(int buttons, int state, int x, int y,
                          unsigned int time);
         bool key_event(int key, int time);
+
+        void clearviewports();
 
     private:
         int winwidth,
@@ -77,6 +80,23 @@ namespace bso { namespace visualization
             viewports.push_back(pviewport);
             update_viewport_sizes();
         }
+    }
+
+    void viewportmanager::changeviewport(viewport *pviewport)
+    {
+        if (pviewport){
+            if(viewports.empty()) viewports.push_back(pviewport);
+            else{
+                viewports.clear();
+                viewports.push_back(pviewport);
+            }
+            update_viewport_sizes();
+        }
+    }
+
+    void viewportmanager::clearviewports()
+    {
+        viewports.clear();
     }
 
     /*

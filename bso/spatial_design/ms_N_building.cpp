@@ -160,6 +160,30 @@ ms_space* ms_N_building::getSpacePtr(const ms_space* spacePtr) const
 	return getSpacePtr(*spacePtr);
 }
 
+ms_space* ms_N_building::getSpaceWithID(const unsigned int spaceID) const
+{
+	for (auto i : mSpaces)
+	{
+		if (i->getID() == spaceID)
+		{
+			return i;
+		}
+	}
+	
+	// if this part of code is reached, the space with corosponding ID was not found in the preceding for loop
+	std::stringstream errorMessage;
+	errorMessage << "Could not find the space with ID " << spaceID << " in an ms_N building spatial design:" << std::endl
+							 << " " << std::endl 
+							 << "The following spaces are in the model: " << std::endl;
+							 for(auto i: mSpaces)
+							 {
+								errorMessage << *i << std::endl;
+							 }
+
+	errorMessage <<	"(bso/spatial_design/ms_N_building.cpp). " << std::endl;
+	throw std::runtime_error(errorMessage.str());
+}
+
 unsigned int ms_N_building::getLastSpaceID() const
 {
 	for (auto i : mSpaces)

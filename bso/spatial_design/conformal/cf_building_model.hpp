@@ -36,7 +36,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		std::vector<utilities::geometry::line_segment> delauneyLines; //Lines where the constrained delaney triangulation should constrain to
 		std::vector<utilities::geometry::triangle> delaunayTri; //resulting delaunay triangles at z=0 for triPrism definition in the geometry conformal model
 		
-		cf_building_model& operator = (cf_building_model& rhs) = default;
+		//cf_building_model& operator = (cf_building_model& rhs) = default;
 		friend class cf_geometry_entity;
 	public:
 		cf_building_model(const cf_building_model& rhs); //copy constructor
