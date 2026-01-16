@@ -22,6 +22,10 @@
 #include <bso/grammar/rule_set/bp_rule_set/bp_rule_sets.hpp>
 #endif
 
+#ifdef DL_MODEL_HPP
+#include <bso/grammar/rule_set/dl_rule_set/dl_rule_sets.hpp>
+#endif
+
 namespace bso { namespace grammar { namespace rule_set {
 
 
