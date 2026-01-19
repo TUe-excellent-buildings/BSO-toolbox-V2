@@ -117,6 +117,22 @@ namespace bso { namespace utilities { namespace geometry {
 		vertex dummy;
 		return this->intersectsWith(rhs, dummy, tol);
 	} // intersectsWith
+
+	bool line_segment::getSmallestAngle(const line_segment& rhs, double& smallestAngle, const double& tol /*= 1e-3*/)
+	{
+		// Lines should either intersect or their end vertices should coincide to determine the smallest angle between the lines
+		if(this->getVector().isParallel(rhs.getVector(),tol)) 
+		{
+			if (mVertices[0].isSameAs(rhs[0], tol) || mVertices[1].isSameAs(rhs[1], tol) || mVertices[1].isSameAs(rhs[0], tol) || mVertices[0].isSameAs(rhs[1], tol)) {/*do nothing*/;}
+			else if(!this->isOnLine(rhs[0],tol) && !this->isOnLine(rhs[1],tol)) return false;
+			smallestAngle = 0;
+			return true;
+		}
+		else if(mVertices[0].isSameAs(rhs[0], tol) || mVertices[1].isSameAs(rhs[1], tol) || mVertices[1].isSameAs(rhs[0], tol) || mVertices[0].isSameAs(rhs[1], tol)) {/*do nothing*/;}
+		else if(!this->intersectsWith(rhs, tol)) return false; 
+		if(!(this->getVector()).getSmallestAngle((rhs.getVector()), smallestAngle, tol)) return false; // This if-statement boolian check determines the value of smallestAngle!
+		return true;
+	} // getSmallestAngle
 	
 	vertex line_segment::getPointClosestTo(const vertex& p) const
 	{ //

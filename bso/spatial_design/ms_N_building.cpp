@@ -11,6 +11,11 @@
 #include <boost/algorithm/string.hpp>
 #include <bitset>
 
+//#include <bso/utilities/geometry.hpp>
+#include <bso/utilities/delaunay.hpp>
+#include <bso/utilities/data_analysis.hpp>
+#include <iomanip> // allows for std::setprecision use
+
 namespace bso { namespace spatial_design {
 
 ms_N_building::ms_N_building()
@@ -89,7 +94,7 @@ ms_N_building::ms_N_building(std::string fileName)
 ms_N_building::ms_N_building(const ms_N_building& rhs)
 { // copy constructor
 	mLastSpaceID = rhs.mLastSpaceID;
-	for (auto i : rhs.mSpaces)
+	for (auto& i : rhs.mSpaces)
 	{
 		mSpaces.push_back(new ms_space(*i));
 	}
@@ -100,7 +105,7 @@ ms_N_building::ms_N_building(const ms_N_building& rhs)
 
 ms_N_building::~ms_N_building()
 { // destructor
-	for (auto i : mSpaces) delete i;
+	for (auto& i : mSpaces) delete i;
 } // ~ms_N_building()
 
 void ms_N_building::checkValidity() const
@@ -160,6 +165,24 @@ ms_space* ms_N_building::getSpacePtr(const ms_space* spacePtr) const
 	return getSpacePtr(*spacePtr);
 }
 
+ms_space* ms_N_building::getSpacePtrWithID(unsigned int id) const
+{
+	ms_space* spacePtr = nullptr;
+	
+	for (auto i : mSpaces)
+	{
+		if (i->getID() == id) return i;
+	}
+	
+	std::stringstream errorMessage;
+	errorMessage << "Could not find the following space in an ms_N building spatial design:" << std::endl
+							 << "ID: " << id << std::endl
+							 << "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
+	throw std::runtime_error(errorMessage.str());
+
+	return spacePtr;
+} // getSpacePtrWithID()
+
 unsigned int ms_N_building::getLastSpaceID() const
 {
 	for (auto i : mSpaces)
@@ -182,6 +205,177 @@ double ms_N_building::getFloorArea() const
 	double area = 0;
 	for (const auto& i : mSpaces) area += i->getFloorArea();
 	return area;
+}
+
+int ms_N_building::getNrElevations(const double mTol /*= 1e-3*/) const
+{
+	std::vector<double> elevations;
+	for(const auto i: mSpaces)
+	{
+		bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+		bso::utilities::geometry::quadrilateral firstQuad;
+		bool fistQuadFound = false;
+		for(auto quad: spaceGeom.getQuadrilateral())
+		{
+			if(quad.getNormal().isVertical() && !fistQuadFound)
+			{
+				firstQuad = quad;
+				fistQuadFound = true;
+				continue;
+			}
+			else if(quad.getNormal().isVertical())
+			{
+				// determine the lowest quad
+				double checkLevel;
+				if(firstQuad.getCenter().z() > quad.getCenter().z()){checkLevel = quad.getCenter().z();}
+				else{checkLevel = firstQuad.getCenter().z();}
+				
+				// Check if elevation is already added
+				bool isAdded = false;
+				for(double& level: elevations)
+				{
+					if(checkLevel < level + mTol && checkLevel > level - mTol) 
+					{
+						isAdded = true; 
+						break;
+					}
+				}
+				if(!isAdded){elevations.push_back(checkLevel);}
+			}
+		}
+	}
+
+	return elevations.size();
+} // getNrElevations()
+
+double ms_N_building::getAverageHorizontalRibSize() const
+{
+	double averageSize = 0;
+	int lineCount=0;
+	bool initialized = false;
+	for (const auto i : mSpaces)
+	{
+		//Get original space geometry
+		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+		// Consider all horizontal lines of each space
+		for (const auto& k : spaceGeom.getLines())
+		{
+			if(k.getVector().isVertical()) continue;
+			averageSize += k.getLength();
+			initialized = true;
+			lineCount++;
+		}
+	}
+	if(mSpaces.size() == 0 || !initialized)
+	{
+		std::stringstream errorMessage;
+			errorMessage << "Can not get average horizontal rib size, since there are" << std::endl
+									<<  "no spaces inside the mSpace container: " << mSpaces.size() << std::endl
+									<<  "or the spaces had no line_segments to consider " << std::endl
+									<< "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+	}
+	averageSize = averageSize/lineCount;
+	return averageSize;
+}
+
+double ms_N_building::getSpaceVolumeRatio() const
+{
+	if(mSpaces.size() <= 1)
+	{
+		std::stringstream errorMessage;
+			errorMessage << "Can not get get space difference ration volume, since there are" << std::endl
+									<<  "too little spaces inside the mSpace container: " << mSpaces.size() << std::endl
+									<< "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+	}
+
+	double maxVolume = mSpaces[0]->getVolume();
+	double minVolume =mSpaces[0]->getVolume();
+
+	for(const auto i: mSpaces)
+	{
+		if(i->getVolume() > maxVolume){maxVolume = i->getVolume();}
+		else if(i->getVolume() < minVolume){minVolume = i->getVolume();}
+	}
+	
+	return minVolume/maxVolume;
+}
+
+void ms_N_building::getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers)
+{
+	std::vector<double> spaceVolume;
+	for(const auto i: mSpaces)
+	{
+		spaceVolume.push_back(i->getVolume());
+		average += i->getVolume();
+	}
+	average = average/(mSpaces.size());
+
+	std::vector<double> boxPlotValues = bso::utilities::Quantile(spaceVolume, {0.25, 0.5, 0.75});
+
+	median = boxPlotValues[1];
+	firstQuartile = boxPlotValues[0];
+	thirdQuartile = boxPlotValues[2];
+	outliers = bso::utilities::findOutliers(spaceVolume);
+}
+
+double ms_N_building::getSpaceFloorAreaRatio() const
+{
+	if(mSpaces.size() <= 1)
+	{
+		std::stringstream errorMessage;
+			errorMessage << "Can not get get space difference ration volume, since there are" << std::endl
+									<<  "too little spaces inside the mSpace container: " << mSpaces.size() << std::endl
+									<< "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+	}
+
+	std::vector<double> spaceFloorArea;
+	for(const auto i : mSpaces) spaceFloorArea.push_back(i->getFloorArea());
+	sort(spaceFloorArea.begin(), spaceFloorArea.end());
+
+	return spaceFloorArea[0]/spaceFloorArea.back();
+}
+
+std::vector<double> ms_N_building::getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers)
+{
+	std::vector<double> spaceFloorArea;
+	for(const auto i: mSpaces)
+	{
+		spaceFloorArea.push_back(i->getFloorArea());
+		average += i->getFloorArea();
+	}
+	average = average/(mSpaces.size());
+
+	std::vector<double> boxPlotValues = bso::utilities::Quantile(spaceFloorArea, {0.25, 0.5, 0.75});
+
+	median = boxPlotValues[1];
+	firstQuartile = boxPlotValues[0];
+	thirdQuartile = boxPlotValues[2];
+	outliers = bso::utilities::findOutliers(spaceFloorArea);
+	return spaceFloorArea;
+}
+
+double ms_N_building::getAverageRecDif() const
+{
+	double recDifAverage = 0;
+	for (const auto i : mSpaces)
+	{
+		//Get original space geometry
+		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+		for(auto quad: spaceGeom.getQuadrilateral())
+		{
+			if(quad.getNormal().isVertical()) // take either the roof of floor since they are the same
+			{
+				recDifAverage += quad.getDifRectangle();
+				break;
+			}
+		}
+	}
+	
+	recDifAverage = recDifAverage/(mSpaces.size());
+	return recDifAverage;
 }
 
 void ms_N_building::setZZero()
@@ -789,6 +983,152 @@ bool ms_N_building::hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces,
 	return (floatingSpaces.size() != 0);
 } // hasFloatingSpaces()
 
+bool ms_N_building::isFragmented(std::vector<ms_space*>& spacesNonBiggestFragment, 
+	const double tol /*= 1e-3*/) const
+{
+	if(mSpaces.size() < 2) return false; // cannot be fragmented if there are less than two spaces
+	
+	// Initialize variables
+	std::vector<std::vector<ms_space*>> SpaceFragment;
+	std::vector<ms_space*> unsortedSpaces = mSpaces;
+	std::vector<ms_space*> consideredFragmentSpace;
+	std::vector<bso::utilities::geometry::quad_hexahedron> consideredFragmentGeom;
+
+	// Setup initial variables
+	consideredFragmentGeom.push_back(mSpaces[0]->getGeometry());
+	consideredFragmentSpace.push_back(mSpaces[0]);
+	auto spaceIt = unsortedSpaces.begin();
+	unsortedSpaces.erase(spaceIt);
+	bool addedSpaceFragmentGeoms = true; // initial
+
+	while(unsortedSpaces.size() > 0)
+	{
+		addedSpaceFragmentGeoms = true;
+		while (addedSpaceFragmentGeoms)
+		{
+			addedSpaceFragmentGeoms = false;
+			spaceIt = unsortedSpaces.begin();
+			while (spaceIt != unsortedSpaces.end())
+			{
+				auto spaceGeom = (*spaceIt)->getGeometry();
+				
+				// check if this space is connected to any of the consideredFragment spaces
+				bool isConnectedToFragment = false;
+				for (const auto& i : consideredFragmentGeom)
+				{
+					for (const auto& j : spaceGeom)
+					{
+						if (i.isInside(j,tol))
+						{ // if any vertex j of the space is inside a consideredFragmentGeom
+							isConnectedToFragment = true;
+							break;
+						}
+						for (const auto& k : i.getPolygons())
+						{
+							if (k->isInside(j,tol))
+							{ // if any vertex j of the space is inside the surface of a consideredFragmentGeom
+								isConnectedToFragment = true;
+								break;
+							}
+						}
+						if (isConnectedToFragment) break;
+						for (const auto& k : i.getLines())
+						{
+							if (k.isOnLine(j,tol))
+							{ // if any vertex j of the space is on a line segment of a consideredFragmentGeom
+								isConnectedToFragment = true;
+								break;
+							
+								if(!k.getVector().isVertical())
+								{
+									isConnectedToFragment = true;
+									break;
+								}
+							}
+						}
+						if (isConnectedToFragment) break;
+						for (const auto& k : i)
+						{
+							if (k.isSameAs(j,tol))
+							{ // if any vertex j of the space is collocated with a vertex of a consideredFragmentGeom
+								isConnectedToFragment = true;
+								break;
+							}
+						}
+						if (isConnectedToFragment) break;
+					}
+					for (const auto& j : i)
+					{
+						if (spaceGeom.isInside(j,tol))
+						{ // if any vertex j of a grounded space i is inside the consideredFragmentGeom
+							isConnectedToFragment = true;
+							break;
+						}
+					}
+					if (isConnectedToFragment) break;
+				}
+				
+				if (isConnectedToFragment)
+				{
+					consideredFragmentGeom.push_back(spaceGeom);
+					consideredFragmentSpace.push_back(*spaceIt);
+					addedSpaceFragmentGeoms = true;
+					unsortedSpaces.erase(spaceIt);
+					continue;
+				}
+				
+				++spaceIt;
+			}
+		}
+
+		// One fragment is defined, so store fragment:
+		SpaceFragment.push_back(consideredFragmentSpace);
+		
+		if(unsortedSpaces.size() > 1)
+		{
+			// Reset variables
+			consideredFragmentSpace.clear();
+			consideredFragmentGeom.clear();
+			auto spaceIt = unsortedSpaces.begin();
+			consideredFragmentGeom.push_back((*spaceIt)->getGeometry());
+			consideredFragmentSpace.push_back(*spaceIt);
+			unsortedSpaces.erase(spaceIt);
+		}
+		else if(unsortedSpaces.size() == 1)
+		{
+			SpaceFragment.push_back(unsortedSpaces);
+			unsortedSpaces.clear();
+		}
+	}
+
+	if(SpaceFragment.size() > 1)
+	{
+		// Determine the largest fragment to keep 
+		int fragmentMaxSpaces = 0;	
+		long unsigned int size = 0;
+		int count = 0;
+		for(const auto& i: SpaceFragment)
+		{
+			if(i.size() > size){size = i.size();fragmentMaxSpaces=count;}
+			count++;
+		}
+		
+		// store the rest of the space in spacesNonBiggestFragment
+		count = -1;
+		for(const auto& i: SpaceFragment)
+		{
+			count++;
+			if(fragmentMaxSpaces == count){continue;}
+			for(const auto j:i)
+			{
+				spacesNonBiggestFragment.push_back(j);
+			}
+		}
+		return true;
+	}
+	else{return false;}
+}
+
 void ms_N_building::addBoundary() 
 {
 	double min_x, min_y, max_x, max_y, min_z, max_z = 0.0;
@@ -831,6 +1171,323 @@ void ms_N_building::addBoundary()
 	mSpaces.push_back(new ms_space(msBoundary));
 } // addBoundary() 
 
+
+std::vector<utilities::geometry::triangular_prism> ms_N_building::convertMSToPN(std::string fileName, double mTol) //PN stands for prism-net representation from Leiden
+{
+	this->addBoundary();
+	
+	// Declarations for needed information per space
+	std::vector<double> allLevels; // stores all the floor levels
+	std::vector<utilities::geometry::vertex> highV;
+	std::vector<utilities::geometry::vertex> LowV;
+
+	// First define all levels in the building and make for each level a pair containing the level and an empty std::vector<utilities::geometry::quad_hexahedron>
+	for (const auto& i : mSpaces)
+	{
+		// Get quad_hexahedron geometry
+		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+
+		//Find the highest and lowest vertex
+		utilities::geometry::vertex lowVertex = spaceGeom[0];
+		utilities::geometry::vertex highVertex = spaceGeom[0];
+		for (const auto j: spaceGeom)
+		{
+			if(lowVertex.z() > j.z())
+			{//find the lowest vertex of SpaceGeomTemp_1 for the shifting of the space geometry
+				lowVertex = j;
+			}
+			else if(highVertex.z() < j.z())
+			{
+				highVertex = j;
+			}
+		}
+		highV.push_back(highVertex);
+		LowV.push_back(lowVertex);
+
+		// Determine all the floor levels in the building spatial designs
+		bool highVUnique = true;
+		bool lowVUnique = true;
+		for(double j: allLevels)
+		{
+			if(highVertex.z()<=(j+mTol) && highVertex.z()>=(j-mTol))
+			{
+				highVUnique = false;
+			}
+			if(lowVertex.z()<=(j+mTol) && lowVertex.z()>=(j-mTol))
+			{
+				lowVUnique = false;
+			}
+		}
+		if(highVUnique){allLevels.push_back(highVertex.z());}
+		if(lowVUnique){allLevels.push_back(lowVertex.z());}
+	}
+
+	// Sort allLevels for later use in triangular prism cell definition.
+	sort(allLevels.begin(), allLevels.end());
+	
+	std::vector<std::pair<double,std::vector<utilities::geometry::vertex>>> delaunayPointsAtLevel;
+	std::vector<std::pair<double,std::vector<utilities::geometry::line_segment>>> delaunayLinesAtLevel;
+	
+		
+	for(int IDlevel=0; IDlevel<allLevels.size()-1; IDlevel++)
+	{	
+		delaunayPointsAtLevel.push_back(std::make_pair(allLevels[IDlevel],std::vector<utilities::geometry::vertex>()));
+		delaunayLinesAtLevel.push_back(std::make_pair(allLevels[IDlevel],std::vector<utilities::geometry::line_segment>()));
+
+		for (int i=0; i<mSpaces.size(); i++)
+		{
+			// Get quad_hexahedron geometry
+			utilities::geometry::quad_hexahedron spaceGeom = mSpaces[i]->getGeometry();
+
+			// j.first > LowV[IDSpace].z()-mTol && j.first < highV[IDSpace].z()-mTol
+			if(allLevels[IDlevel] >= LowV[i].z()-mTol && allLevels[IDlevel] < highV[i].z()-mTol || i == (mSpaces.size()-1)) // NOTE: last space is the bounding box added in function addBoundary(), so variables need to be included at every elevation to get a correct delaunay triangulation
+			//if(LowV[i].z()-mTol <= allLevels[IDlevel] && LowV[i].z()+mTol > allLevels[IDlevel] || i == (mSpaces.size()-1)) // NOTE: last space is the bounding box, so variables need to be included to get a correct delaunay triangulation per elevation
+			{
+				// Add all unique cornerpoints spaceGEOM to the delaunayPoints
+				for(const auto& j: spaceGeom)
+				{
+					utilities::geometry::vertex temp = {j.x(),j.y(),allLevels[IDlevel]};
+
+					bool doubleInsert = false;
+					for (const auto& m : delaunayPointsAtLevel.back().second)
+					{// check if temp already exist in delauneyPoints
+						if (m == temp)
+						{
+							doubleInsert = true;
+						}
+					}
+					if(doubleInsert == false)
+					{//if not, then add to delaunayPoints
+						delaunayPointsAtLevel.back().second.push_back(temp);
+					}
+				}
+
+				for (const auto& k : spaceGeom.getLines())
+				{
+					// Add the unique lines of each spaceGEOM to delaunayLines
+					utilities::geometry::vertex Ltemp1 = {k[0].x(),k[0].y(),allLevels[IDlevel]};
+					utilities::geometry::vertex Ltemp2 = {k[1].x(),k[1].y(),allLevels[IDlevel]};
+					utilities::geometry::line_segment Ltemp {{Ltemp1},{Ltemp2}}; //Note the line is newly defined for the case that some round of error occur during the shifting of the lines of the spacesAtGround[i]
+					
+					bool doubleInsert = false;
+					for (const auto& m : delaunayLinesAtLevel.back().second)
+					{// Check if line k already exist in delauneyPoints
+						if (m.isSameAs(Ltemp, mTol))
+						{
+							doubleInsert = true;
+						}
+					}
+					if(Ltemp1.isSameAs(Ltemp2, mTol))
+					{// Check if line has different end points
+						doubleInsert = true;
+					}
+					if(doubleInsert == false)
+					{// If both agree, then add to delaunayLines
+						delaunayLinesAtLevel.back().second.push_back(Ltemp);
+					}
+				}
+			}
+		}
+	}
+
+	// Split lines at intersection vertices and remove duplicated lines
+	for(unsigned int i=0; i<allLevels.size()-1; i++)
+	{
+		bso::utilities::splitLines(delaunayPointsAtLevel[i].second, delaunayLinesAtLevel[i].second, mTol);// this prevent the generation of triangles on one line or triangles containing duplicate vertices
+	}
+
+	// Send all vertices and constrain lines to the delaunay triangulation, receive all triangles, and project them to the correct level for later use
+	std::vector<std::pair<double,std::vector<utilities::geometry::triangle>>> delaunayTriAtLevel;
+	for(unsigned int i=0; i<allLevels.size()-1; i++)
+	{
+		std::vector<utilities::geometry::triangle> trianglesTemp = bso::utilities::delaunay(delaunayPointsAtLevel[i].second, delaunayLinesAtLevel[i].second, mTol);
+		std::vector<utilities::geometry::triangle> triAtLevel;
+		// project triangles to the correct level
+		for(auto& tri: trianglesTemp)
+		{
+			utilities::geometry::triangle temp = {{tri[0].x(),tri[0].y(),allLevels[i]}, {tri[1].x(),tri[1].y(),allLevels[i]}, {tri[2].x(),tri[2].y(),allLevels[i]}};
+			triAtLevel.push_back(temp);
+		}
+		delaunayTriAtLevel.push_back(std::make_pair(allLevels[i],triAtLevel));
+	}
+
+	// Initiate output file stream
+	std::ofstream output;
+	if (!fileName.empty()) output.open(fileName.c_str());
+	
+	if (fileName.empty() || !output.is_open())
+	{
+		std::stringstream errorMessage;
+		errorMessage << "Could not open the following file to write a conformal model design to:" << std::endl
+								<< ((fileName.empty())? "no input file given" : fileName) << std::endl
+								<< "(bso/spatial_design/conformal/cf_building_model.cpp). " << std::endl;
+		throw std::invalid_argument(errorMessage.str());
+	}
+
+	// initialize delaunayTriAtLevelInSpace with all bool set to false reflecting the nr. triangles at each level as in delaunayTriAtLevel
+	std::vector<std::pair<double,std::vector<bool>>> delaunayTriAtLevelInSpace;
+	delaunayTriAtLevelInSpace.resize(delaunayTriAtLevel.size());
+	for(unsigned int i=0; i<delaunayTriAtLevel.size(); i++)
+	{
+		delaunayTriAtLevelInSpace[i].first = delaunayTriAtLevel[i].first;
+		delaunayTriAtLevelInSpace[i].second.resize(delaunayTriAtLevel[i].second.size(), false);
+	}
+
+	// Identify which triangles should be used to generate a triangular prism cell in the space and generate that space and accompanying geometric entities
+	std::vector<utilities::geometry::triangular_prism> triPrismBoundingBox;
+	for(int IDSpace=0; IDSpace<mSpaces.size()-1; IDSpace++)
+	{
+		// Get spaceGEOM
+		utilities::geometry::quad_hexahedron spaceGeom = mSpaces[IDSpace]->getGeometry();
+		
+		// Find the triangles in the space
+		std::vector<std::pair<double,std::vector<utilities::geometry::triangle>>> triInSpaceAtLevel;
+		for(unsigned int j=0; j<delaunayTriAtLevel.size(); j++)
+		{
+			if(!(delaunayTriAtLevel[j].first > LowV[IDSpace].z()-mTol && delaunayTriAtLevel[j].first < highV[IDSpace].z()-mTol)) continue; // triangle is not defined within the level bounds of the considered space, so continue.
+			triInSpaceAtLevel.push_back(std::make_pair(delaunayTriAtLevel[j].first,std::vector<utilities::geometry::triangle>()));
+
+			for(unsigned int idT=0; idT<(delaunayTriAtLevel[j].second).size(); idT++) 
+			{
+				bool allNodesInside = true;
+				for(const auto k: (delaunayTriAtLevel[j].second)[idT]) // iterate trough the vertices of the triangle
+				{
+					if(!spaceGeom.isInsideOrOn(k, mTol))
+					{
+						// Additional checks for prevention malfunctioning, which has been previously observed
+						// Note; the tolerance of 0.001 is applied differently in each geometry check. 
+						// Meaning that in the isOnLine check, the considered vertices onLine are not by definition within +0.001 and -0.001 from the line in distance.
+						// However, within the isSameAs check are the vertices within 0.001 from each other
+						// For this reason are all possible geometry checks applied.
+						
+						bool anyTrue = false;
+						for(const auto l: spaceGeom.getLines())
+						{
+							if(l.isOnLine(k, mTol))
+							{
+								anyTrue = true;
+							}
+						}
+
+						for(const auto l : spaceGeom)
+						{
+							if(l.isSameAs(k, mTol))
+							{
+								anyTrue = true;
+							}
+						}
+
+						if(!anyTrue)
+						{
+							allNodesInside = false;
+						}
+					}
+				}
+				if(allNodesInside)
+				{
+					((triInSpaceAtLevel.back()).second).push_back((delaunayTriAtLevel[j].second)[idT]);
+					if(IDSpace != mSpaces.size()-1) {delaunayTriAtLevelInSpace[j].second[idT] = true;} // set the triangle as used
+				}
+			}
+		}
+		
+		for(const auto j: triInSpaceAtLevel)
+		{		
+			if(j.second.size() < 2)
+			{
+				std::stringstream errorMessage;
+				errorMessage << "The amount of triCell found are to little to form a space fully filled with triPrism cells.\n"
+										<< "The minumum required amount of triCells are 2 and the inserted amount is: " << j.second.size() << "\n"
+										<< "Meaning that there are tricell(s) missing. \n"
+										<< "The possibly found triCell consist of the following: " << std::endl;
+											for(const auto i: j.second)
+											{
+												errorMessage << i << std::endl;
+											}
+						errorMessage << "the considered space is: " << *mSpaces[IDSpace] << "\n"
+										<< "(bso/spatial_design/ms_N_building.cpp)" << std::endl;
+							throw std::invalid_argument(errorMessage.str());
+			}
+		}
+		
+		// Define all six vertices of the triangular prism and store in triPrism
+		std::vector<utilities::geometry::triangular_prism> triPrism;
+		for(unsigned int IDtriAtLevel = 0; IDtriAtLevel<triInSpaceAtLevel.size(); IDtriAtLevel++)
+		{
+			for(const auto tri: triInSpaceAtLevel[IDtriAtLevel].second)
+			{
+				std::vector<utilities::geometry::vertex> triPrismV;
+				triPrismV.reserve(6);
+				
+				//Generate triangular prism
+				triPrismV.clear();
+				for(const auto k: tri)
+				{// bottom row prisms
+					utilities::geometry::vertex high = {0,0,0};
+					if(IDtriAtLevel+1 >= triInSpaceAtLevel.size()){high = {k.x(), k.y(), highV[IDSpace].z()};}
+					else{high = {k.x(), k.y(), triInSpaceAtLevel[IDtriAtLevel+1].first};}
+					triPrismV.push_back(k);
+					triPrismV.push_back(high);
+				}
+				triPrism.push_back(utilities::geometry::triangular_prism(triPrismV, mTol));
+				triPrismBoundingBox.push_back(triPrism.back());
+			}
+		}
+
+		// Write the found triangular prisms in space to text file
+		output << mSpaces[IDSpace]->getID() << ", " << std::setprecision(std::numeric_limits<double>::max_digits10) << spaceGeom << std::endl;
+		for(const auto& TP: triPrism)
+		{
+			output << TP << std::endl;
+		}
+	}
+
+	// Write the bounding box triangles not belonging to a space to the text file:
+	// Get spaceGEOM
+	utilities::geometry::quad_hexahedron spaceGeom = mSpaces[mSpaces.size()-1]->getGeometry();
+
+	// Define all six vertices of the triangular prism and store in triPrism
+	std::vector<utilities::geometry::triangular_prism> triPrism;
+	for(unsigned int IDtriAtLevel = 0; IDtriAtLevel<delaunayTriAtLevel.size(); IDtriAtLevel++)
+	{
+		int IDCount = 0;
+		for(const auto tri: delaunayTriAtLevel[IDtriAtLevel].second)
+		{
+			// Only continue with the triangles that are not used in the previous spaces, i.e. outside of spaces and only existing in the bounding box
+			bool inSpace = (delaunayTriAtLevelInSpace[IDtriAtLevel].second)[IDCount];
+			IDCount++;
+			if(inSpace == true) continue;			
+
+			std::vector<utilities::geometry::vertex> triPrismV;
+			triPrismV.reserve(6);
+			
+			//Generate triangular prism
+			triPrismV.clear();
+			for(const auto k: tri)
+			{// bottom row prisms
+				utilities::geometry::vertex high = {0,0,0};
+				if(IDtriAtLevel+1 >= delaunayTriAtLevel.size()){high = {k.x(), k.y(), highV[mSpaces.size()-1].z()};}
+				else{high = {k.x(), k.y(), delaunayTriAtLevel[IDtriAtLevel+1].first};}
+				triPrismV.push_back(k);
+				triPrismV.push_back(high);
+			}
+			triPrism.push_back(utilities::geometry::triangular_prism(triPrismV, mTol));
+			triPrismBoundingBox.push_back(triPrism.back());
+		}
+	}
+
+	// Write the found triangular prisms in space to text file
+	output << mSpaces[mSpaces.size()-1]->getID() << ", " << std::setprecision(std::numeric_limits<double>::max_digits10) << spaceGeom << std::endl;
+	for(const auto& TP: triPrism)
+	{
+		output << TP << std::endl;
+	}
+
+	output.close(); // close the output file stream
+	return triPrismBoundingBox; // return the triPrism defined in the bounding box for later on visualizations
+}
+
+
 bool ms_N_building::operator == (const ms_N_building& rhs)
 {
 	if (mSpaces.size() != rhs.mSpaces.size()) return false;
@@ -860,6 +1517,48 @@ bool ms_N_building::operator != (const ms_N_building& rhs)
 {
 	return !(*this == rhs);
 }
+
+ms_N_building& ms_N_building::operator=(const ms_N_building& rhs) 
+{
+    if (this != &rhs) { // Prevent self-assignment
+        // Deep copy of mSpaces
+        for (auto* space : mSpaces) {
+            delete space; // Clean up existing spaces
+        }
+        mSpaces.clear();
+        for (const auto* space : rhs.mSpaces) {
+            if (space) {
+                mSpaces.push_back(new ms_space(*space)); // Deep copy each ms_space
+            }
+        }
+
+        // Copy other members
+        mLastSpaceID = rhs.mLastSpaceID;
+        insertFileName = rhs.insertFileName;
+    }
+    return *this;
+}
+
+// ms_N_building& ms_N_building::operator=(ms_N_building&& rhs) noexcept 
+// {
+//     if (this != &rhs) {
+//         // Clean up existing resources
+//         for (auto* space : mSpaces) {
+//             delete space;
+//         }
+//         mSpaces.clear();
+
+//         // Transfer ownership of resources
+//         mSpaces = std::move(rhs.mSpaces);
+//         mLastSpaceID = rhs.mLastSpaceID;
+//         insertFileName = std::move(rhs.insertFileName);
+
+//         // Leave rhs in a valid state
+//         rhs.mSpaces.clear();
+//         rhs.mLastSpaceID = 0;
+//     }
+//     return *this;
+// }
 
 std::ostream& operator <<(std::ostream& stream, const ms_N_building& building)
 {

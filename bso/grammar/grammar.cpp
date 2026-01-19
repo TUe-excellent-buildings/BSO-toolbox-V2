@@ -63,6 +63,97 @@ grammar::~grammar()
 	for (auto& i : mSurfaceProperties) delete i.second;
 	for (auto& i : mSpaceProperties) delete i.second;
 } // dtor()
+
+std::vector<bso::utilities::geometry::quadrilateral> grammar::getExteriorWalls()
+{
+	std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls;
+	std::map<spatial_design::conformal::cf_rectangle*, rule_set::rectangle_property*>::iterator it;
+	for (it = mRectangleProperties.begin(); it != mRectangleProperties.end(); it++)
+	{
+		if((it->second)->isWall() && (it->second)->isExternal())
+		{
+			exteriorWalls.push_back(*(it->first));
+		}
+	}
+	return exteriorWalls;
+}
+
+std::vector<bso::utilities::geometry::quadrilateral> grammar::getExteriorQuadrilaterals()
+{
+	std::vector<bso::utilities::geometry::quadrilateral> exteriorSurfaces;
+	std::map<spatial_design::conformal::cf_rectangle*, rule_set::rectangle_property*>::iterator it;
+	for (it = mRectangleProperties.begin(); it != mRectangleProperties.end(); it++)
+	{
+		if((it->second)->isExternal())
+		{
+			exteriorSurfaces.push_back(*(it->first));
+		}
+	}
+	return exteriorSurfaces;
+}
+
+std::vector<bso::spatial_design::conformal::cf_space*> grammar::getSpacesOnBoundary(bool spacesOnBottomIsAlsoBoundary)
+{
+	std::vector<bso::spatial_design::conformal::cf_space*> boundaryCFSpaces;
+	std::map<spatial_design::conformal::cf_rectangle*, rule_set::rectangle_property*>::iterator it;
+	for (it = mRectangleProperties.begin(); it != mRectangleProperties.end(); it++)
+	{
+		if((it->second)->isExternal())
+		{
+			// skip space where only the floor is an external surface if spacesOnBottomIsAlsoBoundary is false
+			if(!spacesOnBottomIsAlsoBoundary && (it->second)->isFloor()){continue;} 
+			for (auto& j : it->first->cfSurfaces())
+			{
+				for (auto& space : j->cfSpaces())
+				{
+					bool spaceAlreadyIncluded = false;
+					for(auto& existingSpace : boundaryCFSpaces)
+					{
+						if(existingSpace == space)
+						{
+							spaceAlreadyIncluded = true;
+							break;
+						}
+					}
+					if(!spaceAlreadyIncluded)
+					{
+						boundaryCFSpaces.push_back(space);
+					}				
+				}
+			}
+		}
+	}
+	std::map<spatial_design::conformal::cf_triangle*, rule_set::triangle_property*>::iterator itTri;
+	for (itTri = mTriangleProperties.begin(); itTri != mTriangleProperties.end(); itTri++)
+	{
+		if((itTri->second)->isExternal())
+		{
+			// Skip spaces where only the floor is an external surface if spacesOnBottomIsAlsoBoundary is false
+			if(!spacesOnBottomIsAlsoBoundary && (itTri->second)->isFloor()){continue;} 
+			for (auto& j : itTri->first->cfSurfaces())
+			{
+				for (auto& space : j->cfSpaces())
+				{
+					bool spaceAlreadyIncluded = false;
+					for(auto& existingSpace : boundaryCFSpaces)
+					{
+						if(existingSpace == space)
+						{
+							spaceAlreadyIncluded = true;
+							break;
+						}
+					}
+					if(!spaceAlreadyIncluded)
+					{
+						boundaryCFSpaces.push_back(space);
+					}				
+				}
+			}
+		}
+	}
+
+	return boundaryCFSpaces;
+}
 	
 } // namespace grammar
 } // namespace bso

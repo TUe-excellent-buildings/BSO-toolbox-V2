@@ -28,6 +28,7 @@ namespace bso { namespace utilities { namespace geometry {
 		bool isOnLine(const vertex& c, const double& tol = 1e-3) const;
 		bool intersectsWith(const line_segment& rhs, const double& tol = 1e-3) const;
 		bool intersectsWith(const line_segment& rhs, vertex& v, const double& tol = 1e-3) const;
+		bool getSmallestAngle(const line_segment& rhs, double& smallestAngle, const double& tol = 1e-3);
 		vertex getPointClosestTo(const vertex& p) const;
 		vector getVector(const bool& direction = 1) const; // 1 (true) for positive, 0 (false) for negative
 		double getLength() const;

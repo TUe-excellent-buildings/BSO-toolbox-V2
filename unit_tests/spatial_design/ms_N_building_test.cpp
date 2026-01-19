@@ -72,6 +72,44 @@ BOOST_AUTO_TEST_SUITE( building_N_initialization )
 		BOOST_REQUIRE(sstr.str() == "N,1,	0,0,0,	6000,0,0,	0,6000,0,	6000,6000,0,	0,0,6000,	6000,0,6000,	0,6000,6000,	6000,6000,6000");
 		BOOST_REQUIRE(b1.getSpacePtrs().size() == 1);
 	}
+
+	BOOST_AUTO_TEST_CASE(getSpacePtrWithID_returns_correct_pointer_and_throws_on_missing)
+{
+    // Create two simple spaces using the "N,<id>,..." textual definition.
+    // Coordinates are arbitrary but must form a valid 8-vertex definition for ms_space.
+    std::string s1 = "N,1, 0,0,0, 1,0,0, 0,1,0, 1,1,0, 0,0,1, 1,0,1, 0,1,1, 1,1,1";
+    std::string s2 = "N,2, 10,10,0, 11,10,0, 10,11,0, 11,11,0, 10,10,3, 11,10,3, 10,11,3, 11,11,3";
+
+    ms_space sp1(s1);
+    ms_space sp2(s2);
+
+    ms_N_building b;
+    // addSpace will make internal copies, preserving IDs from the ms_space objects
+    b.addSpace(sp1);
+    b.addSpace(sp2);
+
+    // Retrieve pointers to internal spaces and verify ID and identity
+    ms_space* p1 = b.getSpacePtrWithID(1);
+    ms_space* p2 = b.getSpacePtrWithID(2);
+
+    BOOST_REQUIRE(p1 != nullptr);
+    BOOST_REQUIRE(p2 != nullptr);
+    BOOST_CHECK_EQUAL(p1->getID(), 1u);
+    BOOST_CHECK_EQUAL(p2->getID(), 2u);
+
+    // Verify the returned pointers match one of the pointers in getSpacePtrs()
+    auto vec = b.getSpacePtrs();
+    bool found1 = false, found2 = false;
+    for (auto ptr : vec) {
+        if (ptr == p1) found1 = true;
+        if (ptr == p2) found2 = true;
+    }
+    BOOST_CHECK(found1);
+    BOOST_CHECK(found2);
+
+    // Asking for a non-existing ID should throw std::runtime_error
+    BOOST_CHECK_THROW(b.getSpacePtrWithID(9999), std::runtime_error);
+}
 	
 	BOOST_AUTO_TEST_CASE( initialize_from_file_3 )
 	{
@@ -292,7 +330,148 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 
 		BOOST_REQUIRE(round(b1.getVolume()) == 9);
 	}
-	
+
+	BOOST_AUTO_TEST_CASE( getFloorArea_2 )
+	{ 
+		ms_N_building b1("spatial_design/ms_N_test_8.txt");
+		BOOST_REQUIRE(b1.getFloorArea() == 1500000);
+	}
+
+	BOOST_AUTO_TEST_CASE(getNrElevations_basic_distinct_levels)
+	{
+		// space with bottom z=0 top z=2
+		std::string s1 = "N,1, 0,0,0, 1,0,0, 0,1,0, 1,1,0, 0,0,2, 1,0,2, 0,1,2, 1,1,2";
+		// space with bottom z=2 top z=4
+		std::string s2 = "N,2, 0,0,2, 1,0,2, 0,1,2, 1,1,2, 0,0,4, 1,0,4, 0,1,4, 1,1,4";
+		// space with bottom z=0 top z=4
+		std::string s3 = "N,3, 1,0,0, 2,0,0, 1,1,0, 2,1,0, 1,0,4, 2,0,4, 1,1,4, 2,1,4";
+
+		ms_space sp1(s1);
+		ms_space sp2(s2);
+		ms_space sp3(s3);
+
+		ms_N_building b;
+		b.addSpace(sp1);
+		b.addSpace(sp2);
+		b.addSpace(sp3);
+
+		// Expect two distinct elevation levels detected as the roof is not an elevation of a building
+		BOOST_CHECK_EQUAL(b.getNrElevations(), 2);
+	}
+
+	BOOST_AUTO_TEST_CASE(getNrElevations_tolerance_merging)
+	{
+		// base space center at 1.0
+		std::string s1 = "N,1, 0,0,0, 1,0,0, 0,1,0, 1,1,0, 0,0,2, 1,0,2, 0,1,2, 1,1,2";
+		// slightly shifted top such that center ~= 1.00025 (difference 0.00025)
+		std::string s_shifted = "N,2, 1,0,0, 2,0,0, 1,1,0, 2,1,0, 1,0,2.0005, 2,0,2.0005, 1,1,2.0005, 2,1,2.0005";
+
+		ms_space sp1(s1);
+		ms_space sp2(s_shifted);
+
+		ms_N_building b;
+		b.addSpace(sp1);
+		b.addSpace(sp2);
+
+		// default tolerance in getNrElevations is 1e-3; centers differ by ~2.5e-4 -> considered same
+		BOOST_CHECK_EQUAL(b.getNrElevations(), 1);
+	}
+
+	BOOST_AUTO_TEST_CASE(getAverageHorizontalRibSize_basic_cube)
+	{
+		// Define a unit cube (horizontal edge lengths = 1.0)
+		std::string s = "N,1, 0,0,0, 1,0,0, 0,1,0, 1,1,0, 0,0,1, 1,0,1, 0,1,1, 1,1,1";
+		ms_space sp(s);
+
+		ms_N_building b;
+		b.addSpace(sp);
+
+		// For a unit cube: bottom rectangle edges: two edges length 1, two edges length 1
+		// top rectangle same -> total horizontal edges considered should average to 1.0
+		double avg = b.getAverageHorizontalRibSize();
+		BOOST_CHECK_CLOSE(avg, 1.0, 1e-6); // relative tolerance 1e-6
+	}
+
+	BOOST_AUTO_TEST_CASE(getAverageHorizontalRibSize_multiple_spaces_averages_correctly)
+	{
+		// First cube: 1x1 base -> horizontal ribs = 1.0
+		std::string s1 = "N,1, 0,0,0, 1,0,0, 0,1,0, 1,1,0, 0,0,1, 1,0,1, 0,1,1, 1,1,1";
+		// Second rectangular prism: base 2 x 3 -> horizontal ribs lengths 2 and 3; average for that prism = (2+3+2+3+2+3+2+3)/8 = 2.5
+		std::string s2 = "N,2, 0,0,0, 2,0,0, 0,3,0, 2,3,0, 0,0,1, 2,0,1, 0,3,1, 2,3,1";
+
+		ms_space sp1(s1);
+		ms_space sp2(s2);
+
+		ms_N_building b;
+		b.addSpace(sp1);
+		b.addSpace(sp2);
+
+		// Compute expected average across both spaces:
+		// cube contributes avg 1.0 over 8 horizontal ribs -> sum = 8 * 1.0 = 8.0
+		// prism contributes avg 2.5 over 8 horizontal ribs -> sum = 8 * 2.5 = 20.0
+		// combined average = (8.0 + 20.0) / (8 + 8) = 28.0 / 16 = 1.75
+		double expected = 1.75;
+		double avg = b.getAverageHorizontalRibSize();
+		BOOST_CHECK_CLOSE(avg, expected, 1e-6);
+	}
+
+	BOOST_AUTO_TEST_CASE(getSpaceVolumeRatio_basic)
+	{
+		// Unit cube -> volume = 1
+		std::string s1 = "N,1, 0,0,0, 1,0,0, 0,1,0, 1,1,0, 0,0,1, 1,0,1, 0,1,1, 1,1,1";
+		// 2x2x2 cube -> volume = 8
+		std::string s2 = "N,2, 0,0,0, 2,0,0, 0,2,0, 2,2,0, 0,0,2, 2,0,2, 0,2,2, 2,2,2";
+
+		ms_space sp1(s1);
+		ms_space sp2(s2);
+
+		ms_N_building b;
+		b.addSpace(sp1);
+		b.addSpace(sp2);
+
+		double expected = 1.0 / 8.0; // minVolume / maxVolume
+		double ratio = b.getSpaceVolumeRatio();
+		BOOST_CHECK_CLOSE(ratio, expected, 1e-6);
+	}
+
+	BOOST_AUTO_TEST_CASE(getSpaceVolumeRatio_throws_with_insufficient_spaces)
+	{
+		std::string s = "N,1, 0,0,0, 1,0,0, 0,1,0, 1,1,0, 0,0,1, 1,0,1, 0,1,1, 1,1,1";
+		ms_space sp(s);
+		ms_N_building b;
+		b.addSpace(sp);
+
+		BOOST_CHECK_THROW(b.getSpaceVolumeRatio(), std::invalid_argument);
+	}
+
+	BOOST_AUTO_TEST_CASE(getSpaceFloorAreaRatio_basic)
+	{
+		// Unit square base -> floor area = 1
+		std::string s1 = "N,1, 0,0,0, 1,0,0, 0,1,0, 1,1,0, 0,0,1, 1,0,1, 0,1,1, 1,1,1";
+		// 2x2 base -> floor area = 4
+		std::string s2 = "N,2, 0,0,0, 2,0,0, 0,2,0, 2,2,0, 0,0,1, 2,0,1, 0,2,1, 2,2,1";
+
+		ms_space sp1(s1);
+		ms_space sp2(s2);
+
+		ms_N_building b;
+		b.addSpace(sp1);
+		b.addSpace(sp2);
+
+		double expected = 1.0 / 4.0; // minArea / maxArea
+		double ratio = b.getSpaceFloorAreaRatio();
+		BOOST_CHECK_CLOSE(ratio, expected, 1e-6);
+	}
+
+	BOOST_AUTO_TEST_CASE(getSpaceFloorAreaRatio_throws_with_insufficient_spaces)
+	{
+		std::string s = "N,1, 0,0,0, 1,0,0, 0,1,0, 1,1,0, 0,0,1, 1,0,1, 0,1,1, 1,1,1";
+		ms_space sp(s);
+		ms_N_building b;
+		b.addSpace(sp);
+
+		BOOST_CHECK_THROW(b.getSpaceFloorAreaRatio(), std::invalid_argument);
+	}
 	
 	BOOST_AUTO_TEST_CASE( setZZero_1 )
 	{
@@ -598,20 +777,94 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	BOOST_AUTO_TEST_CASE( scale_1 )
 	{ // test of an orthogonal design for scaling
 		ms_N_building b1("spatial_design/ms_N_test_3.txt");
-		std::stringstream sstr, check1, check2; 
-		
+
 		b1.scale({{0,1.5},{1,2},{2,1.23}});
-		sstr << b1;
-		check1 << "N,1,	0,0,857.31,	4500,0,857.31,	0,6000,857.31,	4500,6000,857.31,	0,0,4547.31,	4500,0,4547.31,	0,6000,4547.31,	4500,6000,4547.31" << std::endl
-					<< "N,2,	0,0,6150,	4500,0,6150,	0,6000,6150,	4500,6000,6150,	0,0,9840,	4500,0,9840,	0,6000,9840,	4500,6000,9840" ;
-		BOOST_REQUIRE(sstr.str() == check1.str());
-		sstr.str(std::string());
+
+		ms_space space1("N,1,	0,0,857.30999999999995,	4500,0,857.30999999999995,	0,6000,857.30999999999995,	4500,6000,857.30999999999995,   0,0,4547.3099999999995, 4500,0,4547.3099999999995,	0,6000,4547.3099999999995,	4500,6000,4547.3099999999995");
+		ms_space space2("N,2,    0,0,6150,       4500,0,6150,    0,6000,6150,    4500,6000,6150, 0,0,9840,       4500,0,9840,    0,6000,9840,    4500,6000,9840");
+
+		BOOST_REQUIRE(b1.getSpacePtrs().size() == 2);
+		
+		int count = 0;
+		for(auto& sp : b1)
+		{
+			if (count == 0)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space1.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			else if (count == 1)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space2.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			count++;
+		}
 
 		b1.scale();
-		sstr << b1;
-		check2 << "N,1,	0,0,857.31,	6363.96,0,857.31,	0,8485.28,857.31,	6363.96,8485.28,857.31,	0,0,4547.31,	6363.96,0,4547.31,	0,8485.28,4547.31,	6363.96,8485.28,4547.31" << std::endl
-					<< "N,2,	0,0,6150,	6363.96,0,6150,	0,8485.28,6150,	6363.96,8485.28,6150,	0,0,9840,	6363.96,0,9840,	0,8485.28,9840,	6363.96,8485.28,9840";
-		BOOST_REQUIRE(sstr.str() == check2.str());
+		
+		ms_space space3("N,1,      0,0,857.30999999999995, 6363.9610306789282,0,857.30999999999995,        0,8485.2813742385715,857.30999999999995,        6363.9610306789282,8485.2813742385715,857.30999999999995,       0,0,4547.3099999999995, 6363.9610306789282,0,4547.3099999999995,        0,8485.2813742385715,4547.3099999999995,        6363.9610306789282,8485.2813742385715,4547.3099999999995");
+		ms_space space4("N,2,    0,0,6150,       6363.9610306789282,0,6150,      0,8485.2813742385715,6150,      6363.9610306789282,8485.2813742385715,6150,     0,0,9840,       6363.9610306789282,0,9840,      0,8485.2813742385715,9840,      6363.9610306789282,8485.2813742385715,9840");
+
+		count = 0;
+		for(auto& sp : b1)
+		{
+			if (count == 0)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space3.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			else if (count == 1)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space4.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			count++;
+		}
 		
 		BOOST_REQUIRE_THROW(b1.scale({{3,1.5}}), std::invalid_argument);
 		BOOST_REQUIRE_THROW(b1.scale({{1,1.0},{1,1.0}}), std::invalid_argument);
@@ -620,20 +873,96 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	BOOST_AUTO_TEST_CASE( scale_2 )
 	{ // test of an non-orthogonal design for scaling
 		ms_N_building b1("spatial_design/ms_N_test_9.txt");
-		std::stringstream sstr, check1, check2; 
 		
 		b1.scale({{0,1.5},{1,2},{2,1.98}});
-		sstr << b1;
-		check1 << "N,1,	0,0,0,	4500,0,0,	0,8000,0,	6000,8000,0,	0,0,5940,	4500,0,5940,	0,8000,5940,	6000,8000,5940" << std::endl
-					<< "N,2,	0,0,5940,	4500,-4000,5940,	0,6000,5940,	4500,6000,5940,	0,0,15840,	4500,-4000,15840,	0,6000,15840,	4500,6000,15840" ;
-		BOOST_REQUIRE(sstr.str() == check1.str());
-		sstr.str(std::string());
+
+		ms_space space1("N,1,	0,0,0,	4500,0,0,	0,8000,0,	6000,8000,0,	0,0,5940,	4500,0,5940,	0,8000,5940,	6000,8000,5940");
+		ms_space space2("N,2,	0,0,5940,	4500,-4000,5940,	0,6000,5940,	4500,6000,5940,	0,0,15840,	4500,-4000,15840,	0,6000,15840,	4500,6000,15840");
+
+		BOOST_REQUIRE(b1.getSpacePtrs().size() == 2);
+		
+		int count = 0;
+		for(auto& sp : b1)
+		{
+			if (count == 0)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space1.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			else if (count == 1)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space2.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			count++;
+		}
 
 		b1.scale();
-		sstr << b1;
-		check2 << "N,1,	0,0,0,	6363.96,0,0,	0,11313.7,0,	8485.28,11313.7,0,	0,0,5940,	6363.96,0,5940,	0,11313.7,5940,	8485.28,11313.7,5940" << std::endl
-					<< "N,2,	0,0,5940,	6363.96,-5656.85,5940,	0,8485.28,5940,	6363.96,8485.28,5940,	0,0,15840,	6363.96,-5656.85,15840,	0,8485.28,15840,	6363.96,8485.28,15840" ;
-		BOOST_REQUIRE(sstr.str() == check2.str());
+
+		ms_space space3("N,1,       0,0,0,  6363.9610306789282,0,0, 0,11313.708498984761,0, 8485.2813742385715,11313.708498984761,0,        0,0,5940,       6363.9610306789282,0,5940,      0,11313.708498984761,5940,      8485.2813742385715,11313.708498984761,5940");
+		ms_space space4("N,2,    0,0,5940,       6363.9610306789282,-5656.8542494923804,5940,    0,8485.2813742385715,5940,      6363.9610306789282,8485.2813742385715,5940,     0,0,15840,      6363.9610306789282,-5656.8542494923804,15840,   0,8485.2813742385715,15840,   6363.9610306789282,8485.2813742385715,15840");
+
+		BOOST_REQUIRE(b1.getSpacePtrs().size() == 2);
+		
+		count = 0;
+		for(auto& sp : b1)
+		{
+			if (count == 0)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space3.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			else if (count == 1)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space4.getVertices())
+					{
+						if (v->isSameAs(*v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			count++;
+		}
 	}
 	
 	BOOST_AUTO_TEST_CASE( splitSpace_1a )
@@ -834,7 +1163,68 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		ms9.addSpace(ms_space("N, 2 ,	1500,500,1000,	2500,500,1000,	1000,1000,1000,	2000,1000,1000,	1500,500,2000,	2500,500,2000,	1000,1000,2000,	2000,1000,2000"));
 		BOOST_REQUIRE(!ms5.hasFloatingSpaces(floatingSpaces));
 	}
-	
+
+	BOOST_AUTO_TEST_CASE( isFragmented )
+	{
+		// Two cubes sharing a face (connected)
+		std::string s1 = "N,1, 0,0,0, 1,0,0, 0,1,0, 1,1,0, 0,0,1, 1,0,1, 0,1,1, 1,1,1";
+		std::string s2 = "N,2, 1,0,0, 2,0,0, 1,1,0, 2,1,0, 1,0,1, 2,0,1, 1,1,1, 2,1,1";
+		ms_space sp1(s1);
+		ms_space sp2(s2);
+		ms_N_building b;
+		std::vector<ms_space*> nonBiggest;
+		BOOST_REQUIRE(!b.isFragmented(nonBiggest)); // empty building is not fragmented
+		b.addSpace(sp1);
+		nonBiggest.clear();
+		BOOST_REQUIRE(!b.isFragmented(nonBiggest)); // single space is not fragmented
+		b.addSpace(sp2);
+		nonBiggest.clear();
+		bool fragmented = b.isFragmented(nonBiggest);
+
+		BOOST_CHECK_EQUAL(fragmented, false);
+		BOOST_CHECK(nonBiggest.empty());
+
+		// Add isolated cube at x = 10..11 (non-connected)
+    	std::string s3 = "N,3, 10,0,0, 11,0,0, 10,1,0, 11,1,0, 10,0,1, 11,0,1, 10,1,1, 11,1,1";
+		ms_space sp3(s3);
+		b.addSpace(sp3);
+		nonBiggest.clear();
+		fragmented = b.isFragmented(nonBiggest);
+		BOOST_CHECK_EQUAL(fragmented, true);
+		BOOST_CHECK(nonBiggest.size() == 1);
+
+		// Add additional isolated cube at x = 20..21 (non-connected)
+    	std::string sAd = "N,4, 20,0,0, 21,0,0, 20,1,0, 21,1,0, 20,0,1, 21,0,1, 20,1,1, 21,1,1";
+		ms_space spAd(sAd);
+		b.addSpace(spAd);
+		nonBiggest.clear();
+		fragmented = b.isFragmented(nonBiggest);
+		BOOST_CHECK_EQUAL(fragmented, true);
+		BOOST_CHECK(nonBiggest.size() == 2);
+
+		// Two cubes sharing a rib (connected)
+		ms_N_building b2;
+		b2.addSpace(sp1);
+		std::string s4 = "N,4, 1,1,0, 2,1,0, 1,2,0, 2,2,0, 1,1,1, 2,1,1, 1,2,1, 2,2,1";
+		ms_space sp4(s4);
+		b2.addSpace(sp4);
+		nonBiggest.clear();
+		fragmented = b2.isFragmented(nonBiggest);
+		BOOST_CHECK_EQUAL(fragmented, false);
+		BOOST_CHECK(nonBiggest.empty());
+
+		// Two cubes sharing a vertex (connected)
+		ms_N_building b3;
+		b3.addSpace(sp1);
+		std::string s5 = "N,5, 1,1,1, 2,1,1, 1,2,1, 2,2,1, 1,1,2, 2,1,2, 1,2,2, 2,2,2";
+		ms_space sp5(s5);
+		b3.addSpace(sp5);
+		nonBiggest.clear();
+		fragmented = b3.isFragmented(nonBiggest);
+		BOOST_CHECK_EQUAL(fragmented, false);
+		BOOST_CHECK(nonBiggest.empty());
+	}
+		
 	
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace spatial_design_test

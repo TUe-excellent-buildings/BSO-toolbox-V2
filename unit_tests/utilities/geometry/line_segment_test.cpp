@@ -213,6 +213,93 @@ BOOST_AUTO_TEST_SUITE( line_segment_tests )
 		BOOST_REQUIRE(check1.str() == "{{1,1.41,3},{4.12e+05,53.5,6}}");
 		BOOST_REQUIRE(check2.str() == "{{1,1.4142136,3},{412340,53.45678,6}}");
 	}
+
+	BOOST_AUTO_TEST_CASE(getSmallestAngle_parallel_segments_unconnected_lines)
+	{
+		// Two parallel line segments along x-axis
+		line_segment seg1 = {{0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+		line_segment seg2 = {{0.0, 1.0, 0.0}, {1.0, 1.0, 0.0}};
+
+		double angle = -999.0;
+		bool ok = seg1.getSmallestAngle(seg2, angle);
+
+		BOOST_CHECK(!ok); // Lines do not intersect or share an endpoint, as such, boolean should return false.
+	}
+
+	BOOST_AUTO_TEST_CASE(getSmallestAngle_parallel_segments_connected_lines)
+	{
+		// Two parallel line segments along x-axis
+		line_segment seg1 = {{0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+		line_segment seg2 = {{1.0, 0.0, 0.0}, {2.0, 0.0, 0.0}};
+		line_segment seg3 = {{0.5, 0.0, 0.0}, {1.5, 0.0, 0.0}};
+		line_segment seg4 = {{1.5, 0.0, 0.0}, {0.5, 0.0, 0.0}};
+
+		double angle = -999.0;
+		bool ok = seg1.getSmallestAngle(seg2, angle);
+
+		BOOST_CHECK(ok); // Lines do not intersect or share an endpoint, as such, boolean should return false.
+		BOOST_CHECK_CLOSE(angle, 0.0, 1e-3); // tolerance in percent (1e-3%)
+
+		ok = seg1.getSmallestAngle(seg3, angle);
+
+		BOOST_CHECK(ok);
+		BOOST_CHECK_CLOSE(angle, 0.0, 1e-3); // tolerance in percent (1e-3%)
+
+		ok = seg1.getSmallestAngle(seg4, angle);
+
+		BOOST_CHECK(ok);
+		BOOST_CHECK_CLOSE(angle, 0.0, 1e-3); // tolerance in percent (1e-3%)
+	}
+
+	BOOST_AUTO_TEST_CASE(getSmallestAngle_perpendicular_segments_ninety_degrees)
+	{
+		// seg1 along x-axis, seg2 along y-axis
+		line_segment seg1 = {{0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+		line_segment seg2 = {{0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}};
+
+		double angle = -999.0;
+		bool ok = seg1.getSmallestAngle(seg2, angle);
+
+		BOOST_CHECK(ok);
+		BOOST_CHECK_CLOSE(angle, 90.0, 1e-3); // tolerance in percent (1e-3%)
+	}
+
+	BOOST_AUTO_TEST_CASE(getSmallestAngle_opposite_directions_zero_degrees)
+	{
+		// seg1: (0,0,0)->(1,0,0)  seg2: (1,0,0)->(0,0,0) => opposite but parallel => angle 0
+		line_segment seg1 = {{0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+		line_segment seg2 = {{1.0, 0.0, 0.0}, {0.0, 0.0, 0.0}};
+
+		double angle = -999.0;
+		bool ok = seg1.getSmallestAngle(seg2, angle);
+
+		BOOST_CHECK(ok);
+		BOOST_CHECK_SMALL(angle, 1e-6); // smallest angle between opposite parallel is 0
+	}
+
+	BOOST_AUTO_TEST_CASE(getSmallestAngle_returns_false_for_degenerate_segment)
+	{
+		// Degenerate segment (zero length)
+		line_segment degSeg = {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}};
+		line_segment validSeg = {{0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+
+		double angle = -999.0;
+		bool ok = degSeg.getSmallestAngle(validSeg, angle);
+
+		BOOST_CHECK(!ok); // should return false for degenerate segment
+	}
+
+	BOOST_AUTO_TEST_CASE(getSmallestAngle_returns_false_for_unconnected_line_segments)
+	{
+		// Unconnected line segments
+		line_segment line1 = {{0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+		line_segment unconnectedLine = {{2.0, 0.0, 0.0}, {3.0, 1.0, 0.0}};
+
+		double angle = -999.0;
+		bool ok = line1.getSmallestAngle(unconnectedLine, angle);
+
+		BOOST_CHECK(!ok); // should return false for unconnected line segments
+	}
 	
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace geometry_test

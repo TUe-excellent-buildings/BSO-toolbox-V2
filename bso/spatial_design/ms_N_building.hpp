@@ -22,17 +22,27 @@ public:
 	ms_N_building(const ms_N_building& rhs); // copy constructor
 	~ms_N_building(); // destructor
 	
-	// Space analysis functions
+	// Building spatial design analysis functions
 	const std::string getInsertFileName() const{return insertFileName;}																	 
 	void writeToFile(std::string fileName) const;
 	std::vector<ms_space*> getSpacePtrs() const;
 	ms_space* getSpacePtr(const ms_space& space) const;
 	ms_space* getSpacePtr(const ms_space* spacePtr) const; // the spacePtr that was passed may belong to another instance of ms_building
+	ms_space* getSpacePtrWithID(unsigned int id) const; // the spacePtr that was passed may belong to another instance of ms_building
 	unsigned int getLastSpaceID() const;
 	double getVolume() const;
-	double getFloorArea() const;
+	double getFloorArea() const; 
+	int getNrElevations(const double mTol = 1e-3) const; // returns the number of distinct floor levels in the building, mTol is the tolerance for merging elevation levels
+	double getAverageHorizontalRibSize() const; // returns the average horizontal rib size of all spaces in the building
+	double getSpaceVolumeRatio() const; // returns the ratio between the smallest and largest space volume in the building
+	void getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);// returns box plot values of space volumes in the building; space volume is times *1e-9, i.e. mm3 to m3
+	double getSpaceFloorAreaRatio() const; // returns the ratio between the smallest and largest space floor area in the building
+	std::vector<double> getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);
+	double getAverageRecDif() const; // provide average recDif value of all spaces; Note: recDif is a measure of how rectangular a quadrilateral is, see utilities/geometry/quadrilateral.hpp for more information
 	bool hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 		const double tol = 1e-3) const; 
+	bool isFragmented(std::vector<ms_space*>& spacesNonBiggestFragment, 
+			const double tol = 1e-3) const;
 
 	// Representation adjustment functions
 	void setZZero(); 
@@ -50,11 +60,14 @@ public:
 	const auto end() const {return mSpaces.end();}
 	
 	// Translational function to Leiden
-	void addBoundary();
+	void addBoundary(); // Add a boundary line and uses the conformal making process for making a Prism-Net representation
+	std::vector<utilities::geometry::triangular_prism> convertMSToPN(std::string fileName, double mTol = 0.001); // Uses less triangles and more spread to make a prism-net (PN) representation from Leiden
 	
 	bool operator == (const ms_N_building& rhs);
 	bool operator != (const ms_N_building& rhs);
-	
+	ms_N_building& operator=(const ms_N_building& rhs); // Assignment operator, needed for proper copy of mSpaces when assigning content of an object to another object
+	//ms_N_building& operator=(ms_N_building&& rhs) noexcept; // Move assignment operator
+
 	friend std::ostream& operator<< (std::ostream& stream, const ms_N_building& building);
 };
 
