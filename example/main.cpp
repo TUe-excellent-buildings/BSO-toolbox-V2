@@ -1,4 +1,4 @@
-#include <bso/spatial_design/ms_building.hpp>
+#include <bso/spatial_design/ms_N_building.hpp>
 #include <bso/spatial_design/cf_building.hpp>
 #include <bso/structural_design/sd_model.hpp>
 #include <bso/building_physics/bp_model.hpp>
@@ -8,7 +8,7 @@
 int main(int argc, char* argv[])
 {
  // initialize a movable sizable model named MS
- bso::spatial_design::ms_building MS("ms_input_file.txt");
+ bso::spatial_design::ms_N_building MS("ms_N_input_file.txt");
 
  // convert MS to a conformal model name CF
  bso::spatial_design::cf_building CF(MS);
@@ -45,8 +45,8 @@ std::cout << "Total cooling energy: " << BP.getTotalResults().mTotalCoolingEnerg
  // visualize the different models
  bso::visualization::initVisualization(argc, argv);
  bso::visualization::visualize(MS);
- bso::visualization::visualize(CF,"rectangle");
- bso::visualization::visualize(CF,"cuboid");
+ bso::visualization::visualize(CF,"trirec");
+ bso::visualization::visualize(CF,"triangular_prism");
  bso::visualization::visualize(SD,"component");
  bso::visualization::visualize(SD,"element");
  bso::visualization::visualize(BP);
