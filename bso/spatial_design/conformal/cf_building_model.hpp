@@ -18,6 +18,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		void addSpace(const ms_space& msSpace); // defines an initial geometry conformal model to partition and a finished building conformal model
 		void addSpace(const ms_space& msSpace, std::vector<utilities::geometry::quad_hexahedron> quadHexa); // Add space with known conformal cuboids, no need for making it conformal!
 		void makeConformal(); // orthogonal BSD partitioning method
+		void makeConformal(std::vector<utilities::geometry::vertex> addConstrainVertexes); // ortogoal BSD paritioning method
 		
 		// Triangulation partitioning method functions for non-orthogonal BSDs (see public addSpaceD function for last function used for the method)
 		void addSpaceD(const ms_space& msSpace, std::vector<utilities::geometry::triangular_prism> triPrismPtr); // Generates the final building- and geometry-conformal model after partitioning.
@@ -28,6 +29,9 @@ namespace bso { namespace spatial_design { namespace conformal {
 		ms_N_building mMSNModel; 
 		std::vector<utilities::geometry::triangular_prism> triPrismInput;
 		std::vector<utilities::geometry::quad_hexahedron> quadHexaInput;
+		std::vector<bso::utilities::geometry::vertex> constrainVertexes;
+		std::string mfileNameDLSettings = ""; 
+		std::vector<std::tuple<unsigned int, std::vector<bso::utilities::geometry::vertex>>> ConstrainsPerSpaceQH;
 
 		double mTol;
 		
@@ -41,6 +45,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 	public:
 		cf_building_model(const cf_building_model& rhs); //copy constructor
 		cf_building_model(const ms_building& msModel, const double& tol = 1e-3);
+		cf_building_model(const ms_building& msModel, const std::string& fileNameDLSettings, const double& tol = 1e-3);
 		cf_building_model(const ms_building& msModel, const std::vector<utilities::geometry::quad_hexahedron>& quadHexa, const double& tol = 1e-3); // Insert an already valid conformal geometry represented in quad_hexehedrons
 		cf_building_model(const ms_N_building& msModel, const double& tol = 1e-3);
 		cf_building_model(const ms_N_building& msModel, const std::vector<utilities::geometry::triangular_prism>& triPrismPtr, const double& tol = 1e-3); // Insert an already valid conformal geometry represented in triangular prims
@@ -58,6 +63,9 @@ namespace bso { namespace spatial_design { namespace conformal {
 		const std::vector<utilities::geometry::line_segment> getDelauneyLines() const {return delauneyLines;} 
 		const std::vector<utilities::geometry::triangle> getDelaunayTri() const {return delaunayTri;} 
 
+		//function to give access to 
+		const std::vector<std::tuple<unsigned int, std::vector<bso::utilities::geometry::vertex>>> getConstrainsPerSpaceQH() {return ConstrainsPerSpaceQH;}
+		
 		friend std::ostream& operator << (std::ostream& stream, const cf_building_model& building);
 	};
 	
