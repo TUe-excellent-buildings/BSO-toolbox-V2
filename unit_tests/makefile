@@ -1,14 +1,27 @@
 #libraries
 BOOST   = /usr/include/boost
 EIGEN   = /usr/include/eigen
-#FADE	= /home/tessa/Libaries/fadeRelease_v1.93/fadeRelease_v1.93
 BSO     = ..
 ALL_LIB = -I$(BOOST) -I$(EIGEN) -I$(BSO)
 
+# set DELAUNAY=cgal (default) or DELAUNAY=fade when invoking make to choose the Delaunay triangulation backend
+DELAUNAY ?= fade
+FADE_ROOT ?= /home/tessa/Libaries/fadeRelease_v1.93/fadeRelease_v1.93
+ifeq ($(DELAUNAY),fade)
+	DELAUNAY_FLAGS = -lfade2d
+	DELAUNAY_DEFS = -DBSO_USE_FADE
+	D_LIB = $(DELAUNAY_DEFS) -I${FADE_ROOT}/include_fade2d
+else ifeq ($(DELAUNAY),cgal)
+	DELAUNAY_FLAGS = -lgmp
+	DELAUNAY_DEFS = -DBSO_USE_CGAL
+	D_LIB = $(DELAUNAY_DEFS)
+else
+	$(error Unknown DELAUNAY "$(DELAUNAY)". Use cgal or fade.)
+endif
+
 #compiler settings
 CPP   = g++ -std=c++17
-FLAGS  = -O -march=native -lboost_unit_test_framework -lglut -lGL -lGLU -lpthread -lgmp #-lfade2d Either use face_2d or -lgmp for CGAl for constrained delaunay triangulation
-D_LIB  = #-I${FADE}/include_fade2d
+FLAGS  = -O -march=native -lboost_unit_test_framework -lglut -lGL -lGLU -lpthread $(DELAUNAY_FLAGS)
 
 #test suites
 MS_SPACE    = $(BSO)/unit_tests/spatial_design/ms_space_test.cpp

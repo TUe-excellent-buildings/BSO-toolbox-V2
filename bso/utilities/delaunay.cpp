@@ -2,28 +2,34 @@
 #define DELAUNAY_CPP
 
 #include <bitset>
-//#include <Fade_2D.h>
-//#include <FadeExport.h>
 #include <iomanip> // Allowes to use std::setprecision() to be able to enlarge the decimals printed to the console of a double		
 #include <vector>
 #include <map>
 #include <bso/utilities/geometry.hpp>
 
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Constrained_Delaunay_triangulation_2.h>
-#include <CGAL/Triangulation_face_base_with_info_2.h>
-#include <CGAL/Triangulation_vertex_base_with_info_2.h>
+#if defined(BSO_USE_FADE)
+	#include <Fade_2D.h>
+	#include <FadeExport.h>
+#endif
+#if defined(BSO_USE_CGAL)
+	#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+	#include <CGAL/Constrained_Delaunay_triangulation_2.h>
+	#include <CGAL/Triangulation_face_base_with_info_2.h>
+	#include <CGAL/Triangulation_vertex_base_with_info_2.h>
 
-// CGAL type definitions
-typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef CGAL::Triangulation_vertex_base_with_info_2<unsigned, K> Vb;
-typedef CGAL::Constrained_triangulation_face_base_2<K> Fb;
-typedef CGAL::Triangulation_data_structure_2<Vb, Fb> TDS;
-typedef CGAL::Constrained_Delaunay_triangulation_2<K, TDS> CDT;
-typedef CDT::Point Point;
-typedef CDT::Vertex_handle Vertex_handle;
+	// CGAL type definitions
+	typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+	typedef CGAL::Triangulation_vertex_base_with_info_2<unsigned, K> Vb;
+	typedef CGAL::Constrained_triangulation_face_base_2<K> Fb;
+	typedef CGAL::Triangulation_data_structure_2<Vb, Fb> TDS;
+	typedef CGAL::Constrained_Delaunay_triangulation_2<K, TDS> CDT;
+	typedef CDT::Point Point;
+	typedef CDT::Vertex_handle Vertex_handle;
+#endif
 
 namespace bso { namespace utilities {
+
+#if defined(BSO_USE_CGAL)
 
 	std::vector<utilities::geometry::triangle> extractTriangles(const CDT& cdt, const double mTol)
 	{
@@ -46,7 +52,11 @@ namespace bso { namespace utilities {
 			}
 			catch(std::exception& e)
 			{
-				// skip unviable triangles
+				// skip unvisble triangles according to BSO-toolbox constraints and tolerances
+				std::cout << "WARNING: A triangle could not be created during the "
+						  << "extraction of triangles from the CGAL Delaunay triangulation. \n"
+						  << "Error message: \n" << e.what() << "\n"
+						  << "(bso/utilities/delaunay)." << std::endl;
 				continue;
 			}
 		}
@@ -57,7 +67,7 @@ namespace bso { namespace utilities {
 	std::vector<utilities::geometry::triangle> delaunay(
 		const std::vector<utilities::geometry::vertex> delaunayPoints,
 		const std::vector<utilities::geometry::line_segment> delaunayLines,
-		const double mTol
+		const double mTol, const bool outputPs /*= false*/
 		)
 	{
 		// CHECK INPUT
@@ -187,166 +197,179 @@ namespace bso { namespace utilities {
 						 << "(bso/utilities/delaunay)." << std::endl;
 			throw std::runtime_error(errorMessage.str());
 		}
+
+		// // export a ps file for visualisation if needed
+		// if(outputPs)
+		// {
+		// 	std::ofstream psFile("delaunayTriangulation.ps");
+		// 	cdt.draw_ps(psFile);
+		// 	psFile.close();
+		// }
+
 		return delaunayTri;
 	}
+
+#endif // !defined(BSO_USE_FADE)
 	
+#if defined(BSO_USE_FADE)
+	std::vector<utilities::geometry::triangle> delaunay(const std::vector <utilities::geometry::vertex> delaunayPoints, const std::vector <utilities::geometry::line_segment> delaunayLines, const double mTol, const bool outputPs)
+	{
+		// Input check
+		if(delaunayPoints.size() <= 2)
+		{
+			std::stringstream errorMessage;
+				errorMessage << "\nError, the inserted points in the delaunay triangulation are less then three. \n"
+					 << "Meaning that a delaunay triangulation can not be generated. \n"
+					 << "(bso/utilities/delaunay)." << std::endl;
+				throw std::runtime_error(errorMessage.str());
+		}		
+
+		//Check the constrain lines
+		std::vector<utilities::geometry::vertex> noDelauneyPoint;
+		std::vector<utilities::geometry::vertex> pointOnConstraintLine;
+		std::vector<utilities::geometry::line_segment> contrainLines;
+		for(auto t: delaunayLines)
+		{
+			for(const auto k: t)
+			{				
+				bool found = false;
+				for(const auto u: delaunayPoints) 
+				{
+					if(u.isSameAs(k)) found = true;
+				}
+				if(!found)
+				{
+					noDelauneyPoint.push_back(k);
+				}
+				if(t.isOnLine(k))
+				{
+					pointOnConstraintLine.push_back(k);
+				}
+			}
+			for(auto k: delaunayLines)
+			{
+				if(k.isSameAs(t, mTol)){continue;}
+				for(const auto s: k)
+				{
+					if(t.isOnLine(s, mTol))
+					{
+						pointOnConstraintLine.push_back(s);
+						contrainLines.push_back(t);
+					}
+				}
+			}
+		}
+		if(noDelauneyPoint.size() > 0)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "The following vertices are end vertices of the constraint lines, but not a delaunay points (Checked with tolerance): " << std::endl;
+			for(const auto t: noDelauneyPoint){errorMessage << t;}
+			errorMessage << std::endl	
+						 << "The following are the delauney points: " << std::endl;
+			for(const auto t: delaunayPoints){errorMessage << t << " ; ";}	
+			errorMessage << std::endl;
+			errorMessage << "(bso/utilities/delaunay)." << std::endl;
+			throw std::runtime_error(errorMessage.str());
+		}
+		if(pointOnConstraintLine.size() > 0)
+		{
+			std::stringstream errorMessage;
+			int counter=0;
+			errorMessage << "The following vertices are vertices on the constrain line, this is not allowed and should have been solved in the splitLines function. See the following vertices: " << std::endl;
+			for(const auto t: pointOnConstraintLine)
+			{
+				errorMessage << "vertex: " << t << " has been found on: " << contrainLines[counter] << std::endl;
+				counter++;
+			}
+			errorMessage << "(bso/utilities/delaunay)." << std::endl;
+			throw std::runtime_error(errorMessage.str());
+		}
+		
+
+		// Start Delaunay triangulation process
+		// start adding the points/constrainLines to delaunay triangulation algorithm Fade_2D
+		GEOM_FADE2D::Fade_2D dt;
+		
+		for(const auto i: delaunayPoints)
+		{
+			dt.insert(GEOM_FADE2D::Point2(i.x(),i.y()));
+		}
+		std::vector<GEOM_FADE2D::Segment2> vSegments;
+		for(const auto i: delaunayLines)
+		{
+			vSegments.push_back(GEOM_FADE2D::Segment2(GEOM_FADE2D::Point2(i[0].x(),i[0].y()),GEOM_FADE2D::Point2(i[1].x(),i[1].y())));
+		}
+		GEOM_FADE2D::ConstraintGraph2* pCG=dt.createConstraint(vSegments,GEOM_FADE2D::CIS_CONSTRAINED_DELAUNAY);
+		
+		
+		// Makes the constrained delaunay a delaunay respecting the boundaries by adding the intersection point found on the boundary after delaunay
+		bool applyConstrainedDelaunay = true;
+		if(!applyConstrainedDelaunay)
+		{
+			double minLen(0.1);
+			pCG->makeDelaunay(minLen);
+		}
+
+		// Draw; generate a Design.ps file for visualization in for example illustrator 
+		if(outputPs) dt.show("Design.ps",true);		
+
+		// Export fade2D data to Toolbox information format
+		GEOM_FADE2D::FadeExport fadeExport;
+		bool bCustomIndices(false); // To retrieve custom indices also
+		bool bClear(false); // Clear memory in $dt
+		dt.exportTriangulation(fadeExport,bCustomIndices,bClear);
+		
+		std::vector<utilities::geometry::triangle> delaunayTri; // fade_2D resulting delaunay triangles, but defined in BSO toolbox geometry classes
+		for(int triIdx=0;triIdx<fadeExport.numTriangles;++triIdx)
+		{ // Iterate through each triangle in Fade_2D and store triangle in Toolbox entities
+			int vtxIdx0,vtxIdx1,vtxIdx2;
+			fadeExport.getCornerIndices(triIdx,vtxIdx0,vtxIdx1,vtxIdx2);
+			
+			double x0,y0;
+			double x1,y1;
+			double x2,y2;
+			fadeExport.getCoordinates(vtxIdx0,x0,y0);
+			fadeExport.getCoordinates(vtxIdx1,x1,y1);
+			fadeExport.getCoordinates(vtxIdx2,x2,y2);
+			
+			// Define triangle in Toolbox entities
+			utilities::geometry::vertex C1 = {x0,y0,0};
+			utilities::geometry::vertex C2 = {x1,y1,0};
+			utilities::geometry::vertex C3 = {x2,y2,0};
+			
+			try
+			{
+				utilities::geometry::triangle tri = {{C1},{C2},{C3}};
+				delaunayTri.push_back(tri);
+			}
+			catch(std::exception& e)
+			{
+				// Skip unviable triangles for the BSO toolbox
+					// This is needed since FADE_2D calculates with a finer tolerance then the BSO toolbox allows.
+					// Therefore, FADE_2D create unlogical triangles from the BSO Toolbox perspective regarding the BSO toolbox tolerances
+					// the main reasons to skip a triangle are as follows:
+					// - two cornerpoints of a single triangle are the same according to the BSO toolbox tolerances.
+					// - the three points of the triangle are on the same line in accordance to the BSO toolbox tolerances.
+					// See paper automatic partitioning methods for more information.
+				continue;
+			}
+		}
+		
+		if(delaunayTri.size() == 0)
+		{
+			std::stringstream errorMessage;
+				errorMessage << "\nError, there are no triangle generated during the delaunay triangulation. \n"
+					 << "(bso/utilities/delaunay)." << std::endl;
+				throw std::runtime_error(errorMessage.str());
+		}
+		
+		return delaunayTri;
+	} //delaunay()
+
 	
-	// std::vector<utilities::geometry::triangle> delaunay(const std::vector <utilities::geometry::vertex> delaunayPoints, const std::vector <utilities::geometry::line_segment> delaunayLines, const double mTol, bool outputPs)
-	// {
-	// 	// Input check
-	// 	if(delaunayPoints.size() <= 2)
-	// 	{
-	// 		std::stringstream errorMessage;
-	// 			errorMessage << "\nError, the inserted points in the delaunay triangulation are less then three. \n"
-	// 				 << "Meaning that a delaunay triangulation can not be generated. \n"
-	// 				 << "(bso/utilities/delaunay)." << std::endl;
-	// 			throw std::runtime_error(errorMessage.str());
-	// 	}		
-
-	// 	//Check the constrain lines
-	// 	std::vector<utilities::geometry::vertex> noDelauneyPoint;
-	// 	std::vector<utilities::geometry::vertex> pointOnConstraintLine;
-	// 	std::vector<utilities::geometry::line_segment> contrainLines;
-	// 	for(auto t: delaunayLines)
-	// 	{
-	// 		for(const auto k: t)
-	// 		{				
-	// 			bool found = false;
-	// 			for(const auto u: delaunayPoints) 
-	// 			{
-	// 				if(u.isSameAs(k)) found = true;
-	// 			}
-	// 			if(!found)
-	// 			{
-	// 				noDelauneyPoint.push_back(k);
-	// 			}
-	// 			if(t.isOnLine(k))
-	// 			{
-	// 				pointOnConstraintLine.push_back(k);
-	// 			}
-	// 		}
-	// 		for(auto k: delaunayLines)
-	// 		{
-	// 			if(k.isSameAs(t, mTol)){continue;}
-	// 			for(const auto s: k)
-	// 			{
-	// 				if(t.isOnLine(s, mTol))
-	// 				{
-	// 					pointOnConstraintLine.push_back(s);
-	// 					contrainLines.push_back(t);
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// 	if(noDelauneyPoint.size() > 0)
-	// 	{
-	// 		std::stringstream errorMessage;
-	// 		errorMessage << "The following vertices are end vertices of the constraint lines, but not a delaunay points (Checked with tolerance): " << std::endl;
-	// 		for(const auto t: noDelauneyPoint){errorMessage << t;}
-	// 		errorMessage << std::endl	
-	// 					 << "The following are the delauney points: " << std::endl;
-	// 		for(const auto t: delaunayPoints){errorMessage << t << " ; ";}	
-	// 		errorMessage << std::endl;
-	// 		errorMessage << "(bso/utilities/delaunay)." << std::endl;
-	// 		throw std::runtime_error(errorMessage.str());
-	// 	}
-	// 	if(pointOnConstraintLine.size() > 0)
-	// 	{
-	// 		std::stringstream errorMessage;
-	// 		int counter=0;
-	// 		errorMessage << "The following vertices are vertices on the constrain line, this is not allowed and should have been solved in the splitLines function. See the following vertices: " << std::endl;
-	// 		for(const auto t: pointOnConstraintLine)
-	// 		{
-	// 			errorMessage << "vertex: " << t << " has been found on: " << contrainLines[counter] << std::endl;
-	// 			counter++;
-	// 		}
-	// 		errorMessage << "(bso/utilities/delaunay)." << std::endl;
-	// 		throw std::runtime_error(errorMessage.str());
-	// 	}
-		
-
-	// 	// Start Delaunay triangulation process
-	// 	// start adding the points/constrainLines to delaunay triangulation algorithm Fade_2D
-	// 	GEOM_FADE2D::Fade_2D dt;
-		
-	// 	for(const auto i: delaunayPoints)
-	// 	{
-	// 		dt.insert(GEOM_FADE2D::Point2(i.x(),i.y()));
-	// 	}
-	// 	std::vector<GEOM_FADE2D::Segment2> vSegments;
-	// 	for(const auto i: delaunayLines)
-	// 	{
-	// 		vSegments.push_back(GEOM_FADE2D::Segment2(GEOM_FADE2D::Point2(i[0].x(),i[0].y()),GEOM_FADE2D::Point2(i[1].x(),i[1].y())));
-	// 	}
-	// 	GEOM_FADE2D::ConstraintGraph2* pCG=dt.createConstraint(vSegments,GEOM_FADE2D::CIS_CONSTRAINED_DELAUNAY);
-		
-		
-	// 	// Makes the constrained delaunay a delaunay respecting the boundaries by adding the intersection point found on the boundary after delaunay
-	// 	bool applyConstrainedDelaunay = true;
-	// 	if(!applyConstrainedDelaunay)
-	// 	{
-	// 		double minLen(0.1);
-	// 		pCG->makeDelaunay(minLen);
-	// 	}
-
-	// 	// Draw; generate a Design.ps file for visualization in for example illustrator 
-	// 	if(outputPs) dt.show("Design.ps",true);		
-
-	// 	// Export fade2D data to Toolbox information format
-	// 	GEOM_FADE2D::FadeExport fadeExport;
-	// 	bool bCustomIndices(false); // To retrieve custom indices also
-	// 	bool bClear(false); // Clear memory in $dt
-	// 	dt.exportTriangulation(fadeExport,bCustomIndices,bClear);
-		
-	// 	std::vector<utilities::geometry::triangle> delaunayTri; // fade_2D resulting delaunay triangles, but defined in BSO toolbox geometry classes
-	// 	for(int triIdx=0;triIdx<fadeExport.numTriangles;++triIdx)
-	// 	{ // Iterate through each triangle in Fade_2D and store triangle in Toolbox entities
-	// 		int vtxIdx0,vtxIdx1,vtxIdx2;
-	// 		fadeExport.getCornerIndices(triIdx,vtxIdx0,vtxIdx1,vtxIdx2);
-			
-	// 		double x0,y0;
-	// 		double x1,y1;
-	// 		double x2,y2;
-	// 		fadeExport.getCoordinates(vtxIdx0,x0,y0);
-	// 		fadeExport.getCoordinates(vtxIdx1,x1,y1);
-	// 		fadeExport.getCoordinates(vtxIdx2,x2,y2);
-			
-	// 		// Define triangle in Toolbox entities
-	// 		utilities::geometry::vertex C1 = {x0,y0,0};
-	// 		utilities::geometry::vertex C2 = {x1,y1,0};
-	// 		utilities::geometry::vertex C3 = {x2,y2,0};
-			
-	// 		try
-	// 		{
-	// 			utilities::geometry::triangle tri = {{C1},{C2},{C3}};
-	// 			delaunayTri.push_back(tri);
-	// 		}
-	// 		catch(std::exception& e)
-	// 		{
-	// 			// Skip unviable triangles for the BSO toolbox
-	// 				// This is needed since FADE_2D calculates with a finer tolerance then the BSO toolbox allows.
-	// 				// Therefore, FADE_2D create unlogical triangles from the BSO Toolbox perspective regarding the BSO toolbox tolerances
-	// 				// the main reasons to skip a triangle are as follows:
-	// 				// - two cornerpoints of a single triangle are the same according to the BSO toolbox tolerances.
-	// 				// - the three points of the triangle are on the same line in accordance to the BSO toolbox tolerances.
-	// 				// See paper automatic partitioning methods for more information.
-	// 			continue;
-	// 		}
-	// 	}
-		
-	// 	if(delaunayTri.size() == 0)
-	// 	{
-	// 		std::stringstream errorMessage;
-	// 			errorMessage << "\nError, there are no triangle generated during the delaunay triangulation. \n"
-	// 				 << "(bso/utilities/delaunay)." << std::endl;
-	// 			throw std::runtime_error(errorMessage.str());
-	// 	}
-		
-	// 	return delaunayTri;
-	// } //delaunay()
 
 	
-	// std::vector<utilities::geometry::triangle> delaunayZoned(const std::vector <utilities::geometry::vertex> delaunayPoints, const std::vector <utilities::geometry::line_segment> orderedLinesOfZone, const double mTol, bool outputPs)
+	// std::vector<utilities::geometry::triangle> delaunayZoned(const std::vector <utilities::geometry::vertex> delaunayPoints, const std::vector <utilities::geometry::line_segment> orderedLinesOfZone, const double mTol, const bool outputPs)
 	// {
 	// 	// Input check
 	// 	if(delaunayPoints.size() <= 2)
@@ -444,7 +467,7 @@ namespace bso { namespace utilities {
 
 	// std::vector<std::vector<utilities::geometry::triangle>> delaunayMultipleZoned(const std::vector <utilities::geometry::vertex> delaunayPoints, 
 	// 	const std::vector<std::vector<utilities::geometry::line_segment>> orderedLinesOfZone, const std::vector <utilities::geometry::line_segment> delaunayLines, 
-	// 	bool getTriOutsideZones, bool getBothInAndOutZones, const double mTol, bool outputPs)
+	// 	bool getTriOutsideZones, bool getBothInAndOutZones, const double mTol, const bool outputPs)
 	// {
 	// 	// Input check
 	// 	if(delaunayPoints.size() <= 2)
@@ -630,6 +653,7 @@ namespace bso { namespace utilities {
 	// 	return allDelaunayTri;
 	// } //delaunayMultipleZoned()
 	
+#endif // defined(BSO_USE_FADE)
 	
 	void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL, bool removeDuplicates /*= true*/, const double mTol)
 	{							
