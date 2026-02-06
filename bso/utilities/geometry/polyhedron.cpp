@@ -1,6 +1,8 @@
 #ifndef POLYHEDRON_CPP
 #define POLYHEDRON_CPP
 
+#include <iomanip> // allows for std::setprecision use
+
 namespace bso { namespace utilities { namespace geometry {
 	
 	template <class CONTAINER>
@@ -142,7 +144,7 @@ namespace bso { namespace utilities { namespace geometry {
 	{ //
 		Eigen::IOFormat layout(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", ",", "{", "}", "", "");
 		bool first = true;
-		stream << "{";
+		stream /*<< std::fixed << std::setprecision(16) */<< "{";
 		for (const auto& i : pol.mVertices)
 		{
 			if (first)

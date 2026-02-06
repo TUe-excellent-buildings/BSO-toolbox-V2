@@ -4,7 +4,7 @@ B, A, E, flat_shell, 1, flat_shell, 1
 B, A, G, flat_shell, 1, flat_shell, 1
 
 # mesh settings, number of element divisions to be made:
-C, 3
+C, 4
 
 # live loading on floors
 #	load case[-],	load [N/mm²],	azimuth [°],	altitude[°],	type

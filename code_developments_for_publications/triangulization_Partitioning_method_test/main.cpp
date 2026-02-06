@@ -458,7 +458,7 @@ int main(int argc, char* argv[])
 	{
 		try
 		{
-			bso::visualization::visualize(*BP);
+			//bso::visualization::visualize(*BP);
 			if(BP_analyse_sucses[b] == true)
 			{// Only visualize the analysis of the BP model if no errors occured
 

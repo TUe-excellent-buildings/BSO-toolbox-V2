@@ -25,7 +25,13 @@ BOOST_AUTO_TEST_CASE( initialization )
 	bso::spatial_design::ms_N_building msModel("grammar/ms_N_test_2.txt");
 	bso::spatial_design::cf_building cfModel(msModel);
 	cf::cf_geometry_model* geomModel = &cfModel;
+
+	#if defined(BSO_USE_FADE)
 	auto triPtr = geomModel->addTriangle({{0,0,0},{3000,0,0},{3000,3000,0}});
+	#endif
+	#if defined(BSO_USE_CGAL)
+	auto triPtr = geomModel->addTriangle({{0,0,0},{3000,0,0},{0,3000,0}});
+	#endif
 
 	BOOST_REQUIRE_NO_THROW(triangle_property tp1(triPtr));
 	triangle_property tp1(triPtr);
@@ -108,10 +114,19 @@ BOOST_AUTO_TEST_CASE( is_space_separating_check )
 	bso::spatial_design::ms_N_building msModel("grammar/ms_N_test_2.txt");
 	bso::spatial_design::cf_building cfModel(msModel);
 	cf::cf_geometry_model* geomModel = &cfModel;
+	
+	#if defined(BSO_USE_FADE)
 	auto triPtr1 = geomModel->addTriangle({{6000,0,-3000},{9000,0,-3000},{6000,3000,-3000}});
 	auto triPtr2 = geomModel->addTriangle({{0,0,3000},{3000,3000,3000},{0,3000,3000}});
 	auto triPtr3 = geomModel->addTriangle({{9000,0,6000},{12000,0,6000},{9000,3000,6000}});
 	auto triPtr7 = geomModel->addTriangle({{12000,0,3000},{15000,0,3000},{12000,3000,3000}});
+	#endif
+	#if defined(BSO_USE_CGAL)
+	auto triPtr1 = geomModel->addTriangle({{6000,0,-3000},{9000,0,-3000},{6000,3000,-3000}});
+	auto triPtr2 = geomModel->addTriangle({{0,0,3000},{3000,0,3000},{0,3000,3000}});
+	auto triPtr3 = geomModel->addTriangle({{9000,0,6000},{12000,0,6000},{9000,3000,6000}});
+	auto triPtr7 = geomModel->addTriangle({{12000,0,3000},{15000,0,3000},{12000,3000,3000}});
+	#endif
 
 	triangle_property rp1(triPtr1);
 	triangle_property rp2(triPtr2);
@@ -130,10 +145,19 @@ BOOST_AUTO_TEST_CASE( is_external_check )
 	bso::spatial_design::ms_N_building msModel("grammar/ms_N_test_2.txt");
 	bso::spatial_design::cf_building cfModel(msModel);
 	cf::cf_geometry_model* geomModel = &cfModel;
+
+	#if defined(BSO_USE_FADE)
 	auto triPtr1 = geomModel->addTriangle({{6000,0,-3000},{9000,0,-3000},{6000,3000,-3000}});
 	auto triPtr2 = geomModel->addTriangle({{0,0,3000},{3000,3000,3000},{0,3000,3000}});
 	auto triPtr3 = geomModel->addTriangle({{9000,0,6000},{9000,3000,6000},{9000,0,9000}});
 	auto triPtr7 = geomModel->addTriangle({{12000,0,3000},{15000,0,3000},{12000,3000,3000}});
+	#endif
+	#if defined(BSO_USE_CGAL)
+	auto triPtr1 = geomModel->addTriangle({{6000,0,-3000},{9000,0,-3000},{6000,3000,-3000}});
+	auto triPtr2 = geomModel->addTriangle({{0,0,3000},{3000,0,3000},{0,3000,3000}});
+	auto triPtr3 = geomModel->addTriangle({{9000,0,6000},{9000,3000,6000},{9000,0,9000}});
+	auto triPtr7 = geomModel->addTriangle({{12000,0,3000},{15000,0,3000},{12000,3000,3000}});
+	#endif
 
 	triangle_property rp1(triPtr1);
 	triangle_property rp2(triPtr2);
@@ -152,11 +176,21 @@ BOOST_AUTO_TEST_CASE( is_roof_or_overhang_check )
 	bso::spatial_design::ms_N_building msModel("grammar/ms_N_test_2.txt");
 	bso::spatial_design::cf_building cfModel(msModel);
 	cf::cf_geometry_model* geomModel = &cfModel;
+
+	#if defined(BSO_USE_FADE)
 	auto triPtr1 = geomModel->addTriangle({{0,0,6000},{3000,3000,6000},{0,3000,6000}});
 	auto triPtr2 = geomModel->addTriangle({{6000,0,-3000},{9000,3000,-3000},{6000,3000,-3000}});
 	auto triPtr3 = geomModel->addTriangle({{6000,-1000,0},{9000,0,0},{6000,0,0}});
 	auto triPtr3b = geomModel->addTriangle({{6000,-1000,0},{9000,-1000,0},{9000,0,0}});
 	auto triPtr4 = geomModel->addTriangle({{12000,0,3000},{15000,0,3000},{12000,3000,3000}});
+	#endif
+	#if defined(BSO_USE_CGAL)
+	auto triPtr1 = geomModel->addTriangle({{0,0,6000},{3000,0,6000},{0,3000,6000}});
+	auto triPtr2 = geomModel->addTriangle({{6000,0,-3000},{9000,3000,-3000},{6000,3000,-3000}});
+	auto triPtr3 = geomModel->addTriangle({{9000,-1000,0},{9000,0,0},{6000,0,0}});
+	auto triPtr3b = geomModel->addTriangle({{6000,-1000,0},{9000,-1000,0},{6000,0,0}});
+	auto triPtr4 = geomModel->addTriangle({{12000,0,3000},{15000,0,3000},{12000,3000,3000}});
+	#endif
 
 	triangle_property rp1(triPtr1);
 	triangle_property rp2(triPtr2);

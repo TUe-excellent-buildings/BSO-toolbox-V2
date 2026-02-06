@@ -23,9 +23,17 @@ BOOST_AUTO_TEST_CASE( initialization )
 	bso::spatial_design::ms_N_building msModel("grammar/ms_N_test_2.txt");
 	bso::spatial_design::cf_building cfModel(msModel);
 	cf::cf_geometry_model* geomModel = &cfModel;
+
+	#if defined(BSO_USE_FADE)
 	auto tripPtr1 = geomModel->addTriPrism({
 		{0,0,0},{3000,0,0},{3000,3000,0},
 		{0,0,3000},{3000,0,3000},{3000,3000,3000}});
+	#endif
+	#if defined(BSO_USE_CGAL)
+	auto tripPtr1 = geomModel->addTriPrism({
+		{0,0,0},{3000,0,0},{0,3000,0},
+		{0,0,3000},{3000,0,3000},{0,3000,3000}});
+	#endif
 
 	BOOST_REQUIRE_NO_THROW(triprism_property tp1(tripPtr1));
 	triprism_property tp1(tripPtr1);
