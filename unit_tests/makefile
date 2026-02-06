@@ -5,7 +5,7 @@ BSO     = ..
 ALL_LIB = -I$(BOOST) -I$(EIGEN) -I$(BSO)
 
 # set DELAUNAY=cgal (default) or DELAUNAY=fade when invoking make to choose the Delaunay triangulation backend
-DELAUNAY ?= cgal
+DELAUNAY ?= fade
 FADE_ROOT ?= /home/tessa/Libaries/fadeRelease_v1.93/fadeRelease_v1.93
 ifeq ($(DELAUNAY),fade)
 	DELAUNAY_FLAGS = -lfade2d
