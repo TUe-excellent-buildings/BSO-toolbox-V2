@@ -1,24 +1,37 @@
-# specify location of libraries
+# Specify location of libraries
 BOOST 	= /usr/include/boost
 EIGEN 	= /usr/include/eigen
-FADE	= /usr/include/fadeRelease_v1.93/fadeRelease_v1.93
-BSO   	= /usr/include/BSO-toolbox-V2
+BSO   	= /home/tessa/BSO-toolbox-V2
 ALL_LIB = -I$(BOOST) -I$(EIGEN) -I$(BSO)
 
-# compiler settings
-CPP = g++ -std=c++17
-FLAGS = -O3 -march=native -lglut -lGL -lGLU -lpthread -lfade2d
-D_LIB  = -I${FADE}/include_fade2d
+# Choose the Delaunay triangulation libary used: set DELAUNAY=cgal (default) or DELAUNAY=fade
+DELAUNAY ?= fade
+FADE_ROOT ?= /home/tessa/Libaries/fadeRelease_v1.93/fadeRelease_v1.93
+ifeq ($(DELAUNAY),fade)
+	DELAUNAY_FLAGS = -lfade2d
+	DELAUNAY_DEFS = -DBSO_USE_FADE
+	D_LIB = $(DELAUNAY_DEFS) -I${FADE_ROOT}/include_fade2d
+else ifeq ($(DELAUNAY),cgal)
+	DELAUNAY_FLAGS = -lgmp
+	DELAUNAY_DEFS = -DBSO_USE_CGAL
+	D_LIB = $(DELAUNAY_DEFS)
+else
+	$(error Unknown DELAUNAY "$(DELAUNAY)". Use cgal or fade.)
+endif
 
-# specify file(s) to be compiled
+# Compiler settings
+CPP = g++ -std=c++17
+FLAGS = -O3 -march=native -lglut -lGL -lGLU -lpthread -lgmp $(DELAUNAY_FLAGS)
+
+# Specify file(s) to be compiled
 MAINFILE = main.cpp
 
-# specify name of executable
+# Specify name of executable
 EXE = example
 
 .PHONY: all cls clean
 
-#make arguments
+# Make arguments
 cls:
 	# this argument clears the screen, so that it is easier to find the beginning of the compiler output
 	@clear
@@ -26,6 +39,6 @@ cls:
 all:
 	$(CPP) $(D_LIB) -o example $(ALL_LIB) $(MAINFILE) $(FLAGS)
 
-# remove previously compiled executable
+# Remove previously compiled executable
 clean:
 	@rm -f $(EXE)
