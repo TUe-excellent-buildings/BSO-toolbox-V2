@@ -9,8 +9,6 @@ namespace bso { namespace utilities {
 	// Constrained Delaunay Triangulation functions
 	// There is a choice of either using the FADE_2D libary or the CGAL library.
 	// Compiled backend is determined by BSO_USE_FADE or BSO_USE_CGAL macros defined in the makefile.
-	// - If BSO_USE_FADE is defined: uses Fade_2D library
-	// - Otherwise: uses CGAL library (default)
 
 #if defined(BSO_USE_CGAL)
 	std::vector<utilities::geometry::triangle> delaunay(
