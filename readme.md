@@ -1,5 +1,7 @@
 # README BSO toolbox
 
+This is the master of science repository of Hilde Naus ans is in development of her master work.
+
 ## What is this repository for?
    
 This repository contains a C++ library named the Building Spatial design Optimization toolbox (BSO toolbox).

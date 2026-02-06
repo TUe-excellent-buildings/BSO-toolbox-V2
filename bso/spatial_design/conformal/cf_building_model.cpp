@@ -432,6 +432,12 @@ namespace bso { namespace spatial_design { namespace conformal {
 	}// addSpaceD
 	
 	void cf_building_model::makeConformal()
+	{ //
+		std::vector<utilities::geometry::vertex> addConstrainVertexes; // generate empty vertex for input
+		this -> makeConformal(addConstrainVertexes);
+	} // makeConformal()
+
+	void cf_building_model::makeConformal(std::vector<utilities::geometry::vertex> addConstrainVertexes)
 	{ // 
 		// check for line line intersections, and add the found vertex to the geometry model
 		utilities::geometry::vertex pIntersection;
@@ -466,6 +472,13 @@ namespace bso { namespace spatial_design { namespace conformal {
 			{
 				this->addVertex(pIntersection);
 			}
+		}
+		
+		// add the additional vertices where the conformal model  needs to adhere to
+		for(const auto j: addConstrainVertexes)
+		{
+			constrainVertexes.push_back(j); //store in object variable for copy constructor
+			this->addVertex(j);
 		}
 		
 		// check each vertex if it intersects with any space
@@ -788,7 +801,11 @@ namespace bso { namespace spatial_design { namespace conformal {
 		for (const auto& i : rhs.mMSNModel) spaceCount2++;
 		if(spaceCount1 > 0) 
 		{
-			if(rhs.quadHexaInput.size() == 0) newPtr = new cf_building_model(rhs.mMSModel, rhs.mTol);
+			if(rhs.mfileNameDLSettings != "")
+			{
+				newPtr = new cf_building_model(rhs.mMSModel, rhs.mfileNameDLSettings, rhs.mTol);
+			}
+			else if(rhs.quadHexaInput.size() == 0) newPtr = new cf_building_model(rhs.mMSModel, rhs.mTol);
 			else newPtr =new cf_building_model(rhs.mMSModel, rhs.quadHexaInput, rhs.mTol);
 		}
 		if(spaceCount2 > 0) 
@@ -835,6 +852,168 @@ namespace bso { namespace spatial_design { namespace conformal {
 			throw std::invalid_argument(errorMessage.str());
 		}
 	} // 
+
+	cf_building_model::cf_building_model(const ms_building& msModel, const std::string& fileNameDLSettings, const double& tol /*= 1e-3**/)
+	: cf_geometry_model(tol), mMSModel(msModel), mTol(tol), mfileNameDLSettings(fileNameDLSettings)
+	{//
+
+//void grammar::mReadDLSettings(const std::string& fileName)
+			std::fstream input(fileNameDLSettings);
+			if (!input.is_open())
+			{
+				std::stringstream errorMessage;
+				errorMessage << "\nCould not read DL grammar settings, failed to open file:"
+										<< fileNameDLSettings << "\n(bso/spatial_design/conformal/cf_building_model.cpp)" << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+			}
+			
+			double WindowHeightRatio;
+			double WindowWidthRatio;
+			double StartLocationWindow;
+
+			std::string line;
+			boost::char_separator<char> sep(","); // defines what separates tokens in a string
+			typedef boost::tokenizer< boost::char_separator<char> > t_tokenizer; // settings for the boost::tokenizer
+			char type_ID; // holds information about what type of information is described by the line currently read
+
+			while(!input.eof())	//Get properties from file
+			{
+				getline(input, line); // get the next line from the file
+				boost::algorithm::trim(line); // remove white space from start and end of line (to see if it is an empty line, remove any incidental white space)
+				if (line == "") //skip empty lines (tokenizer does not like it)
+				{
+					continue; // continue to next line
+				}
+				t_tokenizer tok(line, sep); // tokenize the line
+				t_tokenizer::iterator token = tok.begin(); // set iterator to first token
+
+				try
+				{
+					type_ID = bso::utilities::trim_and_cast_char(*token);	++token; // interpret first token as type ID
+				}
+				catch (std::exception& e)
+				{
+					continue;
+				}
+
+				switch (type_ID)
+				{
+					case 'A': {break;}
+					case 'B': {break;}
+					case 'C': 
+					{ // window dimensions
+						WindowHeightRatio = bso::utilities::trim_and_cast_double(*token); ++token;
+						WindowWidthRatio = bso::utilities::trim_and_cast_double(*token); ++token;
+						StartLocationWindow = bso::utilities::trim_and_cast_double(*token); ++token;
+						break;
+					}
+					case 'D': {break;}			
+					case 'E': {break;}	
+				}
+
+			} //get properties from file
+			input.close();
+// mReadDLSettings()
+		
+//std::vector<std::tuple<unsigned int, std::vector<bso::utilities::geometry::vertex>>> generateCFVertexConstraints(bso::spatial_design::ms_building MS)
+			if ((WindowHeightRatio+StartLocationWindow)>100 || WindowHeightRatio>100 || WindowWidthRatio>100) 
+			{
+				throw std::invalid_argument("Incorrect Input of Window Properties.");
+				throw std::invalid_argument("See ./settings/dl_settings.txt\n");
+			}
+
+			std::vector<bso::spatial_design::ms_space*> MS_Space;
+			std::vector<bso::utilities::geometry::vertex> MS_start_vertex;
+			std::vector<bso::utilities::geometry::vector> MS_dimensions;
+			std::vector<unsigned int> MS_spaceID;
+			std::vector<std::tuple<unsigned int, std::vector<bso::utilities::geometry::vertex>>> ConstrainsPerSpaceQH;
+
+			for (const auto& i : msModel) { MS_Space.push_back(i); } //retrieve ms_space
+
+			for (const auto& i : MS_Space)
+			{
+				MS_dimensions.push_back(i->getDimensions());
+				MS_start_vertex.push_back(i->getCoordinates());
+				MS_spaceID.push_back(i->getID());
+			}   //retrieve dimensions, start vertex and ID
+
+			if (MS_dimensions.size() != MS_start_vertex.size() && MS_spaceID.size() != MS_dimensions.size())
+			{
+				throw std::invalid_argument("Incorrect data from MS model for CF constraint points.");
+			}
+
+			for (int i=0 ; i<MS_dimensions.size(); ++i) //loop per space
+			{
+
+			double spaceX = MS_dimensions[i][0];
+			double spaceY = MS_dimensions[i][1];
+			double spaceZ = MS_dimensions[i][2];
+			
+			double windowHeight = (WindowHeightRatio/100) * spaceZ;
+			double windowWidthX = (WindowWidthRatio/100) *spaceX;
+			double windowWidthY = (WindowWidthRatio/100) *spaceY;
+			double windowStartPoint = ((100-StartLocationWindow)/100)*spaceZ; //upper left point window
+
+			//constrain vertex in y plane
+			double window_x1 = (MS_start_vertex[i][0] + ((spaceX/2)-(windowWidthX/2))); //std::cout << window_x1 << std::endl;
+			double window_x2 = (MS_start_vertex[i][0] + ((spaceX/2)+(windowWidthX/2))); //std::cout << window_x1 << std::endl;
+
+			double window_y1 = (MS_start_vertex[i][1] + ((spaceY/2)-(windowWidthY/2)));
+			double window_y2 = (MS_start_vertex[i][1] + ((spaceY/2)+(windowWidthY/2)));
+
+			double window_z1 = (MS_start_vertex[i][2] + windowStartPoint - windowHeight); //lowest point
+			double window_z2 = (MS_start_vertex[i][2] + windowStartPoint); //higest point
+			
+			std::vector<double> CVS = {window_x1, window_x2, window_y1, window_y2, window_z1, window_z2};
+
+			//Constrians in the middle of the space
+			std::vector<bso::utilities::geometry::vertex> addConstrainVertexQH;
+			addConstrainVertexQH.push_back({window_x1, window_y1, window_z1});
+			addConstrainVertexQH.push_back({window_x2, window_y2, window_z1});
+			addConstrainVertexQH.push_back({window_x2, window_y1, window_z2});
+			addConstrainVertexQH.push_back({window_x1, window_y2, window_z2});
+
+			ConstrainsPerSpaceQH.push_back(std::make_tuple(MS_spaceID[i], addConstrainVertexQH));
+
+			/*
+			constrain vertex format:
+			x1 y1 z1
+			x2 y2 z1
+			x2 y1 z2
+			x1 y2 z2
+			*/
+
+			}//for loop per space
+
+//generateCFVertexConstraints()
+
+			this->ConstrainsPerSpaceQH = ConstrainsPerSpaceQH; //initialize membervariable
+
+//std::vector<bso::utilities::geometry::vertex> GenerateBaseWindowPoints(std::vector<std::tuple<unsigned int, std::vector<bso::utilities::geometry::vertex>>> ConstrainsPerSpaceQH)
+			std::vector<bso::utilities::geometry::vertex> BaseWindowPoints;
+			for (auto& k : ConstrainsPerSpaceQH) 
+			{
+				unsigned int spaceID = std::get<0>(k); // Extract the first element
+				std::vector<bso::utilities::geometry::vertex>& addConstrainVertexQH = std::get<1>(k); // Extract the second element
+				BaseWindowPoints.insert(BaseWindowPoints.end(), addConstrainVertexQH.begin(), addConstrainVertexQH.end()); // Append the vertices to BaseWindowPoints
+			}
+//GenerateBaseWindowPoints()
+
+		std::vector<bso::utilities::geometry::vertex> addConstrainVertexes = BaseWindowPoints;
+		
+		/*
+		// Dit zorgt ervoor dat addContrain is opgeslagen in de variabele constrainVertexes van het object.
+		// Dit is belangerijk voor de copy constructor.
+		*/
+		constrainVertexes = addConstrainVertexes;
+		
+		// Hieronder hetzelfde laten
+		for (const auto& i : mMSModel)
+		{
+			addSpace(*i);
+		}
+		this->makeConformal(addConstrainVertexes);
+	}//
 
 	cf_building_model::cf_building_model(const ms_N_building& msNModel, const double& tol /*= 1e-3*/)
 	:	cf_geometry_model(tol), mMSNModel(msNModel), mTol(tol)
