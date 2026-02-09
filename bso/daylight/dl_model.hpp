@@ -28,43 +28,41 @@ the daylight calculation will perform.
 
 	class dl_model
 	{
-		private: 	
-		std::vector<std::tuple<unsigned int, int>> SpaceID_AmountGridPoints;	// safe it, in case copy consttructor is called
-		std::vector<double> DF_Settings;	// safe it, in case copy consttructor is called
-		std::vector<double> DF_Evaluation;	// safe it, in case copy consttructor is called
-		std::string folderName;	// safe it, in case copy consttructor is called
-		std::vector<std::vector<double>> DFresults; //[0]=SpaceID, [1]=ADF [2]=Dt% [3]=Dtm% [4]=Score // safe it, in case copy consttructor is called
+		private: 
+		// Bellow, all variables are stored in case the copy constructor is called and the dl_model needs to be copied	
+		std::vector<std::tuple<unsigned int, int>> SpaceID_AmountGridPoints;	
+		std::vector<double> DF_Settings;	
+		std::vector<double> DF_Evaluation;	
+		std::string folderName;	
+		std::vector<std::vector<double>> DFresults; //[0]=SpaceID, [1]=ADF [2]=Dt% [3]=Dtm% [4]=Score 
 		
 		std::vector<std::vector<double>> roomInfo; /* SpaceID_MinZ_EI where E=external==0 or I=internal==1*/
-		//for space seperating wall rectangle for histogram // safe it, in case copy consttructor is called
+		//for space separating wall rectangle for histogram 
 
-		//for visualization
-		std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>> mRectangleWindowYN; // safe it, in case copy consttructor is called
-		std::vector<bso::spatial_design::conformal::cf_space*> mcf_space; // safe it, in case copy consttructor is called
-		std::vector<std::vector<const bso::spatial_design::conformal::cf_rectangle*>> mCardinalDirections; // safe it, in case copy consttructor is called
-		std::vector<const bso::spatial_design::conformal::cf_rectangle*> mCeilings;// safe it, in case copy consttructor is called
+		// For visualization
+		std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>> mRectangleWindowYN; 
+		std::vector<bso::spatial_design::conformal::cf_space*> mcf_space; 
+		std::vector<std::vector<const bso::spatial_design::conformal::cf_rectangle*>> mCardinalDirections; 
+		std::vector<const bso::spatial_design::conformal::cf_rectangle*> mCeilings;
 
 		public: 
-		dl_model(); // emtry constructor --> initiate an object for naming but does not contain anything
-		dl_model(const dl_model& rhs); // copy constructor --> describes how to copy an object
-		~dl_model(); // destructor --> describes how to destroy an object; in this case destroy the directory and associated files for a Radiance run
+		dl_model(); // emtry constructor
+		dl_model(const dl_model& rhs); // copy constructor
+		~dl_model(); // destructor --> destroy the directory and associated files for a Radiance run
 		
-
-		//set and get of DL object
+		// Set and get of DL object
 		void setfolderName(const std::string& directoryname) {folderName = directoryname;}
 		std::string getFolderName() const {return folderName;}
     	void setSpaceID_AmountGridPoints(const std::vector<std::tuple<unsigned int, int>>& points) {SpaceID_AmountGridPoints = points;}
 		const std::vector<std::tuple<unsigned int, int>>& getSpaceID_AmountGridPoints() const {return SpaceID_AmountGridPoints;}
 		void setDF_Settings(const std::vector<double>& settings) {DF_Settings = settings;}
-		//const std::vector<double>& getDF_Settings() const {return DF_Settings;}
 		void setDF_Evaluation(const std::vector<double>& evaluation) {DF_Evaluation = evaluation;}
-		//const std::vector<double>& getDF_Evaluation() const {return DF_Evaluation;}
 		void setDFresults(std::vector<std::vector<double>>& results) {DFresults = results;}
 
 		void setRoomInfo(std::vector<std::vector<double>>& a) {roomInfo = a;}
 		const std::vector<std::vector<double>>& getRoomInfo() const {return roomInfo;}
 		
-		//properties for viusalization
+		// Set properties for visualization
 		void setWindowProperties(std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>>& rwYN) {mRectangleWindowYN =rwYN;}
 		const std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>>& getWindowProperties() const {return mRectangleWindowYN;}
 		void setSpacePropertiesQH(std::vector<bso::spatial_design::conformal::cf_space*>& temp_cf_space) {mcf_space = temp_cf_space;}
@@ -74,30 +72,34 @@ the daylight calculation will perform.
 		void setCeilings(std::vector<const bso::spatial_design::conformal::cf_rectangle*>& ceilings) {mCeilings = ceilings;}
 		const std::vector<const bso::spatial_design::conformal::cf_rectangle*> getCeilings() const {return mCeilings;}
 
-
-		
+		// Functions to request analysis
 		void analyse();
 		std::string BuildingOrientationAdvice();
 		
-		/*
-		This functions returns the results of the Radiance run, see BP and SD classes for examples on how this could be done.
-		*/
+		// This functions returns the results of the Radiance run, see BP and SD classes for examples on how this could be done.
 		dl_results getTotalResults();
 		dl_results getPartialResults(unsigned int& mID);
 
 	}; //daylight class
 	
 	/*
-	This struct below described the result output you obtain from your Radiance run and can be asked uppon by the function getTotalResults() or partialrsults;
+	//This struct below described the result output you obtain from your Radiance run
+	//and can be asked upon by the function getTotalResults() or partialresults(unsigned int& mID)
+	mDFpassbuilding =  the % of rooms which pass the DF targets from the NEN-norms
+	mDtbuilding = the % of rooms which pass the Dt 
+	mDtmbuilding = the % of rooms which pass Dtm 
+	mTotalScore = the cumulative sum of score per room.
+	mADFbuilding = the ADF score of total building
+	mADFroom = the ADF per room for a histogram
 	*/
 	struct dl_results
 	{
-	double mDFpassbuilding = 0.0; //% rooms pass DF targets NEN
-	double mDtbuilding = 0.0; //% rooms pass Dt 
-	double mDtmbuilding = 0.0; //% rooms pass Dtm 
-	double mTotalScore = 0.0; //cummulative sum of score per room. 
-	double mADFbuilding = 0.0; //ADF score total
-	double mADFroom = 0.0; //ADF per room for histogram
+	double mDFpassbuilding = 0.0; 
+	double mDtbuilding = 0.0;  
+	double mDtmbuilding = 0.0;  
+	double mTotalScore = 0.0; 
+	double mADFbuilding = 0.0; 
+	double mADFroom = 0.0; 
 	};
 	
 	

@@ -1,3 +1,4 @@
+#include <bso/spatial_design/ms_building.hpp>
 #include <bso/spatial_design/ms_N_building.hpp>
 #include <bso/spatial_design/cf_building.hpp>
 #include <bso/structural_design/sd_model.hpp>
@@ -9,7 +10,7 @@
 int main(int argc, char* argv[])
 {
  // initialize a movable sizable model named MS
- bso::spatial_design::ms_N_building MS("ms_N_input_file.txt");
+ bso::spatial_design::ms_building MS("ms_input_file.txt");
 
  // convert MS to a conformal model name CF
  bso::spatial_design::cf_building CF(MS, "settings/dl_settings.txt");

@@ -856,8 +856,12 @@ namespace bso { namespace spatial_design { namespace conformal {
 	cf_building_model::cf_building_model(const ms_building& msModel, const std::string& fileNameDLSettings, const double& tol /*= 1e-3**/)
 	: cf_geometry_model(tol), mMSModel(msModel), mTol(tol), mfileNameDLSettings(fileNameDLSettings)
 	{//
+			// The following code read the DL Setting file to only retrieve the window definition variables:
+			// WindowHeightRatio, WindowWidthRatio and StartLocationWindow.
+			// The window definition needs to be reflected in the conformal model 
+			// as individual entities, i.e. rectangles or triangles, so that only
+			// one property can be assigned to each. 
 
-//void grammar::mReadDLSettings(const std::string& fileName)
 			std::fstream input(fileNameDLSettings);
 			if (!input.is_open())
 			{
@@ -891,10 +895,16 @@ namespace bso { namespace spatial_design { namespace conformal {
 				{
 					type_ID = bso::utilities::trim_and_cast_char(*token);	++token; // interpret first token as type ID
 				}
-				catch (std::exception& e)
-				{
-					continue;
-				}
+				catch (std::exception& e){continue;}
+
+				// if(type_ID == 'C') // the 'C' indicators, indicate the lines which describe the window properties
+				// {
+				// 	WindowHeightRatio = bso::utilities::trim_and_cast_double(*token); ++token;
+				// 	WindowWidthRatio = bso::utilities::trim_and_cast_double(*token); ++token;
+				// 	StartLocationWindow = bso::utilities::trim_and_cast_double(*token); ++token;
+				// 	break;
+				// }
+				// else{continue;} // if the line does not describe window properties, skip to next line
 
 				switch (type_ID)
 				{
@@ -911,17 +921,24 @@ namespace bso { namespace spatial_design { namespace conformal {
 					case 'E': {break;}	
 				}
 
-			} //get properties from file
+			} 
 			input.close();
-// mReadDLSettings()
-		
-//std::vector<std::tuple<unsigned int, std::vector<bso::utilities::geometry::vertex>>> generateCFVertexConstraints(bso::spatial_design::ms_building MS)
+
+			// Check retrieved window properties for validity, if not valid, throw error with explanation of the valid range and the retrieved values for easier debugging.
 			if ((WindowHeightRatio+StartLocationWindow)>100 || WindowHeightRatio>100 || WindowWidthRatio>100) 
 			{
-				throw std::invalid_argument("Incorrect Input of Window Properties.");
-				throw std::invalid_argument("See ./settings/dl_settings.txt\n");
+				std::stringstream errorMessage;
+				errorMessage << "\nEither input variables: WindowHeightRatio[%], WindowWidthRatio[%], or StartLocationWindow[%] \n"
+										<< "is out of valid range. The valid range for these variables is\n"
+							 			<< " between 0 and 100, and the sum of WindowHeightRatio and StartLocationWindow should not exceed 100.\n"
+										<< "The input values are: WindowHeightRatio = " << WindowHeightRatio << "%, WindowWidthRatio = " << WindowWidthRatio << "%, StartLocationWindow = " << StartLocationWindow << "%.\n"
+										<< "the dl_settings file should be checked for the correct input of these variables, see: "
+										<< fileNameDLSettings << "\n(bso/spatial_design/conformal/cf_building_model.cpp)" << std::endl;
+				throw std::invalid_argument(errorMessage.str());
 			}
 
+			// Generate the window constraint points to account for in the conformal model
+			// for each space in the MS model based on the retrieved window properties and store in member variable ConstrainsPerSpaceQH for later use in the generation of the conformal model.
 			std::vector<bso::spatial_design::ms_space*> MS_Space;
 			std::vector<bso::utilities::geometry::vertex> MS_start_vertex;
 			std::vector<bso::utilities::geometry::vector> MS_dimensions;
@@ -1020,6 +1037,11 @@ namespace bso { namespace spatial_design { namespace conformal {
 	{ // 
 		makeConformalND(msNModel);
 	} // 
+
+	cf_building_model::cf_building_model(const ms_N_building& msNModel, const std::string& fileNameDLSettings, const double& tol /*= 1e-3*/)
+	{
+
+	}
 
 	cf_building_model::cf_building_model(const ms_N_building& msNModel, const std::vector<utilities::geometry::triangular_prism>& triPrism, const double& tol /*= 1e-3*/)
 	:	cf_geometry_model(tol), mMSNModel(msNModel), mTol(tol), triPrismInput(triPrism)

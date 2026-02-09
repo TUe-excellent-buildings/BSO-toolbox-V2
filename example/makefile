@@ -21,7 +21,7 @@ endif
 
 # Compiler settings
 CPP = g++ -std=c++17
-FLAGS = -O3 -march=native -lglut -lGL -lGLU -lpthread -lgmp $(DELAUNAY_FLAGS)
+FLAGS = -O3 -march=native -lglut -lGL -lGLU -lpthread $(DELAUNAY_FLAGS)
 
 # Specify file(s) to be compiled
 MAINFILE = main.cpp
