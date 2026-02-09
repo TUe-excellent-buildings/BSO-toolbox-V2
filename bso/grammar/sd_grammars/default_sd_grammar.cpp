@@ -126,7 +126,7 @@ bso::structural_design::sd_model grammar::sd_grammar<DEFAULT_SD_GRAMMAR>(const s
 	{ // for each sd rectangle rule
 		for (const auto& j : i.first->cfLines())
 		{ // for each line associated to the rectangle associated to the rectangle rule
-			if (mSDLineRules.find(j) == mSDLineRules.end());
+			if (mSDLineRules.find(j) == mSDLineRules.end())
 			{ // if it has not yet been added to the vector, add it
 				mSDLineRules[j] = new rule_set::sd_line_rule(mLineProperties[j]);
 			}
@@ -138,7 +138,7 @@ bso::structural_design::sd_model grammar::sd_grammar<DEFAULT_SD_GRAMMAR>(const s
 	{ // for each sd triangle rule
 		for (const auto& j : i.first->cfLines())
 		{ // for each line associated to the triangle associated to the triangle rule
-			if (mSDLineRules.find(j) == mSDLineRules.end());
+			if (mSDLineRules.find(j) == mSDLineRules.end())
 			{ // if it has not yet been added to the vector, add it
 				mSDLineRules[j] = new rule_set::sd_line_rule(mLineProperties[j]);
 			}

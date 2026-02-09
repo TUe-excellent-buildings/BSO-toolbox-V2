@@ -82,8 +82,8 @@ bso::structural_design::sd_model grammar::sd_grammar<VOLUME_SD_GRAMMAR>(const st
 	{ // for each sd rectangle rule
 		for (const auto& j : i.first->cfLines())
 		{ // for each line associated to the rectangle associated to the rectangle rule
-			if (mSDLineRules.find(j) == mSDLineRules.end());
-			{ // if it has not yet been added to the vector, add it
+			if (mSDLineRules.find(j) == mSDLineRules.end())
+			{ // has not yet been added to the vector, so add it
 				mSDLineRules[j] = new rule_set::sd_line_rule(mLineProperties[j]); // create line rules, in this case only to generate boundary conditions
 			}
 		}

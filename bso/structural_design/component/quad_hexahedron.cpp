@@ -95,7 +95,7 @@ namespace bso { namespace structural_design { namespace component {
 			for (unsigned int j = 0; j < otherIndices.size(); ++j)
 			{
 				geom::line_segment checkline = {mVertices[indices[i]], mVertices[otherIndices[j]]};
-				for (const auto k : mLineSegments)
+				for (const auto& k : mLineSegments)
 				{
 					if (k.isSameAs(checkline))
 					{
@@ -246,7 +246,7 @@ namespace bso { namespace structural_design { namespace component {
 				}
 				for (const auto& k : elementGeometry.getPolygons())
 				{ // for each polygon k in the element's geometry
-					for (const auto l : *k)
+					for (const auto& l : *k)
 					{ // for each vertex l in polygon k
 						if (elementGeometry[j].isSameAs(l))
 						{

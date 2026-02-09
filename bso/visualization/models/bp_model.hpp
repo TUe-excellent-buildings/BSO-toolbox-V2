@@ -60,6 +60,7 @@ polygon_props* BP_Model::getPProps(const std::pair<std::string,Eigen::Vector4d>&
 BP_Model::BP_Model(const bso::building_physics::bp_model& bp,
 									 const std::string title /*= "bp_model"*/)
 {
+	mTitle = title;
 	for (const auto& i : bp.getWalls())
 	{
 		auto ppropsPtr = getPProps(i->getVisualizationProperties());

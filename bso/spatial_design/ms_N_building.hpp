@@ -22,7 +22,7 @@ public:
 	ms_N_building(const ms_N_building& rhs); // copy constructor
 	~ms_N_building(); // destructor
 	
-	// Building spatial design analysis functions
+	// Building spatial design analysis functions:
 	const std::string getInsertFileName() const{return insertFileName;}																	 
 	void writeToFile(std::string fileName) const;
 	std::vector<ms_space*> getSpacePtrs() const;
@@ -31,20 +31,35 @@ public:
 	ms_space* getSpacePtrWithID(unsigned int id) const; // the spacePtr that was passed may belong to another instance of ms_building
 	unsigned int getLastSpaceID() const;
 	double getVolume() const;
-	double getFloorArea() const; 
-	int getNrElevations(const double mTol = 1e-3) const; // returns the number of distinct floor levels in the building, mTol is the tolerance for merging elevation levels
-	double getAverageHorizontalRibSize() const; // returns the average horizontal rib size of all spaces in the building
-	double getSpaceVolumeRatio() const; // returns the ratio between the smallest and largest space volume in the building
-	void getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);// returns box plot values of space volumes in the building; space volume is times *1e-9, i.e. mm3 to m3
-	double getSpaceFloorAreaRatio() const; // returns the ratio between the smallest and largest space floor area in the building
+	double getFloorArea() const;
+	int getNrElevations(const double mTol = 1e-3) const;
+	double getAverageHorizontalRibSize() const;
+	double getSpaceVolumeRatio() const;
+	void getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);
+	double getSpaceFloorAreaRatio() const;
 	std::vector<double> getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);
-	double getAverageRecDif() const; // provide average recDif value of all spaces; Note: recDif is a measure of how rectangular a quadrilateral is, see utilities/geometry/quadrilateral.hpp for more information
+	double getAverageRecDif() const;
 	bool hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 		const double tol = 1e-3) const; 
 	bool isFragmented(std::vector<ms_space*>& spacesNonBiggestFragment, 
-			const double tol = 1e-3) const;
+		const double tol = 1e-3) const;
+	// bool areSpacesOverlapping(std::vector<ms_space*>& spacesNotOverlapping,
+	// 	const double tol = 1e-3) const;
 
-	// Representation adjustment functions
+	// Get the NOBSD representation as a certain geometry:
+	void getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, 
+		std::vector<double>& allLevels, const double mTol = 1e-3);
+	void getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spaceAtGroundV, const double mTol = 1e-3);
+	void getSpacesAtGround(std::vector<bso::spatial_design::ms_space*> spacePtr, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, 
+		std::vector<double>& allLevels, const double mTol = 1e-3);
+	void getDelaunayVariables(std::vector <utilities::geometry::vertex>& delaunayPoints, std::vector <utilities::geometry::line_segment>& delaunayLines,
+		std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol = 1e-3); // Note: this functions uses the results from getXAtGround to retrieve the needed geometry information from.
+	std::vector <bso::utilities::geometry::quadrilateral> getQuadAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol = 1e-3);
+	std::vector <bso::utilities::geometry::line_segment> getLinesAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol = 1e-3);
+	bso::utilities::geometry::vertex getCentreBuilding();
+	void getMostHeadingDirection(bso::utilities::geometry::vector& mostHeading, bso::utilities::geometry::vector& secondMostHeading, int amountOfHeadingCatagories = 6);
+
+	// Representation adjustment functions:
 	void setZZero(); 
 	void resetOrigin(const std::vector<unsigned int>& indices = {0,1,2});
 	void addSpace(const ms_space& space); 
@@ -55,6 +70,27 @@ public:
 	void splitSpace(ms_space& space, const std::vector<std::pair<unsigned int, unsigned int> >& splits = {{0,2},{1,2}}); // split perpendicular to inserted axis; x-axis=0, y-axis=1, and z-axis=2
 	void splitSpace(ms_space* spacePtr, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit); //split perpendicular to inserted line of space
 	void splitSpace(ms_space& space, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit); //split perpendicular to inserted line of space
+	void duplicateElevation(double atZFromGround = 0, double elevationHeight = 3000, bool duplicateBelowZLevel = true); // duplicate either all spaces above or below a certain z-level by a certain elevation height in z-direction and moves the above spaces up to create a new elevation.
+	void shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHeadingDirection = false, int amountOfHeadingCatagories = 6, const double& tol = 1e-3);
+	std::vector<bso::spatial_design::ms_space*> shiftFillPlane(const bso::utilities::geometry::vertex& location,
+		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3);
+	void extrude(std::vector<ms_space*> spacePtrs, const bso::utilities::geometry::vertex& location, 
+		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3);
+	void enforceAverageSpaceSize(double minElevationHeight = 3000, const double& tol = 1e-3, bool verbose = false);
+
+	// Space selection functions:
+	std::vector<ms_space*> selectSpacesGeometrically(
+		const bso::utilities::geometry::vertex& location,
+		const bso::utilities::geometry::vector& normalOfPlane,
+		const bool includePartialSpaces = false,
+		const bool returnNormalDefinedSide = false) const;
+	std::vector<ms_space*> selectSpacesGeometrically(
+		const bso::utilities::geometry::vertex& location,
+		const bso::utilities::geometry::vector& normalOfPlane,
+		std::vector<ms_space*>& notSelectedSpaces,
+		std::vector<ms_space*>& partialSpaces,
+		const bool includePartialSpaces = false,
+		const bool returnNormalDefinedSide = false) const;
 
 	const auto begin() const {return mSpaces.begin();}
 	const auto end() const {return mSpaces.end();}

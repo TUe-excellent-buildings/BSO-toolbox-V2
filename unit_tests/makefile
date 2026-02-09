@@ -31,6 +31,8 @@ SC_BUILDING = $(BSO)/unit_tests/spatial_design/sc_building_test.cpp
 CONFORMAL 	= $(BSO)/unit_tests/spatial_design/conformal_test.cpp
 TRIM_CAST   = $(BSO)/unit_tests/utilities/trim_and_cast_test.cpp
 GEOMETRY	= $(BSO)/unit_tests/utilities/geometry_test.cpp
+DELAUNAY	= $(BSO)/unit_tests/utilities/delaunay_test.cpp
+EXPORT		= $(BSO)/unit_tests/utilities/data_export_test.cpp
 STRUCT_DES	= $(BSO)/unit_tests/structural_design/structural_design_test.cpp
 BUILD_PHYS  = $(BSO)/unit_tests/building_physics/building_physics_test.cpp
 VISUALIZE   = $(BSO)/unit_tests/visualization/visualization_test.cpp
@@ -40,7 +42,7 @@ DATA		= $(BSO)/unit_tests/utilities/data_handling_test.cpp
 DATA_ANALYSIS = $(BSO)/unit_tests/utilities/data_analysis_test.cpp
 GRAMMAR		= $(BSO)/unit_tests/grammar/grammar_test.cpp
 
-.PHONY: all ms_space ms_building sc_building conformal trim_cast geometry building_physics structural_design clean visualization xml data grammar
+.PHONY: all ms_space ms_building sc_building conformal trim_cast geometry delaunay plot building_physics structural_design clean visualization xml data grammar
 
 #make arguments
 cls:
@@ -63,6 +65,10 @@ trim_cast:
 	$(CPP) $(D_LIB) -o trim_cast_test $(ALL_LIB) $(TRIM_CAST) $(FLAGS)
 geometry:
 	$(CPP) $(D_LIB) -o geometry_test $(ALL_LIB) $(GEOMETRY) $(FLAGS)
+delaunay:
+	$(CPP) $(D_LIB) -o delaunay_test $(ALL_LIB) $(DELAUNAY) $(FLAGS)
+plot:
+	$(CPP) $(D_LIB) -o data_plot_test $(ALL_LIB) $(EXPORT) $(FLAGS)
 structural_design:
 	$(CPP) $(D_LIB) -o sd_test $(ALL_LIB) $(STRUCT_DES) $(FLAGS)
 building_physics:
@@ -85,6 +91,8 @@ clean:
 	@rm -f conformal_test
 	@rm -f trim_cast_test
 	@rm -f geometry_test
+	@rm -f delaunay_test
+	@rm -f data_plot_test
 	@rm -f sd_test
 	@rm -f bp_test
 	@rm -f all_test

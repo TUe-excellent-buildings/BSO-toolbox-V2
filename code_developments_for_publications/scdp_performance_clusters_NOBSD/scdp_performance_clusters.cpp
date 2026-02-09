@@ -20,7 +20,7 @@
 
 std::vector<std::string> VIS_OPTIONS = {"ms","tp","tr","de","bo","sd","fe","bp"};
 std::vector<std::string> MOD_OPTIONS = {"bp","sd","sdbp","bpsd"};
-std::vector<std::string> OUT_OPTIONS = {"result_line", "verbose", "ms_files","best","all"};
+std::vector<std::string> OUT_OPTIONS = {"result_line", "verbose", "ms_files","best","all","recDif"};
 
 int end, begin = 0;
 template<class T>
@@ -47,6 +47,7 @@ int main(int argc, char* argv[])
 	bool verbose = false;
 	bool outputAll = false;
 	bool outputBest = false;
+	bool recDif = false;
 	unsigned int iterations = 0;
 	unsigned int kMin = 2;
 	unsigned int kMax = 10;
@@ -86,11 +87,12 @@ int main(int argc, char* argv[])
 								<<   "\t" << "but now starting with bp. Only one option is possible.\n";
 			std::cout << "-n\t" << "or --nModifications, to specify the number of modifications\n"
 								<<   "\t" << "that will be applied. Expects only a positive integer\n";
-			std::cout << "-o\t" << "or --output, to specify the diferent outputs:\n"
+			std::cout << "-o\t" << "or --output, to specify the different outputs:\n"
 								<<   "\t" << "\'result_line\' prints a line with the input\n"
 								<<   "\t" << "parameters and the results; \'verbose\' prints\n"
 								<<   "\t" << "a descriptive outline of the process;\n"
 								<<   "\t" << "\'ms_files\' will write the ms designs to files\n"
+								<<   "\t" << "\'recdif\' will output the average divergence from a rectangle\n"
 								<<   "\t" << "\'all\' will write all the designs to the specified format\n"
 								<<   "\t" << "\'best\' (default) will only write the best all the designs to\n"
 								<<   "\t" << "the specified format. More than one option can be given,\n"
@@ -99,8 +101,8 @@ int main(int argc, char* argv[])
 								<<   "\t" << "\'ms\' for \'Movable Sizable\',\n"
 								<<   "\t" << "\'tp\' for \'conformal model with triangular_prism\', \n"
 								<<   "\t" << "\'tr\' for \'conformal model with ReCtangles and triangles\', \n"
-								<<   "\t" << "\'de\' for \'2D delaunay vieuw used as basis for conformal model\'\n"
-								<<   "\t" << "\'bo\' for \'2D vieuw of boundary lines used for constrained delaunay\',\n"
+								<<   "\t" << "\'de\' for \'2D delaunay view used as basis for conformal model\'\n"
+								<<   "\t" << "\'bo\' for \'2D view of boundary lines used for constrained delaunay\',\n"
 								<<   "\t" << "\'sd\' for'\'Structural Design\',\n"
 								<< 	 "\t" << "\'fe\' for \'Finite Elements of the structural design model\' and \n"
 								<<   "\t" << "\'bp\' for the \'Building Physics model\'.\n"
@@ -292,6 +294,7 @@ int main(int argc, char* argv[])
 				else if (outSpec == "ms_files") ms_files = true;
 				else if (outSpec == "all") outputAll = true;
 				else if (outSpec == "best") outputBest = true;
+				else if (outSpec == "recdif") recDif = true;
 				else
 				{
 					std::stringstream errorMessage;
@@ -372,6 +375,20 @@ int main(int argc, char* argv[])
 		throw std::invalid_argument(errorMessage.str());
 	}
 	out("Initialized initial MS_N building model", true, true, verbose);
+
+	if(recDif)
+	{
+		int spaceCount = msDesigns.back().getSpacePtrs().size();
+		double averageRecDif = 0;
+		for(const auto i: msDesigns.back().getSpacePtrs())
+		{
+			bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+			std::vector<bso::utilities::geometry::quadrilateral> spaceQuads = spaceGeom.getQuadrilateral();
+			averageRecDif = averageRecDif + (spaceQuads[5]).getDifRectangle();
+		}
+		averageRecDif = averageRecDif/spaceCount;
+		std::cout <<"averageRecDif: " << averageRecDif << std::endl;
+	}
 	
 	unsigned int nSpaces = msDesigns.back().getSpacePtrs().size();
 	double floorArea = msDesigns.back().getFloorArea();
@@ -547,6 +564,20 @@ int main(int argc, char* argv[])
 		out("Scaled design to initial volume",true,true,verbose);
 		msDesigns.push_back(newMS);
 		out("Modified building spatial design into a new one",true,true,verbose);
+
+		if(recDif)
+		{
+			int spaceCount = msDesigns.back().getSpacePtrs().size();
+			double averageRecDif = 0;
+			for(const auto i: msDesigns.back().getSpacePtrs())
+			{
+				bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+				std::vector<bso::utilities::geometry::quadrilateral> spaceQuads = spaceGeom.getQuadrilateral();
+				averageRecDif = averageRecDif + (spaceQuads[5]).getDifRectangle();
+			}
+			averageRecDif = averageRecDif/spaceCount;
+			std::cout << "averageRecDif: " << averageRecDif << std::endl;
+		}
 	}
 	out("finished SCDP process",true,true,verbose);
 	

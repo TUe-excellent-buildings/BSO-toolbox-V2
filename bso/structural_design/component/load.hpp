@@ -24,9 +24,9 @@ namespace bso { namespace structural_design { namespace component {
 	class load
 	{
 	private:
-		load_case mLoadCase; //Describes to which load case this load components bellongs to
+		load_case mLoadCase; //Describes to which load case this load components belongs to
 		double mMagnitude; //Described the magnitude of one of the component (x,y,z) of a load of a load case defined in the input file. This value may be minus and describes that the load is against the positive assumed directions (1,0,0)/(0,1,0)/(0,0,1)
-		unsigned int mDOF; // Direction Of Force stored in either x/y/z defined as integer 0/1/2 corosponding to (1,0,0)/(0,1,0)/(0,0,1) in the global coördinate system.
+		unsigned int mDOF; // Direction Of Force stored in either x/y/z defined as integer 0/1/2 corresponding to (1,0,0)/(0,1,0)/(0,0,1) in the global coördinate system.
 	public:
 		load(load_case lc, const double& magnitude, const unsigned int& DOF);
 		~load();

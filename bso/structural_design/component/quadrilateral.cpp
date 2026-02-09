@@ -70,7 +70,7 @@ namespace bso { namespace structural_design { namespace component {
 			}
 			if (!indexFound) indices.push_back(i);
 		}
-		if (!indices.size() == 4)
+		if (!(indices.size() == 4))
 		{
 			std::stringstream errorMessage;
 			errorMessage << "\nError when meshing, could not find all vertex indices.\n"

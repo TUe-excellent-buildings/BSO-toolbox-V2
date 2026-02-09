@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <sstream>
 #include <type_traits>
+#include <memory>
+#include <vector>
 
 namespace bso { namespace utilities {
 
@@ -14,6 +16,7 @@ void data_point::mCheckValidDimensions(const data_point& pCheck) const
 		std::stringstream errorMessage;
 		errorMessage << "\nCannot perform operation between data points\n"
 								 << "because they do not have the same dimensions.\n"
+								 << "The found dimensions are: "<< mData.size() << " != " << pCheck.mData.size() << ".\n"
 								 << "(bso/utilities/data_point.hpp)" << std::endl;
 		throw std::runtime_error(errorMessage.str());
 	}
@@ -163,54 +166,178 @@ data_point data_point::normalized(const data_point& pStart, const data_point& pE
 template<class CONTAINER>
 void data_point::setToUtopia(const CONTAINER& dataCollection)
 {
-	try
-	{
-		mData = (dataCollection.begin())->mData;
-		for (const auto& i : dataCollection)
-		{
-			this->mCheckValidDimensions(i);
-			for (unsigned int j = 0; j < i.size(); ++j)
-			{
-				if (i(j) < mData(j)) mData(j) = i(j);
-			}
-		}
-	}
-	catch(std::exception& e)
-	{
-		std::stringstream errorMessage;
-		errorMessage << "\n Error, while setting a data point to the utopian point of\n"
-								 << "a collection. Received the following error:\n"
-								 << e.what()
-								 << "\n(bso/utilities/data_point.hpp)" << std::endl;
-		throw std::invalid_argument(errorMessage.str());
-	}
-} // setToUtopia()
+    // Use tag dispatching to select the correct implementation
+    setToUtopiaImpl(dataCollection, std::is_same<typename CONTAINER::value_type, std::shared_ptr<data_point>>{});
+}
+
+// template<class CONTAINER> // original setToUtopia function before making a specialized shared pointer template function for this function.
+// void data_point::setToUtopia(const CONTAINER& dataCollection)
+// {
+// 	try
+// 	{
+// 		mData = (dataCollection.begin())->mData;
+// 		for (const auto& i : dataCollection)
+// 		{
+// 			this->mCheckValidDimensions(i);
+// 			for (unsigned int j = 0; j < i.size(); ++j)
+// 			{
+// 				if (i(j) < mData(j)) mData(j) = i(j);
+// 			}
+// 		}
+// 	}
+// 	catch(std::exception& e)
+// 	{
+// 		std::stringstream errorMessage;
+// 		errorMessage << "\n Error, while setting a data point to the utopian point of\n"
+// 								 << "a collection. Received the following error:\n"
+// 								 << e.what()
+// 								 << "\n(bso/utilities/data_point.hpp)" << std::endl;
+// 		throw std::invalid_argument(errorMessage.str());
+// 	}
+// } // setToUtopia()
+
+template<class CONTAINER>
+void data_point::setToUtopiaImpl(const CONTAINER& dataCollection, std::false_type)
+{
+    try
+    {
+        mData = (dataCollection.begin())->mData;
+        for (const auto& i : dataCollection)
+        {
+            this->mCheckValidDimensions(i);
+            for (unsigned int j = 0; j < i.size(); ++j)
+            {
+                if (i(j) < mData(j)) mData(j) = i(j);
+            }
+        }
+    }
+    catch(std::exception& e)
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\n Error, while setting a data point to the utopian point of\n"
+                     << "a collection. Received the following error:\n"
+                     << e.what()
+                     << "\n(bso/utilities/data_point.hpp)" << std::endl;
+        throw std::invalid_argument(errorMessage.str());
+    }
+}
+
+template<class CONTAINER>
+void data_point::setToUtopiaImpl(const CONTAINER& dataCollection, std::true_type)
+{
+    try
+    {
+        mData = (*(dataCollection.begin()))->mData;
+        for (const auto& i : dataCollection)
+        {
+            this->mCheckValidDimensions(*i);
+            for (unsigned int j = 0; j < i->size(); ++j)
+            {
+                if ((*i)(j) < mData(j)) mData(j) = (*i)(j);
+            }
+        }
+    }
+    catch(std::exception& e)
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\n Error, while setting a data point to the utopian point of\n"
+                     << "a collection. Received the following error:\n"
+                     << e.what()
+                     << "\n(bso/utilities/data_point.hpp)" << std::endl;
+        throw std::invalid_argument(errorMessage.str());
+    }
+}
 
 template<class CONTAINER>
 void data_point::setToDistopia(const CONTAINER& dataCollection)
 {
-	try
-	{
-		mData = (dataCollection.begin())->mData;
-		for (const auto& i : dataCollection)
-		{
-			this->mCheckValidDimensions(i);
-			for (unsigned int j = 0; j < i.size(); ++j)
-			{
-				if (i(j) > mData(j)) mData(j) = i(j);
-			}
-		}
-	}
-	catch(std::exception& e)
-	{
-		std::stringstream errorMessage;
-		errorMessage << "\n Error, while setting a data point to the distopian point of\n"
-								 << "a collection. Received the following error:\n"
-								 << e.what()
-								 << "\n(bso/utilities/data_point.hpp)" << std::endl;
-		throw std::invalid_argument(errorMessage.str());
-	}
-} // setToDistopia()
+    // Use tag dispatching to select the correct implementation
+    setToDistopiaImpl(dataCollection, std::is_same<typename CONTAINER::value_type, std::shared_ptr<data_point>>{});
+}
+
+// template<class CONTAINER> original setToDIstopia function without shared pointer template specialization.
+// void data_point::setToDistopia(const CONTAINER& dataCollection)
+// {
+// 	try
+// 	{
+// 		mData = (dataCollection.begin())->mData;
+// 		for (const auto& i : dataCollection)
+// 		{
+// 			this->mCheckValidDimensions(i);
+// 			for (unsigned int j = 0; j < i.size(); ++j)
+// 			{
+// 				if (i(j) > mData(j)) mData(j) = i(j);
+// 			}
+// 		}
+// 	}
+// 	catch(std::exception& e)
+// 	{
+// 		std::stringstream errorMessage;
+// 		errorMessage << "\n Error, while setting a data point to the distopian point of\n"
+// 								 << "a collection. Received the following error:\n"
+// 								 << e.what()
+// 								 << "\n(bso/utilities/data_point.hpp)" << std::endl;
+// 		throw std::invalid_argument(errorMessage.str());
+// 	}
+// } // setToDistopia()
+
+template<class CONTAINER>
+void data_point::setToDistopiaImpl(const CONTAINER& dataCollection, std::false_type)
+{
+    try
+    {
+        mData = (dataCollection.begin())->mData;
+        for (const auto& i : dataCollection)
+        {
+            this->mCheckValidDimensions(i);
+            for (unsigned int j = 0; j < i.size(); ++j)
+            {
+                if (i(j) > mData(j)) mData(j) = i(j);
+            }
+        }
+    }
+    catch(std::exception& e)
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\n Error, while setting a data point to the distopian point of\n"
+                     << "a collection. Received the following error:\n"
+                     << e.what()
+                     << "\n(bso/utilities/data_point.hpp)" << std::endl;
+        throw std::invalid_argument(errorMessage.str());
+    }
+}
+
+template<class CONTAINER>
+void data_point::setToDistopiaImpl(const CONTAINER& dataCollection, std::true_type)
+{
+    try
+    {
+        mData = (*(dataCollection.begin()))->mData;
+        for (const auto& i : dataCollection)
+        {
+            this->mCheckValidDimensions(*i);
+            for (unsigned int j = 0; j < i->size(); ++j)
+            {
+                if ((*i)(j) > mData(j)) mData(j) = (*i)(j);
+            }
+        }
+    }
+    catch(std::exception& e)
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\n Error, while setting a data point to the distopian point of\n"
+                     << "a collection. Received the following error:\n"
+                     << e.what()
+                     << "\n(bso/utilities/data_point.hpp)" << std::endl;
+        throw std::invalid_argument(errorMessage.str());
+    }
+}
+
+// Explicit instantiation declarations
+template void data_point::setToUtopia<std::vector<data_point>>(const std::vector<data_point>&);
+template void data_point::setToUtopia<std::vector<std::shared_ptr<data_point>>>(const std::vector<std::shared_ptr<data_point>>&);
+template void data_point::setToDistopia<std::vector<data_point>>(const std::vector<data_point>&);
+template void data_point::setToDistopia<std::vector<std::shared_ptr<data_point>>>(const std::vector<std::shared_ptr<data_point>>&);
 
 template<class CONTAINER>
 std::vector<data_point> data_point::findClosestIn(const CONTAINER& dataCollection,

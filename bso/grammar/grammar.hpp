@@ -39,7 +39,7 @@ private:
 	std::map<spatial_design::conformal::cf_rectangle*, rule_set::sd_rectangle_rule*> mSDRectangleRules;
 	std::map<spatial_design::conformal::cf_triangle*, rule_set::sd_triangle_rule*> mSDTriangleRules;
 	std::map<spatial_design::conformal::cf_cuboid*, rule_set::sd_cuboid_rule*> mSDCuboidRules;
-	std::map<spatial_design::conformal::cf_triPrism*, rule_set::sd_triprism_rule*> mSDTriprismRules;
+	//std::map<spatial_design::conformal::cf_triPrism*, rule_set::sd_triprism_rule*> mSDTriprismRules; // for future if solid element representation NOBSD is required
 
 	structural_design::sd_model mSDModel;
 	std::vector<structural_design::sd_model> mIntermediateSDModels;

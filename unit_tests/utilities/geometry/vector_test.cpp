@@ -139,6 +139,41 @@ BOOST_AUTO_TEST_SUITE( vector_tests )
 		BOOST_REQUIRE(v6.isCodirectional(vCheck,0.1));
 		BOOST_REQUIRE(!v7.isCodirectional(vCheck,0.1));
 	}
+
+	BOOST_AUTO_TEST_CASE( getSmallestAngle ) {
+		vector v1 = {0,0,0};
+		vector v2 = {1,0,0};
+		vector v3 = {0,1,0};
+		vector v4 = {0,5,0};
+		vector v5 = {1,1,0};
+		vector v6 = {1,-1,0};
+		vector v7 = {1,0,1};
+		vector v8 = {0,-1,0};
+
+		double angle;
+		// vectors of zero length therefor unable to obtain an angle
+		BOOST_REQUIRE(!v1.getSmallestAngle(v2, angle));
+		BOOST_REQUIRE(!v2.getSmallestAngle(v1, angle));
+		// 90 degrees corners:
+		v2.getSmallestAngle(v3, angle);
+		BOOST_REQUIRE(angle == 90);
+		v2.getSmallestAngle(v4, angle);
+		BOOST_REQUIRE(angle == 90);
+		v4.getSmallestAngle(v2, angle);
+		BOOST_REQUIRE(angle == 90);
+		v5.getSmallestAngle(v6, angle);
+		// Parallel vectors:
+		v4.getSmallestAngle(v3, angle);
+		BOOST_REQUIRE(angle == 0);
+		v3.getSmallestAngle(v4, angle);
+		BOOST_REQUIRE(angle == 0);
+		v4.getSmallestAngle(v8, angle);
+		BOOST_REQUIRE(angle == 180);
+		// non parallel vectors:
+		v6.getSmallestAngle(v7, angle);
+		double tol = 0.001;
+		BOOST_REQUIRE(angle < 60+tol && angle > 60-tol);
+	}
 	
 	BOOST_AUTO_TEST_CASE( is_vertical ) {
 		vector v1 = {0,0,1};

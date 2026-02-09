@@ -19,7 +19,7 @@ void sd_cuboid_rule::apply(bso::structural_design::sd_model& sd) const
 {
     structural_design::component::geometry* quadGeometry = nullptr;
 	if (mStructure.type() == "quad_hexahedron")
-    { //create a guad_hexahedron at the location of the cuboid
+    { //create a quad_hexahedron at the location of the cuboid
         quadGeometry = sd.addGeometry(*(mCuboidProperty->getCuboidPtr()));
         quadGeometry->addStructure(mStructure);
     }

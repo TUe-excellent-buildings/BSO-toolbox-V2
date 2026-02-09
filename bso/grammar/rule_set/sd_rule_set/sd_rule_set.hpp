@@ -11,7 +11,7 @@ private:
 	
 public:
 	sd_rule_set();
-	~sd_rule_set();
+	virtual ~sd_rule_set(); // virtual destructor is needed to make sure the destructor is called upon when a derived class is deleted
 	
 	virtual void apply(bso::structural_design::sd_model& sd) const = 0;
 

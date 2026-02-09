@@ -95,10 +95,96 @@ namespace bso { namespace utilities {  namespace geometry {
 			errorMessage << "(bso/utilities/geometry/polygon.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
+		// This center definition holds only for convex polygons
 		mCenter = {0,0,0};
 		for (const auto& i : mVertices) mCenter += i;
 		mCenter /= mSize;
 	}
+
+	// template <class CONTAINER>
+	// void polygon::initFromLineSegments(const CONTAINER& l, const double& tol /*= 1e-3*/)
+	// {
+	// 	mSize = std::distance(l.begin(), l.end());
+
+	// 	if (mSize < 3)
+	// 	{
+	// 		std::stringstream errorMessage;
+	// 		errorMessage << "Cannot initialize polygon with less than three unique lineSegments.\n"
+	// 								 << mSize << " vertices were provided.\n"
+	// 								 << "(bso/utilities/geometry/polygon.cpp)" << std::endl;
+	// 		throw std::invalid_argument(errorMessage.str());
+	// 	}
+
+	// 	// Store lines
+	// 	mLineSegments.clear();
+	// 	mLineSegments.reserve(mSize);
+	// 	mLineSegments.insert(mLineSegments.end(),std::begin(l),std::end(l));
+
+	// 	// Store vertices
+	// 	mVertices.clear();
+	// 	mVertices.reserve(mSize);
+	// 	bool isFollowUp = true;
+	// 	mVertices[0] = (mLineSegments[0])[0];
+	// 	for(int i=1; i< mLineSegments.size(); i++)
+	// 	{
+	// 		mVertices[i] = (mLineSegments[i])[0];
+	// 		if(!((mLineSegments[i][0]).isSameAs(mVertices[i-1], tol)))
+	// 		{
+	// 			isFollowUp = false;
+	// 			break;
+	// 		}
+	// 	}
+
+	// 	bool lastIsFirst = true;
+	// 	if(!(mVertices[0].isSameAs(mVertices[mSize-1], tol))) {lastIsFirst = false;}
+
+	// 	if (!isFollowUp || !lastIsFirst)
+	// 	{
+	// 		std::stringstream errorMessage;
+	// 		errorMessage << "Cannot initialize polygon trough line_segments when the lines are not in sequence.\n"
+	// 								 << "The following lines were argument: \n";
+	// 		for (const auto& i : mLineSegments) errorMessage << i << std::endl;
+	// 		errorMessage << "(bso/utilities/geometry/polygon.cpp)" << std::endl;
+	// 		throw std::invalid_argument(errorMessage.str());
+	// 	}
+		
+	// 	bool allVerticesOnOneLine = true;
+	// 	for (unsigned int i = 1; i < mSize-1; i++)
+	// 	{
+	// 		vector v1 = {mVertices[i]-mVertices[0]};
+	// 		vector v2 = {mVertices[i+1]-mVertices[0]};
+	// 		if (v1.isZero(tol) || v2.isZero(tol)) continue;
+	// 		if (!v1.isParallel(v2,tol))
+	// 		{
+	// 			allVerticesOnOneLine = false;
+	// 			mNormal = v1.cross(v2).normalized();
+	// 			break;
+	// 		}
+	// 	}
+		
+	// 	if (allVerticesOnOneLine)
+	// 	{
+	// 		std::stringstream errorMessage;
+	// 		errorMessage << "Cannot initialize polygon with vertices that are all on one line.\n"
+	// 								 << "The following vertices were argument: \n";
+	// 		for (const auto& i : mVertices) errorMessage << i.transpose() << std::endl;
+	// 		errorMessage << "(bso/utilities/geometry/polygon.cpp)" << std::endl;
+	// 		throw std::invalid_argument(errorMessage.str());
+	// 	}
+	// 	if (!this->isCoplanarItself(tol))
+	// 	{			
+	// 		std::stringstream errorMessage;
+	// 		errorMessage << "Cannot initialize polygon with vertices that are out of plane.\n"
+	// 								 << "The following points were argument: \n";
+	// 		for (const auto& i : mVertices) errorMessage << i.transpose() << std::endl;
+	// 		errorMessage << "(bso/utilities/geometry/polygon.cpp)" << std::endl;
+	// 		throw std::invalid_argument(errorMessage.str());
+	// 	}
+	// 	// This center definition holds only for convex polygons
+	// 	mCenter = {0,0,0};
+	// 	for (const auto& i : mVertices) mCenter += i;
+	// 	mCenter /= mSize;
+	// }
 	
 	bool polygon::isCoplanarItself(const double& tol /*= 1e-3*/) const
 	{
@@ -135,9 +221,14 @@ namespace bso { namespace utilities {  namespace geometry {
 	}
 	
 	polygon::polygon(const std::initializer_list<vertex>&& l, const double& tol /*= 1e-3*/)
-	{
+	{		
 		this->initFromVertices(l, tol);
 	}
+
+	// polygon::polygon(const std::initializer_list<line_segment>&& l, const double& tol /*= 1e-3*/)
+	// {
+	// 	this->initFromLineSegments(l, tol);
+	// }
 	
 	polygon::~polygon()
 	{
@@ -174,6 +265,80 @@ namespace bso { namespace utilities {  namespace geometry {
 		vector v = p - mVertices[0];
 		return p - mNormal.normalized().dot(v)*mNormal.normalized();
 	} // getPointClosestTo()
+
+	//bool polygon::isOverlapping(const polygon& pol, const double& tol /*= 1e-3*/) const // function is not fully working yet
+	//{
+		// Note; this function only holds for convex polygons coplanar polygons. 
+		// You can check for coplanar by checking all vertices with the help of function isCoplanar()
+		// if a non_convex definition is needed then the polygons separated in triangles 
+		// with the accompanied function for triangles will solve this issue.
+		// This function is based on the Separating Axis theorem algorithm.
+		// Described in this link: https://rosettacode.org/wiki/Check_if_two_polygons_overlap#C++
+
+		// Only coplanar polygons are considered in this function.
+		// for(const auto v: pol)
+		// {
+		// 	if(!this->isCoplanar(v,tol))
+		// 	{
+		// 		return false; 
+		// 	}
+		// }
+
+		// // Get the axis
+		// std::vector<bso::utilities::geometry::vector> allAxesThis;
+		// for(const auto i: this->getLines())
+		// {
+		// 	// Get the perpendicular vector to the linesVector and the normal of the plane
+		// 	bso::utilities::geometry::vector axis = (this->getNormal()).cross(i.getVector());
+		// 	allAxesThis.push_back(axis);
+		// }
+		// std::vector<bso::utilities::geometry::vector> allAxesPol;
+		// for(const auto i: pol.getLines())
+		// {
+		// 	// Get the perpendicular vector to the linesVector and the normal of the plane
+		// 	bso::utilities::geometry::vector axis = (this->getNormal()).cross(i.getVector());
+		// 	allAxesPol.push_back(axis);
+		// }
+
+		// std::vector<bso::utilities::geometry::vector> allAxes = allAxesThis;
+		// allAxes.insert(allAxes.end(), allAxesPol.begin(), allAxesPol.end());
+
+		// for(bso::utilities::geometry::vector& axis : allAxes) 
+		// {
+		// 	// axis projection 1 projectionOnAxis
+		// 	float minThis = std::numeric_limits<float>::infinity();
+		// 	float maxThis = -std::numeric_limits<float>::infinity();
+		// 	for (const bso::utilities::geometry::vertex& vertex : *this) // iterate trough polygons vertices
+		// 	{
+		// 		double p = axis.dot(vertex);
+		// 		if ( p < minThis ) {
+		// 			minThis = p;
+		// 		}
+		// 		if ( p > maxThis ) {
+		// 		maxThis = p;
+		// 		}
+		// 	}
+
+		// 	// axis projection 2 projectionOnAxis
+		// 	float minPol = std::numeric_limits<float>::infinity();
+		// 	float maxPol = -std::numeric_limits<float>::infinity();
+		// 	for (const bso::utilities::geometry::vertex& vertex : pol) // iterate trough polygons vertices
+		// 	{
+		// 		double p = axis.dot(vertex);
+		// 		if ( p < minPol ) {
+		// 			minPol = p;
+		// 		}
+		// 		if ( p > maxPol ) {
+		// 		maxPol = p;
+		// 		}
+		// 	}
+
+		// 	// Determine on the found values if polygons are overlapping
+		// 	bool overlaps = !(maxThis < minPol || maxPol < minThis);
+		// 	if (!overlaps) {return false;}
+		// }
+		// return true;
+	//}
 	
 	bool polygon::isSameAs(const polygon& pol, const double& tol /*= 1e-3*/) const
 	{ //

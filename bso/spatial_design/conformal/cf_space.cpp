@@ -15,7 +15,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 	:  utilities::geometry::quad_hexahedron(rhs,buildingModel->tolerance())
 	{ // 
 		mBuildingModel = buildingModel;
-		for(const auto i : triPrism)
+		for(const auto& i : triPrism)
 		{
 			mCFTriPrisms.push_back(mBuildingModel->addTriPrism(i));
 			mCFTriPrisms.back()->addSpace(this);
@@ -26,7 +26,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 	:  utilities::geometry::quad_hexahedron(rhs,buildingModel->tolerance())
 	{ // 
 		mBuildingModel = buildingModel;
-		for(const auto i : quadHexa)
+		for(const auto& i : quadHexa)
 		{
 			mCFCuboids.push_back(mBuildingModel->addCuboid(i));
 			mCFCuboids.back()->addSpace(this);

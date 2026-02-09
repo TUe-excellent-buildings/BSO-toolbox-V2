@@ -230,10 +230,10 @@ namespace bso { namespace utilities {
 		std::vector<utilities::geometry::line_segment> contrainLines;
 		for(auto t: delaunayLines)
 		{
-			for(const auto k: t)
+			for(const auto& k: t)
 			{				
 				bool found = false;
-				for(const auto u: delaunayPoints) 
+				for(const auto& u: delaunayPoints) 
 				{
 					if(u.isSameAs(k)) found = true;
 				}
@@ -249,7 +249,7 @@ namespace bso { namespace utilities {
 			for(auto k: delaunayLines)
 			{
 				if(k.isSameAs(t, mTol)){continue;}
-				for(const auto s: k)
+				for(const auto& s: k)
 				{
 					if(t.isOnLine(s, mTol))
 					{
@@ -263,10 +263,10 @@ namespace bso { namespace utilities {
 		{
 			std::stringstream errorMessage;
 			errorMessage << "The following vertices are end vertices of the constraint lines, but not a delaunay points (Checked with tolerance): " << std::endl;
-			for(const auto t: noDelauneyPoint){errorMessage << t;}
+			for(const auto& t: noDelauneyPoint){errorMessage << t;}
 			errorMessage << std::endl	
 						 << "The following are the delauney points: " << std::endl;
-			for(const auto t: delaunayPoints){errorMessage << t << " ; ";}	
+			for(const auto& t: delaunayPoints){errorMessage << t << " ; ";}	
 			errorMessage << std::endl;
 			errorMessage << "(bso/utilities/delaunay)." << std::endl;
 			throw std::runtime_error(errorMessage.str());
@@ -276,7 +276,7 @@ namespace bso { namespace utilities {
 			std::stringstream errorMessage;
 			int counter=0;
 			errorMessage << "The following vertices are vertices on the constrain line, this is not allowed and should have been solved in the splitLines function. See the following vertices: " << std::endl;
-			for(const auto t: pointOnConstraintLine)
+			for(const auto& t: pointOnConstraintLine)
 			{
 				errorMessage << "vertex: " << t << " has been found on: " << contrainLines[counter] << std::endl;
 				counter++;
@@ -290,12 +290,12 @@ namespace bso { namespace utilities {
 		// start adding the points/constrainLines to delaunay triangulation algorithm Fade_2D
 		GEOM_FADE2D::Fade_2D dt;
 		
-		for(const auto i: delaunayPoints)
+		for(const auto& i: delaunayPoints)
 		{
 			dt.insert(GEOM_FADE2D::Point2(i.x(),i.y()));
 		}
 		std::vector<GEOM_FADE2D::Segment2> vSegments;
-		for(const auto i: delaunayLines)
+		for(const auto& i: delaunayLines)
 		{
 			vSegments.push_back(GEOM_FADE2D::Segment2(GEOM_FADE2D::Point2(i[0].x(),i[0].y()),GEOM_FADE2D::Point2(i[1].x(),i[1].y())));
 		}
@@ -691,7 +691,7 @@ namespace bso { namespace utilities {
 			
 			
 			// remove duplicates which has switched vertexes in intsecL		
-			for(int k; k<intsecL.size(); k++)
+			for(long unsigned int k=0; k<intsecL.size(); k++)
 			{
 				for(auto m : intsecL)
 				{

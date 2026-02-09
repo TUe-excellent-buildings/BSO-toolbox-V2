@@ -170,7 +170,7 @@ BOOST_AUTO_TEST_SUITE( space_initialization )
 		Eigen::Vector3d coord1(0,0,0);
 		Eigen::Vector3d dim1(0,0,0);
 		
-		std::vector <bso::utilities::geometry::vertex*> pVertex;
+		std::vector <bso::utilities::geometry::vertex> pVertex;
 		
 		bso::utilities::geometry::vertex vert1 = {0,0,0};
 		bso::utilities::geometry::vertex vert2 = {0,1000,0};
@@ -181,14 +181,14 @@ BOOST_AUTO_TEST_SUITE( space_initialization )
 		bso::utilities::geometry::vertex vert7 = {1000,1000,1000};
 		bso::utilities::geometry::vertex vert8 = {1000,0,1000};
 		
-		pVertex.push_back(&vert1);
-		pVertex.push_back(&vert2);
-		pVertex.push_back(&vert3);
-		pVertex.push_back(&vert4);
-		pVertex.push_back(&vert5);
-		pVertex.push_back(&vert6);
-		pVertex.push_back(&vert7);
-		pVertex.push_back(&vert8);
+		pVertex.push_back(vert1);
+		pVertex.push_back(vert2);
+		pVertex.push_back(vert3);
+		pVertex.push_back(vert4);
+		pVertex.push_back(vert5);
+		pVertex.push_back(vert6);
+		pVertex.push_back(vert7);
+		pVertex.push_back(vert8);
 		
 		ms_space s1(1, pVertex);
 		bool check = true;
@@ -220,7 +220,7 @@ BOOST_AUTO_TEST_SUITE( space_initialization )
 		Eigen::Vector3d dim1(0,0,0);
 		std::vector<std::string> surfaceTypes = {"type_1", "type_2", "type_3", "type_4", "type_5", "type_6"};
 		
-		std::vector <bso::utilities::geometry::vertex*> pVertex;
+		std::vector <bso::utilities::geometry::vertex> pVertex;
 		
 		bso::utilities::geometry::vertex vert1 = {0,0,0};
 		bso::utilities::geometry::vertex vert2 = {0,2000,0};
@@ -231,14 +231,14 @@ BOOST_AUTO_TEST_SUITE( space_initialization )
 		bso::utilities::geometry::vertex vert7 = {1000,1000,1000};
 		bso::utilities::geometry::vertex vert8 = {1000,0,1000};
 		
-		pVertex.push_back(&vert1);
-		pVertex.push_back(&vert2);
-		pVertex.push_back(&vert3);
-		pVertex.push_back(&vert4);
-		pVertex.push_back(&vert5);
-		pVertex.push_back(&vert6);
-		pVertex.push_back(&vert7);
-		pVertex.push_back(&vert8);
+		pVertex.push_back(vert1);
+		pVertex.push_back(vert2);
+		pVertex.push_back(vert3);
+		pVertex.push_back(vert4);
+		pVertex.push_back(vert5);
+		pVertex.push_back(vert6);
+		pVertex.push_back(vert7);
+		pVertex.push_back(vert8);
 		
 		ms_space s1(1, pVertex, "type_a", surfaceTypes);
 		bool check = true;
@@ -294,7 +294,7 @@ BOOST_AUTO_TEST_SUITE( space_initialization )
 		bool check = true;
 		for(auto i: s1.getVertices())
 		{
-			if (std::find(pVertex.begin(),pVertex.end(),(*i)) == pVertex.end())
+			if (std::find(pVertex.begin(),pVertex.end(),(i)) == pVertex.end())
 			{
 				check = false;
 			}
@@ -345,7 +345,7 @@ BOOST_AUTO_TEST_SUITE( space_initialization )
 		bool check = true;
 		for(const auto i: s1.getVertices())
 		{
-			if (std::find(pVertex.begin(),pVertex.end(),(*i)) == pVertex.end())
+			if (std::find(pVertex.begin(),pVertex.end(),(i)) == pVertex.end())
 			{
 				check = false;
 			}
@@ -396,7 +396,7 @@ BOOST_AUTO_TEST_SUITE( space_initialization )
 		bool check = true;
 		for(const auto i: s1.getVertices())
 		{
-			if (std::find(pVertex.begin(),pVertex.end(),(*i)) == pVertex.end())
+			if (std::find(pVertex.begin(),pVertex.end(),(i)) == pVertex.end())
 			{
 				check = false;
 			}
@@ -447,7 +447,7 @@ BOOST_AUTO_TEST_SUITE( space_initialization )
 		bool check = true;
 		for(const auto i: s1.getVertices())
 		{
-			if (std::find(pVertex.begin(),pVertex.end(),(*i)) == pVertex.end())
+			if (std::find(pVertex.begin(),pVertex.end(),(i)) == pVertex.end())
 			{
 				check = false;
 			}
@@ -504,7 +504,7 @@ BOOST_AUTO_TEST_SUITE( space_initialization )
 	{
 		ms_space s1;
 		
-		std::vector <bso::utilities::geometry::vertex*> pVertex;
+		std::vector <bso::utilities::geometry::vertex> pVertex;
 		
 		bso::utilities::geometry::vertex vert1 = {16500,10500,0};
 		bso::utilities::geometry::vertex vert2 = {14500,12500,0};
@@ -515,14 +515,14 @@ BOOST_AUTO_TEST_SUITE( space_initialization )
 		bso::utilities::geometry::vertex vert7 = {14500,24500,4000};
 		bso::utilities::geometry::vertex vert8 = {16500,24500,4000};
 		
-		pVertex.push_back(&vert1);
-		pVertex.push_back(&vert2);
-		pVertex.push_back(&vert3);
-		pVertex.push_back(&vert4);
-		pVertex.push_back(&vert5);
-		pVertex.push_back(&vert6);
-		pVertex.push_back(&vert7);
-		pVertex.push_back(&vert8);
+		pVertex.push_back(vert1);
+		pVertex.push_back(vert2);
+		pVertex.push_back(vert3);
+		pVertex.push_back(vert4);
+		pVertex.push_back(vert5);
+		pVertex.push_back(vert6);
+		pVertex.push_back(vert7);
+		pVertex.push_back(vert8);
 		
 		Eigen::Vector3d coord1(0,0,0);
 		Eigen::Vector3d dim1(0,0,0);
@@ -655,7 +655,7 @@ BOOST_AUTO_TEST_SUITE( space_comparison )
 	{
 		ms_space s1;
 		
-		std::vector <bso::utilities::geometry::vertex*> pVertex;
+		std::vector <bso::utilities::geometry::vertex> pVertex;
 		
 		bso::utilities::geometry::vertex vert1 = {16500,10500,0};
 		bso::utilities::geometry::vertex vert2 = {14500,12500,0};
@@ -666,14 +666,14 @@ BOOST_AUTO_TEST_SUITE( space_comparison )
 		bso::utilities::geometry::vertex vert7 = {14500,24500,4000};
 		bso::utilities::geometry::vertex vert8 = {16500,24500,4000};
 		
-		pVertex.push_back(&vert1);
-		pVertex.push_back(&vert2);
-		pVertex.push_back(&vert3);
-		pVertex.push_back(&vert4);
-		pVertex.push_back(&vert5);
-		pVertex.push_back(&vert6);
-		pVertex.push_back(&vert7);
-		pVertex.push_back(&vert8);
+		pVertex.push_back(vert1);
+		pVertex.push_back(vert2);
+		pVertex.push_back(vert3);
+		pVertex.push_back(vert4);
+		pVertex.push_back(vert5);
+		pVertex.push_back(vert6);
+		pVertex.push_back(vert7);
+		pVertex.push_back(vert8);
 		
 		std::vector<std::string> surfaceTypes = {"type_1", "type_2", "type_3", "type_4", "type_5", "type_6"};
 		ms_space s2(1, pVertex, "type_a", surfaceTypes);
@@ -688,26 +688,17 @@ BOOST_AUTO_TEST_SUITE( space_comparison )
 	{
 		ms_space s1("N, 1,	16500,10500,0,	14500,12500,0,	14500,24500,0,	16500,24500,0,	16500,10500,4000,	14500,12500,4000,	14500,24500,4000,	16500,24500,4000, type_a,type_1,type_2,type_3,type_4,type_5,type_6");
 		
-		std::vector <bso::utilities::geometry::vertex*> pVertex;
+		std::vector <bso::utilities::geometry::vertex> pVertex;
 		
-		bso::utilities::geometry::vertex vert1 = {16500,10500,0};
-		bso::utilities::geometry::vertex vert2 = {14500,12500,0};
-		bso::utilities::geometry::vertex vert3 = {14500,24500,0};
-		bso::utilities::geometry::vertex vert4 = {16500,24500,0};
-		bso::utilities::geometry::vertex vert5 = {16500,10500,4000};
-		bso::utilities::geometry::vertex vert6 = {14500,12500,4000};
-		bso::utilities::geometry::vertex vert7 = {14500,24500,4000};
-		bso::utilities::geometry::vertex vert8 = {16500,24500,4000};
-		
-		pVertex.push_back(&vert1);
-		pVertex.push_back(&vert2);
-		pVertex.push_back(&vert3);
-		pVertex.push_back(&vert4);
-		pVertex.push_back(&vert5);
-		pVertex.push_back(&vert6);
-		pVertex.push_back(&vert7);
-		pVertex.push_back(&vert8);
-		
+		pVertex.push_back({16500,10500,0});
+		pVertex.push_back({14500,12500,0});
+		pVertex.push_back({14500,24500,0});
+		pVertex.push_back({16500,24500,0});
+		pVertex.push_back({16500,10500,4000});
+		pVertex.push_back({14500,12500,4000});
+		pVertex.push_back({14500,24500,4000});
+		pVertex.push_back({16500,24500,4000});
+
 		std::vector<std::string> surfaceTypes = {"type_1", "type_2", "type_3", "type_4", "type_5", "type_6"};
 		ms_space s2(1, pVertex, "type_a", surfaceTypes);
 		BOOST_REQUIRE(s1 == s2);

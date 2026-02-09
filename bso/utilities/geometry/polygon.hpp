@@ -13,7 +13,9 @@ namespace bso { namespace utilities { namespace geometry {
 	{
 	private:
 		template <class CONTAINER>
-		void initFromVertices(const CONTAINER& l, const double& tol = 1e-3);		
+		void initFromVertices(const CONTAINER& l, const double& tol = 1e-3);
+		//template <class CONTAINER>	
+		//void initFromLineSegments(const CONTAINER& l, const double& tol = 1e-3);
 		
 		bool isCoplanarItself(const double& tol = 1e-3) const;
 	protected:
@@ -29,6 +31,7 @@ namespace bso { namespace utilities { namespace geometry {
 		template <class CONTAINER>
 		polygon(const CONTAINER& l, const double& tol = 1e-3);
 		polygon(const std::initializer_list<vertex>&& l, const double& tol = 1e-3);
+		//polygon(const std::initializer_list<line_segment>&& l, const double& tol = 1e-3);
 		virtual ~polygon();
 		virtual polygon* clone() = 0;
 		
@@ -43,6 +46,7 @@ namespace bso { namespace utilities { namespace geometry {
 		// not using this function because it does not generalize well for arbitrary polygons
 		// bool intersectsWith(const polygon& rhs, line_segment lInt, const double& tol = 1e-3) const;
 		// bool intersectsWith(const polygon& rhs, const double& tol = 1e-3) const;
+		//bool isOverlapping(const polygon& pol, const double& tol = 1e-3) const; // function is not fully working yet
 		bool isCoplanar(const vertex& p1, const double& tol = 1e-3) const;
 		bool isParallel(const polygon& pol1, const double& tol = 1e-3) const;
 		bool isParallel(const vector& v1, const double& tol = 1e-3) const;
@@ -53,12 +57,12 @@ namespace bso { namespace utilities { namespace geometry {
 		vertex getCenter() const;
 		const vertex& center() const;
 		
-		// only allow const accessers because we dont allow geometric member variables to be changed, to prevent sortings to be distorted
+		// only allow const accesses because we dont allow geometric member variables to be changed, to prevent sorting to be distorted
 		auto begin() const {return mVertices.begin();}
 		auto end() const {return mVertices.end();}
 		
 		const auto& getLines() const {return mLineSegments;}
-		const int getMSize() const {return mSize;}
+		int getMSize() const {return mSize;}
 
 		const vertex& operator [] (const unsigned int& index) const;
 		
