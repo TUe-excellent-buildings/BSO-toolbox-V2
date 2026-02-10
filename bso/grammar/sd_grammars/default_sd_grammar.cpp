@@ -191,6 +191,12 @@ bso::structural_design::sd_model grammar::sd_grammar<DEFAULT_SD_GRAMMAR>(const s
 	for (auto& i : mSDRectangleRules) delete i.second;
 	for (auto& i : mSDTriangleRules) delete i.second;
 	
+	// clear the maps to prevent dangling pointers
+	mSDVertexRules.clear();
+	mSDLineRules.clear();
+	mSDRectangleRules.clear();
+	mSDTriangleRules.clear();
+	
 	return mSDModel;
 } // default_sd_grammar
 

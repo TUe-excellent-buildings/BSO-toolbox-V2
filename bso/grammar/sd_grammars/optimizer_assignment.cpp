@@ -206,6 +206,12 @@ bso::structural_design::sd_model grammar::sd_grammar<OPTIMIZER_ASSIGNMENT>(
 	for (auto& i : mSDLineRules) delete i.second;
 	for (auto& i : mSDRectangleRules) delete i.second;
 	for (auto& i : mSDTriangleRules) delete i.second;
+
+	// clear the maps to prevent dangling pointers
+	mSDVertexRules.clear();
+	mSDLineRules.clear();
+	mSDRectangleRules.clear();
+	mSDTriangleRules.clear();
 	
 	return mSDModel;
 } // default_sd_grammar

@@ -110,6 +110,13 @@ bso::structural_design::sd_model grammar::sd_grammar<VOLUME_SD_GRAMMAR>(const st
 	for (auto& i : mSDRectangleRules) delete i.second;
 	for (auto& i : mSDCuboidRules) delete i.second;
 
+	// clear the maps to prevent dangling pointers
+	mSDVertexRules.clear();
+	mSDLineRules.clear();
+	mSDRectangleRules.clear();
+	mSDTriangleRules.clear();
+	mSDCuboidRules.clear();
+
 	return mSDModel;
 } // volume_sd_grammar
 
