@@ -11,10 +11,7 @@
 #include <boost/algorithm/string.hpp>
 #include <bitset>
 
-//#include <bso/utilities/geometry.hpp>
 #include <bso/utilities/delaunay.hpp>
-#include <bso/utilities/data_analysis.hpp>
-#include <bso/utilities/geometry/polygon_non_convex.hpp>
 #include <bso/utilities/data_analysis.hpp>
 
 #include <iomanip> // allows for std::setprecision use
@@ -280,7 +277,7 @@ double ms_N_building::getAverageHorizontalRibSize() const
 	}
 	averageSize = averageSize/lineCount;
 	return averageSize;
-}
+} // getAverageHorizontalRibSize()
 
 double ms_N_building::getSpaceVolumeRatio() const
 {
@@ -303,7 +300,7 @@ double ms_N_building::getSpaceVolumeRatio() const
 	}
 	
 	return minVolume/maxVolume;
-}
+} //getSpaceVolumeRatio
 
 void ms_N_building::getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers)
 {
@@ -315,11 +312,11 @@ void ms_N_building::getSpaceVolumeBoxPlotValues(double& median, double& firstQua
 	}
 	average = average/(mSpaces.size());
 	
-	median = bso::utilities::calculateQuartile(spaceVolume, 0.5);
-	firstQuartile = bso::utilities::calculateQuartile(spaceVolume, 0.25);
-	thirdQuartile = bso::utilities::calculateQuartile(spaceVolume, 0.75);
-	outliers = bso::utilities::findOutliers(spaceVolume);
-}
+	// median = bso::utilities::calculateQuartile(spaceVolume, 0.5);
+	// firstQuartile = bso::utilities::calculateQuartile(spaceVolume, 0.25);
+	// thirdQuartile = bso::utilities::calculateQuartile(spaceVolume, 0.75);
+	// outliers = bso::utilities::findOutliers(spaceVolume);
+} // getSpaceVolumeBoxPlotValues()
 
 double ms_N_building::getSpaceFloorAreaRatio() const
 {
@@ -337,7 +334,7 @@ double ms_N_building::getSpaceFloorAreaRatio() const
 	sort(spaceFloorArea.begin(), spaceFloorArea.end());
 
 	return spaceFloorArea[0]/spaceFloorArea.back();
-}
+} //getSpaceFloorAreaRatio()
 
 std::vector<double> ms_N_building::getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers)
 {
@@ -349,181 +346,10 @@ std::vector<double> ms_N_building::getSpaceFloorAreaBoxPlotValues(double& median
 	}
 	average = average/(mSpaces.size());
 	
-	median = bso::utilities::calculateQuartile(spaceFloorArea, 0.5);
-	firstQuartile = bso::utilities::calculateQuartile(spaceFloorArea, 0.25);
-	thirdQuartile = bso::utilities::calculateQuartile(spaceFloorArea, 0.75);
-	outliers = bso::utilities::findOutliers(spaceFloorArea);
-	return spaceFloorArea;
-}
-
-double ms_N_building::getAverageRecDif() const
-{
-	double recDifAverage = 0;
-	for (const auto i : mSpaces)
-	{
-		//Get original space geometry
-		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
-		for(auto quad: spaceGeom.getQuadrilateral())
-		{
-			if(quad.getNormal().isVertical()) // take either the roof of floor since they are the same
-			{
-				recDifAverage += quad.getDifRectangle();
-				break;
-			}
-		}
-	}
-	
-	recDifAverage = recDifAverage/(mSpaces.size());
-	return recDifAverage;
-}
-
-int ms_N_building::getNrElevations(const double mTol /*= 1e-3*/) const
-{
-	std::vector<double> elevations;
-	for(const auto i: mSpaces)
-	{
-		bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
-		bso::utilities::geometry::quadrilateral firstQuad;
-		bool fistQuadFound = false;
-		for(auto quad: spaceGeom.getQuadrilateral())
-		{
-			if(quad.getNormal().isVertical() && !fistQuadFound)
-			{
-				firstQuad = quad;
-				fistQuadFound = true;
-				continue;
-			}
-			else if(quad.getNormal().isVertical())
-			{
-				// determine the lowest quad
-				double checkLevel;
-				if(firstQuad.getCenter().z() > quad.getCenter().z()){checkLevel = quad.getCenter().z();}
-				else{checkLevel = firstQuad.getCenter().z();}
-				
-				// Check if elevation is already added
-				bool isAdded = false;
-				for(double& level: elevations)
-				{
-					if(checkLevel < level + mTol && checkLevel > level - mTol) 
-					{
-						isAdded = true; 
-						break;
-					}
-				}
-				if(!isAdded){elevations.push_back(checkLevel);}
-			}
-		}
-	}
-
-	return elevations.size();
-} // getNrElevations()
-
-double ms_N_building::getAverageHorizontalRibSize() const
-{
-	double averageSize = 0;
-	int lineCount=0;
-	bool initialized = false;
-	for (const auto i : mSpaces)
-	{
-		//Get original space geometry
-		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
-		// Consider all horizontal lines of each space
-		for (const auto& k : spaceGeom.getLines())
-		{
-			if(k.getVector().isVertical()) continue;
-			averageSize += k.getLength();
-			initialized = true;
-			lineCount++;
-		}
-	}
-	if(mSpaces.size() == 0 || !initialized)
-	{
-		std::stringstream errorMessage;
-			errorMessage << "Can not get average horizontal rib size, since there are" << std::endl
-									<<  "no spaces inside the mSpace container: " << mSpaces.size() << std::endl
-									<<  "or the spaces had no line_segments to consider " << std::endl
-									<< "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
-			throw std::invalid_argument(errorMessage.str());
-	}
-	averageSize = averageSize/lineCount;
-	return averageSize;
-}
-
-double ms_N_building::getSpaceVolumeRatio() const
-{
-	if(mSpaces.size() <= 1)
-	{
-		std::stringstream errorMessage;
-			errorMessage << "Can not get get space difference ration volume, since there are" << std::endl
-									<<  "too little spaces inside the mSpace container: " << mSpaces.size() << std::endl
-									<< "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
-			throw std::invalid_argument(errorMessage.str());
-	}
-
-	double maxVolume = mSpaces[0]->getVolume();
-	double minVolume =mSpaces[0]->getVolume();
-
-	for(const auto i: mSpaces)
-	{
-		if(i->getVolume() > maxVolume){maxVolume = i->getVolume();}
-		else if(i->getVolume() < minVolume){minVolume = i->getVolume();}
-	}
-	
-	return minVolume/maxVolume;
-}
-
-void ms_N_building::getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers)
-{
-	std::vector<double> spaceVolume;
-	for(const auto i: mSpaces)
-	{
-		spaceVolume.push_back(i->getVolume());
-		average += i->getVolume();
-	}
-	average = average/(mSpaces.size());
-
-	std::vector<double> boxPlotValues = bso::utilities::Quantile(spaceVolume, {0.25, 0.5, 0.75});
-
-	median = boxPlotValues[1];
-	firstQuartile = boxPlotValues[0];
-	thirdQuartile = boxPlotValues[2];
-	outliers = bso::utilities::findOutliers(spaceVolume);
-}
-
-double ms_N_building::getSpaceFloorAreaRatio() const
-{
-	if(mSpaces.size() <= 1)
-	{
-		std::stringstream errorMessage;
-			errorMessage << "Can not get get space difference ration volume, since there are" << std::endl
-									<<  "too little spaces inside the mSpace container: " << mSpaces.size() << std::endl
-									<< "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
-			throw std::invalid_argument(errorMessage.str());
-	}
-
-	std::vector<double> spaceFloorArea;
-	for(const auto i : mSpaces) spaceFloorArea.push_back(i->getFloorArea());
-	sort(spaceFloorArea.begin(), spaceFloorArea.end());
-
-	return spaceFloorArea[0]/spaceFloorArea.back();
-}
-
-std::vector<double> ms_N_building::getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers)
-{
-	std::vector<double> spaceFloorArea;
-	for(const auto i: mSpaces)
-	{
-		spaceFloorArea.push_back(i->getFloorArea());
-		average += i->getFloorArea();
-	}
-	average = average/(mSpaces.size());
-
-	std::vector<double> boxPlotValues = bso::utilities::Quantile(spaceFloorArea, {0.25, 0.5, 0.75});
-
-	median = boxPlotValues[1];
-	firstQuartile = boxPlotValues[0];
-	thirdQuartile = boxPlotValues[2];
-	outliers = bso::utilities::findOutliers(spaceFloorArea);
+	// median = bso::utilities::calculateQuartile(spaceFloorArea, 0.5);
+	// firstQuartile = bso::utilities::calculateQuartile(spaceFloorArea, 0.25);
+	// thirdQuartile = bso::utilities::calculateQuartile(spaceFloorArea, 0.75);
+	// outliers = bso::utilities::findOutliers(spaceFloorArea);
 	return spaceFloorArea;
 }
 

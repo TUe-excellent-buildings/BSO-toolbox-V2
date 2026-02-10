@@ -9,6 +9,7 @@
 #include <unit_tests/utilities/data_handling_test.cpp>
 #include <unit_tests/utilities/data_analysis_test.cpp>
 #include <unit_tests/utilities/delaunay_test.cpp>
+#include <unit_tests/utilities/geometry_functions_test.cpp>
 #include <unit_tests/utilities/data_export_test.cpp>
 #include <unit_tests/spatial_design/ms_space_test.cpp>
 #include <unit_tests/spatial_design/ms_building_test.cpp>

@@ -28,11 +28,10 @@ namespace bso { namespace utilities {
 			const std::vector <utilities::geometry::line_segment> delaunayLines,
 			const double mTol = 1e-3,
 			const bool outputPs = false);
-	// 		// Constrained Delaunay triangulation performed with the help of the FADE_2D libary
-	// std::vector<utilities::geometry::triangle> delaunayZoned(const std::vector <utilities::geometry::vertex> delaunayPoints,
-	// 		const std::vector <utilities::geometry::line_segment> orderedLinesOfZone,
-	// 		const double mTol = 1e-3,
-	// 		const bool outputPs = false);
+	std::vector<utilities::geometry::triangle> delaunayZoned(const std::vector <utilities::geometry::vertex> delaunayPoints,
+			const std::vector <utilities::geometry::line_segment> orderedLinesOfZone,
+			const double mTol = 1e-3,
+			const bool outputPs = false);
 	// 		// Constrained Delaunay triangulation performed with the help of the FADE_2D libary
 	// std::vector<std::vector<utilities::geometry::triangle>> delaunayMultipleZoned(const std::vector <utilities::geometry::vertex> delaunayPoints,
 	// 		const std::vector<std::vector<utilities::geometry::line_segment>> orderedLinesOfZone,

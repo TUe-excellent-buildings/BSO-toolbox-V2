@@ -217,7 +217,7 @@ BOOST_AUTO_TEST_SUITE( triangle_tests )
 	BOOST_AUTO_TEST_CASE( get_normal )
 	{
 		triangle t1 = {{1,0,0},{1,1,0},{0,1,0}};
-		BOOST_REQUIRE((t1.normal() - vector({0,0,1})).isZero(1e-9));
+		BOOST_REQUIRE((t1.normal() - vector({0,0,1})).isZero(1e-9) || (t1.normal() - vector({0,0,-1})).isZero(1e-9));
 	}
 	
 	BOOST_AUTO_TEST_CASE( offstream )

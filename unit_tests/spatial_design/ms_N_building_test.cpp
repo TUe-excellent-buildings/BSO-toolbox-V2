@@ -795,7 +795,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 					bool isFound = false;
 					for(auto& v_ref : space1.getVertices())
 					{
-						if (v->isSameAs(*v_ref, 0.0000001))
+						if (v.isSameAs(v_ref, 0.0000001))
 						{
 							isFound = true;
 							break;
@@ -811,7 +811,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 					bool isFound = false;
 					for(auto& v_ref : space2.getVertices())
 					{
-						if (v->isSameAs(*v_ref, 0.0000001))
+						if (v.isSameAs(v_ref, 0.0000001))
 						{
 							isFound = true;
 							break;
@@ -838,7 +838,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 					bool isFound = false;
 					for(auto& v_ref : space3.getVertices())
 					{
-						if (v->isSameAs(*v_ref, 0.0000001))
+						if (v.isSameAs(v_ref, 0.0000001))
 						{
 							isFound = true;
 							break;
@@ -854,7 +854,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 					bool isFound = false;
 					for(auto& v_ref : space4.getVertices())
 					{
-						if (v->isSameAs(*v_ref, 0.0000001))
+						if (v.isSameAs(v_ref, 0.0000001))
 						{
 							isFound = true;
 							break;
@@ -891,7 +891,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 					bool isFound = false;
 					for(auto& v_ref : space1.getVertices())
 					{
-						if (v->isSameAs(*v_ref, 0.0000001))
+						if (v.isSameAs(v_ref, 0.0000001))
 						{
 							isFound = true;
 							break;
@@ -907,7 +907,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 					bool isFound = false;
 					for(auto& v_ref : space2.getVertices())
 					{
-						if (v->isSameAs(*v_ref, 0.0000001))
+						if (v.isSameAs(v_ref, 0.0000001))
 						{
 							isFound = true;
 							break;
@@ -936,7 +936,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 					bool isFound = false;
 					for(auto& v_ref : space3.getVertices())
 					{
-						if (v->isSameAs(*v_ref, 0.0000001))
+						if (v.isSameAs(v_ref, 0.0000001))
 						{
 							isFound = true;
 							break;
@@ -952,7 +952,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 					bool isFound = false;
 					for(auto& v_ref : space4.getVertices())
 					{
-						if (v->isSameAs(*v_ref, 0.0000001))
+						if (v.isSameAs(v_ref, 0.0000001))
 						{
 							isFound = true;
 							break;
