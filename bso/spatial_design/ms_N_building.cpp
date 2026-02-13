@@ -302,7 +302,7 @@ double ms_N_building::getSpaceVolumeRatio() const
 	return minVolume/maxVolume;
 } //getSpaceVolumeRatio
 
-void ms_N_building::getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers)
+void ms_N_building::getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers) const
 {
 	std::vector<double> spaceVolume;
 	for(const auto i: mSpaces)
@@ -336,7 +336,7 @@ double ms_N_building::getSpaceFloorAreaRatio() const
 	return spaceFloorArea[0]/spaceFloorArea.back();
 } //getSpaceFloorAreaRatio()
 
-std::vector<double> ms_N_building::getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers)
+std::vector<double> ms_N_building::getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers) const
 {
 	std::vector<double> spaceFloorArea;
 	for(const auto i: mSpaces)

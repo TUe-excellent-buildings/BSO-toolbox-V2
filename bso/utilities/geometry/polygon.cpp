@@ -41,7 +41,7 @@ namespace bso { namespace utilities {  namespace geometry {
 		mVertices.insert(mVertices.end(),std::begin(l),std::end(l));
 		
 		bool allVerticesOnOneLine = true;
-		for (unsigned int i = 0; i < mSize-2; i++)
+		for (unsigned int i = 1; i < mSize-1; i++)
 		{
 			vector v1 = {mVertices[i]-mVertices[0]};
 			vector v2 = {mVertices[i+1]-mVertices[0]};
@@ -51,29 +51,6 @@ namespace bso { namespace utilities {  namespace geometry {
 				allVerticesOnOneLine = false;
 				mNormal = v1.cross(v2).normalized();
 				break;
-			}
-			else // check also with the isOnLine method as the isParallel method may fail for very small angles
-			{
-				bso::utilities::geometry::line_segment testLine = {mVertices[i], mVertices[i+1]};
-				if (!testLine.isOnLine(mVertices[i+2], tol))
-				{
-					allVerticesOnOneLine = false;
-					mNormal = v1.cross(v2).normalized();
-					break;
-				}
-			}
-		}
-
-		if (allVerticesOnOneLine)
-		{
-			// check last combination which wasn't checked in the loop
-			bso::utilities::geometry::line_segment testLine = {mVertices[mSize-1], mVertices[0]};
-			if (!testLine.isOnLine(mVertices[1], tol))
-			{
-				allVerticesOnOneLine = false;
-				vector v1 = {mVertices[mSize-1]-mVertices[0]};
-				vector v2 = {mVertices[1]-mVertices[0]};
-				mNormal = v1.cross(v2).normalized();
 			}
 		}
 		

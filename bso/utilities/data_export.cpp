@@ -192,7 +192,7 @@ void data_export::initVectorToFile(const std::vector<T>& data, const int& nrIter
     }
 }
 
-void data_export::addToCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int& nrIterations, std::vector<bso::spatial_design::ms_N_building>& msDesigns, std::vector<double>& sd_total_load, std::vector<double>& exteriorWallArea)
+void data_export::addToCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int& nrIterations, const std::vector<bso::spatial_design::ms_N_building>& msDesigns, const std::vector<double>& sd_total_load, const std::vector<double>& exteriorWallArea)
 { 
     if(fileName == "")
     {
