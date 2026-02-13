@@ -42,8 +42,10 @@ XML			= $(BSO)/unit_tests/spatial_design/xml/xml_test.cpp
 DATA		= $(BSO)/unit_tests/utilities/data_handling_test.cpp
 DATA_ANALYSIS = $(BSO)/unit_tests/utilities/data_analysis_test.cpp
 GRAMMAR		= $(BSO)/unit_tests/grammar/grammar_test.cpp
+SCDP_CONFIG = $(BSO)/unit_tests/optimizers/scdp_config_test.cpp
+OUTPUT_MANAGER = $(BSO)/unit_tests/optimizers/output_manager_test.cpp
 
-.PHONY: all ms_space ms_building sc_building conformal trim_cast geometry delaunay geometry_functions export building_physics structural_design clean visualization xml data grammar
+.PHONY: all ms_space ms_building sc_building conformal trim_cast geometry delaunay geometry_functions export building_physics structural_design clean visualization xml data grammar scdp_config output_manager
 
 #make arguments
 cls:
@@ -86,6 +88,10 @@ data_analysis:
 	$(CPP) $(D_LIB) -o data_analysis_test $(ALL_LIB) $(DATA_ANALYSIS) $(FLAGS)
 grammar:
 	$(CPP) $(D_LIB) -o grammar_test $(ALL_LIB) $(GRAMMAR) $(FLAGS)
+scdp_config:
+	$(CPP) $(D_LIB) -o scdp_config_test $(ALL_LIB) $(SCDP_CONFIG) $(FLAGS)
+output_manager:
+	$(CPP) $(D_LIB) -o output_manager_test $(ALL_LIB) $(OUTPUT_MANAGER) $(FLAGS)
 clean:
 	@rm -f ms_space_test
 	@rm -f ms_building_test
@@ -105,3 +111,5 @@ clean:
 	@rm -f data_test
 	@rm -f data_analysis_test
 	@rm -f grammar_test
+	@rm -f scdp_config_test
+	@rm -f output_manager_test

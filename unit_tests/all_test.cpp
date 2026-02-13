@@ -20,3 +20,5 @@
 #include <unit_tests/structural_design/structural_design_test.cpp>
 #include <unit_tests/building_physics/building_physics_test.cpp>
 #include <unit_tests/grammar/grammar_test.cpp>
+#include <unit_tests/optimizers/scdp_config_test.cpp>
+#include <unit_tests/optimizers/output_manager_test.cpp>
