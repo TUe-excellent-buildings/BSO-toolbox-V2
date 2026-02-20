@@ -215,73 +215,73 @@ namespace bso { namespace utilities {  namespace geometry {
 
 	// This function checks if the polygon_non_convex is overlapping with another polygon_non_convex at any location, 
 	// however when the polygons_non_convex are only touching each others line_segments or edges, then they are considered non-overlapping.
-	bool polygon_non_convex::isOverlapping(const polygon_non_convex& pol, const double& tol /*= 1e-3*/) const
-	{
-		// Note: this function is not working as it should yet!!
+	// bool polygon_non_convex::isOverlapping(const polygon_non_convex& pol, const double& tol /*= 1e-3*/) const
+	// {
+	// 	// Note: this function is not working as it should yet!!
 
-		// To determine if two polygons intersect :
+	// 	// To determine if two polygons intersect :
 
-		// If two polygons have a non-void intersection then one of the following will happen:
+	// 	// If two polygons have a non-void intersection then one of the following will happen:
 
-		// A) One of them has a corner inside the interior of the other one.
-		// B) One of them has a whole edge inside the interior of the other one (the corners of that edge may not necessarily be in the interior). This means the middle of that edge will be inside the interior.
-		// C) The polygons are identical.
+	// 	// A) One of them has a corner inside the interior of the other one.
+	// 	// B) One of them has a whole edge inside the interior of the other one (the corners of that edge may not necessarily be in the interior). This means the middle of that edge will be inside the interior.
+	// 	// C) The polygons are identical.
 
-		// First check if the polygon_non_convex are coplanar
-		for(const auto& i: mVertices)
-		{
-			if(!pol.isCoplanar(i,tol))
-			{
-				return false;
-			}
-		}
+	// 	// First check if the polygon_non_convex are coplanar
+	// 	for(const auto& i: mVertices)
+	// 	{
+	// 		if(!pol.isCoplanar(i,tol))
+	// 		{
+	// 			return false;
+	// 		}
+	// 	}
 
-		// A) Check the vertices of the polygons are inside at any location
-		for(const auto& i: pol.mVertices)
-		{
-			if(this->isInside(i,tol))
-			{
-				return true;
-			}
-		}
-		for(const auto& i: this->mVertices)
-		{
-			if(pol.isInside(i,tol))
-			{
-				return true;
-			}
-		}
+	// 	// A) Check the vertices of the polygons are inside at any location
+	// 	for(const auto& i: pol.mVertices)
+	// 	{
+	// 		if(this->isInside(i,tol))
+	// 		{
+	// 			return true;
+	// 		}
+	// 	}
+	// 	for(const auto& i: this->mVertices)
+	// 	{
+	// 		if(pol.isInside(i,tol))
+	// 		{
+	// 			return true;
+	// 		}
+	// 	}
 
-		// B) Check if any of the line_segments intersect, split lines at intersection and see if the middle of the line_segment is inside a polygon
-		std::vector<vertex> intsecV;
-		std::vector<line_segment> allLines;
-		vertex pInt;
-		for(const auto& i: mLineSegments)
-		{
-			allLines.push_back(i);
-			for(const auto& j: pol.mLineSegments)
-			{
-				if(i.intersectsWith(j,pInt,tol)){intsecV.push_back(pInt);}
-			}
-		}
-		for(const auto& j: pol.mLineSegments) {allLines.push_back(j);}
-		for(const auto& i: pol.mVertices){intsecV.push_back(i);}
-		for(const auto& i: mVertices){intsecV.push_back(i);}
-		bso::utilities::splitLines(intsecV,allLines,tol);
-		for(const auto& i: allLines)
-		{
-			if(pol.isInside(i.getCenter(),tol)){return true;}
-			if(this->isInside(i.getCenter(),tol)){return true;}
-		}
+	// 	// B) Check if any of the line_segments intersect, split lines at intersection and see if the middle of the line_segment is inside a polygon
+	// 	std::vector<vertex> intsecV;
+	// 	std::vector<line_segment> allLines;
+	// 	vertex pInt;
+	// 	for(const auto& i: mLineSegments)
+	// 	{
+	// 		allLines.push_back(i);
+	// 		for(const auto& j: pol.mLineSegments)
+	// 		{
+	// 			if(i.intersectsWith(j,pInt,tol)){intsecV.push_back(pInt);}
+	// 		}
+	// 	}
+	// 	for(const auto& j: pol.mLineSegments) {allLines.push_back(j);}
+	// 	for(const auto& i: pol.mVertices){intsecV.push_back(i);}
+	// 	for(const auto& i: mVertices){intsecV.push_back(i);}
+	// 	bso::utilities::splitLines(intsecV,allLines,tol);
+	// 	for(const auto& i: allLines)
+	// 	{
+	// 		if(pol.isInside(i.getCenter(),tol)){return true;}
+	// 		if(this->isInside(i.getCenter(),tol)){return true;}
+	// 	}
 
-		// C) Check if the polygons are identical
-		if(this->isSameAs(pol,tol))
-		{
-			return true;
-		}
+	// 	// C) Check if the polygons are identical
+	// 	if(this->isSameAs(pol,tol))
+	// 	{
+	// 		return true;
+	// 	}
 
-		return false;
-	} //isOverlapping()
+	// 	return false;
+	// } //isOverlapping()
 
 	bool polygon_non_convex::isSameAs(const polygon_non_convex& pol, const double& tol /*= 1e-3*/) const
 	{
