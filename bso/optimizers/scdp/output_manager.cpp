@@ -10,43 +10,38 @@
 
 namespace bso { namespace optimizers { namespace scdp {
 
-// Static member initialization
-clock_t output_manager::sBegin = 0;
-clock_t output_manager::sEnd = 0;
-
-output_manager::output_manager(const scdp_config& config)
+output_manager::output_manager(const scdp_config& config) : mConfig(config)
 {
-
+	// Initialize the result directory if the option is set in the configuration
+	if(mConfig.getResultDir()){setResultDir();}
 }
 
-const std::string& output_manager::getResultDir() const
-{
-    return mResultDir;
-}
-
+// This logError function is used to log error messages to a file named "error_log" in the result directory if it exists,
+// otherwise in the current working directory. The log includes the input file, modification type, number of iterations,
+// iteration number where the error occurred and the error message itself.
 void output_manager::logError(const std::string& errorMessage,
-                              const std::string& inputFile,
-                              const std::string& modification,
-                              unsigned int iterations,
                               unsigned int errorIteration)
-{
-    std::ofstream errorLog("error_log", std::ios_base::app);
-    if (!errorLog.is_open())
-    {
-        std::cerr << "Unable to open error_log file." << std::endl;
-        return;
-    }
+{	
+	std::string errorLogPath = mResultDir.empty() ? "error_log" : mResultDir + "error_log";
+	std::ofstream errorLog(errorLogPath, std::ios_base::app);
+	if (!errorLog.is_open())
+	{
+		std::cerr << "Unable to open error_log file" 
+		          << (mResultDir.empty() ? "." : " at path: " + errorLogPath) << std::endl;
+		return;
+	}
 
-    errorLog << "inputFile:" << inputFile << "\nThe following error message was obtained using modification: "
-             << modification << ", \nwith max iterations: " << iterations
-             << ", error occurred in iteration: " << errorIteration << "\n";
-    errorLog << errorMessage << "\n\n";
+	errorLog << "inputFile:" << mConfig.getInputFile() 
+	         << "\nThe following error message was obtained using the iterationStrategy: " << mConfig.getIterationStrategy() << ",\n"
+			 << "and modification: " << mConfig.getModification() << ", with max iterations: " << mConfig.getMaxIterationsInSequence() << ",\n"
+	         << "error occurred in iteration: " << errorIteration << "\n"
+	         << errorMessage << "\n\n";
 }
 
 // Function to create a result directory for the output files.
 // The directory is created in the current working directory and named "results".
 // The sub-directory is created based on the input file name, modification type, iteration number and current date and time.
-bool output_manager::createResultDir(std::string& dir, bool verbose) const
+bool output_manager::createResultDir(std::string& dir) const
 {
 	// create resultDir path if not existing yet
 	bool resultDirGen = false;
@@ -57,18 +52,18 @@ bool output_manager::createResultDir(std::string& dir, bool verbose) const
 		{
 			resultDirGen = true;
 			dir = path + "/";
-			output_manager::out("Directory created successfully.",true,true,verbose);
+			out("Directory created successfully.",true,true,mConfig.getVerbose());
 		} 
 		else 
 		{
-			output_manager::out("Failed to create directory.",true,true,verbose);
+			out("Failed to create directory.",true,true,mConfig.getVerbose());
 		}
 	} 
 	else 
 	{
 		resultDirGen = true;
 		dir = path + "/";
-		output_manager::out("Directory already exists.",true,true,verbose);
+			out("Directory already exists.",true,true,mConfig.getVerbose());
 	}
 
 	return resultDirGen;
@@ -76,43 +71,100 @@ bool output_manager::createResultDir(std::string& dir, bool verbose) const
 
 // Function to create a sub directory in the result directory for the output files.
 // The sub-directory is created based on the input file name, modification type, iteration number and current date and time.
-void output_manager::getSubResultDir(std::string& dir, std::string inputFile, std::string modification, unsigned int iterationNr, bool verbose) const
+bool output_manager::createStandardSubResultDir(std::string& dir, bool shortName /*= false*/) const
 {
 	// create resultDir if not existing yet
 	std::string path;
-	bool resultDirGen = createResultDir(path, verbose);
+	bool resultDirGen = createResultDir(path);
 
-	// create sub-directory of results if not existing yet
+	bool subResultDirGen = false;
+	// create sub-directory of results if not existing yet and result dir was created or already exists
 	if(resultDirGen)
 	{
-		std::string path2 = path + inputFile + "_" + modification + "_-n=" + std::to_string(iterationNr) + "_" + getCurrentDateTime();
+		std::string path2;
+		if(shortName){path2 = path + mConfig.getInputFile() + "_" + mConfig.getModification() + "_-n=" + std::to_string(mConfig.getMaxIterationsInSequence());}
+		else{path2 = path + mConfig.getInputFile() + "_" + mConfig.getModification() + "_-n=" + std::to_string(mConfig.getMaxIterationsInSequence()) + "_" + getCurrentDateTime();}
 		if (!std::filesystem::exists(path2)) 
 		{
 			if (std::filesystem::create_directory(path2)) 
 			{
 				dir = path2 + "/";
-				output_manager::out("Sub-directory of results created successfully.",true,true,verbose);
+				subResultDirGen = true;
+				out("Sub-directory of results created successfully.",true,true,mConfig.getVerbose());
 			} 
 			else 
 			{
-				output_manager::out("Sub-directory of results failed to create directory.",true,true,verbose);
+				out("Sub-directory of results failed to create directory.",true,true,mConfig.getVerbose());
 			}
 		} 
 		else 
 		{
 			dir = path2 + "/";
-			output_manager::out("Sub-directory of results directory already exists.",true,true,verbose);
+			subResultDirGen = true;
+			out("Sub-directory of results directory already exists.",true,true,mConfig.getVerbose());
 		}
 	}
-} // getSubResultDir()
+	return subResultDirGen;
+} // createStandardSubResultDir()
+
+bool output_manager::createSubResultDir(std::string& dir) const
+{
+	// create resultDir if not existing yet
+	std::string path;
+	bool resultDirGen = createResultDir(path);
+
+	// create sub-directory of results if not existing yet and result dir was created or already exists
+	if(resultDirGen)
+	{
+		std::string path2 = path + mConfig.getSubDirName();
+		if (!std::filesystem::exists(path2)) 
+		{
+			if (std::filesystem::create_directory(path2)) 
+			{
+				dir = path2 + "/";
+				out("Sub-directory of results created successfully.",true,true,mConfig.getVerbose());
+			} 
+			else 
+			{
+				out("Sub-directory of results failed to create directory.",true,true,mConfig.getVerbose());
+			}
+		} 
+		else 
+		{
+			dir = path2 + "/";
+			out("Sub-directory of results directory already exists.",true,true,mConfig.getVerbose());
+		}
+	}
+
+	return resultDirGen;
+} // createSubResultDir()
+
+void output_manager::setResultDir()
+{
+	std::string dir;
+	if (mConfig.getSubDirName() == "")
+	{
+		createStandardSubResultDir(dir);
+	}
+	else if (mConfig.getSubDirName() == "shortStandard")
+	{
+		createStandardSubResultDir(dir, true);
+	}
+	else
+	{
+		createSubResultDir(dir);
+	}
+	mResultDir = dir;
+} 
 
 void output_manager::outputData(const OptimizationOutput& output)
 {
-	output_manager::out("Start outputting data",true,true,output.config.getVerbose());
+	out("Start outputting data",true,true,mConfig.getVerbose());
+
 	// Output the requested outputs:
 	std::vector<unsigned int> outputSpaces;
 	// if best, find which designs are best;
-	if (output.config.getOutputAll())
+	if (mConfig.getOutputAll())
 	{
 		for (unsigned int i = 0; i < output.msDesigns.size(); ++i)
 		{
@@ -120,39 +172,38 @@ void output_manager::outputData(const OptimizationOutput& output)
 		}
 	}
 
-	std::string dir = "";
-	if(output.config.getResultDir()) {getSubResultDir(dir, output.config.getInputFile(), output.modification, output.maxIterationsInSequence, output.config.getVerbose());}
+	std::string dir = mResultDir;
 
-	if(output.config.getPlot())
+	if(mConfig.getPlot())
 	{
 		utilities::data_export dp(output.designPerformances, output.axisDesignPerformances, "Design Iteration");
-		std::string fileScatter = dir+"scatterData_" + output.config.getInputFile() + "_" + output.modification;
-		std::string fileParetoFront = dir+"paretoFrontData_" + output.config.getInputFile() + "_" + output.modification;
-		std::string fileNonParetoFront = dir+"paretoNonFrontData_" + output.config.getInputFile() + "_" + output.modification;
-		std::string fileVector = dir+"vectorData_" + output.config.getInputFile() + "_" + output.modification;
-		std::string plotScatter = dir+"scatterPlot_" + output.config.getInputFile() + "_" + output.modification +".png";
-		std::string plotParetoFront = dir+"paretoFrontPlot_" + output.config.getInputFile() + "_" + output.modification +".png";
-		std::string plotVector = dir+"vectorPlot_" + output.config.getInputFile() + "_" + output.modification +".png";
+		std::string fileScatter = dir+"scatterData_" + mConfig.getInputFile() + "_" + output.modification;
+		std::string fileParetoFront = dir+"paretoFrontData_" + mConfig.getInputFile() + "_" + output.modification;
+		std::string fileNonParetoFront = dir+"paretoNonFrontData_" + mConfig.getInputFile() + "_" + output.modification;
+		std::string fileVector = dir+"vectorData_" + mConfig.getInputFile() + "_" + output.modification;
+		std::string plotScatter = dir+"scatterPlot_" + mConfig.getInputFile() + "_" + output.modification +".png";
+		std::string plotParetoFront = dir+"paretoFrontPlot_" + mConfig.getInputFile() + "_" + output.modification +".png";
+		std::string plotVector = dir+"vectorPlot_" + mConfig.getInputFile() + "_" + output.modification +".png";
 		try{dp.plotScatter2D(fileScatter, plotScatter, false, true);}
 		catch(const std::exception& e){std::cout << "During the generation of the scatter plots, the following error occurred:" << e.what() << '\n';}
 		try{dp.plotParetoFront2D(fileParetoFront, fileNonParetoFront, plotParetoFront, false, true);}
 		catch(const std::exception& e){std::cout << "During the generation of the paretoFront plots, the following error occurred:" << e.what() << '\n';}
-		try{dp.plotVector2D(fileVector, plotVector, output.config.getVisualizePlot(), true);}
+		try{dp.plotVector2D(fileVector, plotVector, mConfig.getVisualizePlot(), true);}
 		catch(const std::exception& e){std::cout << "During the generation of the Vector2D plots, the following error occurred:" << e.what() << '\n';}
-		output_manager::out("Made all plots",true,true,output.config.getVerbose());
+		out("Made all plots",true,true,mConfig.getVerbose());
 	}
 
-	if(output.config.getCombineData())
+	if(mConfig.getCombineData())
 	{		
 		utilities::data_export dp(output.designPerformances, output.axisDesignPerformances, "Design Iteration");
-		dp.addToCombinedDataFile("combined_data.csv", output.modification, output.config.getInputFile(), output.maxIterationsInSequence, output.msDesigns, output.sd_total_load, output.exteriorSurfaceArea);
-		dp.addToOverviewCombinedDataFile("overView_data.csv", output.modification, output.config.getInputFile(), output.finalIteration, output.msDesigns[0]);
-		output_manager::out("Combined the data in multiple run file",true,true,output.config.getVerbose());
+		dp.addToCombinedDataFile("combined_data.csv", output.modification, mConfig.getInputFile(), output.maxIterationsInSequence, output.msDesigns, output.sd_total_load, output.exteriorSurfaceArea);
+		dp.addToOverviewCombinedDataFile("overView_data.csv", output.modification, mConfig.getInputFile(), output.finalIteration, output.msDesigns[0]);
+		out("Combined the data in multiple run file",true,true,mConfig.getVerbose());
 	}
 	
 	for (const auto& i : outputSpaces)
 	{
-		if (output.config.getResultLine())
+		if (mConfig.getResultLine())
 		{
 			std::cout << output.designName << "\t"
 								<< output.modification << "\t"
@@ -165,7 +216,7 @@ void output_manager::outputData(const OptimizationOutput& output)
 								}
 			
 		}
-		if (output.config.getMsFiles())
+		if (mConfig.getMsFiles())
 		{
 			std::stringstream fileNameStream;
 			fileNameStream << dir << output.designName << "_"
@@ -182,10 +233,10 @@ void output_manager::outputData(const OptimizationOutput& output)
 		}
 	}
 	
-	if (output.config.getResultLine()){output_manager::out("Printed result lines to terminal",true,true,output.config.getVerbose());}
-	if (output.config.getMsFiles()){output_manager::out("Generated ms_files for output",true,true,output.config.getVerbose());}
+	if (mConfig.getResultLine()){out("Printed result lines to terminal",true,true,mConfig.getVerbose());}
+	if (mConfig.getMsFiles()){out("Generated ms_files for output",true,true,mConfig.getVerbose());}
 
-	if (!output.config.getVisualizations().empty()) visualization::endVisualization();
+	if (!mConfig.getVisualizations().empty()) visualization::endVisualization();
 }
 
 std::string output_manager::getCurrentDateTime()

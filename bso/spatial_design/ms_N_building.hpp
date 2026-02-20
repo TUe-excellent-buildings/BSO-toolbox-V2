@@ -43,8 +43,9 @@ public:
 		const double tol = 1e-3) const; 
 	bool isFragmented(std::vector<ms_space*>& spacesNonBiggestFragment, 
 		const double tol = 1e-3) const;
-	// bool areSpacesOverlapping(std::vector<ms_space*>& spacesNotOverlapping,
-	// 	const double tol = 1e-3) const;
+	bool getOverlappingSpaces(std::vector<ms_space*>& overlappingSpaces, 
+		std::vector<ms_space*>& notOverlappingSpaces,
+	 	const double tol = 1e-3) const;
 
 	// Get the NOBSD representation as a certain geometry:
 	void getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, 
@@ -71,9 +72,9 @@ public:
 	void splitSpace(ms_space* spacePtr, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit); //split perpendicular to inserted line of space
 	void splitSpace(ms_space& space, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit); //split perpendicular to inserted line of space
 	void duplicateElevation(double atZFromGround = 0, double elevationHeight = 3000, bool duplicateBelowZLevel = true); // duplicate either all spaces above or below a certain z-level by a certain elevation height in z-direction and moves the above spaces up to create a new elevation.
-	void shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHeadingDirection = false, int amountOfHeadingCatagories = 6, const double& tol = 1e-3);
+	void shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHeadingDirection = false, int amountOfHeadingCatagories = 6, bool verbose = false, const double& tol = 1e-3);
 	std::vector<bso::spatial_design::ms_space*> shiftFillPlane(const bso::utilities::geometry::vertex& location,
-		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3);
+		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3, bool verbose = false);
 	void extrude(std::vector<ms_space*> spacePtrs, const bso::utilities::geometry::vertex& location, 
 		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3);
 	void enforceAverageSpaceSize(double minElevationHeight = 3000, const double& tol = 1e-3, bool verbose = false);

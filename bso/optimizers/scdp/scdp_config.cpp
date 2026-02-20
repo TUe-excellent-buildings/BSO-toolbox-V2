@@ -108,9 +108,12 @@ void scdp_config::parseArguments(int argc, char* argv[])
 								<<   "\t" << "but \'all\' and \'best\' cannot be given simultaneously.\n"
                         << "-rd\t" << "or --resultDir, can be used to specify a string for a sub-directory name in directory results, \n "
                                 <<   "\t" << "i.e. where the results will be stored.\n"
-								<<   "\t" << "if name is \'standard\' then the sub-directory will consist of: \n"
+								<<   "\t" << "by default the sub-directory will consist of: \n"
 								<< 	 "\t" << "inputFileName_modification_NrOfIterations_currentDateAndTime.\n"
-								<<   "\t" << "The default for all outputs is in the current working directory.\n"
+                                <<   "\t" << "If a string is given with this argument directly behind -rd, \n"
+                                <<   "\t" << "then the sub-directory will be named with this string instead.\n"
+                                <<   "\t" << "use argument 'shortStandard' to make a sub-directory with a shorter name: \n "
+                                <<   "\t" << "inputFileName_modification_NrOfIterations.\n"
 			             << "-v\t" << "or --visualization, to specify which models are visualized: \n"
 								<<   "\t" << "\'ms\' for \'Movable Sizable\',\n"
 								<<   "\t" << "\'msc\' for \'Movable Sizable with visualization of clustering for -d cluster option\',\n"
@@ -128,6 +131,13 @@ void scdp_config::parseArguments(int argc, char* argv[])
 								<<   "\t" << "\'modification\' runs only modification iterations,\n"
 								<<   "\t" << "\'alternating\' alternates between split-delete and modification iterations,\n"
 								<<   "\t" << "starting with split-delete. Only one strategy is possible.\n"
+			             << "-sim\t" << "or --simulations, to specify which simulations to run: \n"
+								<<   "\t" << "\'sd\' for structural design simulation,\n"
+								<<   "\t" << "\'bp\' for building physics simulation.\n"
+								<<   "\t" << "More than one can be specified. Default is both (\'sd bp\').\n"
+								<<   "\t" << "Example: -sim sd    (only structural design)\n"
+								<<   "\t" << "Example: -sim bp    (only building physics)\n"
+								<<   "\t" << "Example: -sim sd bp (both simulations)\n"
                              << std::endl;
             std::cout << helpMessage.str();
             return;
@@ -138,7 +148,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
             {
                 std::stringstream errorMessage;
                 errorMessage << "\nError, expected the name of the input file after -i or --input\n"
-                             << "Use -h or --help for help" << std::endl;
+                             << "Use -h or --help for help" << std::endl
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
             inputFile = *arg;
@@ -151,7 +162,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
             if (++arg == args.end() || arg->operator[](0) == '-')
             {
                 std::stringstream errorMessage;
-                errorMessage << "\nError, expected a value after -k or --kMinMax.\n";
+                errorMessage << "\nError, expected a value after -k or --kMinMax.\n"
+                << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
 
@@ -160,7 +172,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
             if (++arg == args.end() || arg->operator[](0) == '-')
             {
                 std::stringstream errorMessage;
-                errorMessage << "\nError, expected a second value after -k or --kMinMax.\n";
+                errorMessage << "\nError, expected a second value after -k or --kMinMax.\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
 
@@ -170,14 +183,16 @@ void scdp_config::parseArguments(int argc, char* argv[])
             {
                 std::stringstream errorMessage;
                 errorMessage << "\nError, the second value after -k or --kMinMax \n"
-                             << "must belarger than the first.\n";
+                             << "must be larger than the first.\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
 
             if (++arg != args.end() && arg->operator[](0) != '-')
             {
                 std::stringstream errorMessage;
-                errorMessage << "\nError, can only specify two values after -k or --kMinMax.\n";
+                errorMessage << "\nError, can only specify two values after -k or --kMinMax.\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
 
@@ -187,7 +202,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
             if (++arg == args.end() || arg->operator[](0) == '-')
             {
                 std::stringstream errorMessage;
-                errorMessage << "\nError, expected a value after -r or --ratio.\n";
+                errorMessage << "\nError, expected a value after -r or --ratio.\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
 
@@ -198,14 +214,16 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 std::stringstream errorMessage;
                 errorMessage << "\nError, the value after -r or --ratio \n"
                              << "should be within range [0,1], instead it is: "
-                             << spaceRemoveRatio << std::endl;
+                             << spaceRemoveRatio << std::endl
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
 
             if (++arg != args.end() && arg->operator[](0) != '-')
             {
                 std::stringstream errorMessage;
-                errorMessage << "\nError, can only specify one value after -r or --ratio.\n";
+                errorMessage << "\nError, can only specify one value after -r or --ratio.\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
 
@@ -216,7 +234,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
             if (++arg == args.end() || arg->operator[](0) == '-')
             {
                 std::stringstream errorMessage;
-                errorMessage << "\nError, expected a value after -a or --amount.\n";
+                errorMessage << "\nError, expected a value after -a or --amount.\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
 
@@ -227,14 +246,16 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 std::stringstream errorMessage;
                 errorMessage << "\nError, the value after -a or --amount \n"
                              << "should be an integer number larger then 1, instead it is: "
-                             << amountOfSpaceRemoval << std::endl;
+                             << amountOfSpaceRemoval << std::endl
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
 
             if (++arg != args.end() && arg->operator[](0) != '-')
             {
                 std::stringstream errorMessage;
-                errorMessage << "\nError, can only specify one value after -a or --amount.\n";
+                errorMessage << "\nError, can only specify one value after -a or --amount.\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
 
@@ -247,7 +268,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 std::stringstream errorMessage;
                 errorMessage << "\nError, expected a modification argument to be\n"
                              << "specified after -m or --modification. Use -h or\n"
-                             << "--help for help\n";
+                             << "--help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
             modification = *arg;
@@ -257,7 +279,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 std::stringstream errorMessage;
                 errorMessage << "\nError, did not recognize: \"" << modification << "\"\n"
                              << "as an option for -m or --modification.\n"
-                             << "use -h or --help for help\n";
+                             << "use -h or --help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
 
@@ -265,7 +288,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
             {
                 std::stringstream errorMessage;
                 errorMessage << "\nError, only one argument can be specified after\n"
-                             << "-m or --modification. Use -h or -- help for help\n";
+                             << "-m or --modification. Use -h or -- help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
         }
@@ -276,7 +300,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 std::stringstream errorMessage;
                 errorMessage << "\nError, expected a positive integer to be\n"
                              << "specified after -n or --nModifications. Use -h or\n"
-                             << "--help for help\n";
+                             << "--help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
             try
@@ -289,7 +314,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 errorMessage << "\nError, could not parse argument specified after\n"
                              << "-n or --nModifications. received the following error:\n"
                              << e.what()
-                             << "Use -h or -- help for help\n";
+                             << "Use -h or -- help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
 
@@ -297,7 +323,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
             {
                 std::stringstream errorMessage;
                 errorMessage << "\nError, only one argument can be specified after\n"
-                             << "-n or --nModifications. Use -h or -- help for help\n";
+                             << "-n or --nModifications. Use -h or -- help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
         }
@@ -312,7 +339,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                     std::stringstream errorMessage;
                     errorMessage << "\nError, did not recognize: " << deleteMethod << " as an\n"
                                  << "argument for -d or --deleteMethod. Use -h or\n"
-                                 << "--help for help\n";
+                                 << "--help for help\n"
+                                 << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                     throw std::invalid_argument(errorMessage.str());
                 }
             }
@@ -328,7 +356,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                     std::stringstream errorMessage;
                     errorMessage << "\nError, did not recognize: " << splitMethod << " as an\n"
                                  << "argument for -so or --splitOption. Use -h or\n"
-                                 << "--help for help\n";
+                                 << "--help for help\n"
+                                 << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                     throw std::invalid_argument(errorMessage.str());
                 }
             }
@@ -346,7 +375,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                     std::stringstream errorMessage;
                     errorMessage << "\nError, did not recognize: " << outSpec << " as an\n"
                                  << "argument for -f or --deleteFragments. Use -h or\n"
-                                 << "--help for help\n";
+                                 << "--help for help\n"
+                                 << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                     throw std::invalid_argument(errorMessage.str());
                 }
             }
@@ -358,7 +388,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 std::stringstream errorMessage;
                 errorMessage << "\nError, expected a space performance division argument to be\n"
                              << "specified after -p or --performanceDivision. Use -h or\n"
-                             << "--help for help\n";
+                             << "--help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
             performanceDivision = *arg;
@@ -368,14 +399,16 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 std::stringstream errorMessage;
                 errorMessage << "\nError, did not recognize: \"" << performanceDivision << "\"\n"
                              << "as an option for -p or --performanceDivision.\n"
-                             << "use -h or --help for help\n";
+                             << "use -h or --help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
             if (++arg != args.end() && arg->operator[](0) != '-')
             {
                 std::stringstream errorMessage;
                 errorMessage << "\nError, only one argument can be specified after\n"
-                             << "-p or --performanceDivision. Use -h or -- help for help\n";
+                             << "-p or --performanceDivision. Use -h or -- help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
         }
@@ -392,7 +425,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                     std::stringstream errorMessage;
                     errorMessage << "\nError, did not recognize: " << outSpec << " as an\n"
                                  << "argument for -av or --averageDivision. Use -h or\n"
-                                 << "--help for help\n";
+                                 << "--help for help\n"
+                                 << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                     throw std::invalid_argument(errorMessage.str());
                 }
             }
@@ -429,7 +463,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                             errorMessage << "\nError, expected a value behind the worstAdapt argument but got nothing or \n"
                                          << "there where not multiple arguments as was expected as an"
                                          << "argument for -ad or --addMethod. Use -h or\n"
-                                         << "--help for help\n";
+                                         << "--help for help\n"
+                                         << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                             throw std::invalid_argument(errorMessage.str());
                         }
                     }
@@ -439,7 +474,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                     std::stringstream errorMessage;
                     errorMessage << "\nError, did not recognize: " << addMethod << " as an\n"
                                  << "argument for -ad or --addMethod. Use -h or\n"
-                                 << "--help for help\n";
+                                 << "--help for help\n"
+                                 << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                     throw std::invalid_argument(errorMessage.str());
                 }
             }
@@ -451,7 +487,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 std::stringstream errorMessage;
                 errorMessage << "\nError, expected a positive integer to be\n"
                              << "specified after -s or --seed. Use -h or\n"
-                             << "--help for help\n";
+                             << "--help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
             try
@@ -464,7 +501,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 errorMessage << "\nError, could not parse argument specified after\n"
                              << "-s or --seed. received the following error:\n"
                              << e.what()
-                             << "Use -h or -- help for help\n";
+                             << "Use -h or -- help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
 
@@ -472,7 +510,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
             {
                 std::stringstream errorMessage;
                 errorMessage << "\nError, only one argument can be specified after\n"
-                             << "-s or --seed. Use -h or -- help for help\n";
+                             << "-s or --seed. Use -h or -- help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
         }
@@ -515,7 +554,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                             errorMessage << "\nError, expected an unsigned integer value to be defined to \n"
                                          << "state the maximum nr. of iteration in the sequence. \n"
                                          << "argument for -o or --output. Use -h or\n"
-                                         << "--help for help\n";
+                                         << "--help for help\n"
+                                         << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                             throw std::invalid_argument(errorMessage.str());
                         }
                         try
@@ -530,7 +570,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                                          << "however, during trim anc cast integer got the following error: "
                                          << e.what()
                                          << "argument for -o or --output. Use -h or\n"
-                                         << "--help for help\n";
+                                         << "--help for help\n"
+                                         << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                             throw std::invalid_argument(errorMessage.str());
                         }
                     }
@@ -541,7 +582,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                     std::stringstream errorMessage;
                     errorMessage << "\nError, did not recognize: " << outSpec << " as an\n"
                                  << "argument for -o or --output. Use -h or\n"
-                                 << "--help for help\n";
+                                 << "--help for help\n"
+                                 << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                     throw std::invalid_argument(errorMessage.str());
                 }
             }
@@ -553,7 +595,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
 				std::stringstream errorMessage;
                 errorMessage << "\nError, expected a string after -rd or --resultDir to specify\n"
                              << " a name for the sub-directory in directory results.\n"
-                             << "Use -h or --help for help\n";
+                             << "Use -h or --help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str()); 
 			}
 			else
@@ -575,7 +618,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                     std::stringstream errorMessage;
                     errorMessage << "\nError, did not recognize: \"" << visSpec << "\"\n"
                                  << "as an option for -v or --visualization as a specification\n"
-                                 << "of a model to visualize, use -h or --help for help\n";
+                                 << "of a model to visualize, use -h or --help for help\n"
+                                 << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                     throw std::invalid_argument(errorMessage.str());
                 }
                 visualizations.push_back(visSpec);
@@ -585,7 +629,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 std::stringstream errorMessage;
                 errorMessage << "\nError, expected at least one string after\n"
                              << "-v or --visualize, received nothing. Use -h or\n"
-                             << "--help for help\n";
+                             << "--help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
         }
@@ -596,7 +641,8 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 std::stringstream errorMessage;
                 errorMessage << "\nError, expected an iteration strategy after -is or --iterationStrategy.\n"
                              << "Expected one of: split_delete, modification, alternating\n"
-                             << "Use -h or --help for help\n";
+                             << "Use -h or --help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
             iterationStrategy = *arg;
@@ -607,15 +653,56 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 errorMessage << "\nError, did not recognize: \"" << iterationStrategy << "\"\n"
                              << "as an option for -is or --iterationStrategy.\n"
                              << "Expected one of: split_delete, modification, alternating\n"
-                             << "Use -h or --help for help\n";
+                             << "Use -h or --help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
             ++arg;
         }
+        else if (*arg == "-sim" || *arg == "--simulations")
+        {
+            // Reset to false when user explicitly specifies simulations
+            runSDSimulation = false;
+            runBPSimulation = false;
+            
+            bool foundSim = false;
+            while (++arg != args.end() && arg->operator[](0) != '-')
+            {
+                std::string simSpec = *arg;
+                boost::trim(simSpec);
+                if (std::find(kSimOptions.begin(), kSimOptions.end(), simSpec) == kSimOptions.end())
+                {
+                    std::stringstream errorMessage;
+                    errorMessage << "\nError, did not recognize: \"" << simSpec << "\"\n"
+                                 << "as an option for -sim or --simulations as a specification\n"
+                                 << "of a simulation to run. Valid options are: sd, bp\n"
+                                 << "Use -h or --help for help\n"
+                                 << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                    throw std::invalid_argument(errorMessage.str());
+                }
+                
+                // Set corresponding boolean flag
+                if (simSpec == "sd") runSDSimulation = true;
+                if (simSpec == "bp") runBPSimulation = true;
+                foundSim = true;
+            }
+            
+            if (!foundSim)
+            {
+                std::stringstream errorMessage;
+                errorMessage << "\nError, expected at least one simulation type after\n"
+                             << "-sim or --simulations. Valid options are: sd, bp\n"
+                             << "Use -h or --help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                throw std::invalid_argument(errorMessage.str());
+            }
+        }
         else
         {
             std::stringstream errorMessage;
-            errorMessage << "\nError, did not recognize argument: " << *arg << std::endl;
+            errorMessage << "\nError, did not recognize argument: " << *arg << std::endl
+                            << "Use -h or --help for help\n"
+                            << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
             throw std::invalid_argument(errorMessage.str());
         }
     }
@@ -629,35 +716,70 @@ void scdp_config::validate() const
     {
         std::stringstream errorMessage;
         errorMessage << "\nError, expected an input file or line to be specified.\n"
-                     << "use -h or --help for help\n";
+                     << "use -h or --help for help\n"
+                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
         throw std::invalid_argument(errorMessage.str());
     }
     if (modification.empty())
     {
         std::stringstream errorMessage;
         errorMessage << "\nError, expected an modification to be specified.\n"
-                     << "use -h or --help for help\n";
+                     << "use -h or --help for help\n"
+                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
         throw std::invalid_argument(errorMessage.str());
     }
     if ((msFiles || resultLine) && (outputAll && outputBest))
     {
         std::stringstream errorMessage;
         errorMessage << "Cannot specify both 'all'  and 'best' for output.\n"
-                     << "use -h or --help for help\n";
+                     << "use -h or --help for help\n"
+                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
         throw std::invalid_argument(errorMessage.str());
     }
     if ((msFiles || resultLine) && (!outputAll && !outputBest))
     {
         std::stringstream errorMessage;
         errorMessage << "Need to specify either 'all' or 'best' for output when using msFiles or resultLine.\n"
-                     << "use -h or --help for help\n";
+                     << "use -h or --help for help\n"
+                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
         throw std::invalid_argument(errorMessage.str());
     }
     if(amountOfSpaceRemovalSet && ratioSet)
     {
         std::stringstream errorMessage;
         errorMessage << "Cannot specify both a ratio and an amount for space removal.\n"
-                     << "use -h or --help for help\n";
+                     << "use -h or --help for help\n"
+                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+        throw std::invalid_argument(errorMessage.str());
+    }
+    
+    // Validate that simulation flags match the modification type
+    if (modification == "sd" && !runSDSimulation)
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\nError, modification type 'sd' requires SD simulation to be enabled.\n"
+                     << "Either use --sim sd or --sim sd bp, or change modification type.\n"
+                     << "use -h or --help for help\n"
+                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+        throw std::invalid_argument(errorMessage.str());
+    }
+    if (modification == "bp" && !runBPSimulation)
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\nError, modification type 'bp' requires BP simulation to be enabled.\n"
+                     << "Either use --sim bp or --sim sd bp, or change modification type.\n"
+                     << "use -h or --help for help\n"
+                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+        throw std::invalid_argument(errorMessage.str());
+    }
+    if ((modification == "sdbp" || modification == "bpsd" || modification == "weighted") && 
+        (!runSDSimulation || !runBPSimulation))
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\nError, modification type '" << modification << "' requires both SD and BP simulations.\n"
+                     << "Use --sim sd bp or omit --sim flag (defaults to both).\n"
+                     << "use -h or --help for help\n"
+                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
         throw std::invalid_argument(errorMessage.str());
     }
 }

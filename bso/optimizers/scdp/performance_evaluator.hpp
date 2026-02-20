@@ -11,6 +11,8 @@
 
 namespace bso { namespace optimizers { namespace scdp {
 
+class output_manager; // Forward declaration
+
 class performance_evaluator {
 public:
     static void getPerformancePerSpace(
@@ -20,12 +22,16 @@ public:
         building_physics::bp_model& bp, 
         const std::string& modificationType, 
         const std::string& performanceDivisionType,
-        bool verbose);
+        output_manager& outputMgr,
+        bool verbose,
+        bool sdAvailable = true,
+        bool bpAvailable = true);
 
     static void normalizeData(
         std::vector<utilities::data_point>& performances,
         utilities::data_point& utopianPoint,
         utilities::data_point& distopianPoint,
+        output_manager& outputMgr,
         bool verbose);
 
     static void sortDataPointsHighestToLowest(
@@ -33,6 +39,7 @@ public:
         const std::string& modificationType,
         const int iterationNr,
         const std::vector<double>& objectiveWeights,
+        output_manager& outputMgr,
         bool verbose);
 };
 

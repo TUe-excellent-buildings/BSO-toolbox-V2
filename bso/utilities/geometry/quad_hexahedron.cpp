@@ -340,6 +340,60 @@ namespace bso { namespace utilities { namespace geometry {
 		return false;
 	} //
 
+	bool quad_hexahedron::hexahedraOverlapStrict(const quad_hexahedron& other, const double& tol /*= 1e-3*/) const
+	{ // Check if two hexahedra have strict interior overlap (not just boundary touching)
+		// Check if any vertex of either hexahedron is strictly inside the other
+		
+		if (this->testIntersection(other, tol)) return true;
+		//if (other.testIntersection(*this, tol)) return true;
+
+		
+		// for (const auto& v : *this) 
+		// 	if (other.isInside(v, tol)) return true;
+		
+		// for (const auto& v : other) 
+		// 	if (this->isInside(v, tol)) return true;
+		
+		// // Check if edges of one hexahedron penetrate faces of the other
+		// utilities::geometry::vertex pIntersection;
+		
+		// for (const auto& thisEdge : mLineSegments)
+		// {
+		// 	for (const auto& otherFace : other.getPolygons())
+		// 	{
+		// 		if (otherFace->intersectsWith(thisEdge, pIntersection, tol))
+		// 		{
+		// 			// If edge crosses the face (endpoints on opposite sides), hexahedra overlap
+		// 			if (!otherFace->sameSide(thisEdge[0], thisEdge[1], tol)) return true;
+		// 		}
+		// 	}
+		// }
+		
+		// for (const auto& otherEdge : other.getLines())
+		// {
+		// 	for (const auto& thisFace : getPolygons())
+		// 	{
+		// 		if (thisFace->intersectsWith(otherEdge, pIntersection, tol))
+		// 		{
+		// 			if (this->testIntersection(other, tol)) return true;
+		// 		}
+		// 	}
+		// }
+
+		// for (const auto& Edge : this->getLines())
+		// {
+		// 	for (const auto& Face : other.getPolygons())
+		// 	{
+		// 		if (Face->intersectsWith(Edge, pIntersection, tol))
+		// 		{
+		// 			if (other.testIntersection(*this, tol)) return true;
+		// 		}
+		// 	}
+		// }
+		
+		return false;
+	} //
+
 } // namespace geometry
 } // namespace utilities
 } // namespace bso

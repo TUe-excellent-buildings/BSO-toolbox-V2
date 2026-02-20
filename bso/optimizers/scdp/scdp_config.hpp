@@ -31,6 +31,10 @@ private:
     std::string addMethod = "worstAdapt";
     std::string iterationStrategy = "split_delete";
 
+    // Simulation options - which simulations to run (boolean flags for performance)
+    bool runSDSimulation = true;  // default: run structural design
+    bool runBPSimulation = true;  // default: run building physics
+
     // extra building modification options
     bool removeSmallerFragments = false;
     bool averageSpace = false;
@@ -72,6 +76,7 @@ private:
     const std::vector<std::string> kAddOptions = {"elevation", "shiftfill", "worstAdapt"};
     const std::vector<std::string> kPerOptions = {"floorArea", "surfaceArea", "volumeArea", "nothing"};
     const std::vector<std::string> kIterationStrategyOptions = {"split_delete", "modification", "alternating"};
+    const std::vector<std::string> kSimOptions = {"sd", "bp"};
 
 public:
     scdp_config(); // empty_constructor
@@ -113,9 +118,12 @@ public:
     bool getOutputAll() const { return outputAll; }
     bool getOutputBest() const { return outputBest; }
     bool getResultDir() const { return resultDir; }
+    const std::string& getSubDirName() const { return setSubDirName; }
     bool getCombineData() const { return combineData; }
     unsigned int getMaxIterationsInSequence() const { return maxIterationsInSequence; }
     const std::vector<std::string>& getVisualizations() const { return visualizations; }
+    bool getRunSDSimulation() const { return runSDSimulation; }
+    bool getRunBPSimulation() const { return runBPSimulation; }
 };
 
 }}} // namespace bso::optimizers::scdp

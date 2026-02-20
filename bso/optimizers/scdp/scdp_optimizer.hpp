@@ -16,32 +16,32 @@ namespace bso { namespace optimizers { namespace scdp {
 class scdp_optimizer 
 {
 private:
-    scdp_config mConfig; // Configuration object containing all parameters and options for the optimization process.
-    output_manager mOutputManager; // Output manager for handling all output related tasks, such as logging and saving results.
+    scdp_config mConfig; // Configuration object set by input arguments in the terminal, it contains all parameters and options for the optimization process.
+    output_manager mOutputManager; // Output manager for handling all output related tasks, such as logging and outputting results.
     
-    // Data structures to hold the current state of the optimization
+    // Data structures to hold the current state of the optimization, i.e. .back() is the current design, model, or performance.
     unsigned int currentIteration = 0;
     std::vector<spatial_design::ms_N_building> mMSDesigns;
     std::vector<structural_design::sd_model> mSDModels;
     std::vector<building_physics::bp_model> mBPModels;
-    std::vector<utilities::data_point> mDesignPerformances;
 
     // Store the initial designs values which should be constant for 
     // each design during the optimization process.
-    unsigned int nSpaces = 0;
-    double floorArea = 0.0; 
-    double averageWidthSpace = 0.0;
+    unsigned int mNrSpaces = 0;
+    double mFloorArea = 0.0; 
+    double mAverageWidthSpace = 0.0;
 
     // Store the performance data for analysis and for export, 
     // this is updated after each iteration and used for the next iteration.
-    std::vector<utilities::data_point> designPerformances;
-	std::vector<std::string> axisDesignPerformances = {"sd","bp"};
-	std::vector<double> sd_total_load;
-	std::vector<double> exteriorSurfaceArea; 
+    std::vector<utilities::data_point> mDesignPerformances;
+	std::vector<std::string> mAxisDesignPerformances = {"sd","bp"};
+	std::vector<double> mSdTotalLoad;
+	std::vector<double> mExteriorSurfaceArea;
     
     // Internal methods for optimization steps
     void initializeDesign();
     void getDesignResults();
+    std::vector<utilities::data_point> getIntermediateResults(spatial_design::ms_N_building& ms, const std::string& modificationType);
     void deleteSpaces(spatial_design::ms_N_building& ms, 
                       std::vector<utilities::data_point>& performances, 
                       const std::string& modificationType,
@@ -55,7 +55,8 @@ private:
     void enforceConstraints(spatial_design::ms_N_building& ms);
     void visualizeMsw(const std::vector<utilities::data_point>& performances, 
                       const int interationNr, const std::string& modificationType, 
-                      const std::vector<double>& objectiveWeights);
+                      const std::vector<double>& objectiveWeights,
+                      std::string titleAddition = "");
 
     // Different Methods to run one iteration of the optimization process
     void runSplitDeleteIteration(const std::string& modificationType);

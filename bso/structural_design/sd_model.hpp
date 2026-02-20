@@ -30,7 +30,7 @@ namespace bso { namespace structural_design {
 	public:
 		sd_model(); // Empty constructor, assignment of value's within class is done in the sd_grammar
 		sd_model(const sd_model& rhs); // Copy constructor
-		sd_model& operator=(const sd_model& rhs); // Copy assignment operator
+		// sd_model& operator=(const sd_model& rhs); // Copy assignment operator
 		~sd_model(); // Deconstructor
 		
 		component::point* addPoint(bso::utilities::geometry::vertex p);

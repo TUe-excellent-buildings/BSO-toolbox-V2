@@ -10,65 +10,57 @@
 #include <bso/utilities/data_point.hpp>
 
 #include <filesystem>
-#include <initializer_list>
-#include <string>
-#include <vector>
+
+#include "argv_builder.hpp"
 
 namespace {
-struct ArgvBuilder {
-    std::vector<std::string> args;
-    std::vector<char*> cargs;
-
-    ArgvBuilder(std::initializer_list<const char*> init)
-    {
-        args.reserve(init.size());
-        cargs.reserve(init.size());
-        for (const auto* item : init) {
-            args.emplace_back(item);
-        }
-        for (auto& item : args) {
-            cargs.push_back(&item[0]);
-        }
-    }
-
-    int argc() const { return static_cast<int>(args.size()); }
-    char** argv() { return cargs.data(); }
-};
+void cleanupResultsDir()
+{
+    std::error_code ec;
+    std::filesystem::remove_all("results", ec);
+}
 } // namespace
+
+struct OutputManagerFixture {
+    OutputManagerFixture()
+    {
+        // Clean up before each test to ensure fresh state
+        cleanupResultsDir();
+    }
+    
+    ~OutputManagerFixture()
+    {
+        // Clean up after each test
+        cleanupResultsDir();
+    }
+};
 
 BOOST_AUTO_TEST_SUITE(output_manager_test)
 
-BOOST_AUTO_TEST_CASE(set_and_get_result_dir)
+BOOST_FIXTURE_TEST_CASE(set_and_get_result_dir, OutputManagerFixture)
 {
-    ArgvBuilder argv({"prog", "-i", "design_1", "-m", "sd"});
+    ArgvBuilder argv({"prog", "-i", "design_1", "-m", "sd", "--resultDir", "test_subdir"});
     bso::optimizers::scdp::scdp_config config(argv.argc(), argv.argv());
     bso::optimizers::scdp::output_manager manager(config);
 
-    manager.setResultDir("results/test/");
-    BOOST_CHECK_EQUAL(manager.getResultDir(), "results/test/");
+    // Result dir is set automatically in constructor if config has --resultDir flag
+    // Just check that it's not empty
+    BOOST_CHECK(!manager.getResultDir().empty());
 }
 
-BOOST_AUTO_TEST_CASE(create_result_dir_sets_path)
+BOOST_FIXTURE_TEST_CASE(result_dir_created_via_constructor_when_flag_set, OutputManagerFixture)
 {
-    ArgvBuilder argv({"prog", "-i", "design_1", "-m", "sd"});
+    ArgvBuilder argv({"prog", "-i", "design_1", "-m", "sd", "--resultDir", "test_subdir"});
     bso::optimizers::scdp::scdp_config config(argv.argc(), argv.argv());
+
     bso::optimizers::scdp::output_manager manager(config);
-
-    const bool existed_before = std::filesystem::exists("results");
-
-    std::string dir;
-    bool created = manager.createResultDir(dir, false);
-
-    BOOST_CHECK_EQUAL(created, true);
-    BOOST_CHECK_EQUAL(dir, "results/");
-
-    if (!existed_before) {
-        std::error_code ec;
-        std::filesystem::remove("results", ec);
-    }
+    
+    // Check that result directory was set
+    BOOST_CHECK(!manager.getResultDir().empty());
+    BOOST_CHECK(std::filesystem::exists("results"));
 }
 
-BOOST_AUTO_TEST_CASE(output_data_with_no_outputs_does_not_throw)
+BOOST_FIXTURE_TEST_CASE(output_data_with_no_outputs_does_not_throw, OutputManagerFixture)
 {
     ArgvBuilder argv({"prog", "-i", "design_1", "-m", "sd"});
     bso::optimizers::scdp::scdp_config config(argv.argc(), argv.argv());
@@ -84,7 +76,6 @@ BOOST_AUTO_TEST_CASE(output_data_with_no_outputs_does_not_throw)
     std::string delete_method = "off";
 
     bso::optimizers::scdp::OptimizationOutput output{
-        config,
         designs,
         performances,
         axes,

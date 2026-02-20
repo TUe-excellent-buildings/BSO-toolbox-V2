@@ -15,7 +15,6 @@ namespace bso { namespace optimizers { namespace scdp {
 
 struct OptimizationOutput
 {
-    const scdp_config& config;
     const std::vector<bso::spatial_design::ms_N_building>& msDesigns;
     const std::vector<utilities::data_point>& designPerformances;
     const std::vector<std::string>& axisDesignPerformances;
@@ -31,38 +30,37 @@ struct OptimizationOutput
 
 class output_manager {
 private:
+    scdp_config mConfig;    
     std::string mResultDir;
-
-    bool createResultDir(std::string& dir, bool verbose) const;
+    mutable clock_t mBegin = 0;
+    mutable clock_t mEnd = 0;
+    
+    bool createResultDir(std::string& dir) const;
+    bool createStandardSubResultDir(std::string& dir, bool shortName = false) const;
+    bool createSubResultDir(std::string& dir) const;
+    void setResultDir();
 
     static std::string getCurrentDateTime();
-    static clock_t sBegin;
-    static clock_t sEnd;
 
 public:
     explicit output_manager(const scdp_config& config);
 
-    const std::string& getResultDir() const;
+    const std::string& getResultDir() const{return mResultDir;}
 
-    static void logError(const std::string& errorMessage,
-                  const std::string& inputFile,
-                  const std::string& modification,
-                  unsigned int iterations,
+    void logError(const std::string& errorMessage,
                   unsigned int errorIteration);
-
-    void getSubResultDir(std::string& dir, std::string inputFile, std::string modification, unsigned int iterationNr, bool verbose) const;
 
     void outputData(const OptimizationOutput& output);
 
     template<class T>
-    static void out(const T& t, const bool& e = false, const bool& i = false, const bool& verbose = false)
+    void out(const T& t, const bool& e = false, const bool& i = false, const bool& verbose = false) const
     {
         if (!verbose) return;
         std::cout << t;
-        sEnd = clock();
-        if (i) std::cout << " (" << 1000*(sEnd-sBegin)/CLOCKS_PER_SEC << " ms)";
+        mEnd = clock();
+        if (i) std::cout << " (" << 1000*(mEnd-mBegin)/CLOCKS_PER_SEC << " ms)";
         if (e) std::cout << std::endl;
-        sBegin = sEnd;
+        mBegin = mEnd;
     }
 };
 

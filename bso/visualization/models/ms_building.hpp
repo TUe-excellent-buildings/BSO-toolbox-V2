@@ -34,6 +34,9 @@ private:
 	polygon_props  pprops;
 	polygon_props  ppropsHighlight;
 	polygon_props  ppropsHighlight1;
+	polygon_props  ppropsHighlight2;
+	polygon_props  ppropsHighlight3;
+	polygon_props  ppropsHighlight4;
 	polygon_props  ppropsSurfaceType; 
 	polygon_props  ppropsDefault; 
 	std::vector<polygon_props> performanceProps;
@@ -89,14 +92,16 @@ MS_Model::MS_Model(const spatial_design::ms_building& ms,
 	pprops.translucent = true;
 	pprops.twosided = true;
 
-	ppropsHighlight.ambient = rgba(1.0f, 0.2f, 0.2f, 0.3f);
-	ppropsHighlight.diffuse = rgba(1.0f, 0.2f, 0.2f, 0.3f);
-	ppropsHighlight.specular = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	// orange/gold highlight with transparency, spaces with marker "highlightInVisualization" will be visualized with this color
+	ppropsHighlight.ambient = rgba(1.0f, 0.65f, 0.2f, 0.3f);
+	ppropsHighlight.diffuse = rgba(1.0f, 0.65f, 0.2f, 0.3f);
+	ppropsHighlight.specular = rgba(1.0f, 0.65f, 0.2f, 0.3f);
 	ppropsHighlight.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
 	ppropsHighlight.shininess = 60.0f;
 	ppropsHighlight.translucent = true;
 	ppropsHighlight.twosided = true;
 
+	// Clear blue highlight with transparency, spaces with marker "highlightInVisualization1" will be visualized with this color
 	ppropsHighlight1.ambient = rgba(0.2f, 0.2f, 1.0f, 0.3f);
 	ppropsHighlight1.diffuse = rgba(0.2f, 0.2f, 1.0f, 0.3f);
 	ppropsHighlight1.specular = rgba(0.2f, 0.2f, 1.0f, 0.3f);
@@ -105,6 +110,34 @@ MS_Model::MS_Model(const spatial_design::ms_building& ms,
 	ppropsHighlight1.translucent = true;
 	ppropsHighlight1.twosided = true;
 
+	// Magenta highlight with transparency, spaces with marker "highlightInVisualization2" will be visualized with this color
+	ppropsHighlight2.ambient = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.diffuse = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.specular = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.emission = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.shininess = 60.0f;
+	ppropsHighlight2.translucent = true;
+	ppropsHighlight2.twosided = true;
+
+	// yellow highlight with transparency, spaces with marker "highlightInVisualization3" will be visualized with this color
+	ppropsHighlight3.ambient = rgba(1.0f, 1.0f, 0.2f, 0.3f);
+	ppropsHighlight3.diffuse = rgba(1.0f, 1.0f, 0.2f, 0.3f);
+	ppropsHighlight3.specular = rgba(1.0f, 1.0f, 0.2f, 0.3f);
+	ppropsHighlight3.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	ppropsHighlight3.shininess = 60.0f;
+	ppropsHighlight3.translucent = true;
+	ppropsHighlight3.twosided = true;
+
+	// bright red highlight with transparency, spaces with marker "highlightInVisualization4" will be visualized with this color
+	ppropsHighlight4.ambient = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	ppropsHighlight4.diffuse = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	ppropsHighlight4.specular = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	ppropsHighlight4.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	ppropsHighlight4.shininess = 60.0f;
+	ppropsHighlight4.translucent = true;
+	ppropsHighlight4.twosided = true;
+
+	// standard color for surface types, bright yellow with transparency
 	ppropsSurfaceType.ambient = rgba(1.0f, 1.0f, 0.04f, 0.4f);
 	ppropsSurfaceType.diffuse = rgba(1.0f, 1.0f, 0.04f, 0.4f);
 	ppropsSurfaceType.specular = rgba(0.04f, 0.04f, 0.04f, 1.0f);
@@ -132,6 +165,21 @@ MS_Model::MS_Model(const spatial_design::ms_building& ms,
 			else if(i->highlightInVisualization1)
 			{
 				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight1, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
+			else if(i->highlightInVisualization2)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight2, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
+			else if(i->highlightInVisualization3)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight3, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
+			else if(i->highlightInVisualization4)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight4, &lprops);
 				if (type == "") centerLabel.str(std::string());
 			}
 			else
@@ -207,6 +255,8 @@ MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 {
 	lprops.width = linewidth;
 	mTitle = title;
+
+	// Clear green highlight with transparency, default color of spaces
 	pprops.ambient = rgba(0.1f, 0.5f, 0.1f, 0.3f);
 	pprops.diffuse = rgba(0.2f, 1.0f, 0.2f, 0.3f);
 	pprops.specular = rgba(0.2f, 1.0f, 0.2f, 0.3f);
@@ -215,14 +265,16 @@ MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 	pprops.translucent = true;
 	pprops.twosided = true;
 
-	ppropsHighlight.ambient = rgba(1.0f, 0.2f, 0.2f, 0.3f);
-	ppropsHighlight.diffuse = rgba(1.0f, 0.2f, 0.2f, 0.3f);
-	ppropsHighlight.specular = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	// orange/gold highlight with transparency, spaces with marker "highlightInVisualization" will be visualized with this color
+	ppropsHighlight.ambient = rgba(1.0f, 0.65f, 0.2f, 0.3f);
+	ppropsHighlight.diffuse = rgba(1.0f, 0.65f, 0.2f, 0.3f);
+	ppropsHighlight.specular = rgba(1.0f, 0.65f, 0.2f, 0.3f);
 	ppropsHighlight.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
 	ppropsHighlight.shininess = 60.0f;
 	ppropsHighlight.translucent = true;
 	ppropsHighlight.twosided = true;
 
+	// Clear blue highlight with transparency, spaces with marker "highlightInVisualization1" will be visualized with this color
 	ppropsHighlight1.ambient = rgba(0.2f, 0.2f, 1.0f, 0.3f);
 	ppropsHighlight1.diffuse = rgba(0.2f, 0.2f, 1.0f, 0.3f);
 	ppropsHighlight1.specular = rgba(0.2f, 0.2f, 1.0f, 0.3f);
@@ -231,6 +283,34 @@ MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 	ppropsHighlight1.translucent = true;
 	ppropsHighlight1.twosided = true;
 
+	// Magenta highlight with transparency, spaces with marker "highlightInVisualization2" will be visualized with this color
+	ppropsHighlight2.ambient = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.diffuse = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.specular = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.emission = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.shininess = 60.0f;
+	ppropsHighlight2.translucent = true;
+	ppropsHighlight2.twosided = true;
+
+	// yellow highlight with transparency, spaces with marker "highlightInVisualization3" will be visualized with this color
+	ppropsHighlight3.ambient = rgba(1.0f, 1.0f, 0.2f, 0.3f);
+	ppropsHighlight3.diffuse = rgba(1.0f, 1.0f, 0.2f, 0.3f);
+	ppropsHighlight3.specular = rgba(1.0f, 1.0f, 0.2f, 0.3f);
+	ppropsHighlight3.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	ppropsHighlight3.shininess = 60.0f;
+	ppropsHighlight3.translucent = true;
+	ppropsHighlight3.twosided = true;
+
+	// bright red highlight with transparency, spaces with marker "highlightInVisualization4" will be visualized with this color
+	ppropsHighlight4.ambient = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	ppropsHighlight4.diffuse = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	ppropsHighlight4.specular = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	ppropsHighlight4.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	ppropsHighlight4.shininess = 60.0f;
+	ppropsHighlight4.translucent = true;
+	ppropsHighlight4.twosided = true;
+
+	// standard color for surface types, bright yellow with transparency
 	ppropsSurfaceType.ambient = rgba(1.0f, 1.0f, 0.04f, 0.4f);
 	ppropsSurfaceType.diffuse = rgba(1.0f, 1.0f, 0.04f, 0.4f);
 	ppropsSurfaceType.specular = rgba(0.04f, 0.04f, 0.04f, 1.0f);
@@ -248,15 +328,29 @@ MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 		
 		if (type == "spaces" || type == "" )
 		{
-			if(i->highlightInVisualization)
+			if(i->highlightInVisualization4) // red-color first so it overrides the other highlights when multiple highlights are true for one space.
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight4, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
+			else if(i->highlightInVisualization)
 			{
 				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight, &lprops);
 				if (type == "") centerLabel.str(std::string());
-				
 			}
 			else if(i->highlightInVisualization1)
 			{
 				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight1, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
+			else if(i->highlightInVisualization2)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight2, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
+			else if(i->highlightInVisualization3)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight3, &lprops);
 				if (type == "") centerLabel.str(std::string());
 			}
 			else

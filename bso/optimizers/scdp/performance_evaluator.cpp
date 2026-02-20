@@ -1,4 +1,5 @@
 #include <bso/optimizers/scdp/performance_evaluator.hpp>
+#include <bso/optimizers/scdp/output_manager.hpp>
 
 #include <algorithm>
 #include <sstream>
@@ -15,7 +16,10 @@ void performance_evaluator::getPerformancePerSpace(
 	bso::building_physics::bp_model& bp, 
     const std::string& modificationType, 
     const std::string& performanceDivisionType,
-	bool verbose)
+    output_manager& outputMgr,
+	bool verbose,
+	bool sdAvailable,
+	bool bpAvailable)
 {
 	std::vector<std::string> axisDataTypes = {"bp","sd"};
 	for (const auto& j : ms.getSpacePtrs())
@@ -27,8 +31,8 @@ void performance_evaluator::getPerformancePerSpace(
 		tempDataPoint.addSpacePtr(j);
 
 		auto spaceGeom = j->getGeometry();
-		if (modificationType != "bp"){tempDataPoint(1) = sd.getPartialResults(&spaceGeom).mTotalStrainEnergy;}
-		if (modificationType != "sd"){tempDataPoint(0) = bp.getPartialResults(&spaceGeom).mTotalEnergy;} 
+		if (sdAvailable && modificationType != "bp"){tempDataPoint(1) = sd.getPartialResults(&spaceGeom).mTotalStrainEnergy;}
+		if (bpAvailable && modificationType != "sd"){tempDataPoint(0) = bp.getPartialResults(&spaceGeom).mTotalEnergy;} 
 
 		if(performanceDivisionType == "floorArea"){tempDataPoint /= j->getFloorArea();}
 		else if(performanceDivisionType == "surfaceArea"){tempDataPoint /= j->getSurfaceArea();}	
@@ -36,7 +40,7 @@ void performance_evaluator::getPerformancePerSpace(
 
 		performances.push_back(tempDataPoint);
 	}
-    output_manager::out("Collected performances for each space",true,true,verbose);
+    outputMgr.out("Collected performances for each space",true,true,verbose);
 } // getPerformancePerSpace
 
 // Function to normalize the performance data points based on the utopian and distopian points.
@@ -44,6 +48,7 @@ void performance_evaluator::normalizeData(
     std::vector<bso::utilities::data_point>& performances, 
     bso::utilities::data_point& utopianPoint, 
     bso::utilities::data_point& distopianPoint,
+    output_manager& outputMgr,
 	bool verbose)
 {
 	utopianPoint.setToUtopia(performances);
@@ -55,7 +60,7 @@ void performance_evaluator::normalizeData(
 	}
 	utopianPoint.setToUtopia(performances);
 	distopianPoint.setToDistopia(performances);
-    output_manager::out("Normalized space performances",true,true,verbose);
+    outputMgr.out("Normalized space performances",true,true,verbose);
 }
 
 // Function to sort the performance data points according to highest to lowest for example space removal later.
@@ -65,6 +70,7 @@ void performance_evaluator::sortDataPointsHighestToLowest(
 	const std::string& modificationType, 
 	const int iterationNr, 
 	const std::vector<double>& objectiveWeights,
+	output_manager& outputMgr,
 	bool verbose)
 {
 	// Sort data for space removal later
@@ -95,7 +101,7 @@ void performance_evaluator::sortDataPointsHighestToLowest(
 		for(auto &k: performances){k(index) = 0;} 
 		std::sort(performances.begin(), performances.end());
 	}	
-	output_manager::out("Sorted space performances from highest to lowest",true,true,verbose);
-} // sortDataPointsHighestToLowest
+	outputMgr.out("Sorted space performances from highest to lowest",true,true,verbose);
+}
 
 }}} // namespace bso::optimizers::scdp

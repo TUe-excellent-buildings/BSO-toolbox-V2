@@ -50,8 +50,13 @@ public:
 	
 	friend std::ostream& operator<< (std::ostream& stream, const ms_space& space);
 
-	bool highlightInVisualization = false;
-	bool highlightInVisualization1 = false;
+	// if true, the space will be visualized with the highlight color defined in the visualization model (e.g. ppropsHighlight in ms_building.hpp). 
+	//This is for example used to visualize spaces that are selected for extrusion.
+	bool highlightInVisualization = false; // Orange/gold highlight
+	bool highlightInVisualization1 = false; // Clear blue highlight
+	bool highlightInVisualization2 = false; // Magenta highlight
+	bool highlightInVisualization3 = false; // Yellow highlight
+	bool highlightInVisualization4 = false; // Bright red highlight
 };
 
 } // namespace spatial_design

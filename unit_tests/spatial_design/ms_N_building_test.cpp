@@ -1643,8 +1643,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 
 		bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_308_centreShiftFillPlane");
 		BOOST_REQUIRE(msShift == ms);
-	}
-	
+	}	
 	
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace spatial_design_test

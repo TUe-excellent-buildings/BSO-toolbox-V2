@@ -23,8 +23,6 @@ int main(int argc, char* argv[])
         bso::optimizers::scdp::scdp_optimizer optimizer(config);
         optimizer.runOptimization();
 
-
-        //optimizer.outputResults();
         return 0;
     }
     catch (const std::exception& e)
