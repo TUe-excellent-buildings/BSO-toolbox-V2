@@ -497,94 +497,96 @@ namespace bso { namespace utilities {
 			}
 		}
 
+		// This code is not yet fully developed, but the idea is to check for each courtyard if it is connected to the air or if it is fully enclosed by other courtyards and/or outerbounds.
+
 		// Check if the found courtyards are connected to the air or if they are fully enclosed courtyards
-		for(long unsigned int i=0; i<courtyardsPerElevation.size(); i++)
-		{
-			courtyardsEnclosedPerElevation.emplace_back(courtyardsPerElevation[i].first, std::vector<bso::utilities::geometry::polygon_non_convex>{});
-			courtyardsConnectedToAirPerElevation.emplace_back(courtyardsPerElevation[i].first, std::vector<bso::utilities::geometry::polygon_non_convex>{});
-			if(courtyardsPerElevation[i].second.size() > 0)
-			{
-				hasCourtyard = true;
-			}
-			else {continue;}
+		// for(long unsigned int i=0; i<courtyardsPerElevation.size(); i++)
+		// {
+		// 	courtyardsEnclosedPerElevation.emplace_back(courtyardsPerElevation[i].first, std::vector<bso::utilities::geometry::polygon_non_convex>{});
+		// 	courtyardsConnectedToAirPerElevation.emplace_back(courtyardsPerElevation[i].first, std::vector<bso::utilities::geometry::polygon_non_convex>{});
+		// 	if(courtyardsPerElevation[i].second.size() > 0)
+		// 	{
+		// 		hasCourtyard = true;
+		// 	}
+		// 	else {continue;}
 			
-			for(auto lowerCourtyard: courtyardsPerElevation[i].second)
-			{
-				long unsigned int upperCourtyardIndex=i+1;
-				bool seriesOfCourtyardsConnectedToAir = true;
-				std::vector<std::pair<double,std::vector<bso::utilities::geometry::polygon_non_convex>>> courtyardsConnectedToAir;
-				for(int c=0; courtyardsPerElevation.size(); c++)
-				{
-					courtyardsConnectedToAir.emplace_back(courtyardsPerElevation[c].first, std::vector<bso::utilities::geometry::polygon_non_convex>{});
-					if(courtyardsPerElevation[c].first == courtyardsConnectedToAir[i].first){courtyardsConnectedToAir[i].second.push_back(lowerCourtyard);}
-				}
-				// Check if there are any upperCourtyards which make the connection to the air
-				while(upperCourtyardIndex+1 < courtyardsPerElevation.size())
-				{
-					bool connectedUpperCourtyardFound = false;
-					for(const auto& upperCourtyard: courtyardsPerElevation[upperCourtyardIndex].second)
-					{
-						if(lowerCourtyard.isOverlapping(upperCourtyard, mTol))
-						{
-							// Courtyard not yet fully enclosed
-							courtyardsConnectedToAir[i].second.push_back(upperCourtyard);
-							lowerCourtyard = upperCourtyard;
-							connectedUpperCourtyardFound = true;
-							break;
-						}
-					}
-					if(!connectedUpperCourtyardFound)
-					{
-						// Courtyard is fully enclosed
-						seriesOfCourtyardsConnectedToAir = false;
-						courtyardsEnclosedPerElevation.back().second.push_back(lowerCourtyard);
-						break;
-					}
+		// 	for(auto lowerCourtyard: courtyardsPerElevation[i].second)
+		// 	{
+		// 		long unsigned int upperCourtyardIndex=i+1;
+		// 		bool seriesOfCourtyardsConnectedToAir = true;
+		// 		std::vector<std::pair<double,std::vector<bso::utilities::geometry::polygon_non_convex>>> courtyardsConnectedToAir;
+		// 		for(int c=0; courtyardsPerElevation.size(); c++)
+		// 		{
+		// 			courtyardsConnectedToAir.emplace_back(courtyardsPerElevation[c].first, std::vector<bso::utilities::geometry::polygon_non_convex>{});
+		// 			if(courtyardsPerElevation[c].first == courtyardsConnectedToAir[i].first){courtyardsConnectedToAir[i].second.push_back(lowerCourtyard);}
+		// 		}
+		// 		// Check if there are any upperCourtyards which make the connection to the air
+		// 		while(upperCourtyardIndex+1 < courtyardsPerElevation.size())
+		// 		{
+		// 			bool connectedUpperCourtyardFound = false;
+		// 			for(const auto& upperCourtyard: courtyardsPerElevation[upperCourtyardIndex].second)
+		// 			{
+		// 				if(lowerCourtyard.isOverlapping(upperCourtyard, mTol))
+		// 				{
+		// 					// Courtyard not yet fully enclosed
+		// 					courtyardsConnectedToAir[i].second.push_back(upperCourtyard);
+		// 					lowerCourtyard = upperCourtyard;
+		// 					connectedUpperCourtyardFound = true;
+		// 					break;
+		// 				}
+		// 			}
+		// 			if(!connectedUpperCourtyardFound)
+		// 			{
+		// 				// Courtyard is fully enclosed
+		// 				seriesOfCourtyardsConnectedToAir = false;
+		// 				courtyardsEnclosedPerElevation.back().second.push_back(lowerCourtyard);
+		// 				break;
+		// 			}
 
-					upperCourtyardIndex++;
-				}
-				// Check if the courtyards is outside the outerbound of the above elevation
-				bool outSideOutbounds = true;
-				for(const auto& outerbound: polyOutboundsPerElevation[i+1].second)
-				{
-					if(lowerCourtyard.isOverlapping(outerbound, mTol))
-					{
-						// Check if the overlap is full or not
-						bool allInside = true;
-						for(const auto& vertex: lowerCourtyard)
-						{
-							if(outerbound.isInside(vertex, mTol))
-							{
-								allInside = false;
-								break;
-							}
-						}
-						if(allInside)
-						{
-							// fully enclosed courtyard
-							outSideOutbounds = false;
-							courtyardsEnclosedPerElevation.back().second.push_back(lowerCourtyard);
-							break;
-						}
-					}
-				}
-				if(outSideOutbounds)
-				{
-					courtyardsConnectedToAirPerElevation[i].second.push_back(lowerCourtyard);
-				}
+		// 			upperCourtyardIndex++;
+		// 		}
+		// 		// Check if the courtyards is outside the outerbound of the above elevation
+		// 		bool outSideOutbounds = true;
+		// 		for(const auto& outerbound: polyOutboundsPerElevation[i+1].second)
+		// 		{
+		// 			if(lowerCourtyard.isOverlapping(outerbound, mTol))
+		// 			{
+		// 				// Check if the overlap is full or not
+		// 				bool allInside = true;
+		// 				for(const auto& vertex: lowerCourtyard)
+		// 				{
+		// 					if(outerbound.isInside(vertex, mTol))
+		// 					{
+		// 						allInside = false;
+		// 						break;
+		// 					}
+		// 				}
+		// 				if(allInside)
+		// 				{
+		// 					// fully enclosed courtyard
+		// 					outSideOutbounds = false;
+		// 					courtyardsEnclosedPerElevation.back().second.push_back(lowerCourtyard);
+		// 					break;
+		// 				}
+		// 			}
+		// 		}
+		// 		if(outSideOutbounds)
+		// 		{
+		// 			courtyardsConnectedToAirPerElevation[i].second.push_back(lowerCourtyard);
+		// 		}
 
-				if(seriesOfCourtyardsConnectedToAir)
-				{
-					for(long unsigned int l=0; l<courtyardsConnectedToAirPerElevation.size(); l++)
-					{
-						for(auto& k: courtyardsConnectedToAir[l].second)
-						{
-							courtyardsConnectedToAirPerElevation[l].second.push_back(k);
-						}
-					}
-				}
-			}
-		}
+		// 		if(seriesOfCourtyardsConnectedToAir)
+		// 		{
+		// 			for(long unsigned int l=0; l<courtyardsConnectedToAirPerElevation.size(); l++)
+		// 			{
+		// 				for(auto& k: courtyardsConnectedToAir[l].second)
+		// 				{
+		// 					courtyardsConnectedToAirPerElevation[l].second.push_back(k);
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+		// }
 
 		return hasCourtyard;
 	}

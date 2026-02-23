@@ -105,23 +105,23 @@ namespace bso { namespace utilities { namespace geometry {
 
 	// This function checks if a triangle is overlapping with another triangle but when a triangle touches another triangle it is not considered overlapping
 	// Note; this function is not yet checked for correctness.
-	bool triangle::isOverlapping(const triangle& tri, const double& tol /*= 1e-3*/) const 
-	{
-		// Note: this function is not working as it should yet!!
-		// Check first if the triangles are coplanar
-		if (!this->isCoplanar(tri.mVertices[0],tol) || !this->isCoplanar(tri.mVertices[1],tol) || !this->isCoplanar(tri.mVertices[2],tol) ) return false;
+	// bool triangle::isOverlapping(const triangle& tri, const double& tol /*= 1e-3*/) const 
+	// {
+	// 	// Note: this function is not working as it should yet!!
+	// 	// Check first if the triangles are coplanar
+	// 	if (!this->isCoplanar(tri.mVertices[0],tol) || !this->isCoplanar(tri.mVertices[1],tol) || !this->isCoplanar(tri.mVertices[2],tol) ) return false;
 		
-		// Perform geometry checks to determine if the triangles are overlapping but not touching
-		for(const auto& i: tri)
-		{
-			if(this->isInside(i,tol)) return true;
-		}
-		for(const auto& i: this->mVertices)
-		{
-			if(tri.isInside(i,tol)) return true;
-		}
-		return false;
-	}
+	// 	// Perform geometry checks to determine if the triangles are overlapping but not touching
+	// 	for(const auto& i: tri)
+	// 	{
+	// 		if(this->isInside(i,tol)) return true;
+	// 	}
+	// 	for(const auto& i: this->mVertices)
+	// 	{
+	// 		if(tri.isInside(i,tol)) return true;
+	// 	}
+	// 	return false;
+	// }
 	
 } // namespace geometry
 } // namespace utilities
