@@ -21,16 +21,7 @@ namespace bso { namespace utilities { namespace geometry {
 	bool vector::isParallel(const vector& rhs, const double& tol /*= 1e-3*/) const
 	{	// checks if the vector is parallel to rhs
 		if (this->isZero(tol) || rhs.isZero(tol)) return false;
-	
-		vector crossProd = this->cross(rhs);
-		double crossNorm = crossProd.norm();
-		
-		// Calculate distance from tip of this to the line of rhs through origin
-		double dist1 = crossNorm / rhs.norm();
-		// Calculate distance from tip of rhs to the line of this through origin  
-		double dist2 = crossNorm / this->norm();
-
-		return (dist1 <= tol && dist2 <= tol);
+		return (this->normalized().cross(rhs.normalized())).isZero(tol);
 	} // isParallel()
 	
 	bool vector::isCodirectional(const vector& rhs, const double& tol /*= 1e-3*/) const
