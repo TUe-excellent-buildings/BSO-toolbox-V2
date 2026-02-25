@@ -322,6 +322,8 @@ namespace bso { namespace utilities {
 		}
 	}
 
+	#if defined(BSO_USE_FADE) // At the moment is function is only available for the fade delaunay triangulation, since it uses delaunayZoned which is only available for FADE-2D.
+	// However, at the moment, this function is not used in the code.
 	bool hasCourtyard(std::vector<bso::utilities::geometry::quadrilateral> exteriorWalls, std::vector<std::vector<bso::utilities::geometry::line_segment>>& outerboundsExport, std::vector<bso::utilities::geometry::triangle>& triangleExport, /*std::vector<std::pair<double,std::vector<bso::utilities::geometry::polygon_non_convex>>>& courtyardsEnclosedPerElevation, std::vector<std::pair<double,std::vector<bso::utilities::geometry::polygon_non_convex>>>& courtyardsConnectedToAirPerElevation,*/ const double mTol /*= 1e-3*/)
 	{
 		bool hasCourtyard = false;
@@ -590,7 +592,7 @@ namespace bso { namespace utilities {
 
 		return hasCourtyard;
 	}
-
+	#endif // defined(BSO_USE_FADE)
 
 } // namespace utilities
 } // namespace bso
