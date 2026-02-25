@@ -285,54 +285,64 @@ For example to test the geometry package of the toolbox type the following in th
 $ make clean cls geometry
 $ ./geometry_test
 ```
-### Windows 10 installation
+## Windows 10 installation
 
-For this installation Code::Blocks has been used, but other strategies are possible as well.
+For this installation Code::Blocks has been used, but other strategies are possible as well. For example, you could choose to install MinGW with GCC through the codeblocks executable as listed below, and then use another IDE such as VSCode.
 
 ##### 1. Installing Code::Blocks and starting the project
+* Install the 64-bit version of codeblocks-20.03mingw-setup.exe, found via [www.codeblocks.org](https://www.codeblocks.org/downloads/binaries/older/). You can also consider using a newer version, found [here](https://www.codeblocks.org/downloads/binaries/)
 
-* Install codeblocks-20.03mingw-setup.exe, found via www.codeblocks.org
+If you want to work in Code::Blocks, you can create a new project like so:
+
+* In Settings>Compiler>GNU GCC Compiler>Toolchain executables, check whether all "Programs Files" are indeed from C:\Program Files\CodeBlocks\MinGW. If not, the "Reset defaults" button may help.
+    
+* Create a new project by selecting File>New>Project>Console application, then select a "Folder to create project in. Choose your preferred location (here "D:\\"), and if options arise, use default options. Note that in this case the project title "BSO111" was used, for which Code::Blocks then creates the "D:\BSO111" project directory. You can also choose to, for example, place the project libraries in "C:\Program Files\Codeblocks".
+
+
+##### 2. Installing external libraries: eigen, boost, freeglut, and CGAL
+
+All in Windows:
+
+* Unzip eigen-3.4.0.zip, found via [libeigen.gitlab.io](https://libeigen.gitlab.io/). In this example the resulting directory has been put in D:\BSO111, but it normally would make more sense to put it more closely to Code::Blocks or the compiler, e.g. in the conventional C:\Program Files\CodeBlocks.
+
+* Unzip boost_1_81_0.zip found via [boost.org](https://www.boost.org/). Boost version 1.90.0 should work as well. You can place it in C:\Program Files\CodeBlocks. Then, precompile Boost by navigating to the boost_1_81_0 folder, opening a command line/terminal (cmd, with administrator permissions) in that folder, and running the following two commands:
+```
+bootstrap.bat gcc
+b2
+```
+
+* As with eigen and boost, download and unzip freeglut-MinGW-3.0.0-1.mp.zip found via [www.transmissionzero.co.uk](www.transmissionzero.co.uk). Alternatively, a newer version of freeglut has been compiled and included with this project for convenience. Further, the same applies as above for eigen.
+
+* To install CGAL, download version 6.1 from the GitHub repository (https://github.com/CGAL/cgal/releases/download/v6.1/CGAL-6.1-library.zip) as well as the auxiliary GMP and MPFR libraries (https://github.com/CGAL/cgal/releases/download/v6.1/CGAL-6.1-win64-auxiliary-libraries-gmp-mpfr.zip). As before, extract the zip file and place the "CGAL-6.1" folder inside "C:\Program Files\Codeblocks". Then, extract the contents of "CGAL-6.1-win64-auxiliary-libraries-gmp-mpfr.zip" and place the resulting auxiliary folder inside "C:\Program Files\CodeBlocks\CGAL-6.1". Since this is a header-only library, we don't need to build it before use. 
 
 All in Code::Blocks:
 
-* At Settings>Compiler>GNU GCC Compiler>Toolchain executables, check whether all "Programs Files" are indeed from C:\Program Files\CodeBlocks\MinGW. For instance, a previously installed Strawberry Perl may lead to other files and locations. The "Reset defaults" button may help in this case.
+* In Settings>Compiler>Search directions>Compiler, add the above directories to enable the compiler to find header files of the libraries and the directory of the BSO-toolbox to enable the compiler to find the toolbox .cpp and .hpp files. In this case:
+	- D:\BSO111
+	- C:\Program Files\CodeBlocks\eigen-3.4.0   
+	- C:\Program Files\CodeBlocks\boost_1_81_0   
+	- C:\Program Files\CodeBlocks\include\GL
+	- C:\Program Files\CodeBlocks\CGAL-6.1\include
+	- C:\Program Files\CodeBlocks\CGAL-6.1\auxiliary\gmp\include
 
-* Create a new project by File>New>Project>Console application, select a "Folder to create project in:" you prefer, here "D:\" has been chosen, and if options arise, use default options throughout. Note that here project title BSO111 was used, for which Code:Blocks then creates directory D:\BSO111 for the project.
+* In Settings>Compiler>Search directories>Linker, add the below directory to enable the linker to find libraries, in this example:
+	- C:\Program Files\CodeBlocks\boost_1_81_0\stage\lib
+    - C:\Program Files\CodeBlocks\freeglut\lib
+    - C:\Program Files\CodeBlocks\CGAL-6.1\auxiliary\gmp\lib
 
-##### 2. External libraries: eigen, boost, glut
-
-All in Windows 10:
-
-* Unzip eigen-3.4.0.zip, found via eigen.tuxfamily.org. In this example the resulting directory has been put in D:\BSO111, but it normally would make more sense to put it more closely to Code::Blocks or the compiler, e.g. in the conventional C:\Program Files\CodeBlocks\MinGW\lib.
-
-* Unzip boost_1_81_0.zip found via www.boost.org. Further, the same applies as above for eigen. 
-
-**NOTE** Windows 10 extraction can be quite slow, and using e.g. 7-Zip may be faster. Also, precompiling certain parts of boost is needed for certain functionalities, see www.boost.org, but not here.
-
-* Unzip freeglut-MinGW-3.0.0-1.mp.zip found via www.transmissionzero.co.uk. Further, the same applies as above for eigen.
-
-**NOTE** Different from possibly claimed elsewhere, the BSO toolbox (both for Linux and Windows 10) needs neither the OpenGL Shading Language (GLSL) nor the GNU Scientific (GSL) libraries.
-
-All in Code::Blocks:
-
-* In Settings>Compiler>Search directions>Compiler, add the above directories to enable the compiler to find header files, here these directories are:  
-D:\BSO111\eigen-3.4.0   
-D:\BSO111\boost_1_81_0   
-D:\BSO111\freeglut\include\GL  
-
-* In Settings>Compiler>Search directories>Linker, add the below directory to enable the linker to find libraries, in this example:  
-D:\toolbox\freeglut\lib\x64
+* Finally, make sure to add the following file locations to the system environment PATH. This can be done by searching for "environment" or "env" in the start menu, and choosing "Edit the system environment variables". Then, click on the button labelled "Environment Variables", scroll down the **system variables** window, select the entry labelled "path", and choose "edit".
+	- C:\Program Files\CodeBlocks\MinGW\bin
+	- C:\Program Files\CodeBlocks\freeglut\bin
+	- C:\Program Files\CodeBlocks\CGAL-6.1\auxiliary\gmp\bin
 
 * In Settings>Compiler>Linker settings, add at "Other linker options" the following line to link the libraries below:  
--lfreeglut_static -lopengl32 -lwinmm -lgdi32 -Wl,--subsystem,console
-
-**NOTE** "--subsystem,console" is used so the terminal reponses correctly to cout.
+	-lfreeglut_static -lopengl32 -lwinmm -lgdi32 -lgmp -lmpfr -Wl,--subsystem,console
 
 * In Settings>Compiler>Compiler settings>#defines, add:  
-FREEGLUT_STATIC  
-This is to statically link freeglut. Alternatively dynamical linking can be used, by leaving this define out, and linking -lfreeglut instead of -lfreeglut_static 
+    `FREEGLUT_STATIC` to statically link freeglut. Alternatively, dynamical linking can be used, by leaving this define out, and linking -lfreeglut instead of -lfreeglut_static
 
 * To save the above settings, save the project (File>Save Project), workspace (File>Save Workspace), and perspective (View>Perspectives>Save current). Probably one will do, but not sure which one.
+
 
 ##### 3. Preparing the BSO-toolbox
 
@@ -352,16 +362,6 @@ All in Code::Blocks:
 * In Settings>Compiler>Search directions>Compiler, add the directory of the BSO-toolbox to enable the compiler to find the toolbox cpp and hpp files, in the particular example here, this is:  
 D:\BSO111
 
-In Code::Blocks or any text-editor: 
-
-* As a temporarily bugfix, add the following pre-compiler lines to D:\toolbox\BSO-toolbox-v.1.1.1/bso/utilities/geometry/vector.hpp. Here these three lines have been put after the first two lines (#ifndef VECTOR_HPP, #define VECTOR_HPP):  
-~~~
-#ifndef M_PI
-#define M_PI 3.141592653589793238463
-#endif // M_PI
-~~~
-
-**NOTE** This bug will be fixed in future versions.
 
 All in Code::Blocks:
 
@@ -399,14 +399,6 @@ D:\BSO111\unit_tests
 ##### 6. Running the executables outside Code::Blocks, i.e. in a console
 
 All in Windows 10:
-
-* Include the folder with neccessary dll's in the windows PATH:  
-C:\Program Files\CodeBlocks\MinGW\bin  
-This can be done by:
-Win-X, search, type “env”, and choose “Edit the system environment variables”; 
-Click the “Environment Variables…” button; 
-Under the “System Variables” section (the lower half), find the row with “Path” in the first column, and click edit, and add the location.
-
 * Move the executable file, now in:  
 D:\BSO111\bin\Debug   
 to the appropiate execution working directory as indicated above, i.e. for the unit tests in:  
