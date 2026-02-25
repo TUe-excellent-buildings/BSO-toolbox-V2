@@ -45,6 +45,8 @@ GRAMMAR		= $(BSO)/unit_tests/grammar/grammar_test.cpp
 SCDP_CONFIG = $(BSO)/unit_tests/optimizers/scdp_config_test.cpp
 OUTPUT_MANAGER = $(BSO)/unit_tests/optimizers/output_manager_test.cpp
 
+# When running all tests, if preferred, the slow test can be omitted via ./all_test --run_test='!@slow' found in grammar_test.cpp.
+# It checks whether the new ms_N_building representation gets the same sd and bp results as the old ms_building representation, i.e. a verification of the new representation.
 .PHONY: all ms_space ms_building sc_building conformal trim_cast geometry delaunay geometry_functions export building_physics structural_design clean visualization xml data grammar scdp_config output_manager
 
 #make arguments
