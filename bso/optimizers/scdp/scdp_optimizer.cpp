@@ -546,9 +546,19 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
         // step 14, recover the number of spaces if needed.
         // if the amount of spaces is higher than split spaces to recover initial number.
         // if lower, delete spaces to recover initial number.
-        if(newMS.getSpacePtrs().size() < mNrSpaces)
+        if(newMS.getSpacePtrs().size() > mNrSpaces)
         {
-            
+            // Get intermediate results for the new design to determine which spaces to delete to recover initial number of spaces.
+            std::vector<utilities::data_point> intermediateResults = getIntermediateResults(newMS, modificationType);
+            // Normalize the data points
+            performance_evaluator::normalizeData(intermediateResults, utopianPoint, distopianPoint, mOutputManager, mConfig.getVerbose());
+            // Visualize the performance of spaces
+            visualizeMsw(intermediateResults, currentIteration, modificationType, mConfig.getObjectiveWeights(), "_bases_delete_decision");
+            // Delete spaces to recover initial number of spaces.
+            deleteSpaces(newMS, intermediateResults, modificationType, distopianPoint);
+        }
+        if(newMS.getSpacePtrs().size() < mNrSpaces) // when using cluster delete method, it can happen that more spaces are deleted than intended, so we need to check if we need to split spaces to recover the initial number of spaces.
+        {
             if(mConfig.getSplitMethod() == "performance")
             {
                 // Get intermediate results for the new design to determine which spaces to delete to recover initial number of spaces.
@@ -559,21 +569,10 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
                 visualizeMsw(intermediateResults, currentIteration, modificationType, mConfig.getObjectiveWeights(), "_bases_split_decision");
                 splitSpaces(newMS, intermediateResults, modificationType, currentIteration, mConfig.getObjectiveWeights());
             }
-            else
+            else // if split method is not performance, we can split spaces without getting intermediate results, as the performance of spaces will not be used for the split decision.
             {
                splitSpaces(newMS, performances, modificationType, currentIteration, mConfig.getObjectiveWeights());
             }
-        }
-        else if(newMS.getSpacePtrs().size() > mNrSpaces)
-        {
-            // Get intermediate results for the new design to determine which spaces to delete to recover initial number of spaces.
-            std::vector<utilities::data_point> intermediateResults = getIntermediateResults(newMS, modificationType);
-            // Normalize the data points
-            performance_evaluator::normalizeData(intermediateResults, utopianPoint, distopianPoint, mOutputManager, mConfig.getVerbose());
-            // Visualize the performance of spaces
-            visualizeMsw(intermediateResults, currentIteration, modificationType, mConfig.getObjectiveWeights(), "_bases_delete_decision");
-            // Delete spaces to recover initial number of spaces.
-            deleteSpaces(newMS, intermediateResults, modificationType, distopianPoint);
         }
 
         // step 14, Enforce constrains on BSD
