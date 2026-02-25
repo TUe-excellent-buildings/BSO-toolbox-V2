@@ -60,7 +60,8 @@ BOOST_AUTO_TEST_SUITE( grammar_test )
 		bso::grammar::grammar gram(cf);
 	}
 	
-	BOOST_AUTO_TEST_CASE( run_compare )
+	BOOST_AUTO_TEST_CASE( run_compare, 
+		* boost::unit_test::label("slow") )
 	{
 		// This boost test is meant to verify the generation and results of the sd and bp simulations
 		// for NOBSD representation with the already proven orthogonal BSD.
@@ -80,10 +81,14 @@ BOOST_AUTO_TEST_SUITE( grammar_test )
 		
 		// SD analysis check
 		bso::structural_design::sd_model SD1 = gram1.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string("grammar/settings/sd_settings.txt"));
+		std::cout << "starting SD1 analysis" << std::endl;
 		SD1.analyze();
+		std::cout << "finished SD1 analysis" << std::endl;
 		
 		bso::structural_design::sd_model SD2 = gram2.sd_grammar <bso::grammar::DEFAULT_SD_GRAMMAR >(std::string("grammar/settings/sd_settings.txt"));
+		std::cout << "starting SD2 analysis" << std::endl;
 		SD2.analyze();
+		std::cout << "finished SD2 analysis" << std::endl;
 		
 		// perform Checks:
 		bool check1 = false;
