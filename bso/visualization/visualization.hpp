@@ -28,6 +28,11 @@ void forcePThreadLink() {pthread_t t1; pthread_create(&t1,NULL,&simpleFunc,NULL)
 #include <bso/visualization/models/sd_model.hpp>
 #endif // SD_MODEL_HPP
 
+#ifdef DL_MODEL_HPP
+#include <bso/daylight/dl_model.hpp>
+#include <bso/visualization/models/dl_model.hpp>
+#endif // DL_MODEL_HPP
+
 // Visualisation models
 #include <bso/visualization/models/ms_building.hpp>
 #include <bso/visualization/models/sc_building.hpp>
@@ -202,6 +207,13 @@ void visualize(const bso::building_physics::bp_model& bp_model, const std::strin
 	vpmanager.addviewport(new viewport(new BP_Model(bp_model,title)));
 }
 #endif // BP_MODEL_HPP
+
+#ifdef DL_MODEL_HPP
+void visualize(const bso::daylight::dl_model& dl_model, const std::string& title = "dl_model")
+{
+	vpmanager.addviewport(new viewport(new DL_Model(dl_model,title)));
+}
+#endif // DL_MODEL_HPP
 
 #ifdef SD_MODEL_HPP
 void visualize(const bso::structural_design::sd_model& sd, const std::string& type ="component",

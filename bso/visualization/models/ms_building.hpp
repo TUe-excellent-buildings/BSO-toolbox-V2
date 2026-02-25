@@ -19,6 +19,10 @@
 #include <bso/building_physics/bp_model.hpp>
 #endif // BP_MODEL_HPP
 
+#ifdef DL_MODEL_HPP
+#include <bso/daylight/dl_model.hpp>
+#endif // DL_MODEL_HPP
+
 #include <bitset>
 
 namespace bso { namespace visualization
