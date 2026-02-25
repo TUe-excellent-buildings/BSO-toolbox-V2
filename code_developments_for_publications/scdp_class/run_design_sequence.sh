@@ -1,10 +1,10 @@
 #!/bin/bash
 
-echo "Running bash scribt" 
-echo "for ./scdp_plane_adjustments with the following input arguments:"
+echo "Running bash script" 
+echo "for ./main with the following input arguments:"
 
 # Define the executable
-EXECUTABLE="./scdp_plane_adjustments"
+EXECUTABLE="./main"
 
 # Define the input arguments file
 INPUT_FILE="input_args.txt"

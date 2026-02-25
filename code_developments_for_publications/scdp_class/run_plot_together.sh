@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Running bash script" 
-echo "for ./scdp_plane_adjustments plot together the sd, bp ,sdbp, and bpsd runs:"
+echo "for ./main plot together the sd, bp ,sdbp, and bpsd runs:"
 
 # Define the input arguments file
 INPUT_FILE="input_args.txt"
@@ -27,7 +27,7 @@ RESULTS_DIR="./results"
 mkdir -p $RESULTS_DIR
 
 # Define the executable
-EXECUTABLE="./scdp_plane_adjustments"
+EXECUTABLE="./main"
 
 echo "Start executing"
 # Read input arguments from the file
@@ -50,7 +50,7 @@ while IFS= read -r ARG || [ -n "$ARG" ]; do
     # Extract the design_* section from ARG
     DESIGN=$(echo $ARG | grep -oP '(?<=-i )design_[^ ]+')
 
-    # Every four runs (i.e. sd, bp, weighted, sdbp, and bpsd done per design), generate the plot:
+    # Every x runs (i.e. sd, bp, weighted, sdbp, and bpsd done per design), generate the plot:
     if (( count % 3 == 0 )); then
         echo "Generating plot after $count runs"
         

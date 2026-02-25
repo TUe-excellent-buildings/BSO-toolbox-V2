@@ -1,7 +1,7 @@
--i design_301 -m sd 		-ad shiftfill -n 4 -d worst -r 0 -o verbose plot ms_files result_line all combine_data 6
--i design_301 -m bp 		-ad shiftfill -n 4 -d worst -r 0 -o verbose plot ms_files result_line all combine_data 6
--i design_301 -m weighted 	-ad shiftfill -n 6 -d worst -r 0 -o verbose plot ms_files result_line all combine_data 6
--i design_302 -m sd 		-ad shiftfill -n 4 -d worst -r 0 -o verbose plot ms_files result_line all combine_data 6
--i design_302 -m bp 		-ad shiftfill -n 4 -d worst -r 0 -o verbose plot ms_files result_line all combine_data 6
--i design_302 -m weighted 	-ad shiftfill -n 6 -d worst -r 0 -o verbose plot ms_files result_line all combine_data 6
--i design_303 -m sd 		-ad shiftfill -n 4 -d worst -r 0 -o verbose plot ms_files result_line all combine_data 6
+-i design_301 -m sd 		-n 4 -d worst -r 0.2 -o verbose plot ms_files result_line all combine_data 6
+-i design_301 -m bp 		-n 4 -d worst -r 0.2 -o verbose plot ms_files result_line all combine_data 6
+-i design_301 -m weighted 	-n 6 -d worst -r 0.2 -o verbose plot ms_files result_line all combine_data 6
+-i design_302 -m sd 		-n 4 -d worst -r 0.2 -o verbose plot ms_files result_line all combine_data 6
+-i design_302 -m bp 		-n 4 -d worst -r 0.2 -o verbose plot ms_files result_line all combine_data 6
+-i design_302 -m weighted 	-n 6 -d worst -r 0.2 -o verbose plot ms_files result_line all combine_data 6
+-i design_303 -m sd 		-n 4 -d worst -r 0.2 -o verbose plot ms_files result_line all combine_data 6
