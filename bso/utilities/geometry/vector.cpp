@@ -1,6 +1,10 @@
 #ifndef VECTOR_CPP
 #define VECTOR_CPP
 
+#ifndef M_PI
+#define M_PI 3.141592653589793238463
+#endif // M_PI
+
 #include <cmath>
 #include <sstream>
 #include <stdexcept>
@@ -22,22 +26,6 @@ namespace bso { namespace utilities { namespace geometry {
 	{	// checks if the vector is parallel to rhs
 		if (this->isZero(tol) || rhs.isZero(tol)) return false;
 		return (this->normalized().cross(rhs.normalized())).isZero(tol);
-	
-		// New check method below, however, needs to be tested more before implementation so currently commented out:
-		// This new method should take the tolerance into account better, especially for small vectors.
-		// However, for now, it was noted that during the scdp optimization, 
-		// this new method made the generation of geometry fail more frequently,
-		// which is why it is currently commented out.
-
-		// vector crossProd = this->cross(rhs);
-		// double crossNorm = crossProd.norm();
-		
-		// // Calculate distance from tip of this to the line of rhs through origin
-		// double dist1 = crossNorm / rhs.norm();
-		// // Calculate distance from tip of rhs to the line of this through origin  
-		// double dist2 = crossNorm / this->norm();
-
-		// return (dist1 <= tol && dist2 <= tol);
 	} // isParallel()
 	
 	bool vector::isCodirectional(const vector& rhs, const double& tol /*= 1e-3*/) const
