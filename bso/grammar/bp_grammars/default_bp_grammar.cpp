@@ -232,6 +232,11 @@ bso::building_physics::bp_model grammar::bp_grammar<DEFAULT_BP_GRAMMAR>(const st
 	for (auto& i : mBPRectangleRules) delete i.second;
 	for (auto& i : mBPTriangleRules) delete i.second;
 
+	// clear the maps to prevent dangling pointers
+	mBPSpaceRules.clear();
+	mBPRectangleRules.clear();
+	mBPTriangleRules.clear();
+
 	return mBPModel;
 } // default_bp_grammar
 

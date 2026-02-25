@@ -64,7 +64,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 									 << "The minumum required amount of quadHexa is 2 and the inserted amount is: " << quadHexa.size() << "\n"
 									 << "Meaning that there are quadHexa(s) missing. \n"
 									 << "The inserted quadHexa consist of the following: " << std::endl;
-										for(const auto i: quadHexa)
+										for(const auto &i: quadHexa)
 										{
 											errorMessage << i << std::endl;
 										}
@@ -102,12 +102,12 @@ namespace bso { namespace spatial_design { namespace conformal {
 		
 		// Store all unique line entities from the to insert quadHexa for consideration of insertion into the geometry conformal model	
 		std::vector<utilities::geometry::line_segment> quadHexaLine;
-		for(const auto i: quadHexa)
+		for(const auto& i: quadHexa)
 		{
-			for(auto j: i.getLines())
+			for(const auto& j: i.getLines())
 			{								
 				bool isSameAs = false;
-				for(const auto k: quadHexaLine)
+				for(const auto& k: quadHexaLine)
 				{
 					if(k.isSameAs(j, mTol))
 					{
@@ -126,7 +126,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 			//Determine which lines are corresponding with which edges in the building conformal model
 			std::vector<utilities::geometry::line_segment*> linesOnEdge;
 			
-			for(const auto j: quadHexaLine)
+			for(const auto& j: quadHexaLine)
 			{
 				
 				if(i.isOnLine(j[0], mTol) && i.isOnLine(j[1], mTol))
@@ -180,13 +180,13 @@ namespace bso { namespace spatial_design { namespace conformal {
 			std::vector<utilities::geometry::triangle*> triOnSurface; // Empty variable for function call, none will be added since it is empty
 			std::vector<utilities::geometry::quadrilateral*> quadOnSurface;
 			
-			for(const auto j: quadHexa)
+			for(const auto& j: quadHexa)
 			{
 				for(const auto& k: j.getQuadrilateral())
 				{
 					bool allVOnSurface = true;
 				
-					for(const auto l: k)
+					for(const auto& l: k)
 					{
 						if(i->isInsideOrOn(l, mTol) == false){allVOnSurface = false;}
 					}
@@ -213,7 +213,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		//Check if the space volume is considered fully filled with the inserted quad-hexahedrons cells
 		double spaceVolume = (mCFSpaces.back())->getVolume();
 		double cellVolume = 0;
-		for(const auto i: quadHexa)
+		for(const auto& i: quadHexa)
 		{
 			cellVolume = cellVolume + i.getVolume();
 		}
@@ -226,7 +226,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 									 << "Meaning that there are cells missing. \n"
 									 << "The difference between the space volume and the sum of all the cells is: " << (spaceVolume-cellVolume) << "\n"
 									 << "the amount of triPrism in the space is: " << quadHexa.size() << " and consist of the following: " << std::endl;
-										for(const auto i: quadHexa)
+										for(const auto& i: quadHexa)
 										{
 											errorMessage << i << std::endl;
 										}
@@ -246,7 +246,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 									 << "The minumum required amount of triPrisms is 2 and the inserted amount is: " << triPrismPtr.size() << "\n"
 									 << "Meaning that there are triPrism(s) missing. \n"
 									 << "The inserted triPrism consist of the following: " << std::endl;
-										for(const auto i: triPrismPtr)
+										for(const auto& i: triPrismPtr)
 										{
 											errorMessage << i << std::endl;
 										}
@@ -275,12 +275,12 @@ namespace bso { namespace spatial_design { namespace conformal {
 		
 		// Store all unique line entities from the to insert triPrism for consideration of insertion into the geometry conformal model	
 		std::vector<utilities::geometry::line_segment> prismLine;
-		for(const auto i: triPrismPtr)
+		for(const auto& i: triPrismPtr)
 		{
-			for(auto j: i.getLines())
+			for(const auto& j: i.getLines())
 			{								
 				bool isSameAs = false;
-				for(const auto k: prismLine)
+				for(const auto& k: prismLine)
 				{
 					if(k.isSameAs(j, mTol))
 					{
@@ -308,7 +308,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 			//Determine which lines are corresponding with which edges in the building conformal model
 			std::vector<utilities::geometry::line_segment*> linesOnEdge;
 			
-			for(const auto j: prismLine)
+			for(const auto& j: prismLine)
 			{
 				
 				if(i.isOnLine(j[0], mTol) && i.isOnLine(j[1], mTol))
@@ -361,13 +361,13 @@ namespace bso { namespace spatial_design { namespace conformal {
 			std::vector<utilities::geometry::triangle*> triOnSurface;
 			std::vector<utilities::geometry::quadrilateral*> quadOnSurface;
 			
-			for(const auto j: triPrismPtr)
+			for(const auto& j: triPrismPtr)
 			{
 				for(const auto& k: j.getTriangles())
 				{
 					bool allVOnSurface = true;
 				
-					for(const auto l: k)
+					for(const auto& l: k)
 					{
 						if(i->isInsideOrOn(l, mTol) == false){allVOnSurface = false;}
 					}
@@ -381,7 +381,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 				{
 					bool allVOnSurface = true;
 				
-					for(const auto l: k)
+					for(const auto& l: k)
 					{
 						if(i->isInsideOrOn(l, mTol) == false){allVOnSurface = false;}
 					}
@@ -407,7 +407,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		//Check if the space volume is considered fully filled with the inserted triangular prism cells
 		double spaceVolume = (mCFSpaces.back())->getVolume();
 		double cellVolume = 0;
-		for(const auto i: triPrismPtr)
+		for(const auto& i: triPrismPtr)
 		{
 			cellVolume = cellVolume + i.getVolume();
 		}
@@ -421,7 +421,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 									 << "Meaning that there are cells missing. \n"
 									 << "The difference between the space volume and the sum of all the cells is: " << (spaceVolume-cellVolume) << "\n"
 									 << "the amount of triPrism in the space is: " << triPrismPtr.size() << " and consist of the following: " << std::endl;
-										for(const auto i: triPrismPtr)
+										for(const auto& i: triPrismPtr)
 										{
 											errorMessage << i << std::endl;
 										}
@@ -508,7 +508,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 			//Find the highest and lowest vertex
 			utilities::geometry::vertex lowVertex = (spacesAtLevel.back())[0];
 			utilities::geometry::vertex highVertex = (spacesAtLevel.back())[0];
-			for (const auto j: spacesAtLevel.back())
+			for (const auto& j: spacesAtLevel.back())
 			{
 				if(lowVertex.z() > j.z())
 				{//find the lowest vertex of SpaceGeomTemp_1 for the shifting of the space geometry
@@ -559,7 +559,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		for(int i=0; i<count; i++)
 		{
 			//Add all unique cornerpoints at z=0 of spaceAtGround to the delauneyPoints
-			for(const auto j: spacesAtGround[i])
+			for(const auto& j: spacesAtGround[i])
 			{
 				utilities::geometry::vertex temp = {j.x(),j.y(),0};
 
@@ -647,10 +647,10 @@ namespace bso { namespace spatial_design { namespace conformal {
 		{
 			// Find the triangles in the space
 			std::vector<utilities::geometry::triangle> triCell;
-			for(const auto j : delaunayTri)
+			for(const auto& j : delaunayTri)
 			{
 				bool allNodesInside = true;
-				for(const auto k: j)
+				for(const auto& k: j)
 				{
 					if(!spacesAtGround[i].isInsideOrOn(k, mTol))
 					{
@@ -661,7 +661,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 						//For this reason are all possible geometry checks applied.
 						
 						bool anyTrue = false;
-						for(const auto l: spacesAtGround[i].getLines())
+						for(const auto& l: spacesAtGround[i].getLines())
 						{
 							if(l.isOnLine(k, mTol))
 							{
@@ -669,7 +669,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 							}
 						}
 
-						for(const auto l : spacesAtGround[i])
+						for(const auto& l : spacesAtGround[i])
 						{
 							if(l.isSameAs(k, mTol))
 							{
@@ -696,7 +696,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 										<< "The minumum required amount of triCells are 2 and the inserted amount is: " << triCell.size() << "\n"
 										<< "Meaning that there are tricell(s) missing. \n"
 										<< "The possibly found triCell consist of the following: " << std::endl;
-											for(const auto i: triCell)
+											for(const auto& i: triCell)
 											{
 												errorMessage << i << std::endl;
 											}
@@ -718,7 +718,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 
 			// Define all six vertices of the triangular prism and store in triPrism
 			std::vector<utilities::geometry::triangular_prism> triPrism;
-			for(const auto j: triCell)
+			for(const auto& j: triCell)
 			{
 				std::vector<utilities::geometry::vertex> triPrismV;
 				triPrismV.reserve(6);
@@ -726,7 +726,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 				{
 					//Generate triangular prism
 					triPrismV.clear();
-					for(const auto k: j)
+					for(const auto& k: j)
 					{// botum row prisms
 						utilities::geometry::vertex low = {0,0, LowV[i].z()};
 						utilities::geometry::vertex high = {0,0, levelToConsider[0]};
@@ -735,7 +735,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 					}
 					triPrism.push_back(utilities::geometry::triangular_prism(triPrismV, mTol));
 					triPrismV.clear();
-					for(const auto k: j)
+					for(const auto& k: j)
 					{// top row prisms
 						utilities::geometry::vertex low = {0,0, levelToConsider[levelToConsider.size()-1]};
 						utilities::geometry::vertex high = {0,0, highV[i].z()};
@@ -745,10 +745,10 @@ namespace bso { namespace spatial_design { namespace conformal {
 					triPrism.push_back(utilities::geometry::triangular_prism(triPrismV, mTol));
 					if(levelToConsider.size()>1)
 					{
-						for(int l=0; l<(levelToConsider.size()-1); l++)
+						for(long unsigned int l=0; l<(levelToConsider.size()-1); l++)
 						{// inbetween row prisms
 							triPrismV.clear();
-							for(const auto k: j)
+							for(const auto& k: j)
 							{
 								utilities::geometry::vertex low = {0,0, levelToConsider[l]};
 								utilities::geometry::vertex high = {0,0, levelToConsider[l+1]};
@@ -761,7 +761,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 				}
 				else
 				{
-					for(const auto k: j)
+					for(const auto& k: j)
 					{
 						utilities::geometry::vertex low = {0,0, LowV[i].z()};
 						utilities::geometry::vertex high = {0,0, highV[i].z()};
@@ -782,25 +782,34 @@ namespace bso { namespace spatial_design { namespace conformal {
 	cf_building_model::cf_building_model(const cf_building_model& rhs)
 	{
 		cf_building_model* newPtr;
-		int spaceCount1 = 0;
-		int spaceCount2 = 0;
-		for (const auto& i : rhs.mMSModel) spaceCount1++;
-		for (const auto& i : rhs.mMSNModel) spaceCount2++;
-		if(spaceCount1 > 0) 
+		long unsigned int spaceCount1 = 0;
+		long unsigned int spaceCount2 = 0;
+		while(spaceCount1 < rhs.mMSModel.getSpacePtrs().size()) spaceCount1++;
+		while(spaceCount2 < rhs.mMSNModel.getSpacePtrs().size()) spaceCount2++;
+		if(spaceCount1 > 0 && spaceCount2 == 0) 
 		{
 			if(rhs.quadHexaInput.size() == 0) newPtr = new cf_building_model(rhs.mMSModel, rhs.mTol);
 			else newPtr =new cf_building_model(rhs.mMSModel, rhs.quadHexaInput, rhs.mTol);
 		}
-		if(spaceCount2 > 0) 
+		else if(spaceCount2 > 0 && spaceCount1 == 0) 
 		{
 			if(rhs.triPrismInput.size() == 0) newPtr = new cf_building_model(rhs.mMSNModel, rhs.mTol);
 			else newPtr = new cf_building_model(rhs.mMSNModel, rhs.triPrismInput, rhs.mTol);
+		}
+		else
+		{
+			std::stringstream errorMessage;
+			errorMessage << "The copy constructor of the cf_building_model class is not able to copy the cf_building_model. \n"
+									<< "Since there no spaces stored in the msModel or msNModel stored within the considered cf_building model. \n"
+									<< "Or in both msModel and msNModel where spaces found. \n"
+									<< "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
 		}
 		*this = *newPtr;
 	} // copy ctor()
 
 	cf_building_model::cf_building_model(const ms_building& msModel, const double& tol /*= 1e-3*/)
-	:	cf_geometry_model(tol), mMSModel(msModel), mTol(tol)
+	:	cf_geometry_model(tol), mTol(tol), mMSModel(msModel)
 	{ // 
 		for (const auto& i : mMSModel)
 		{
@@ -810,14 +819,14 @@ namespace bso { namespace spatial_design { namespace conformal {
 	} // 
 
 	cf_building_model::cf_building_model(const ms_building& msModel, const std::vector<utilities::geometry::quad_hexahedron>& quadHexa, const double& tol /*= 1e-3*/)
-	:	cf_geometry_model(tol), mMSModel(msModel), mTol(tol), quadHexaInput(quadHexa)
+	:	cf_geometry_model(tol), mMSModel(msModel), quadHexaInput(quadHexa), mTol(tol)
 	{ // 
-		int count = 0;
+		long unsigned int count = 0;
 		for (const auto& i : mMSModel)
 		{
 			std::vector<utilities::geometry::quad_hexahedron> quadHexaInside;
 			bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
-			for(const auto j: quadHexa)
+			for(const auto& j: quadHexa)
 			{
 				if(spaceGeom.isInside((j.getCenter()),mTol))
 				{
@@ -843,14 +852,14 @@ namespace bso { namespace spatial_design { namespace conformal {
 	} // 
 
 	cf_building_model::cf_building_model(const ms_N_building& msNModel, const std::vector<utilities::geometry::triangular_prism>& triPrism, const double& tol /*= 1e-3*/)
-	:	cf_geometry_model(tol), mMSNModel(msNModel), mTol(tol), triPrismInput(triPrism)
+	:	cf_geometry_model(tol), mMSNModel(msNModel), triPrismInput(triPrism), mTol(tol)
 	{ // 
 		int count = 0;
 		for (const auto& i : msNModel)
 		{
 			std::vector<utilities::geometry::triangular_prism> triPrismInside;
 			bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
-			for(const auto j: triPrism)
+			for(const auto& j: triPrism)
 			{
 				if(spaceGeom.isInside((j.getCenter()),mTol))
 				{

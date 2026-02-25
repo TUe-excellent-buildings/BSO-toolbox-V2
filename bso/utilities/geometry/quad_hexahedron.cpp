@@ -10,7 +10,7 @@ namespace bso { namespace utilities { namespace geometry {
 			std::stringstream errorMessage;
 			errorMessage << "Cannot sort quadrilaterl faced hexahedron:\n"
 										<< "received " << mSize << "vertices, expected 8.\n";
-										for(const auto i: mVertices){errorMessage << i;}				  
+										for(const auto& i: mVertices){errorMessage << i;}				  
 									 errorMessage << "(bso/utilities/geoemtry/quad_hexahedron.cpp)" << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 		}
@@ -337,6 +337,12 @@ namespace bso { namespace utilities { namespace geometry {
 	{ // 
 		// check if it is inside a tetrahedron
 		for (const auto& i : mTetrahedrons) if (i.isInsideOrOn(p1, tol)) return true;
+		return false;
+	} //
+
+	bool quad_hexahedron::hexahedraOverlapStrict(const quad_hexahedron& other, const double& tol /*= 1e-3*/) const
+	{ // Check if two hexahedra have strict interior overlap (not just boundary touching)	
+		if (this->testIntersection(other, tol)) return true;
 		return false;
 	} //
 

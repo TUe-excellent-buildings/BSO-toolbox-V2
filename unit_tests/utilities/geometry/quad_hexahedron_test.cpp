@@ -147,6 +147,104 @@ BOOST_AUTO_TEST_SUITE( quad_hexahedron_tests )
 		BOOST_REQUIRE((pCenter-pCheck).isZero(1e-9));
 		BOOST_REQUIRE((qhex1.center()-pCheck).isZero(1e-9));
 	}
+
+	BOOST_AUTO_TEST_CASE( hexahedra_overlap_strict_one_vertex_inside )
+	{
+		// Two hexahedra with partial overlap with one corner vertex inside the other.
+		quad_hexahedron hex1 = {{0,0,0},{0,0, 2000},{0, 2000,0},{0, 2000, 2000},
+																	{ 2000, 2000, 2000},{ 2000, 2000,0},{ 2000,0, 2000},{ 2000,0,0}};
+		
+		quad_hexahedron hex2 = {{500,0,0},{500,0, 1000},{500, 1000,0},{500, 1000, 1000},
+																	{ 3500, 1000, 1000},{ 3500, 1000,0},{ 3500,0, 1000},{ 3500,0,0}};
+		
+		BOOST_REQUIRE(hex1.hexahedraOverlapStrict(hex2));
+		BOOST_REQUIRE(hex2.hexahedraOverlapStrict(hex1));
+	}
+
+	BOOST_AUTO_TEST_CASE( hexahedra_overlap_partial_overlap_vertex_on_face )
+	{
+		// Two hexahedra with partial overlap with one corner vertex on face.
+		quad_hexahedron hex1 = {{0,0,0},{0,0, 2000},{0, 2000,0},{0, 2000, 2000},
+																	{ 2000, 2000, 2000},{ 2000, 2000,0},{ 2000,0, 2000},{ 2000,0,0}};
+		
+		quad_hexahedron hex2 = {{500,0,0},{500,0, 2000},{500, 1000,0},{500, 1000, 2000},
+																	{ 3500, 1000, 2000},{ 3500, 1000,0},{ 3500,0, 2000},{ 3500,0,0}};
+		
+		BOOST_REQUIRE(hex1.hexahedraOverlapStrict(hex2, 1e-3));
+		BOOST_REQUIRE(hex2.hexahedraOverlapStrict(hex1, 1e-3));
+	}
+	
+	BOOST_AUTO_TEST_CASE( hexahedra_overlap_strict_face_penetration_vertex_inside )
+	{
+		// smaller box penetrating through one face of bigger box, with vertices inside the other bigger box.
+		quad_hexahedron hex1 = {{0,0,0},{0,0, 4000},{0, 4000,0},{0, 4000, 4000},
+																	{ 4000, 4000, 4000},{ 4000, 4000,0},{ 4000,0, 4000},{ 4000,0,0}};
+		
+		quad_hexahedron hex2 = {{2000,-3000,-3000},{2000,-3000, 7000},{2000, 7000,-3000},{2000, 7000, 7000},
+																	{ 6000, 7000, 7000},{ 6000, 7000,-3000},{ 6000,-3000, 7000},{ 6000,-3000,-3000}};
+		BOOST_REQUIRE(hex1.hexahedraOverlapStrict(hex2));
+		BOOST_REQUIRE(hex2.hexahedraOverlapStrict(hex1));
+	}
+
+	BOOST_AUTO_TEST_CASE( hexahedra_overlap_strict_face_penetration_no_vertex_inside )
+	{
+		// smaller box penetrating through one face of bigger box, but no vertices inside the other box
+		quad_hexahedron hex1 = {{0,0,0},{0,0, 4000},{0, 4000,0},{0, 4000, 4000},
+																	{ 4000, 4000, 4000},{ 4000, 4000,0},{ 4000,0, 4000},{ 4000,0,0}};
+		
+		quad_hexahedron hex2 = {{2000,-3000,-3000},{2000,-3000, 7000},{2000, 7000,-3000},{2000, 7000, 7000},
+																	{ 3000, 7000, 7000},{ 3000, 7000,-3000},{ 3000,-3000, 7000},{ 3000,-3000,-3000}};
+		BOOST_REQUIRE(hex1.hexahedraOverlapStrict(hex2));
+		BOOST_REQUIRE(hex2.hexahedraOverlapStrict(hex1));
+	}
+	
+	BOOST_AUTO_TEST_CASE( hexahedra_overlap_strict_no_overlap )
+	{
+		// Two completely separate hexahedra
+		quad_hexahedron hex1 = {{0,0,0},{0,0, 2000},{0, 2000,0},{0, 2000, 2000},
+																	{ 2000, 2000, 2000},{ 2000, 2000,0},{ 2000,0, 2000},{ 2000,0,0}};
+		
+		quad_hexahedron hex2 = {{3000,0,0},{3000,0, 2000},{3000, 2000,0},{3000, 2000, 2000},
+																	{ 6000, 2000, 2000},{ 6000, 2000,0},{ 6000,0, 2000},{ 6000,0,0}};
+		BOOST_REQUIRE(!hex1.hexahedraOverlapStrict(hex2));
+		BOOST_REQUIRE(!hex2.hexahedraOverlapStrict(hex1));
+	}
+	
+	BOOST_AUTO_TEST_CASE( hexahedra_overlap_strict_boundary_touching )
+	{
+		// Two hexahedra touching at boundary (face-to-face)
+		quad_hexahedron hex1 = {{0,0,0},{0,0, 2000},{0, 2000,0},{0, 2000, 2000},
+																	{ 2000, 2000, 2000},{ 2000, 2000,0},{ 2000,0, 2000},{ 2000,0,0}};
+		
+		quad_hexahedron hex2 = {{2000,0,0},{2000,0, 2000},{2000, 2000,0},{2000, 2000, 2000},
+																	{ 4000, 2000, 2000},{ 4000, 2000,0},{ 4000,0, 2000},{ 4000,0,0}};
+		BOOST_REQUIRE(!hex1.hexahedraOverlapStrict(hex2));
+		BOOST_REQUIRE(!hex2.hexahedraOverlapStrict(hex1));
+	}
+
+		BOOST_AUTO_TEST_CASE( hexahedra_overlap_strict_half_face_boundary_touching )
+	{
+		// Two hexahedra touching at boundary (face-to-face)
+		quad_hexahedron hex1 = {{0,0,0},{0,0, 2000},{0, 2000,0},{0, 2000, 2000},
+																	{ 2000, 2000, 2000},{ 2000, 2000,0},{ 2000,0, 2000},{ 2000,0,0}};
+		
+		quad_hexahedron hex2 = {{2000,0,0},{2000,0, 2000},{2000, 1000,0},{2000, 1000, 2000},
+																	{ 4000, 1000, 2000},{ 4000, 1000,0},{ 4000,0, 2000},{ 4000,0,0}};
+		BOOST_REQUIRE(!hex1.hexahedraOverlapStrict(hex2));
+		BOOST_REQUIRE(!hex2.hexahedraOverlapStrict(hex1));
+	}
+	
+	BOOST_AUTO_TEST_CASE( hexahedra_overlap_strict_concentric )
+	{
+		// Two concentric cubes
+		quad_hexahedron outer = {{0,0,0},{0,0, 4000},{0, 4000,0},{0, 4000, 4000},
+																	{ 4000, 4000, 4000},{ 4000, 4000,0},{ 4000,0, 4000},{ 4000,0,0}};
+		
+		quad_hexahedron inner = {{1000,1000,1000},{1000,1000, 3000},{1000, 3000,1000},{1000, 3000, 3000},
+																	{ 3000, 3000, 3000},{ 3000, 3000,1000},{ 3000,1000, 3000},{ 3000,1000,1000}};
+		BOOST_REQUIRE(outer.hexahedraOverlapStrict(inner));
+		BOOST_REQUIRE(inner.hexahedraOverlapStrict(outer));
+	}
 	
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace geometry_test

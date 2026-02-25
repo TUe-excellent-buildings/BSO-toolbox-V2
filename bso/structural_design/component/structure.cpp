@@ -159,12 +159,12 @@ namespace bso { namespace structural_design { namespace component {
 	bool structure::checkBadRequest(std::string variable) const
 	{
 		bool badRequest = false;
-		if (variable == "E" 				&& !mEAssigned 			 ||
-				variable == "poisson" 	&& !mPoissonAssigned ||
-				variable == "A" 				&& !mAAssigned			 ||
-				variable == "width" 		&& !mWidthAssigned	 ||
-				variable == "height" 		&& !mHeightAssigned	 ||
-				variable == "thickness" && !mThicknessAssigned)
+		if ((variable == "E" 				&& !mEAssigned) 		||
+				(variable == "poisson" 	&& !mPoissonAssigned) 		||
+				(variable == "A" 				&& !mAAssigned)		||
+				(variable == "width" 		&& !mWidthAssigned)	 	||
+				(variable == "height" 		&& !mHeightAssigned)	||
+				(variable == "thickness" && !mThicknessAssigned))
 		{
 			badRequest = true;
 			std::stringstream errorMessage;

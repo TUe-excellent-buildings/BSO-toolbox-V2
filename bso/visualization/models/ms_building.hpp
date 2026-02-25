@@ -32,6 +32,11 @@ private:
 	std::list<label*>   labels;
 
 	polygon_props  pprops;
+	polygon_props  ppropsHighlight;
+	polygon_props  ppropsHighlight1;
+	polygon_props  ppropsHighlight2;
+	polygon_props  ppropsHighlight3;
+	polygon_props  ppropsHighlight4;
 	polygon_props  ppropsSurfaceType; 
 	polygon_props  ppropsDefault; 
 	std::vector<polygon_props> performanceProps;
@@ -87,6 +92,52 @@ MS_Model::MS_Model(const spatial_design::ms_building& ms,
 	pprops.translucent = true;
 	pprops.twosided = true;
 
+	// orange/gold highlight with transparency, spaces with marker "highlightInVisualization" will be visualized with this color
+	ppropsHighlight.ambient = rgba(1.0f, 0.65f, 0.2f, 0.3f);
+	ppropsHighlight.diffuse = rgba(1.0f, 0.65f, 0.2f, 0.3f);
+	ppropsHighlight.specular = rgba(1.0f, 0.65f, 0.2f, 0.3f);
+	ppropsHighlight.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	ppropsHighlight.shininess = 60.0f;
+	ppropsHighlight.translucent = true;
+	ppropsHighlight.twosided = true;
+
+	// Clear blue highlight with transparency, spaces with marker "highlightInVisualization1" will be visualized with this color
+	ppropsHighlight1.ambient = rgba(0.2f, 0.2f, 1.0f, 0.3f);
+	ppropsHighlight1.diffuse = rgba(0.2f, 0.2f, 1.0f, 0.3f);
+	ppropsHighlight1.specular = rgba(0.2f, 0.2f, 1.0f, 0.3f);
+	ppropsHighlight1.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	ppropsHighlight1.shininess = 60.0f;
+	ppropsHighlight1.translucent = true;
+	ppropsHighlight1.twosided = true;
+
+	// Magenta highlight with transparency, spaces with marker "highlightInVisualization2" will be visualized with this color
+	ppropsHighlight2.ambient = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.diffuse = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.specular = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.emission = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.shininess = 60.0f;
+	ppropsHighlight2.translucent = true;
+	ppropsHighlight2.twosided = true;
+
+	// yellow highlight with transparency, spaces with marker "highlightInVisualization3" will be visualized with this color
+	ppropsHighlight3.ambient = rgba(1.0f, 1.0f, 0.2f, 0.3f);
+	ppropsHighlight3.diffuse = rgba(1.0f, 1.0f, 0.2f, 0.3f);
+	ppropsHighlight3.specular = rgba(1.0f, 1.0f, 0.2f, 0.3f);
+	ppropsHighlight3.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	ppropsHighlight3.shininess = 60.0f;
+	ppropsHighlight3.translucent = true;
+	ppropsHighlight3.twosided = true;
+
+	// bright red highlight with transparency, spaces with marker "highlightInVisualization4" will be visualized with this color
+	ppropsHighlight4.ambient = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	ppropsHighlight4.diffuse = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	ppropsHighlight4.specular = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	ppropsHighlight4.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	ppropsHighlight4.shininess = 60.0f;
+	ppropsHighlight4.translucent = true;
+	ppropsHighlight4.twosided = true;
+
+	// standard color for surface types, bright yellow with transparency
 	ppropsSurfaceType.ambient = rgba(1.0f, 1.0f, 0.04f, 0.4f);
 	ppropsSurfaceType.diffuse = rgba(1.0f, 1.0f, 0.04f, 0.4f);
 	ppropsSurfaceType.specular = rgba(0.04f, 0.04f, 0.04f, 1.0f);
@@ -105,8 +156,37 @@ MS_Model::MS_Model(const spatial_design::ms_building& ms,
 		
 		if (type == "spaces" || type == "" )
 		{
-			this->addPolyhedron(polygons, &spaceGeometry, &pprops, &lprops);
-			if (type == "") centerLabel.str(std::string());
+			if(i->highlightInVisualization)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight, &lprops);
+				if (type == "") centerLabel.str(std::string());
+				
+			}
+			else if(i->highlightInVisualization1)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight1, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
+			else if(i->highlightInVisualization2)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight2, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
+			else if(i->highlightInVisualization3)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight3, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
+			else if(i->highlightInVisualization4)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight4, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
+			else
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &pprops, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
 		}
 		else if (type == "surface_type")
 		{
@@ -162,7 +242,7 @@ MS_Model::MS_Model(const spatial_design::ms_building& ms,
 			throw std::runtime_error(errorMessage.str());
 		}
 		
-		//Add the space indixes to the visualization models
+		//Add the space indexes to the visualization models
 		this->addLabel(labels,&lbprops,centerLabel.str(),spaceGeometry.getCenter());
 	}
 
@@ -175,6 +255,8 @@ MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 {
 	lprops.width = linewidth;
 	mTitle = title;
+
+	// Clear green highlight with transparency, default color of spaces
 	pprops.ambient = rgba(0.1f, 0.5f, 0.1f, 0.3f);
 	pprops.diffuse = rgba(0.2f, 1.0f, 0.2f, 0.3f);
 	pprops.specular = rgba(0.2f, 1.0f, 0.2f, 0.3f);
@@ -183,6 +265,52 @@ MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 	pprops.translucent = true;
 	pprops.twosided = true;
 
+	// orange/gold highlight with transparency, spaces with marker "highlightInVisualization" will be visualized with this color
+	ppropsHighlight.ambient = rgba(1.0f, 0.65f, 0.2f, 0.3f);
+	ppropsHighlight.diffuse = rgba(1.0f, 0.65f, 0.2f, 0.3f);
+	ppropsHighlight.specular = rgba(1.0f, 0.65f, 0.2f, 0.3f);
+	ppropsHighlight.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	ppropsHighlight.shininess = 60.0f;
+	ppropsHighlight.translucent = true;
+	ppropsHighlight.twosided = true;
+
+	// Clear blue highlight with transparency, spaces with marker "highlightInVisualization1" will be visualized with this color
+	ppropsHighlight1.ambient = rgba(0.2f, 0.2f, 1.0f, 0.3f);
+	ppropsHighlight1.diffuse = rgba(0.2f, 0.2f, 1.0f, 0.3f);
+	ppropsHighlight1.specular = rgba(0.2f, 0.2f, 1.0f, 0.3f);
+	ppropsHighlight1.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	ppropsHighlight1.shininess = 60.0f;
+	ppropsHighlight1.translucent = true;
+	ppropsHighlight1.twosided = true;
+
+	// Magenta highlight with transparency, spaces with marker "highlightInVisualization2" will be visualized with this color
+	ppropsHighlight2.ambient = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.diffuse = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.specular = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.emission = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.shininess = 60.0f;
+	ppropsHighlight2.translucent = true;
+	ppropsHighlight2.twosided = true;
+
+	// yellow highlight with transparency, spaces with marker "highlightInVisualization3" will be visualized with this color
+	ppropsHighlight3.ambient = rgba(1.0f, 1.0f, 0.2f, 0.3f);
+	ppropsHighlight3.diffuse = rgba(1.0f, 1.0f, 0.2f, 0.3f);
+	ppropsHighlight3.specular = rgba(1.0f, 1.0f, 0.2f, 0.3f);
+	ppropsHighlight3.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	ppropsHighlight3.shininess = 60.0f;
+	ppropsHighlight3.translucent = true;
+	ppropsHighlight3.twosided = true;
+
+	// bright red highlight with transparency, spaces with marker "highlightInVisualization4" will be visualized with this color
+	ppropsHighlight4.ambient = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	ppropsHighlight4.diffuse = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	ppropsHighlight4.specular = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	ppropsHighlight4.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	ppropsHighlight4.shininess = 60.0f;
+	ppropsHighlight4.translucent = true;
+	ppropsHighlight4.twosided = true;
+
+	// standard color for surface types, bright yellow with transparency
 	ppropsSurfaceType.ambient = rgba(1.0f, 1.0f, 0.04f, 0.4f);
 	ppropsSurfaceType.diffuse = rgba(1.0f, 1.0f, 0.04f, 0.4f);
 	ppropsSurfaceType.specular = rgba(0.04f, 0.04f, 0.04f, 1.0f);
@@ -200,8 +328,36 @@ MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 		
 		if (type == "spaces" || type == "" )
 		{
-			this->addPolyhedron(polygons, &spaceGeometry, &pprops, &lprops);
-			if (type == "") centerLabel.str(std::string());
+			if(i->highlightInVisualization4) // red-color first so it overrides the other highlights when multiple highlights are true for one space.
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight4, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
+			else if(i->highlightInVisualization)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
+			else if(i->highlightInVisualization1)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight1, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
+			else if(i->highlightInVisualization2)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight2, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
+			else if(i->highlightInVisualization3)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsHighlight3, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
+			else
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &pprops, &lprops);
+				if (type == "") centerLabel.str(std::string());
+			}
 		}
 		else if (type == "surface_type")
 		{
@@ -258,196 +414,6 @@ MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 		}
 		
 		//Add the space indixes to the visualization models
-		this->addLabel(labels,&lbprops,centerLabel.str(),spaceGeometry.getCenter());
-	}
-
-	pbsp = new random_bsp(polygons);
-} //
-
-MS_Model::MS_Model(const std::string& fileName, const spatial_design::ms_N_building& msN, 
-						const std::string& type /*= "spaces"*/, const std::string& title /*= "ms_building"*/,
-						const double& linewidth /*= 1.0*/)
-{
-	std::ifstream input;
-	if (!fileName.empty()) input.open(fileName.c_str());
-	
-	if (fileName.empty() || !input.is_open())
-	{
-		std::stringstream errorMessage;
-		errorMessage << "Could not initialize a visualization of MS_N building spatial design with the following colour input file:" << std::endl
-								 << ((fileName.empty())? "no input file given" : fileName) << std::endl
-								 << "(bso/visualization/ms_building.hpp). " << std::endl;
-		throw std::invalid_argument(errorMessage.str());
-	}
-	
-	std::string line;
-
-	while (!input.eof()) // Parse the input file line by line
-	{
-		getline(input,line); // get next line from the file
-		try
-		{
-			boost::algorithm::trim(line); // remove white space from start and end of line (to see if it is an empty line, removes any incidental white space)
-			if (line == "") //skip empty lines (tokenizer does not like it)
-			{
-				continue; // continue to next line
-			}
-			else if(line.substr(0,1) == "#")
-			{
-				continue;
-			}
-			else
-			{
-				boost::char_separator<char> sep(","); // defines what separates tokens in a string
-				typedef boost::tokenizer< boost::char_separator<char> > t_tokenizer; // settings for the boost::tokenizer
-				t_tokenizer tokens(line, sep); // this is where the tokenized line will be stored
-				t_tokenizer::iterator token = tokens.begin(); // set iterator to first token
-				int number_of_tokens = std::distance( tokens.begin(), tokens.end()); // count the number of tokens int the line
-
-				try
-				{
-					int ID = utilities::trim_and_cast_int(*(token));
-					polygon_props temp;
-
-					if(number_of_tokens != 20)
-					{
-						std::stringstream errorMessage;
-						errorMessage << std::endl
-												<< "An invalid amount of input argument was encountered when trying to read the visualization settings" << std::endl
-												<< "When trying to parse the following input line: " << std::endl
-												<< line << std::endl
-												<< "The number_of_tokens are: " << number_of_tokens << std::endl
-												<< "(bso/visualizations/ms_building.hpp)" << std::endl;
-						throw std::invalid_argument(errorMessage.str());
-					}
-				
-					float f1, f2, f3, f4;
-
-					f1 = utilities::trim_and_cast_float(*(++token));
-					f2 = utilities::trim_and_cast_float(*(++token));
-					f3 = utilities::trim_and_cast_float(*(++token));
-					f4 = utilities::trim_and_cast_float(*(++token));
-					temp.ambient = rgba(f1, f2, f3, f4);
-				
-					f1 = utilities::trim_and_cast_float(*(++token));
-					f2 = utilities::trim_and_cast_float(*(++token));
-					f3 = utilities::trim_and_cast_float(*(++token));
-					f4 = utilities::trim_and_cast_float(*(++token));
-					temp.diffuse = rgba(f1, f2, f3, f4);							
-				
-					f1 = utilities::trim_and_cast_float(*(++token));
-					f2 = utilities::trim_and_cast_float(*(++token));
-					f3 = utilities::trim_and_cast_float(*(++token));
-					f4 = utilities::trim_and_cast_float(*(++token));
-					temp.specular = rgba(f1, f2, f3, f4);							
-				
-					f1 = utilities::trim_and_cast_float(*(++token));
-					f2 = utilities::trim_and_cast_float(*(++token));
-					f3 = utilities::trim_and_cast_float(*(++token));
-					f4 = utilities::trim_and_cast_float(*(++token));
-					temp.emission = rgba(f1, f2, f3, f4);							
-				
-					temp.shininess = utilities::trim_and_cast_float(*(++token));
-				
-					temp.translucent = utilities::trim_and_cast_bool(*(++token));
-				
-					temp.twosided = utilities::trim_and_cast_bool(*(++token));
-
-					// Add new to spaceIDProps
-					std::pair<int, polygon_props> pairTemp (ID, temp);
-					spaceIDProps.push_back(pairTemp);
-				}
-				catch (std::exception& e)
-				{
-					std::stringstream errorMessage;
-					errorMessage << std::endl
-											<< "Could not parse the following line to initialize an ms_space:" << std::endl
-											<< line << std::endl
-											<< "(bso/spatial_design/ms_space.cpp). Got the following error:" << std::endl
-											<< e.what() << std::endl;
-					throw std::invalid_argument(errorMessage.str());
-				}
-			}
-		}
-		catch(std::exception& e)
-		{
-			std::stringstream errorMessage;
-			errorMessage << "Encountered an error while parsing the following line of a visualization ms_N_building input file:" << std::endl
-									 << line << std::endl
-									 << "(bso/visualization/ms_building.hpp). Got the following error: " << std::endl
-									 << e.what() << std::endl;
-			throw std::invalid_argument(errorMessage.str());
-		}
-	}
-	
-	
-	lprops.width = linewidth;
-	mTitle = title;
-	pprops.ambient = rgba(0.1f, 0.5f, 0.1f, 0.3f);
-	pprops.diffuse = rgba(0.2f, 1.0f, 0.2f, 0.3f);
-	pprops.specular = rgba(0.2f, 1.0f, 0.2f, 0.3f);
-	pprops.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
-	pprops.shininess = 60.0f;
-	pprops.translucent = true;
-	pprops.twosided = true;
-
-	for (const auto& i : msN)
-	{
-		namespace geom = bso::utilities::geometry;
-		geom::quad_hexahedron spaceGeometry = i->getGeometry();
-		std::stringstream centerLabel;
-
-		// define default:
-		bool defaultDefined = false;
-		for(const auto i: spaceIDProps)
-		{
-			if(i.first == 0)
-			{
-				ppropsDefault = i.second;
-				defaultDefined = true;
-				break;
-			}
-		}
-		
-		if (type == "spaces" || type == "" )
-		{
-			int spaceID = i->getID();
-			bool found = false;
-			int index = 0;
-			while(index < spaceIDProps.size())
-			{
-				if(spaceIDProps[index].first == spaceID)
-				{
-					found = true;
-					break;
-				}
-				index++;
-			}
-			if(found)
-			{
-				this->addPolyhedron(polygons, &spaceGeometry, &(spaceIDProps[index].second), &lprops);
-			}
-			else if(defaultDefined)
-			{
-				this->addPolyhedron(polygons, &spaceGeometry, &ppropsDefault, &lprops);
-			}
-			else
-			{
-				this->addPolyhedron(polygons, &spaceGeometry, &pprops, &lprops);
-			}
-			if (type == "") centerLabel.str(std::string());
-		}
-		else
-		{
-			std::stringstream errorMessage;
-			errorMessage << "\nError in visualizing ms_N_buildings.\n"
-									 << "Did not recognize type of visualization: " << type << "\n"
-									 << "Options are: spaces\n" 
-									 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
-			throw std::runtime_error(errorMessage.str());
-		}
-		
-		//Add the space indexes to the visualization models
 		this->addLabel(labels,&lbprops,centerLabel.str(),spaceGeometry.getCenter());
 	}
 
@@ -653,6 +619,196 @@ MS_Model::MS_Model(const std::vector<utilities::data_point>& spaceData, const st
 		std::stringstream centerLabel;
 		centerLabel << (spaceData[i]).getMSpacePtrs().back()->getID();
 		this->addPolyhedron(polygons, &spaceGeometry, &(performanceProps[i]), &lprops);
+	}
+
+	pbsp = new random_bsp(polygons);
+} //
+
+MS_Model::MS_Model(const std::string& fileName, const spatial_design::ms_N_building& msN, 
+						const std::string& type /*= "spaces"*/, const std::string& title /*= "ms_building"*/,
+						const double& linewidth /*= 1.0*/)
+{
+	std::ifstream input;
+	if (!fileName.empty()) input.open(fileName.c_str());
+	
+	if (fileName.empty() || !input.is_open())
+	{
+		std::stringstream errorMessage;
+		errorMessage << "Could not initialize a visualization of MS_N building spatial design with the following colour input file:" << std::endl
+								 << ((fileName.empty())? "no input file given" : fileName) << std::endl
+								 << "(bso/visualization/ms_building.hpp). " << std::endl;
+		throw std::invalid_argument(errorMessage.str());
+	}
+	
+	std::string line;
+
+	while (!input.eof()) // Parse the input file line by line
+	{
+		getline(input,line); // get next line from the file
+		try
+		{
+			boost::algorithm::trim(line); // remove white space from start and end of line (to see if it is an empty line, removes any incidental white space)
+			if (line == "") //skip empty lines (tokenizer does not like it)
+			{
+				continue; // continue to next line
+			}
+			else if(line.substr(0,1) == "#")
+			{
+				continue;
+			}
+			else
+			{
+				boost::char_separator<char> sep(","); // defines what separates tokens in a string
+				typedef boost::tokenizer< boost::char_separator<char> > t_tokenizer; // settings for the boost::tokenizer
+				t_tokenizer tokens(line, sep); // this is where the tokenized line will be stored
+				t_tokenizer::iterator token = tokens.begin(); // set iterator to first token
+				int number_of_tokens = std::distance( tokens.begin(), tokens.end()); // count the number of tokens int the line
+
+				try
+				{
+					int ID = utilities::trim_and_cast_int(*(token));
+					polygon_props temp;
+
+					if(number_of_tokens != 20)
+					{
+						std::stringstream errorMessage;
+						errorMessage << std::endl
+												<< "An invalid amount of input argument was encountered when trying to read the visualization settings" << std::endl
+												<< "When trying to parse the following input line: " << std::endl
+												<< line << std::endl
+												<< "The number_of_tokens are: " << number_of_tokens << std::endl
+												<< "(bso/visualizations/ms_building.hpp)" << std::endl;
+						throw std::invalid_argument(errorMessage.str());
+					}
+				
+					float f1, f2, f3, f4;
+
+					f1 = utilities::trim_and_cast_float(*(++token));
+					f2 = utilities::trim_and_cast_float(*(++token));
+					f3 = utilities::trim_and_cast_float(*(++token));
+					f4 = utilities::trim_and_cast_float(*(++token));
+					temp.ambient = rgba(f1, f2, f3, f4);
+				
+					f1 = utilities::trim_and_cast_float(*(++token));
+					f2 = utilities::trim_and_cast_float(*(++token));
+					f3 = utilities::trim_and_cast_float(*(++token));
+					f4 = utilities::trim_and_cast_float(*(++token));
+					temp.diffuse = rgba(f1, f2, f3, f4);							
+				
+					f1 = utilities::trim_and_cast_float(*(++token));
+					f2 = utilities::trim_and_cast_float(*(++token));
+					f3 = utilities::trim_and_cast_float(*(++token));
+					f4 = utilities::trim_and_cast_float(*(++token));
+					temp.specular = rgba(f1, f2, f3, f4);							
+				
+					f1 = utilities::trim_and_cast_float(*(++token));
+					f2 = utilities::trim_and_cast_float(*(++token));
+					f3 = utilities::trim_and_cast_float(*(++token));
+					f4 = utilities::trim_and_cast_float(*(++token));
+					temp.emission = rgba(f1, f2, f3, f4);							
+				
+					temp.shininess = utilities::trim_and_cast_float(*(++token));
+				
+					temp.translucent = utilities::trim_and_cast_bool(*(++token));
+				
+					temp.twosided = utilities::trim_and_cast_bool(*(++token));
+
+					// Add new to spaceIDProps
+					std::pair<int, polygon_props> pairTemp (ID, temp);
+					spaceIDProps.push_back(pairTemp);
+				}
+				catch (std::exception& e)
+				{
+					std::stringstream errorMessage;
+					errorMessage << std::endl
+											<< "Could not parse the following line to initialize an ms_space:" << std::endl
+											<< line << std::endl
+											<< "(bso/spatial_design/ms_space.cpp). Got the following error:" << std::endl
+											<< e.what() << std::endl;
+					throw std::invalid_argument(errorMessage.str());
+				}
+			}
+		}
+		catch(std::exception& e)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Encountered an error while parsing the following line of a visualization ms_N_building input file:" << std::endl
+									 << line << std::endl
+									 << "(bso/visualization/ms_building.hpp). Got the following error: " << std::endl
+									 << e.what() << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+	}
+	
+	
+	lprops.width = linewidth;
+	mTitle = title;
+	pprops.ambient = rgba(0.1f, 0.5f, 0.1f, 0.3f);
+	pprops.diffuse = rgba(0.2f, 1.0f, 0.2f, 0.3f);
+	pprops.specular = rgba(0.2f, 1.0f, 0.2f, 0.3f);
+	pprops.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+	pprops.shininess = 60.0f;
+	pprops.translucent = true;
+	pprops.twosided = true;
+
+	for (const auto& i : msN)
+	{
+		namespace geom = bso::utilities::geometry;
+		geom::quad_hexahedron spaceGeometry = i->getGeometry();
+		std::stringstream centerLabel;
+
+		// define default:
+		bool defaultDefined = false;
+		for(const auto& i: spaceIDProps)
+		{
+			if(i.first == 0)
+			{
+				ppropsDefault = i.second;
+				defaultDefined = true;
+				break;
+			}
+		}
+		
+		if (type == "spaces" || type == "" )
+		{
+			int spaceID = i->getID();
+			bool found = false;
+			long unsigned int index = 0;
+			while(index < spaceIDProps.size())
+			{
+				if(spaceIDProps[index].first == spaceID)
+				{
+					found = true;
+					break;
+				}
+				index++;
+			}
+			if(found)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &(spaceIDProps[index].second), &lprops);
+			}
+			else if(defaultDefined)
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &ppropsDefault, &lprops);
+			}
+			else
+			{
+				this->addPolyhedron(polygons, &spaceGeometry, &pprops, &lprops);
+			}
+			if (type == "") centerLabel.str(std::string());
+		}
+		else
+		{
+			std::stringstream errorMessage;
+			errorMessage << "\nError in visualizing ms_N_buildings.\n"
+									 << "Did not recognize type of visualization: " << type << "\n"
+									 << "Options are: spaces\n" 
+									 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
+			throw std::runtime_error(errorMessage.str());
+		}
+		
+		//Add the space indexes to the visualization models
+		this->addLabel(labels,&lbprops,centerLabel.str(),spaceGeometry.getCenter());
 	}
 
 	pbsp = new random_bsp(polygons);

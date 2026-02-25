@@ -30,7 +30,7 @@ void sd_model::topologyOptimization<topology_optimization::ELE_SIMP>(const doubl
 {
 	using namespace topology_optimization::ele_simp;
 	std::ostream out(mTopOptStreamBuffer);
-	unsigned int numEle = mFEA->getElements().size();
+	//unsigned int numEle = mFEA->getElements().size();
 	std::vector<element::element*> fEle, bEle, tEle;
 	double fVolume = 0, bVolume= 0, tVolume = 0, totVolume = 0; // initialised at 0, before each element volumes are added
 	double cF, cB, cT; // sum of all the elements compliances (objective value)

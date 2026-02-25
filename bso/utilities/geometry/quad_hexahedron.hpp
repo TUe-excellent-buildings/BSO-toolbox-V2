@@ -23,6 +23,7 @@ namespace bso { namespace utilities { namespace geometry {
 		double getVolume() const;
 		bool isInside(const vertex& p1, const double& tol = 1e-3) const;
 		bool isInsideOrOn(const vertex& p1, const double& tol = 1e-3) const;
+		bool hexahedraOverlapStrict(const quad_hexahedron& other, const double& tol = 1e-3) const;
 
 		const std::vector<tetrahedron>& 		getTetrahedrons() 		const { return mTetrahedrons;}
 		const std::vector<quadrilateral>&		getQuadrilateral()		const { return mQuad;}

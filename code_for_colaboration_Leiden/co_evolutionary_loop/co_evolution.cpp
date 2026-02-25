@@ -922,7 +922,6 @@ int main(int argc, char* argv[])
 			out("Evaluated structural model: ",false,false,verbose);
 			double sdResult = sdModels.back().getTotalResults().mTotalStrainEnergy;
 			sd_total_load.push_back(sdModels.back().getTotalLoad());
-			sd_total_load.push_back(sdModels.back().getTotalLoad());
 			out(sdResult,true,true,verbose);
 			designPerformances.back()(0) = sdResult;
 			

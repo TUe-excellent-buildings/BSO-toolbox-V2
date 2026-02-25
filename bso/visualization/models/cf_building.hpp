@@ -326,7 +326,7 @@ Conformal_Model::Conformal_Model(const bso::spatial_design::cf_building& cf,
 			for(const auto& j: i.getLines())
 			{
 				bool noBoundaryLine = true;
-				for(const auto k: cf.getDelauneyLines())
+				for(const auto& k: cf.getDelauneyLines())
 				{					
 					if(k.isSameAs(j,cf.tolerance()))
 					{

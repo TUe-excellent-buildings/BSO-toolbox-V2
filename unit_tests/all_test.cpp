@@ -8,6 +8,9 @@
 #include <unit_tests/utilities/geometry_test.cpp>
 #include <unit_tests/utilities/data_handling_test.cpp>
 #include <unit_tests/utilities/data_analysis_test.cpp>
+#include <unit_tests/utilities/delaunay_test.cpp>
+#include <unit_tests/utilities/geometry_functions_test.cpp>
+#include <unit_tests/utilities/data_export_test.cpp>
 #include <unit_tests/spatial_design/ms_space_test.cpp>
 #include <unit_tests/spatial_design/ms_building_test.cpp>
 #include <unit_tests/spatial_design/ms_N_building_test.cpp>
@@ -17,3 +20,5 @@
 #include <unit_tests/structural_design/structural_design_test.cpp>
 #include <unit_tests/building_physics/building_physics_test.cpp>
 #include <unit_tests/grammar/grammar_test.cpp>
+#include <unit_tests/optimizers/scdp_config_test.cpp>
+#include <unit_tests/optimizers/output_manager_test.cpp>

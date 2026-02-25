@@ -549,7 +549,6 @@ namespace bso { namespace visualization
         pedge = pedge->pnext;
         vect3d v1 = *pedge->pvert - p0,
                v2;
-        double v1len = v1.length();
         
         //define p2
         pedge = pedge->pnext;

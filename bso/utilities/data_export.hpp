@@ -42,7 +42,7 @@ public:
 	void writeVectorStyleFile(const std::vector<std::shared_ptr<data_point> >& data, std::string fileName);
 
 	// Write data to the same file in case of sequential runs to create an excel overview of severals runs
-	void addToCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int& nrIterations, std::vector<bso::spatial_design::ms_N_building>& msDesigns, std::vector<double>& sd_total_load, std::vector<double>& exteriorWallArea);
+	void addToCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int& nrIterations, const std::vector<bso::spatial_design::ms_N_building>& msDesigns, const std::vector<double>& sd_total_load, const std::vector<double>& exteriorWallArea);
 	void addToOverviewCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int numberOfIterationsPerformed, const bso::spatial_design::ms_N_building& initialDesign);
 
 	// Plot functions for mData using gnuPlot

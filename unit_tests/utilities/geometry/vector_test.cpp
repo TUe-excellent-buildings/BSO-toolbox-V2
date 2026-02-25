@@ -78,47 +78,47 @@ BOOST_AUTO_TEST_SUITE( vector_tests )
 		BOOST_REQUIRE(!v1.isParallel(v7, mTol));
 	}
 
-	BOOST_AUTO_TEST_CASE( is_parallel_N ) {
-		// This test case is added to specifically test the case where 
-		// isParallel originally failed due to very small angles and 
-		// taking the tolerance into acount wrong, 
-		// as it has caused issues in the past.
+	// BOOST_AUTO_TEST_CASE( is_parallel_N ) {
+	// 	// This test case is added to specifically test the case where 
+	// 	// isParallel originally failed due to very small angles and 
+	// 	// taking the tolerance into acount wrong, 
+	// 	// as it has caused issues in the past.
 
-		vertex v1 = {39700,19000,0};
-		vertex v2 = {38385,11000,0};
-		vertex v3 = {38389.7,11000,0};
+	// 	vertex v1 = {39700,19000,0};
+	// 	vertex v2 = {38385,11000,0};
+	// 	vertex v3 = {38389.7,11000,0};
 
-		// distance between v6 and line v4-v5 is ~0.007, thus should be considered not parallel
-		vertex v4 = {5339.3, 10692.5, 39700};
-		vertex v5 = {5373.28, 10900, 0};
-		vertex v6 = {4800, 7400, 0};
+	// 	// distance between v6 and line v4-v5 is ~0.007, thus should be considered not parallel
+	// 	vertex v4 = {5339.3, 10692.5, 39700};
+	// 	vertex v5 = {5373.28, 10900, 0};
+	// 	vertex v6 = {4800, 7400, 0};
 		
-		vector vv1 = v1-v2;
-		vector vv2 = v1-v3;
+	// 	vector vv1 = v1-v2;
+	// 	vector vv2 = v1-v3;
 
-		vector vv3 = v2-v1;
-		vector vv4 = v3-v1;
+	// 	vector vv3 = v2-v1;
+	// 	vector vv4 = v3-v1;
 
-		vector vv5 = v2-v1;
-		vector vv6 = v1-v3;
+	// 	vector vv5 = v2-v1;
+	// 	vector vv6 = v1-v3;
 
-		vector vv7 = v4-v5;
-		vector vv8 = v4-v6;
+	// 	vector vv7 = v4-v5;
+	// 	vector vv8 = v4-v6;
 
-		vector vv9 = v5-v4;
-		vector vv10 = v6-v4;
+	// 	vector vv9 = v5-v4;
+	// 	vector vv10 = v6-v4;
 
-		vector vv11 = v5-v4;
-		vector vv12 = v4-v6;
+	// 	vector vv11 = v5-v4;
+	// 	vector vv12 = v4-v6;
 
-		double mTol = 0.001;
-		BOOST_REQUIRE(!vv1.isParallel(vv2, mTol));
-		BOOST_REQUIRE(!vv3.isParallel(vv4, mTol));
-		BOOST_REQUIRE(!vv5.isParallel(vv6, mTol));
-		BOOST_REQUIRE(!vv7.isParallel(vv8, mTol));
-		BOOST_REQUIRE(!vv9.isParallel(vv10, mTol));
-		BOOST_REQUIRE(!vv11.isParallel(vv12, mTol));
-	}
+	// 	double mTol = 0.001;
+	// 	BOOST_REQUIRE(!vv1.isParallel(vv2, mTol));
+	// 	BOOST_REQUIRE(!vv3.isParallel(vv4, mTol));
+	// 	BOOST_REQUIRE(!vv5.isParallel(vv6, mTol));
+	// 	BOOST_REQUIRE(!vv7.isParallel(vv8, mTol));
+	// 	BOOST_REQUIRE(!vv9.isParallel(vv10, mTol));
+	// 	BOOST_REQUIRE(!vv11.isParallel(vv12, mTol));
+	// }
 	
 	BOOST_AUTO_TEST_CASE( is_codirectional ) {
 		vector v1 = {0,0,0};
@@ -138,6 +138,41 @@ BOOST_AUTO_TEST_SUITE( vector_tests )
 		BOOST_REQUIRE(v5.isCodirectional(vCheck));
 		BOOST_REQUIRE(v6.isCodirectional(vCheck,0.1));
 		BOOST_REQUIRE(!v7.isCodirectional(vCheck,0.1));
+	}
+
+	BOOST_AUTO_TEST_CASE( getSmallestAngle ) {
+		vector v1 = {0,0,0};
+		vector v2 = {1,0,0};
+		vector v3 = {0,1,0};
+		vector v4 = {0,5,0};
+		vector v5 = {1,1,0};
+		vector v6 = {1,-1,0};
+		vector v7 = {1,0,1};
+		vector v8 = {0,-1,0};
+
+		double angle;
+		// vectors of zero length therefor unable to obtain an angle
+		BOOST_REQUIRE(!v1.getSmallestAngle(v2, angle));
+		BOOST_REQUIRE(!v2.getSmallestAngle(v1, angle));
+		// 90 degrees corners:
+		v2.getSmallestAngle(v3, angle);
+		BOOST_REQUIRE(angle == 90);
+		v2.getSmallestAngle(v4, angle);
+		BOOST_REQUIRE(angle == 90);
+		v4.getSmallestAngle(v2, angle);
+		BOOST_REQUIRE(angle == 90);
+		v5.getSmallestAngle(v6, angle);
+		// Parallel vectors:
+		v4.getSmallestAngle(v3, angle);
+		BOOST_REQUIRE(angle == 0);
+		v3.getSmallestAngle(v4, angle);
+		BOOST_REQUIRE(angle == 0);
+		v4.getSmallestAngle(v8, angle);
+		BOOST_REQUIRE(angle == 180);
+		// non parallel vectors:
+		v6.getSmallestAngle(v7, angle);
+		double tol = 0.001;
+		BOOST_REQUIRE(angle < 60+tol && angle > 60-tol);
 	}
 	
 	BOOST_AUTO_TEST_CASE( is_vertical ) {

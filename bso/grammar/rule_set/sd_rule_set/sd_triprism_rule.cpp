@@ -16,7 +16,7 @@ sd_triprism_rule::~sd_triprism_rule()
 
 
 void sd_triprism_rule::apply(bso::structural_design::sd_model& sd) const
-{ //NOTE: this void is not updated yet and is based on the rectangle version
+{ //NOTE: this void is not updated yet and is based on the cuboid version of this function
     /*
     structural_design::component::geometry* quadGeometry = nullptr;
 	if (mStructure.type() == "quad_hexahedron")
@@ -28,9 +28,9 @@ void sd_triprism_rule::apply(bso::structural_design::sd_model& sd) const
 }
 
 void sd_triprism_rule::assignStructure(structural_design::component::structure structure)
-	{
-	    mStructure = structure;
-	}
+{
+    mStructure = structure;
+}
 
 } // namespace sd_rule_set
 } // namespace rule_set

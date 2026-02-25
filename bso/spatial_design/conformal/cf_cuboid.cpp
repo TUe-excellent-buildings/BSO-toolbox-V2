@@ -186,7 +186,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 						}
 					}
 					
-					for (const auto j : *(mPolygons[opposite]))
+					for (const auto& j : *(mPolygons[opposite]))
 					{
 						std::vector<utilities::geometry::vertex> cornerPoints;
 						cornerPoints.push_back(*pPtr);

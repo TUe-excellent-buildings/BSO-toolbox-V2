@@ -72,6 +72,7 @@ namespace bso { namespace utilities { namespace geometry {
 		return v3.norm();
 	} // getArea()
 
+	// This function checks if a vertex is inside but not on the triangles line_segments or cornerVertices
 	bool triangle::isInside(const vertex& p1, const double& tol /*= 1e-3*/) const
 	{ // solution by Michael Ulm on: https://math.stackexchange.com/questions/4322/check-whether-a-point-is-within-a-3d-triangle
 		if (!this->isCoplanar(p1,tol)) return false;
@@ -92,6 +93,7 @@ namespace bso { namespace utilities { namespace geometry {
 		return true;
 	} // isInside()
 	
+	// This function checks if a vertex is inside or on the triangles line_segments or cornerVertices
 	bool triangle::isInsideOrOn(const vertex& p1, const double& tol /*= 1e-3*/) const
 	{ // solution by Michael Ulm on: https://math.stackexchange.com/questions/4322/check-whether-a-point-is-within-a-3d-triangle
 		if (!this->isCoplanar(p1,tol)) return false;
@@ -100,6 +102,26 @@ namespace bso { namespace utilities { namespace geometry {
 		
 		return isInside(p1,tol); // check if it is ins
 	} // isInsideOrOn()
+
+	// This function checks if a triangle is overlapping with another triangle but when a triangle touches another triangle it is not considered overlapping
+	// Note; this function is not yet checked for correctness.
+	// bool triangle::isOverlapping(const triangle& tri, const double& tol /*= 1e-3*/) const 
+	// {
+	// 	// Note: this function is not working as it should yet!!
+	// 	// Check first if the triangles are coplanar
+	// 	if (!this->isCoplanar(tri.mVertices[0],tol) || !this->isCoplanar(tri.mVertices[1],tol) || !this->isCoplanar(tri.mVertices[2],tol) ) return false;
+		
+	// 	// Perform geometry checks to determine if the triangles are overlapping but not touching
+	// 	for(const auto& i: tri)
+	// 	{
+	// 		if(this->isInside(i,tol)) return true;
+	// 	}
+	// 	for(const auto& i: this->mVertices)
+	// 	{
+	// 		if(tri.isInside(i,tol)) return true;
+	// 	}
+	// 	return false;
+	// }
 	
 } // namespace geometry
 } // namespace utilities

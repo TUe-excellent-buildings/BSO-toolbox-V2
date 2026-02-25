@@ -220,13 +220,13 @@ namespace bso { namespace structural_design {
 					Eigen::Vector6d nodalLoads;
 					try
 					{
-						Eigen::Vector6d nodalLoads = j->getLoads(i);
+						/*Eigen::Vector6d*/ nodalLoads = j->getLoads(i);
 					}
 					catch (std::exception& e)
 					{
 						// this node does not have a load with this load case
 						j->addLoadCase(i);
-						Eigen::Vector6d nodalLoads = j->getLoads(i);
+						/*Eigen::Vector6d*/ nodalLoads = j->getLoads(i);
 					}
 					for (unsigned int k = 0; k < 6; ++k)
 					{

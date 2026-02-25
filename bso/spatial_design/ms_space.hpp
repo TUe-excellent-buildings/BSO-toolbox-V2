@@ -12,7 +12,7 @@ class ms_space
 private:
 	utilities::geometry::vertex mCoordinates; // {x,y,z}; is only in use with the R-insertion method
 	utilities::geometry::vector mDimensions; // {width,depth,height}; is only in use with the R-insertion method
-	std::vector <utilities::geometry::vertex*> pVertex; //Contains all eight vertices to represent the non-orthogonal space in {x,y,z}. Note: is not in use during R-definition of space.
+	std::vector <utilities::geometry::vertex> pVertex; //Contains all eight vertices to represent the non-orthogonal space in {x,y,z}. Note: is not in use during R-definition of space.
 	
 	unsigned int mID; // Identification number of the space
 	std::string sDefMethod; // A space definition method; orthogonal ('R' or 'r') or non-orthogonal ('N' or 'n')
@@ -23,12 +23,12 @@ private:
 public:
 	ms_space(); // empty constructor
 	ms_space(unsigned int id, utilities::geometry::vertex coords, utilities::geometry::vector dim, const std::string& spaceType = std::string(), const std::vector<std::string>& 	surfaceTypes = std::vector<std::string>()); // constructor with initialization
-	ms_space(unsigned int id, std::vector <utilities::geometry::vertex*> pVert, const std::string& spaceType = std::string(), const std::vector<std::string>& surfaceTypes = std::vector<std::string>()); // constructor with initialization																																													 
+	ms_space(unsigned int id, std::vector <utilities::geometry::vertex> pVert, const std::string& spaceType = std::string(), const std::vector<std::string>& surfaceTypes = std::vector<std::string>()); // constructor with initialization																																													 
 	ms_space(std::string line); // constructor from input line
 	ms_space(const ms_space& rhs); // copy constructor
 	~ms_space(); // destructor
 	
-	void setPVertex(const std::vector <utilities::geometry::vertex*> vertexes);
+	void setPVertex(const std::vector <utilities::geometry::vertex> vertexes);
 	void setCoordinates(const utilities::geometry::vertex& coords);
 	void setDimensions(const utilities::geometry::vector& dims);
 	void setID(const unsigned int& id);
@@ -36,7 +36,7 @@ public:
 	unsigned int getID() const; // returns the ID of the space
 	utilities::geometry::vertex getCoordinates() const; // return the coordinates of the space
 	utilities::geometry::vector getDimensions() const; // return the dimensions of the space
-	std::vector<utilities::geometry::vertex*> getVertices() const; // return the vertices of the space
+	std::vector<utilities::geometry::vertex> getVertices() const; // return the vertices of the space
 	const std::string getSDefMethod() const { return sDefMethod;}										
 	utilities::geometry::quad_hexahedron getGeometry() const; // return the geometry of the space
 	bool getSpaceType(std::string& spaceType) const; // returns TRUE if space type is assigned FALSE if not. Assigns the space type to the argument that is passed by reference
@@ -49,6 +49,14 @@ public:
 	bool operator != (const ms_space& rhs) const;
 	
 	friend std::ostream& operator<< (std::ostream& stream, const ms_space& space);
+
+	// if true, the space will be visualized with the highlight color defined in the visualization model (e.g. ppropsHighlight in ms_building.hpp). 
+	//This is for example used to visualize spaces that are selected for extrusion.
+	bool highlightInVisualization = false; // Orange/gold highlight
+	bool highlightInVisualization1 = false; // Clear blue highlight
+	bool highlightInVisualization2 = false; // Magenta highlight
+	bool highlightInVisualization3 = false; // Yellow highlight
+	bool highlightInVisualization4 = false; // Bright red highlight
 };
 
 } // namespace spatial_design

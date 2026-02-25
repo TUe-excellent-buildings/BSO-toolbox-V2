@@ -6,8 +6,8 @@ namespace bso { namespace building_physics { namespace state { namespace depende
 space::space(const unsigned int index, bso::utilities::geometry::polyhedron* geometry,
 	const bso::building_physics::properties::space_settings& settings,
 	bso::building_physics::state::state* outside_ptr)
-: dependent_state(index), mGeometry(geometry->clone()), mVolume(geometry->getVolume()*1e-9),
-	mSettings(settings)
+: dependent_state(index), mSettings(settings), mVolume(geometry->getVolume()*1e-9),  
+	mGeometry(geometry->clone())
 {
 	mIsSpace = true;
 	mCapacitance = mVolume  * 1.2*1000*3; // 1.2 [kg/m³] air weight, 1000.0 [J/(K kg)] air specific heat, remaining factor takes furniture etc. into account

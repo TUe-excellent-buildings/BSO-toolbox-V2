@@ -19,7 +19,7 @@ void ground_profile::initSystem(bso::building_physics::state_space_system& syste
 	system.getu()(mIndex) = mTemperature;
 } // initSystem
 
-void ground_profile::updateSystem(bso::building_physics::state_space_system& system)
+void ground_profile::updateSystem(bso::building_physics::state_space_system& system) 
 {
 	// nothing to update after initialization
 } // updateSystem

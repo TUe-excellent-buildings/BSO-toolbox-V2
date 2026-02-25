@@ -70,6 +70,62 @@ namespace bso { namespace structural_design {
 		mTopOptStreamBuffer = rhs.mTopOptStreamBuffer;
 	}
 
+	// // Note operator is added to avoid a warning by the compiler, if any issues occur in the future then this function should be checked and or adjusted.
+	// sd_model& sd_model::operator=(const sd_model& rhs) 
+	// {
+	// 	if (this != &rhs) 
+	// 	{
+	// 		mPoints.clear();
+    //     	mGeometries.clear();
+    //     	mMeshedPoints.clear();
+			
+	// 		for (const auto& i : rhs.mPoints)
+	// 		{
+	// 			this->addPoint(*i);
+	// 		}
+	// 		for (const auto& i : rhs.mGeometries)
+	// 		{
+	// 			// copy the geometry
+	// 			structural_design::component::geometry* newSDGeom;
+	// 			if (i->isLineSegment())
+	// 			{
+	// 				auto linePtr = dynamic_cast<utilities::geometry::line_segment*>(i);
+	// 				newSDGeom = this->addGeometry(*linePtr);
+	// 			}
+	// 			else if(i->isQuadrilateral())
+	// 			{
+	// 				auto quadPtr = dynamic_cast<utilities::geometry::quadrilateral*>(i);
+	// 				newSDGeom = this->addGeometry(*quadPtr);
+	// 			}
+	// 			else if(i->isTriangle())
+	// 			{
+	// 				auto triPtr = dynamic_cast<utilities::geometry::triangle*>(i);
+	// 				newSDGeom = this->addGeometry(*triPtr);
+	// 			}
+	// 			else if (i->isQuadHexahedron())
+	// 			{
+	// 				auto quadHexPtr = dynamic_cast<utilities::geometry::quad_hexahedron*>(i);
+	// 				newSDGeom = this->addGeometry(*quadHexPtr);
+	// 			}
+	// 			else 
+	// 			{
+	// 				std::stringstream errorMessage;
+	// 				errorMessage << "\nError, while copying a structural model, did not\n"
+	// 										<< "recognize one of its geometries.\n"
+	// 										<< "(bso/structural_design/sd_model.cpp)" << std::endl;
+	// 				throw std::invalid_argument(errorMessage.str());
+	// 			}
+	// 			// add the possible structure, loads, and constraints to the geometry
+	// 			for (const auto& j : i->getStructures()) newSDGeom->addStructure(j);
+	// 			for (const auto& j : i->getLoads()) newSDGeom->addLoad(j);
+	// 			for (const auto& j : i->getConstraints()) newSDGeom->addConstraint(j);
+	// 		}
+	// 		mMeshSize = rhs.mMeshSize;
+	// 		mTopOptStreamBuffer = rhs.mTopOptStreamBuffer;
+	// 	}
+	// 	return *this;
+	// }
+
 	sd_model::~sd_model()
 	{
 		for (auto& i : mPoints) delete i;
@@ -525,7 +581,6 @@ namespace bso { namespace structural_design {
 		return sumOfLoads;
 	} // getTotalResultsLoad()
 	
-
 } // namespace structural_design
 } // namespace bso
 

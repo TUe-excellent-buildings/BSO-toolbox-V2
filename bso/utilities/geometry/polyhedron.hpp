@@ -40,6 +40,7 @@ namespace bso { namespace utilities { namespace geometry {
 		virtual double getSurfaceArea() const;
 		virtual bool isInside(const vertex& p1, const double& tol = 1e-3) const = 0;
 		virtual bool isInsideOrOn(const vertex& p1, const double& tol = 1e-3) const = 0;
+		bool testIntersection(const polyhedron& other, const double& tol = 1e-3) const; // test if two polyhedra intersect, with checking if they are strictly inside each other, so boundary touching are not intersections.
 		
 		bool isSameAs(const polyhedron& pol, const double& tol = 1e-3) const;
 		

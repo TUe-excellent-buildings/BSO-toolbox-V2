@@ -59,7 +59,7 @@ ms_space::ms_space(unsigned int id, utilities::geometry::vertex coords, utilitie
 	}
 } // ms_space()
 
-ms_space::ms_space(unsigned int id, std::vector <utilities::geometry::vertex*> pVert, const std::string& spaceType /*= std::string()*/, const std::vector<std::string>& surfaceTypes /*= std::vector<std::string>()*/)
+ms_space::ms_space(unsigned int id, std::vector <utilities::geometry::vertex> pVert, const std::string& spaceType /*= std::string()*/, const std::vector<std::string>& surfaceTypes /*= std::vector<std::string>()*/)
 {
 	sDefMethod = "N";
 	pVertex = pVert;
@@ -78,7 +78,7 @@ ms_space::ms_space(unsigned int id, std::vector <utilities::geometry::vertex*> p
 								 << "The following arguments initialized an invalid ms_space:" << std::endl
 								 << "ID: " << id << std::endl
 								 << "Vertices: " ;
-								 for(const auto i: pVert){errorMessage << i << "  ";}
+								 for(const auto& i: pVert){errorMessage << i << "  ";}
 								 errorMessage << std::endl;
 		if (spaceType != "") errorMessage << "spaceType: " << id << std::endl;
 		if (!surfaceTypes.empty())
@@ -142,15 +142,14 @@ ms_space::ms_space(std::string line)
 			
 			if(number_of_tokens >= 25) // avoid tokens which are non-existing
 			{
+				pVertex.resize(8);
 				for(int i=0; i<8; i++)
-				{
-					pVertex.push_back(new utilities::geometry::vertex);
-							
+				{							
 					temp(0) = utilities::trim_and_cast_double(*(++token));
 					temp(1) = utilities::trim_and_cast_double(*(++token));
 					temp(2) = utilities::trim_and_cast_double(*(++token));
 					
-					*pVertex[i] = temp;		
+					pVertex[i] = temp;		
 				}
 			}
 			
@@ -339,7 +338,7 @@ void ms_space::reset()
 bool ms_space::checkValidity() const
 {
 	bool check = false;
-	if(sDefMethod == "R" | sDefMethod == "r")
+	if(sDefMethod == "R" || sDefMethod == "r")
 	{
 		bool check = mDimensions.minCoeff() < 0;
 		if (check)
@@ -352,7 +351,7 @@ bool ms_space::checkValidity() const
 			throw std::invalid_argument(errorMessage.str());
 		}
 	}
-	else if (sDefMethod == "N" | sDefMethod == "n")
+	else if (sDefMethod == "N" || sDefMethod == "n")
 	{
 		try
 		{
@@ -382,10 +381,11 @@ bool ms_space::checkValidity() const
 	return check;
 } // checkValidity()
 
-void ms_space::setPVertex(const std::vector <utilities::geometry::vertex*> vertexes)
+void ms_space::setPVertex(const std::vector <utilities::geometry::vertex> vertexes)
 {
 	try
 	{
+		sDefMethod = "N";
 		pVertex = vertexes;
 		checkValidity();
 	}
@@ -393,7 +393,7 @@ void ms_space::setPVertex(const std::vector <utilities::geometry::vertex*> verte
 	{
 		std::stringstream errorMessage;
 		errorMessage << "Could not set the vertices to space with ID \"" << mID << "\": the following vertices: " << std::endl;
-								 for(const auto i: vertexes) errorMessage << i << "; ";
+								 for(const auto& i: vertexes) errorMessage << i << "; ";
 								 errorMessage << "" << std::endl
 								 << "(bso/spatial_design/ms_space.hpp). Got the following error: " << std::endl
 								 << e.what() << std::endl;
@@ -449,7 +449,7 @@ void ms_space::setDimensions(const utilities::geometry::vector& dims)
 	else
 	{
 		std::stringstream errorMessage;
-			errorMessage << "This function can not be used in combination with anny other insertion method then R/r." << std::endl
+			errorMessage << "This function can not be used in combination with any other insertion method then R/r." << std::endl
 									<< "(bso/spatial_design/ms_space.hpp). " << std::endl;
 			throw std::invalid_argument(errorMessage.str());
 	}
@@ -475,9 +475,9 @@ utilities::geometry::vector ms_space::getDimensions() const
 	return mDimensions;
 } // getDimensions
 
-std::vector<utilities::geometry::vertex*> ms_space::getVertices() const
+std::vector<utilities::geometry::vertex> ms_space::getVertices() const
 {
-	std::vector<utilities::geometry::vertex*> vertices;
+	std::vector<utilities::geometry::vertex> vertices;
 
 	if (sDefMethod == "R" || sDefMethod == "r")
 	{
@@ -493,7 +493,7 @@ std::vector<utilities::geometry::vertex*> ms_space::getVertices() const
 				if (std::bitset<3>(i)[j]) tempPoint[j] += mDimensions[j];
 			}
 			cornerPoints.push_back(tempPoint);
-			vertices.push_back(&cornerPoints.back());
+			vertices.push_back(cornerPoints.back());
 		}
 	}
 	else if (sDefMethod == "N" || sDefMethod == "n")
@@ -523,7 +523,7 @@ utilities::geometry::quad_hexahedron ms_space::getGeometry() const
 	}
 	else if (sDefMethod == "N" || sDefMethod == "n")
 	{
-		for (int i=0; i<pVertex.size(); i++) cornerPoints.push_back(*pVertex[i]);
+		for (long unsigned int i=0; i<pVertex.size(); i++) cornerPoints.push_back(pVertex[i]);
 	}
 
 	return bso::utilities::geometry::quad_hexahedron(cornerPoints);
@@ -558,46 +558,13 @@ double ms_space::getFloorArea() const
 	}
 	else
 	{
-		std::vector<bso::utilities::geometry::vertex> pVertex = this->getGeometry().getVertices();
-		if(pVertex.size() != 8)
+		// This definition only upholds for as long as the roof and the floor are of the same area!
+		std::vector<bso::utilities::geometry::quadrilateral> Quads = this->getGeometry().getQuadrilateral();
+		for(const auto& i: Quads)
 		{
-			std::stringstream errorMessage;
-			errorMessage << std::endl
-									 << "Did not recieve eight vertices. Therefore, the area calculation of the space can not be performed." << std::endl
-									 << "(bso/spatial_design/ms_space.hpp)" << std::endl;
-			throw std::invalid_argument(errorMessage.str());
-		}
-
-		std::vector<bso::utilities::geometry::vertex> VertexH1;
-		std::vector<bso::utilities::geometry::vertex> VertexH2;
-		VertexH1.push_back(pVertex[0]);
-		for(int i=1; i < 8; i++)
-		{
-			if(VertexH1[0].z() == pVertex[i].z())
-			{
-				VertexH1.push_back(pVertex[i]);
-			}
-			else VertexH2.push_back(pVertex[i]);
-		}
-		if(VertexH1.size() != 4 || VertexH2.size() != 4)
-		{
-			std::stringstream errorMessage;
-			errorMessage << std::endl
-									 << "Could not find four vertices on the same z level to calculate the area of the horizontal polygon" << std::endl
-									 << "the following was found: the first plane had " << VertexH1.size() << " amound of vertices and the" << std::endl
-									 << "second plane had " << VertexH2.size() << " amound of vertices" << std::endl
-									 << "(bso/spatial_design/ms_space.hpp)" << std::endl;
-			throw std::invalid_argument(errorMessage.str());
-		}
-
-		// Define the area of the space on the lowest horizontal polygon (ref for area calculation: https://www.themathdoctors.org/polygon-coordinates-and-areas/)
-		if(VertexH1[0].z() < VertexH2[0].z())
-		{
-			area = 0.5*(abs((VertexH1[0].x()*VertexH1[1].y()-VertexH1[1].x()*VertexH1[0].y())+(VertexH1[1].x()*VertexH1[2].y()-VertexH1[2].x()*VertexH1[1].y())+(VertexH1[2].x()*VertexH1[3].y()-VertexH1[3].x()*VertexH1[2].y())+(VertexH1[3].x()*VertexH1[0].y()-VertexH1[0].x()*VertexH1[3].y())));
-		}
-		else
-		{
-			area = 0.5*(abs((VertexH2[0].x()*VertexH2[1].y()-VertexH2[1].x()*VertexH2[0].y())+(VertexH2[1].x()*VertexH2[2].y()-VertexH2[2].x()*VertexH2[1].y())+(VertexH2[2].x()*VertexH2[3].y()-VertexH2[3].x()*VertexH2[2].y())+(VertexH2[3].x()*VertexH2[0].y()-VertexH2[0].x()*VertexH2[3].y())));
+			if(!i.getNormal().isVertical()) continue;
+			area += i.getArea();
+			break;
 		}
 	}
 	return area;
@@ -631,7 +598,7 @@ bool ms_space::operator == (const ms_space& rhs) const
 	if (pVertex.size() != rhs.pVertex.size()) return false;
 	for (unsigned int i = 0; i < pVertex.size(); i++)
 	{	
-		if (!(*(pVertex[i])).isSameAs(*(rhs.pVertex[i]))) 
+		if (!(pVertex[i]).isSameAs(rhs.pVertex[i])) 
 		{
 			return false;
 		}
@@ -677,9 +644,9 @@ std::ostream& operator <<(std::ostream& stream, const ms_space& space)
 			// The std::setprecision statement makes sure that the output file does not lose precision in value,
 			// This is important when a scaled design needs to be inputted again.
 			stream << ",	";
-			stream << (*i) (0); 
-			stream << "," << (*i) (1);
-			stream << "," << (*i) (2);
+			stream << i (0); 
+			stream << "," << i (1);
+			stream << "," << i (2);
 		}
 		std::string tempStr;
 		if (space.getSpaceType(tempStr)) stream << "," << tempStr;

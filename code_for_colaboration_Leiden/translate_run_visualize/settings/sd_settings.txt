@@ -9,7 +9,7 @@ B,	 ,		G,		flat_shell,		1,		flat_shell,		1
 
 
 #mesh settings, number of element divisions to be made:
-C, 8
+C, 4
 
 # live loading on each floor
 #	load case[-],	load [N/mm²],	azimuth [],	altitude[],	type (optional)
