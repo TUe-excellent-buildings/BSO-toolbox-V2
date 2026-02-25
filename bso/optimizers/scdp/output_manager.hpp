@@ -48,7 +48,8 @@ public:
     const std::string& getResultDir() const{return mResultDir;}
 
     void logError(const std::string& errorMessage,
-                  unsigned int errorIteration);
+                  unsigned int errorIteration,
+                  bool verbose = false);
 
     void outputData(const OptimizationOutput& output);
 

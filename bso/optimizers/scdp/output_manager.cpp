@@ -20,8 +20,10 @@ output_manager::output_manager(const scdp_config& config) : mConfig(config)
 // otherwise in the current working directory. The log includes the input file, modification type, number of iterations,
 // iteration number where the error occurred and the error message itself.
 void output_manager::logError(const std::string& errorMessage,
-                              unsigned int errorIteration)
+                              unsigned int errorIteration, bool verbose /*= false*/)
 {	
+	if(verbose){std::cout << "Start logging error to error_log file." << std::endl;}
+	
 	std::string errorLogPath = mResultDir.empty() ? "error_log" : mResultDir + "error_log";
 	std::ofstream errorLog(errorLogPath, std::ios_base::app);
 	if (!errorLog.is_open())
@@ -36,6 +38,8 @@ void output_manager::logError(const std::string& errorMessage,
 			 << "and modification: " << mConfig.getModification() << ", with max iterations: " << mConfig.getMaxIterationsInSequence() << ",\n"
 	         << "error occurred in iteration: " << errorIteration << "\n"
 	         << errorMessage << "\n\n";
+
+	if(verbose){std::cout << "Finished logging error to error_log file." << std::endl;}
 }
 
 // Function to create a result directory for the output files.
