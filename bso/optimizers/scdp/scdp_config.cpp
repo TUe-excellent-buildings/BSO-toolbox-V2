@@ -76,9 +76,6 @@ void scdp_config::parseArguments(int argc, char* argv[])
 			             "-p\t" << "or --performanceDivision, to specify by which the performances \n"
 								<<	 "\t" << "of the spaces should be divided. Option are \'floorArea\', \'surfaceArea\',\n"
 								<<   "\t" << "\'volumeArea\' or \'nothing\'. The default is \'floorArea\'.\n"
-			             "-av\t"<< "or --averageDivision, to split all the spaces towards the smallest rib length in the building, \n"
-								<< 	 "\t" << "without making any rib smaller then the smallest one. \n"
-                                <<   "\t" << "Either enter \'true\' or \'false\'. The default is \'false\'.\n"
 			            "-ad\t" << "or --addMethod, to specify an adding spaces method, the choices are: \n"
 								<<   "\t" << "\'elevation\' for adding an elevation to the building\n"
 								<<   "\t" << "\'shiftfill\' for shifting a section of the \n"
@@ -410,25 +407,6 @@ void scdp_config::parseArguments(int argc, char* argv[])
                              << "-p or --performanceDivision. Use -h or -- help for help\n"
                              << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
-            }
-        }
-        else if (*arg == "-av" || *arg == "--averageDivision")
-        {
-            while (++arg != args.end() && arg->operator[](0) != '-')
-            {
-                std::string outSpec = *arg;
-                boost::trim(outSpec);
-                if (outSpec == "true") averageSpace = true;
-                else if (outSpec == "false") averageSpace = false;
-                else
-                {
-                    std::stringstream errorMessage;
-                    errorMessage << "\nError, did not recognize: " << outSpec << " as an\n"
-                                 << "argument for -av or --averageDivision. Use -h or\n"
-                                 << "--help for help\n"
-                                 << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
-                    throw std::invalid_argument(errorMessage.str());
-                }
             }
         }
         else if (*arg == "-ad" || *arg == "--addMethod")

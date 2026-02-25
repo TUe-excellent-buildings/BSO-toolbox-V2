@@ -124,12 +124,6 @@ void scdp_optimizer::getDesignResults()
 {   
     try
 	{
-        if(mConfig.getAverageSpace())
-        {
-            mMSDesigns.back().enforceAverageSpaceSize();
-            mOutputManager.out("Enforce averageSpaceSize", true, true, mConfig.getVerbose());
-        }
-
         // step 1, add object to Store the performance of the current design
         mDesignPerformances.push_back(utilities::data_point(2));
         
@@ -215,7 +209,7 @@ void scdp_optimizer::getDesignResults()
 	catch(const std::exception& e)
 	{
 		// Log error message to export file 'log_error'
-		mOutputManager.logError(e.what(), currentIteration);
+		mOutputManager.logError(e.what(), currentIteration, mConfig.getVerbose());
 
 		// Terminal message
 		std::cout << "Error, could not finalize the run.\n"
@@ -319,7 +313,7 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
 	catch(const std::exception& e)
 	{
 		// Log error message to export file 'log_error'
-		mOutputManager.logError(e.what(), currentIteration);
+		mOutputManager.logError(e.what(), currentIteration, mConfig.getVerbose());
 
 		// Terminal message
 		std::cout << "Error, could not finalize the run.\n"
@@ -383,7 +377,7 @@ void scdp_optimizer::runSplitDeleteIteration(const std::string& modificationType
     catch(const std::exception& e)
 	{
 		// Log error message to export file 'log_error'
-		mOutputManager.logError(e.what(), currentIteration);
+		mOutputManager.logError(e.what(), currentIteration, mConfig.getVerbose());
 
 		// Terminal message
 		std::cout << "Error, could not finalize the run.\n"
@@ -592,7 +586,7 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
     catch(const std::exception& e)
 	{
 		// Log error message to export file 'log_error'
-		mOutputManager.logError(e.what(), currentIteration);
+		mOutputManager.logError(e.what(), currentIteration, mConfig.getVerbose());
 
 		// Terminal message
 		std::cout << "Error, could not finalize the run.\n"

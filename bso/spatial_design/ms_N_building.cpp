@@ -1834,7 +1834,7 @@ void ms_N_building::enforceAverageSpaceSize(double minElevationHeight /*=3000*/,
 		{
 			if(k.getVector().isVertical())
 			{
-				if(k.getLength() < minElevationHeight*2) continue; // only consider horizontal lines which are long enough for elevation height purposes
+				if(k.getLength() < minElevationHeight*2) continue; // only consider vertical lines which are long enough for elevation height purposes
 				if(!verticalInit)
 				{
 					smallestVerticalLength = k.getLength();
@@ -1868,6 +1868,8 @@ void ms_N_building::enforceAverageSpaceSize(double minElevationHeight /*=3000*/,
 	{
 		std::stringstream errorMessage;
 				errorMessage << "No horizontal or vertical lines found to enforce the average space size." << std::endl
+										<< "Inserted spaces might be too small or not properly defined." << std::endl
+										<< mSpaces.size() << " spaces made up the ms_N_building." << std::endl
 										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 	}

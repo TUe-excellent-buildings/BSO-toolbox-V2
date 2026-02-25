@@ -37,7 +37,6 @@ private:
 
     // extra building modification options
     bool removeSmallerFragments = false;
-    bool averageSpace = false;
 
     // Parameters for delAdapt option of kAddOptions
     double inclinationSwitch = 20.0;
@@ -102,7 +101,6 @@ public:
     const std::string& getIterationStrategy() const { return iterationStrategy; }
     const std::string& getPerformanceDivision() const { return performanceDivision; }
     bool getRemoveSmallerFragments() const { return removeSmallerFragments; }
-    bool getAverageSpace() const { return averageSpace; }
     double getInclinationSwitch() const { return inclinationSwitch; }
     double getSpaceRemoveRatio() const { return spaceRemoveRatio; }
     double getSpaceModifyWorstRatio() const { return spaceModifyWorstRatio; }
