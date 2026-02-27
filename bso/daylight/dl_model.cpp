@@ -1,7 +1,26 @@
-#ifndef dl_ANALYSIS_CPP
-#define dl_ANALYSIS_CPP
+#ifndef DL_MODEL_CPP
+#define DL_MODEL_CPP
+
+#include <filesystem>
+#include <cstdlib>
 
 namespace bso { namespace daylight {
+	
+	// Helper function to get the radiance bin path relative to this library file
+	static std::string GetRadianceBinPath() {
+		std::filesystem::path filePath(__FILE__);
+		std::filesystem::path daylightDir = filePath.parent_path();
+		std::filesystem::path radianceBinPath = daylightDir / "radiance" / "bin";
+		return radianceBinPath.string();
+	}
+	
+	// Helper function to set RAYPATH for .cal files
+	static void SetRadianceCalPath() {
+		std::filesystem::path filePath(__FILE__);
+		std::filesystem::path daylightDir = filePath.parent_path();
+		std::filesystem::path radianceCalPath = daylightDir / "radiance" / "cal";
+		setenv("RAYPATH", radianceCalPath.string().c_str(), 1);
+	}
 	
 	dl_model::dl_model() 
 	{
@@ -59,13 +78,17 @@ namespace bso { namespace daylight {
 	void dl_model::analyse()
 	{
 		const double HorizontalOutdoorIlluminance = DF_Settings[0];
+		const std::string radianceBinPath = GetRadianceBinPath();
+		
+		// Set RAYPATH so Radiance can find .cal files
+		SetRadianceCalPath();
 
 		std::string command;
 		
 		// Generate sky
 		const std::string irrad = std::to_string(HorizontalOutdoorIlluminance/179.0); //generate diffuse irradiance in watss/meter2 to derive the zenith brightness 
 		const std::string skysettings = "-ang 45 0 -c -B "+irrad+" -g 0.2"; //-c=standard CIE overcast sky ,-B is zenetith brithness (irrad), -g ground reflectance
-		command = "./radiance/gensky "+skysettings+" > ./"+folderName+"/sky.rad"; 
+		command = radianceBinPath + "/gensky "+skysettings+" > ./"+folderName+"/sky.rad"; 
 		if (std::system(command.c_str()) != 0) {
 			std::cerr << "Failed to execute command: " << command << std::endl;
 			return;
@@ -81,7 +104,7 @@ namespace bso { namespace daylight {
 		outsideFile.close();
 
 		// Compile scene
-		command = "./radiance/oconv ./"+folderName+"/sky.rad ./"+folderName+"/outside.rad ./"+folderName+"/scene.rad > ./"+folderName+"/room.oct";
+		command = radianceBinPath + "/oconv ./"+folderName+"/sky.rad ./"+folderName+"/outside.rad ./"+folderName+"/scene.rad > ./"+folderName+"/room.oct";
 		if (std::system(command.c_str()) != 0) {
 			std::cerr << "Failed to execute command: " << command << std::endl;
 			return;
@@ -91,21 +114,21 @@ namespace bso { namespace daylight {
 		std::string rtraceSettings = "-I -h -aa 0 -ab 8 -ad 4096 -as 1024 -lw 1e-6 -lr 16"; 
 		//-I -h -aa 0 -ab 6 -ad 10240 -as 0 -lw 1e-6 -n 4       //Ward, 2024
 		//-I -h -aa 0 -ab 8 -ad 4096 -as 1024 -lw 1e-6 -lr 16   //Kharvari, 2020
-		command = "./radiance/rtrace "+ rtraceSettings + " -oov ./"+folderName+"/room.oct < ./"+folderName+"/grid.txt > ./"+folderName+"/results.txt";
+		command = radianceBinPath + "/rtrace "+ rtraceSettings + " -oov ./"+folderName+"/room.oct < ./"+folderName+"/grid.txt > ./"+folderName+"/results.txt";
 		if (std::system(command.c_str()) != 0) {
 			std::cerr << "Failed to execute command: " << command << std::endl;
 			return;
 		}
 
 		// Make lux.
-		command = "./radiance/rcalc -e '$1=179*(.265*$4+.670*$5+.065*$6)' ./"+folderName+"/results.txt > ./"+folderName+"/lux.txt";
+		command = radianceBinPath + "/rcalc -e '$1=179*(.265*$4+.670*$5+.065*$6)' ./"+folderName+"/results.txt > ./"+folderName+"/lux.txt";
 		if (std::system(command.c_str()) != 0) {
 			std::cerr << "Failed to execute command: " << command << std::endl;
 			return;
 		}
 
 		// // Make DF
-		// command = "./radiance/rcalc -e '$1=(100*179*(.265*$4+.670*$5+.065*$6))/"+std::to_string(HorizontalOutdoorIlluminance)+"' ./"+folderName+"/results.txt > ./"+folderName+"/DF.txt";
+		// command = radianceBinPath + "/rcalc -e '$1=(100*179*(.265*$4+.670*$5+.065*$6))/"+std::to_string(HorizontalOutdoorIlluminance)+"' ./"+folderName+"/results.txt > ./"+folderName+"/DF.txt";
 		// if (std::system(command.c_str()) != 0) {
 		// 	std::cerr << "Failed to execute command: " << command << std::endl;
 		// 	return;
@@ -435,4 +458,4 @@ namespace bso { namespace daylight {
 } // namespace daylight
 } // namespace bso
 
-#endif // dl_ANALYSIS_CPP
+#endif // DL_MODEL_CPP

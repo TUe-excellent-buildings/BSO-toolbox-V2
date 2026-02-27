@@ -15,14 +15,20 @@ namespace bso { namespace daylight {
 This class allows for generation of radiance model: a 3D geometry based on the BSD and a grid onto which
 the daylight calculation will perform. 
 
-- note that in order for this class to function, in your current directory you need to 
-	have installed
-		* radiance
-		* radiance-6.0.cc0d3bfe86-Linux directory
-		* rayinit.cal
-		* skybright.cal
-		* window.cal
-		* winxmit.cal
+- note that the radiance files are automatically located from the BSO library installation:
+	* radiance binaries in bso/daylight/radiance/bin/
+	* Calibration files (.cal) in bso/daylight/radiance/cal/
+	However, the libraries are specific to a linux system with:
+	✓ 64-bit Linux systems (x86-64 architecture)
+	✓ Modern Linux distributions (Ubuntu, Debian, Fedora, etc.)
+	✓ Kernel version 3.2.0 or newer
+	✓ Standard C library (glibc) - no special dependencies
+	If another system is used, the radiance binaries and .cal files should be manually added
+	to the system and the paths in dl_model.cpp should be adjusted accordingly.
+	The current version of radiance used in the BSO toolbox is: 
+	Radiance version 6.0a
+	Build date: 2024-03-03
+	Build ID: cc0d3bfe86
 */
 	struct dl_results;
 
