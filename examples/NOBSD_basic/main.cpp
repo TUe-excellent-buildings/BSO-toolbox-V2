@@ -1,4 +1,3 @@
-#include <bso/spatial_design/ms_building.hpp>
 #include <bso/spatial_design/ms_N_building.hpp>
 #include <bso/spatial_design/cf_building.hpp>
 #include <bso/structural_design/sd_model.hpp>

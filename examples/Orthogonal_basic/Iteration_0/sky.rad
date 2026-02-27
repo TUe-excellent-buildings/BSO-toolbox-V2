@@ -1,0 +1,7 @@
+# ./radiance/gensky -ang 45 0 -c -B 80.446927 -g 0.2
+# Ground ambient level: 25.6
+
+void brightfunc skyfunc
+2 skybr skybright.cal
+0
+3 2 3.292e+01 5.121e+00
