@@ -801,17 +801,19 @@ namespace bso { namespace spatial_design { namespace conformal {
 		while(spaceCount2 < rhs.mMSNModel.getSpacePtrs().size()) spaceCount2++;
 		if(spaceCount1 > 0 && spaceCount2 == 0) 
 		{
-			if(rhs.mfileNameDLSettings != "")
-			{
-				newPtr = new cf_building_model(rhs.mMSModel, rhs.mfileNameDLSettings, rhs.mTol);
-			}
-			else if(rhs.quadHexaInput.size() == 0) newPtr = new cf_building_model(rhs.mMSModel, rhs.mTol);
-			else newPtr =new cf_building_model(rhs.mMSModel, rhs.quadHexaInput, rhs.mTol);
+			if(rhs.quadHexaInput.size() != 0)newPtr = new cf_building_model(rhs.mMSModel, rhs.quadHexaInput, rhs.mTol);
+			#ifdef BSO_DL_MODEL_HPP
+			else if(rhs.mfileNameDLSettings != "") newPtr = new cf_building_model(rhs.mMSModel, rhs.mfileNameDLSettings, rhs.mTol);
+			#endif
+			else newPtr = new cf_building_model(rhs.mMSModel, rhs.mTol);
 		}
 		else if(spaceCount2 > 0 && spaceCount1 == 0) 
 		{
-			if(rhs.triPrismInput.size() == 0) newPtr = new cf_building_model(rhs.mMSNModel, rhs.mTol);
-			else newPtr = new cf_building_model(rhs.mMSNModel, rhs.triPrismInput, rhs.mTol);
+			if(rhs.triPrismInput.size() != 0)newPtr = new cf_building_model(rhs.mMSNModel, rhs.triPrismInput, rhs.mTol);
+			#ifdef BSO_DL_MODEL_HPP
+			else if(rhs.mfileNameDLSettings != "") newPtr = new cf_building_model(rhs.mMSNModel, rhs.mfileNameDLSettings, rhs.mTol);
+			#endif
+			else newPtr = new cf_building_model(rhs.mMSNModel, rhs.mTol);
 		}
 		else
 		{
@@ -862,6 +864,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		}
 	} // 
 
+	#ifdef BSO_DL_MODEL_HPP
 	cf_building_model::cf_building_model(const ms_building& msModel, const std::string& fileNameDLSettings, const double& tol /*= 1e-3**/)
 	: cf_geometry_model(tol), mMSModel(msModel), mTol(tol), mfileNameDLSettings(fileNameDLSettings)
 	{//
@@ -1040,6 +1043,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		}
 		this->makeConformal(addConstrainVertexes);
 	}//
+	#endif
 
 	cf_building_model::cf_building_model(const ms_N_building& msNModel, const double& tol /*= 1e-3*/)
 	:	cf_geometry_model(tol), mMSNModel(msNModel), mTol(tol)
@@ -1047,10 +1051,12 @@ namespace bso { namespace spatial_design { namespace conformal {
 		makeConformalND(msNModel);
 	} // 
 
+	#ifdef BSO_DL_MODEL_HPP
 	cf_building_model::cf_building_model(const ms_N_building& msNModel, const std::string& fileNameDLSettings, const double& tol /*= 1e-3*/)
 	{
 
 	}
+	#endif
 
 	cf_building_model::cf_building_model(const ms_N_building& msNModel, const std::vector<utilities::geometry::triangular_prism>& triPrism, const double& tol /*= 1e-3*/)
 	:	cf_geometry_model(tol), mMSNModel(msNModel), triPrismInput(triPrism), mTol(tol)

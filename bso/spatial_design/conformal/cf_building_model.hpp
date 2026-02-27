@@ -45,11 +45,13 @@ namespace bso { namespace spatial_design { namespace conformal {
 	public:
 		cf_building_model(const cf_building_model& rhs); //copy constructor
 		cf_building_model(const ms_building& msModel, const double& tol = 1e-3);
-		cf_building_model(const ms_building& msModel, const std::string& fileNameDLSettings, const double& tol = 1e-3);
 		cf_building_model(const ms_building& msModel, const std::vector<utilities::geometry::quad_hexahedron>& quadHexa, const double& tol = 1e-3); // Insert an already valid conformal geometry represented in quad_hexehedrons
 		cf_building_model(const ms_N_building& msNModel, const double& tol = 1e-3);
-		cf_building_model(const ms_N_building& msNModel, const std::string& fileNameDLSettings, const double& tol = 1e-3);
 		cf_building_model(const ms_N_building& msNModel, const std::vector<utilities::geometry::triangular_prism>& triPrismPtr, const double& tol = 1e-3); // Insert an already valid conformal geometry represented in triangular prims
+		#ifdef BSO_DL_MODEL_HPP // Only for daylight analysis, as these take into acount window placements in the conformal model as required.
+		cf_building_model(const ms_building& msModel, const std::string& fileNameDLSettings, const double& tol = 1e-3);
+		cf_building_model(const ms_N_building& msNModel, const std::string& fileNameDLSettings, const double& tol = 1e-3);
+		#endif
 		~cf_building_model();		
 
 		const std::vector<cf_point*			>& cfPoints() 		const { return mCFPoints;}

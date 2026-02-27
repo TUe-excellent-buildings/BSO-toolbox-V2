@@ -1,5 +1,5 @@
-#ifndef DL_MODEL_HPP
-#define DL_MODEL_HPP
+#ifndef BSO_DL_MODEL_HPP
+#define BSO_DL_MODEL_HPP
 
 #include <ostream>
 #include <sstream>
@@ -115,4 +115,4 @@ the daylight calculation will perform.
 
 #include <bso/daylight/dl_model.cpp>
 
-#endif //DL_MODEL_HPP
+#endif //BSO_DL_MODEL_HPP

@@ -2,17 +2,17 @@
 #include <bso/spatial_design/cf_building.hpp>
 #include <bso/structural_design/sd_model.hpp>
 #include <bso/building_physics/bp_model.hpp>
-#include <bso/daylight/dl_model.hpp>
+//#include <bso/daylight/dl_model.hpp>
 #include <bso/grammar/grammar.hpp>
 #include <bso/visualization/visualization.hpp>
 
 int main(int argc, char* argv[])
 {
  // initialize a movable sizable model named MS
- bso::spatial_design::ms_building MS("ms_input_file.txt");
+ bso::spatial_design::ms_N_building MS("ms_N_input_file.txt");
 
  // convert MS to a conformal model name CF
- bso::spatial_design::cf_building CF(MS, "settings/dl_settings.txt");
+ bso::spatial_design::cf_building CF(MS/*, "settings/dl_settings.txt"*/);
 
  // create an instance of the grammar base class named gram using CF
  bso::grammar::grammar gram(CF);
@@ -43,17 +43,17 @@ int main(int argc, char* argv[])
 
  std::cout << "Total cooling energy: " << BP.getTotalResults().mTotalCoolingEnergy << std::endl;
 
- // use the default daylight design grammar to create a
- // daylight model named DL, using settings defined in
- // settings/dl_settings.txt
- bso::daylight::dl_model DL = gram.dl_grammar <bso::grammar::DEFAULT_DL_GRAMMAR >(std::string("settings/dl_settings.txt"));
+//  // use the default daylight design grammar to create a
+//  // daylight model named DL, using settings defined in
+//  // settings/dl_settings.txt
+//  bso::daylight::dl_model DL = gram.dl_grammar <bso::grammar::DEFAULT_DL_GRAMMAR >(std::string("settings/dl_settings.txt"));
 
- // analyze the daylight model
- DL.analyse();
+//  // analyze the daylight model
+//  DL.analyse();
 
- // output result of the analysis
- std::cout << "ADF building score: " << DL.getTotalResults().mADFbuilding << std::endl;
- std::cout << "NEN building score: " << DL.getTotalResults().mTotalScore << std::endl;
+//  // output result of the analysis
+//  std::cout << "ADF building score: " << DL.getTotalResults().mADFbuilding << std::endl;
+//  std::cout << "NEN building score: " << DL.getTotalResults().mTotalScore << std::endl;
 
  // visualize the different models
  bso::visualization::initVisualization(argc, argv);
@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
  bso::visualization::visualize(SD,"component");
  bso::visualization::visualize(SD,"element");
  bso::visualization::visualize(BP);
- bso::visualization::visualize(DL, "");
+ //bso::visualization::visualize(DL, "");
  bso::visualization::endVisualization();
 
  return 0;

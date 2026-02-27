@@ -38,7 +38,7 @@ private:
 	std::map<spatial_design::conformal::cf_surface*, rule_set::surface_property*> mSurfaceProperties;
 	std::map<spatial_design::conformal::cf_space*, rule_set::space_property*> mSpaceProperties;
 
-	#ifdef SD_MODEL_HPP
+	#ifdef SD_MODEL_HPP // variables and functions related to the structural design grammar
 	std::map<spatial_design::conformal::cf_vertex*, rule_set::sd_vertex_rule*> mSDVertexRules;
 	std::map<spatial_design::conformal::cf_line*, rule_set::sd_line_rule*> mSDLineRules;
 	std::map<spatial_design::conformal::cf_rectangle*, rule_set::sd_rectangle_rule*> mSDRectangleRules;
@@ -60,7 +60,7 @@ private:
 	void mReadSDSettings(const std::string& fileName); // see file grammar_sd_specifics.cpp for content of this function
 	#endif
 
-	#ifdef BSO_BP_MODEL_HPP
+	#ifdef BSO_BP_MODEL_HPP // variables and functions related to the building physics grammar
 	std::map<spatial_design::conformal::cf_space*, rule_set::bp_space_rule*> mBPSpaceRules;
 	std::map<spatial_design::conformal::cf_rectangle*, rule_set::bp_rectangle_rule*> mBPRectangleRules;
 	std::map<spatial_design::conformal::cf_triangle*, rule_set::bp_triangle_rule*> mBPTriangleRules;
@@ -80,7 +80,7 @@ private:
 	void mReadBPSettings(const std::string& fileName); // see file grammar_bp_specific.cpp for content of this function
 	#endif
 		
-	//#ifdef DL_MODEL_HPP
+	#ifdef BSO_DL_MODEL_HPP // variables and functions related to the daylight grammar
 	/*
 	Store here the variables defined in the 'setting file' for the daylight grammar variables.
 	These variables are obtained with the help of the function mReadDLSettings()
@@ -106,7 +106,7 @@ private:
 	// rule sets/grammars to define the dl_model according to your rectangles
 	std::map<spatial_design::conformal::cf_rectangle*, rule_set::dl_rectangle_rule*> mDLRectangleRules;
 	void mReadDLSettings(const std::string& fileName); // see file grammar_dl_specific.cpp for content of this function
-	//#endif
+	#endif
 
 public:
 	grammar(const spatial_design::cf_building& cf);
@@ -126,13 +126,9 @@ public:
 		{return mIntermediateBPModels;}
 	#endif
 
-/*
-	Hieronder word je functie in je nieuw te defineren bestand default_dl_grammar.cpp (in directory bso/grammar/dl_grammars) beschikbaar gemaakt voor je grammar object
-	*/	
-	//#ifdef DL_MODEL_HPP 
+	#ifdef BSO_DL_MODEL_HPP 
 	template <typename T = DEFAULT_DL_GRAMMAR, typename...ARGS>
 	bso::daylight::dl_model dl_grammar(const ARGS&...);
-	//#endif
 	
 	//QH functions to get access
 	const std::map<spatial_design::conformal::cf_point*, rule_set::point_property*>& getPointPropertiesQH() const;
@@ -148,6 +144,7 @@ public:
 	const std::vector<double> getWindowDimensionsQH() { return WindowDimensions;};
 	const std::vector<double> getDF_SettingsQH() { return DF_Settings;};
 	const std::vector<double> getDF_EvaluationQH() { return DF_Evaluation;};
+	#endif
 
 	std::vector<bso::utilities::geometry::quadrilateral> getExteriorWalls();
 	std::vector<bso::utilities::geometry::quadrilateral> getExteriorQuadrilaterals();
@@ -170,16 +167,9 @@ public:
 #include <bso/grammar/bp_grammars/default_bp_grammar.cpp>
 #endif
 
-/*
-Hieronder worden de bestanden gedeclareerd voor de linker van de compiler die nodig zijn als de #include dl_model 
-	id toegevoegd is aan de main file.
-De statement ifDef zorg ervoor dus voor dat alleen de bestanden toegevoegd worden als dl_model is #included in de 
-	main file waarmee je je programmar runt.
-Zie ook de meerdere ifdef secties in dit grammar bestand.
-*/
-//#ifdef BP_MODEL_HPP 
+#ifdef BSO_DL_MODEL_HPP 
 #include <bso/grammar/grammar_dl_specifics.cpp>
 #include <bso/grammar/dl_grammars/default_dl_grammar.cpp>
-//#endif
+#endif
 
 #endif // BSO_GRAMMAR_HPP
