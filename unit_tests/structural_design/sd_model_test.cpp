@@ -9,7 +9,7 @@
 // Only for getLoadtest:
 #include <bso/spatial_design/ms_N_building.hpp>
 #include <bso/spatial_design/cf_building.hpp>
-#include <bso/building_physics/bp_model.hpp> // not needed in this test. However, when compiling all unit tests, the bp_model.hpp must be included before grammar.hpp to make the DEFAULT_BP_GRAMMAR available as it contains a conditional compiler statement based on BSO_BP_MODEL_HPP
+#include <bso/building_physics/bp_model.hpp> // not needed in this test. However, when compiling all unit tests, the bp_model.hpp must be included before grammar.hpp to make the DEFAULT_BP_GRAMMAR available as it contains a conditional compiler statement based on BP_MODEL_HPP
 #include <bso/grammar/grammar.hpp>
 
 /*

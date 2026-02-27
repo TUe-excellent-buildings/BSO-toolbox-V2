@@ -477,7 +477,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		// add the additional vertices where the conformal model  needs to adhere to
 		for(const auto j: addConstrainVertexes)
 		{
-			constrainVertexes.push_back(j); //store in object variable for copy constructor
+			mConstrainVertexes.push_back(j); //store in object variable for copy constructor
 			this->addVertex(j);
 		}
 		
@@ -499,11 +499,11 @@ namespace bso { namespace spatial_design { namespace conformal {
 			
 	} //  makeConformal()
 	
-	void cf_building_model::makeConformalND(const ms_N_building& msNModel) // Delaunay method
+	void cf_building_model::makeConformalND(const ms_N_building& msNModel, const std::vector<utilities::geometry::vertex>& additionalConstrains) // Delaunay method
 	{ //
 		// Declarations for needed information per space
 		std::vector<utilities::geometry::quad_hexahedron> spacesAtLevel;
-		//std::vector<utilities::geometry::quad_hexahedron> spacesAtGround; // Declared in private section class to allow for visualization
+		//std::vector<utilities::geometry::quad_hexahedron> mSpacesAtGround; // Declared in private section class to allow for visualization
 		std::vector<utilities::geometry::vertex> highV;
 		std::vector<utilities::geometry::vertex> LowV;
 		
@@ -539,7 +539,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 			std::vector<utilities::geometry::vertex> vertices_1;
 			utilities::geometry::vertex shift = {0,0,(LowV.back()).z()};
 			for(auto k: (spacesAtLevel.back())){vertices_1.push_back(k-shift);}
-			spacesAtGround.push_back(utilities::geometry::quad_hexahedron(vertices_1, mTol));
+			mSpacesAtGround.push_back(utilities::geometry::quad_hexahedron(vertices_1, mTol));
 			
 			// Determine all the floor levels in the building spatial designs
 			bool highVUnique = true;
@@ -561,9 +561,6 @@ namespace bso { namespace spatial_design { namespace conformal {
 			count++;
 		}
 		
-		// Sort allLevels for later use in triangular prism cell definition.
-		sort(allLevels.begin(), allLevels.end());
-		
 		// Declaration delaunay variables
 		std::vector <utilities::geometry::vertex> delauneyPoints; // Points to be inserted into the delauney triangulation
 		// std::vector <utilities::geometry::line_segment> delauneyLines; // Lines where the delauney triangulation should constrain to; Declared in class to support posible visualization by long time storage of variable
@@ -572,7 +569,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		for(int i=0; i<count; i++)
 		{
 			//Add all unique cornerpoints at z=0 of spaceAtGround to the delauneyPoints
-			for(const auto& j: spacesAtGround[i])
+			for(const auto& j: mSpacesAtGround[i])
 			{
 				utilities::geometry::vertex temp = {j.x(),j.y(),0};
 
@@ -593,12 +590,12 @@ namespace bso { namespace spatial_design { namespace conformal {
 			
 		for(int i=0; i<count; i++)
 		{ 
-			for (const auto& k : spacesAtGround[i].getLines())
+			for (const auto& k : mSpacesAtGround[i].getLines())
 			{
 				// Add the unique lines of each space to delauneyLines
 				utilities::geometry::vertex Ltemp1 = {k[0].x(),k[0].y(),0};
 				utilities::geometry::vertex Ltemp2 = {k[1].x(),k[1].y(),0};
-				utilities::geometry::line_segment Ltemp {{Ltemp1},{Ltemp2}}; //Note the line is newly defined for the case that some round of error occur during the shifting of the lines of the spacesAtGround[i]
+				utilities::geometry::line_segment Ltemp {{Ltemp1},{Ltemp2}}; //Note the line is newly defined for the case that some round of error occur during the shifting of the lines of the mSpacesAtGround[i]
 				
 				bool doubleInsert = false;
 				for (const auto& m : delauneyLines)
@@ -622,7 +619,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 				for(int j=i+1; j<count; j++)
 				{
 					if(i == j){continue;}
-					for (const auto& l : spacesAtGround[j].getLines())
+					for (const auto& l : mSpacesAtGround[j].getLines())
 					{
 						if (k.intersectsWith(l, pIntersection, mTol))
 						{
@@ -648,6 +645,43 @@ namespace bso { namespace spatial_design { namespace conformal {
 			}
 		}
 		
+		// Add additional constraint vertices (e.g., window constraints) projected to z=0 plane
+		for(const auto& constrainVertex : additionalConstrains)
+		{
+			utilities::geometry::vertex temp = {constrainVertex.x(), constrainVertex.y(), 0};
+			
+			bool uniqueLevel = true;
+			for(const auto& level : allLevels)
+			{
+				if(constrainVertex.z() <= (level + mTol) && constrainVertex.z() >= (level - mTol))
+				{
+					uniqueLevel = false;
+					break;
+				}
+			}
+			if(uniqueLevel)
+			{
+				allLevels.push_back(constrainVertex.z());
+			}
+			
+			bool doubleInsert = false;
+			for (const auto& m : delauneyPoints)
+			{// check if temp already exists in delauneyPoints
+				if (m.isSameAs(temp, mTol))
+				{
+					doubleInsert = true;
+					break;
+				}
+			}
+			if(doubleInsert == false)
+			{//if not, then add to delaunayPoints
+				delauneyPoints.push_back(temp);
+			}
+		}
+	
+		// Sort allLevels for later use in triangular prism cell definition.
+		sort(allLevels.begin(), allLevels.end());
+		
 		// Split lines at intersection vertices and remove duplicated lines
 		bso::utilities::splitLines(delauneyPoints, delauneyLines, mTol);// this prevent the generation of triangles on one line or triangles containing duplicate vertices
 
@@ -665,7 +699,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 				bool allNodesInside = true;
 				for(const auto& k: j)
 				{
-					if(!spacesAtGround[i].isInsideOrOn(k, mTol))
+					if(!mSpacesAtGround[i].isInsideOrOn(k, mTol))
 					{
 						//Additional checks for prevention malfunctioning, which has been previously observed
 						//Note; the tolerance of 0.001 is applied differently in each geometry check. 
@@ -674,7 +708,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 						//For this reason are all possible geometry checks applied.
 						
 						bool anyTrue = false;
-						for(const auto& l: spacesAtGround[i].getLines())
+						for(const auto& l: mSpacesAtGround[i].getLines())
 						{
 							if(l.isOnLine(k, mTol))
 							{
@@ -682,7 +716,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 							}
 						}
 
-						for(const auto& l : spacesAtGround[i])
+						for(const auto& l : mSpacesAtGround[i])
 						{
 							if(l.isSameAs(k, mTol))
 							{
@@ -713,7 +747,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 											{
 												errorMessage << i << std::endl;
 											}
-						   errorMessage << "the considered space at ground is: " << spacesAtGround[i] << "\n"
+						   errorMessage << "the considered space at ground is: " << mSpacesAtGround[i] << "\n"
 										<< "(bso/utilities/geomtry/cf_building_model.cpp)" << std::endl;
 							throw std::invalid_argument(errorMessage.str());
 			}
@@ -801,18 +835,14 @@ namespace bso { namespace spatial_design { namespace conformal {
 		while(spaceCount2 < rhs.mMSNModel.getSpacePtrs().size()) spaceCount2++;
 		if(spaceCount1 > 0 && spaceCount2 == 0) 
 		{
-			if(rhs.quadHexaInput.size() != 0)newPtr = new cf_building_model(rhs.mMSModel, rhs.quadHexaInput, rhs.mTol);
-			#ifdef BSO_DL_MODEL_HPP
+			if(rhs.mQuadHexaInput.size() != 0)newPtr = new cf_building_model(rhs.mMSModel, rhs.mQuadHexaInput, rhs.mTol);
 			else if(rhs.mfileNameDLSettings != "") newPtr = new cf_building_model(rhs.mMSModel, rhs.mfileNameDLSettings, rhs.mTol);
-			#endif
 			else newPtr = new cf_building_model(rhs.mMSModel, rhs.mTol);
 		}
 		else if(spaceCount2 > 0 && spaceCount1 == 0) 
 		{
-			if(rhs.triPrismInput.size() != 0)newPtr = new cf_building_model(rhs.mMSNModel, rhs.triPrismInput, rhs.mTol);
-			#ifdef BSO_DL_MODEL_HPP
+			if(rhs.mTriPrismInput.size() != 0)newPtr = new cf_building_model(rhs.mMSNModel, rhs.mTriPrismInput, rhs.mTol);
 			else if(rhs.mfileNameDLSettings != "") newPtr = new cf_building_model(rhs.mMSNModel, rhs.mfileNameDLSettings, rhs.mTol);
-			#endif
 			else newPtr = new cf_building_model(rhs.mMSNModel, rhs.mTol);
 		}
 		else
@@ -838,7 +868,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 	} // 
 
 	cf_building_model::cf_building_model(const ms_building& msModel, const std::vector<utilities::geometry::quad_hexahedron>& quadHexa, const double& tol /*= 1e-3*/)
-	:	cf_geometry_model(tol), mMSModel(msModel), quadHexaInput(quadHexa), mTol(tol)
+	:	cf_geometry_model(tol), mMSModel(msModel), mQuadHexaInput(quadHexa), mTol(tol)
 	{ // 
 		long unsigned int count = 0;
 		for (const auto& i : mMSModel)
@@ -864,186 +894,126 @@ namespace bso { namespace spatial_design { namespace conformal {
 		}
 	} // 
 
-	#ifdef BSO_DL_MODEL_HPP
 	cf_building_model::cf_building_model(const ms_building& msModel, const std::string& fileNameDLSettings, const double& tol /*= 1e-3**/)
 	: cf_geometry_model(tol), mMSModel(msModel), mTol(tol), mfileNameDLSettings(fileNameDLSettings)
 	{//
-			// The following code read the DL Setting file to only retrieve the window definition variables:
-			// WindowHeightRatio, WindowWidthRatio and StartLocationWindow.
-			// The window definition needs to be reflected in the conformal model 
-			// as individual entities, i.e. rectangles or triangles, so that only
-			// one property can be assigned to each. 
+		// The following code read the DL Setting file to only retrieve the window definition variables:
+		// WindowHeightRatio, WindowWidthRatio and StartLocationWindow.
+		// The window definition needs to be reflected in the conformal model 
+		// as individual entities, i.e. rectangles or triangles, so that only
+		// one property can be assigned to each. 
 
-			std::fstream input(fileNameDLSettings);
-			if (!input.is_open())
+		std::fstream input(fileNameDLSettings);
+		if (!input.is_open())
+		{
+			std::stringstream errorMessage;
+			errorMessage << "\nCould not read DL grammar settings, failed to open file:"
+									<< fileNameDLSettings << "\n(bso/spatial_design/conformal/cf_building_model.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+		
+		double WindowHeightRatio;
+		double WindowWidthRatio;
+		double StartLocationWindow;
+
+		std::string line;
+		boost::char_separator<char> sep(","); // defines what separates tokens in a string
+		typedef boost::tokenizer< boost::char_separator<char> > t_tokenizer; // settings for the boost::tokenizer
+		char type_ID; // holds information about what type of information is described by the line currently read
+
+		while(!input.eof())	//Get properties from file
+		{
+			getline(input, line); // get the next line from the file
+			boost::algorithm::trim(line); // remove white space from start and end of line (to see if it is an empty line, remove any incidental white space)
+			if (line == "") //skip empty lines (tokenizer does not like it)
 			{
-				std::stringstream errorMessage;
-				errorMessage << "\nCould not read DL grammar settings, failed to open file:"
-										<< fileNameDLSettings << "\n(bso/spatial_design/conformal/cf_building_model.cpp)" << std::endl;
-				throw std::invalid_argument(errorMessage.str());
+				continue; // continue to next line
 			}
-			
-			double WindowHeightRatio;
-			double WindowWidthRatio;
-			double StartLocationWindow;
+			t_tokenizer tok(line, sep); // tokenize the line
+			t_tokenizer::iterator token = tok.begin(); // set iterator to first token
 
-			std::string line;
-			boost::char_separator<char> sep(","); // defines what separates tokens in a string
-			typedef boost::tokenizer< boost::char_separator<char> > t_tokenizer; // settings for the boost::tokenizer
-			char type_ID; // holds information about what type of information is described by the line currently read
-
-			while(!input.eof())	//Get properties from file
+			try
 			{
-				getline(input, line); // get the next line from the file
-				boost::algorithm::trim(line); // remove white space from start and end of line (to see if it is an empty line, remove any incidental white space)
-				if (line == "") //skip empty lines (tokenizer does not like it)
-				{
-					continue; // continue to next line
-				}
-				t_tokenizer tok(line, sep); // tokenize the line
-				t_tokenizer::iterator token = tok.begin(); // set iterator to first token
-
-				try
-				{
-					type_ID = bso::utilities::trim_and_cast_char(*token);	++token; // interpret first token as type ID
-				}
-				catch (std::exception& e){continue;}
-
-				// if(type_ID == 'C') // the 'C' indicators, indicate the lines which describe the window properties
-				// {
-				// 	WindowHeightRatio = bso::utilities::trim_and_cast_double(*token); ++token;
-				// 	WindowWidthRatio = bso::utilities::trim_and_cast_double(*token); ++token;
-				// 	StartLocationWindow = bso::utilities::trim_and_cast_double(*token); ++token;
-				// 	break;
-				// }
-				// else{continue;} // if the line does not describe window properties, skip to next line
-
-				switch (type_ID)
-				{
-					case 'A': {break;}
-					case 'B': {break;}
-					case 'C': 
-					{ // window dimensions
-						WindowHeightRatio = bso::utilities::trim_and_cast_double(*token); ++token;
-						WindowWidthRatio = bso::utilities::trim_and_cast_double(*token); ++token;
-						StartLocationWindow = bso::utilities::trim_and_cast_double(*token); ++token;
-						break;
-					}
-					case 'D': {break;}			
-					case 'E': {break;}	
-				}
-
-			} 
-			input.close();
-
-			// Check retrieved window properties for validity, if not valid, throw error with explanation of the valid range and the retrieved values for easier debugging.
-			if ((WindowHeightRatio+StartLocationWindow)>100 || WindowHeightRatio>100 || WindowWidthRatio>100) 
-			{
-				std::stringstream errorMessage;
-				errorMessage << "\nEither input variables: WindowHeightRatio[%], WindowWidthRatio[%], or StartLocationWindow[%] \n"
-										<< "is out of valid range. The valid range for these variables is\n"
-							 			<< " between 0 and 100, and the sum of WindowHeightRatio and StartLocationWindow should not exceed 100.\n"
-										<< "The input values are: WindowHeightRatio = " << WindowHeightRatio << "%, WindowWidthRatio = " << WindowWidthRatio << "%, StartLocationWindow = " << StartLocationWindow << "%.\n"
-										<< "the dl_settings file should be checked for the correct input of these variables, see: "
-										<< fileNameDLSettings << "\n(bso/spatial_design/conformal/cf_building_model.cpp)" << std::endl;
-				throw std::invalid_argument(errorMessage.str());
+				type_ID = bso::utilities::trim_and_cast_char(*token);	++token; // interpret first token as type ID
 			}
+			catch (std::exception& e){continue;}
 
-			// Generate the window constraint points to account for in the conformal model
-			// for each space in the MS model based on the retrieved window properties and store in member variable ConstrainsPerSpaceQH for later use in the generation of the conformal model.
-			std::vector<bso::spatial_design::ms_space*> MS_Space;
-			std::vector<bso::utilities::geometry::vertex> MS_start_vertex;
-			std::vector<bso::utilities::geometry::vector> MS_dimensions;
-			std::vector<unsigned int> MS_spaceID;
-			std::vector<std::tuple<unsigned int, std::vector<bso::utilities::geometry::vertex>>> ConstrainsPerSpaceQH;
-
-			for (const auto& i : msModel) { MS_Space.push_back(i); } //retrieve ms_space
-
-			for (const auto& i : MS_Space)
+			if(type_ID == 'C') // the 'C' indicators, indicate the lines which describe the window properties
 			{
-				MS_dimensions.push_back(i->getDimensions());
-				MS_start_vertex.push_back(i->getCoordinates());
-				MS_spaceID.push_back(i->getID());
-			}   //retrieve dimensions, start vertex and ID
-
-			if (MS_dimensions.size() != MS_start_vertex.size() && MS_spaceID.size() != MS_dimensions.size())
-			{
-				throw std::invalid_argument("Incorrect data from MS model for CF constraint points.");
+				WindowHeightRatio = bso::utilities::trim_and_cast_double(*token); ++token;
+				WindowWidthRatio = bso::utilities::trim_and_cast_double(*token); ++token;
+				StartLocationWindow = bso::utilities::trim_and_cast_double(*token); ++token;
+				break; // stop reading the file after retrieving the window properties line, since the other information in the file is not relevant and there is only one line defining the windows.
 			}
+			else{continue;} // if the line does not describe window properties, skip to next line
+		} 
+		input.close();
 
-			for (int i=0 ; i<MS_dimensions.size(); ++i) //loop per space
-			{
+		// Check retrieved window properties for validity, if not valid, throw error with explanation of the valid range and the retrieved values for easier debugging.
+		if ((WindowHeightRatio+StartLocationWindow)>100 || WindowHeightRatio>100 || WindowWidthRatio>100) 
+		{
+			std::stringstream errorMessage;
+			errorMessage << "\nEither input variables: WindowHeightRatio[%], WindowWidthRatio[%], or StartLocationWindow[%] \n"
+									<< "is out of valid range. The valid range for these variables is\n"
+									<< " between 0 and 100, and the sum of WindowHeightRatio and StartLocationWindow should not exceed 100.\n"
+									<< "The input values are: WindowHeightRatio = " << WindowHeightRatio << "%, WindowWidthRatio = " << WindowWidthRatio << "%, StartLocationWindow = " << StartLocationWindow << "%.\n"
+									<< "the dl_settings file should be checked for the correct input of these variables, see: "
+									<< fileNameDLSettings << "\n(bso/spatial_design/conformal/cf_building_model.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
 
-			double spaceX = MS_dimensions[i][0];
-			double spaceY = MS_dimensions[i][1];
-			double spaceZ = MS_dimensions[i][2];
+		// Generate the window constraint points to account for in the conformal model
+		// for each space in the MS model based on the retrieved window properties and 
+		//store in member variable mConstrainsPerSpaceQH for later use in the generation of the conformal model.
+		for (const auto& space : msModel)
+		{
+			auto dimensions = space->getDimensions();
+			auto startVertex = space->getCoordinates();
+			unsigned int spaceID = space->getID();
+
+			double spaceX = dimensions[0];
+			double spaceY = dimensions[1];
+			double spaceZ = dimensions[2];
 			
 			double windowHeight = (WindowHeightRatio/100) * spaceZ;
 			double windowWidthX = (WindowWidthRatio/100) *spaceX;
 			double windowWidthY = (WindowWidthRatio/100) *spaceY;
 			double windowStartPoint = ((100-StartLocationWindow)/100)*spaceZ; //upper left point window
 
-			//constrain vertex in y plane
-			double window_x1 = (MS_start_vertex[i][0] + ((spaceX/2)-(windowWidthX/2))); //std::cout << window_x1 << std::endl;
-			double window_x2 = (MS_start_vertex[i][0] + ((spaceX/2)+(windowWidthX/2))); //std::cout << window_x1 << std::endl;
+			// Constrain vertex in y plane
+			double window_x1 = (startVertex[0] + ((spaceX/2)-(windowWidthX/2)));
+			double window_x2 = (startVertex[0] + ((spaceX/2)+(windowWidthX/2)));
 
-			double window_y1 = (MS_start_vertex[i][1] + ((spaceY/2)-(windowWidthY/2)));
-			double window_y2 = (MS_start_vertex[i][1] + ((spaceY/2)+(windowWidthY/2)));
+			double window_y1 = (startVertex[1] + ((spaceY/2)-(windowWidthY/2)));
+			double window_y2 = (startVertex[1] + ((spaceY/2)+(windowWidthY/2)));
 
-			double window_z1 = (MS_start_vertex[i][2] + windowStartPoint - windowHeight); //lowest point
-			double window_z2 = (MS_start_vertex[i][2] + windowStartPoint); //higest point
-			
-			std::vector<double> CVS = {window_x1, window_x2, window_y1, window_y2, window_z1, window_z2};
+			double window_z1 = (startVertex[2] + windowStartPoint - windowHeight); //lowest point
+			double window_z2 = (startVertex[2] + windowStartPoint); //highest point
 
-			//Constrians in the middle of the space
+			// Constrains in the middle of the space as this adds lines on all the surfaces of the space.
+			// See Quimara van den Hoeven master thesis for more information about this definition and a picture.
 			std::vector<bso::utilities::geometry::vertex> addConstrainVertexQH;
 			addConstrainVertexQH.push_back({window_x1, window_y1, window_z1});
 			addConstrainVertexQH.push_back({window_x2, window_y2, window_z1});
 			addConstrainVertexQH.push_back({window_x2, window_y1, window_z2});
 			addConstrainVertexQH.push_back({window_x1, window_y2, window_z2});
 
-			ConstrainsPerSpaceQH.push_back(std::make_tuple(MS_spaceID[i], addConstrainVertexQH));
+			mConstrainVertexes.push_back({window_x1, window_y1, window_z1}); 
+			mConstrainVertexes.push_back({window_x2, window_y2, window_z1});
+			mConstrainVertexes.push_back({window_x2, window_y1, window_z2});
+			mConstrainVertexes.push_back({window_x1, window_y2, window_z2});
 
-			/*
-			constrain vertex format:
-			x1 y1 z1
-			x2 y2 z1
-			x2 y1 z2
-			x1 y2 z2
-			*/
+			mConstrainsPerSpaceQH[spaceID] = addConstrainVertexQH;
 
-			}//for loop per space
-
-//generateCFVertexConstraints()
-
-			this->ConstrainsPerSpaceQH = ConstrainsPerSpaceQH; //initialize membervariable
-
-//std::vector<bso::utilities::geometry::vertex> GenerateBaseWindowPoints(std::vector<std::tuple<unsigned int, std::vector<bso::utilities::geometry::vertex>>> ConstrainsPerSpaceQH)
-			std::vector<bso::utilities::geometry::vertex> BaseWindowPoints;
-			for (auto& k : ConstrainsPerSpaceQH) 
-			{
-				unsigned int spaceID = std::get<0>(k); // Extract the first element
-				std::vector<bso::utilities::geometry::vertex>& addConstrainVertexQH = std::get<1>(k); // Extract the second element
-				BaseWindowPoints.insert(BaseWindowPoints.end(), addConstrainVertexQH.begin(), addConstrainVertexQH.end()); // Append the vertices to BaseWindowPoints
-			}
-//GenerateBaseWindowPoints()
-
-		std::vector<bso::utilities::geometry::vertex> addConstrainVertexes = BaseWindowPoints;
-		
-		/*
-		// Dit zorgt ervoor dat addContrain is opgeslagen in de variabele constrainVertexes van het object.
-		// Dit is belangerijk voor de copy constructor.
-		*/
-		constrainVertexes = addConstrainVertexes;
-		
-		// Hieronder hetzelfde laten
-		for (const auto& i : mMSModel)
-		{
-			addSpace(*i);
+			// add all spaces to initial conformal model
+			// then make the geometry conformal model conformal with the function 
+			// makeConformal, which will add the necessary geometry to make the geometry 
+			// conformal and remove the geometry that is not needed anymore.
+			addSpace(*space); 
 		}
-		this->makeConformal(addConstrainVertexes);
+		
+		this->makeConformal(mConstrainVertexes);
 	}//
-	#endif
 
 	cf_building_model::cf_building_model(const ms_N_building& msNModel, const double& tol /*= 1e-3*/)
 	:	cf_geometry_model(tol), mMSNModel(msNModel), mTol(tol)
@@ -1051,15 +1021,182 @@ namespace bso { namespace spatial_design { namespace conformal {
 		makeConformalND(msNModel);
 	} // 
 
-	#ifdef BSO_DL_MODEL_HPP
 	cf_building_model::cf_building_model(const ms_N_building& msNModel, const std::string& fileNameDLSettings, const double& tol /*= 1e-3*/)
+	:	cf_geometry_model(tol), mMSNModel(msNModel), mTol(tol), mfileNameDLSettings(fileNameDLSettings)
 	{
+		// The following code read the DL Setting file to only retrieve the window definition variables:
+		// WindowHeightRatio, WindowWidthRatio and StartLocationWindow.
+		// The window definition needs to be reflected in the conformal model 
+		// as individual entities, i.e. rectangles or triangles, so that only
+		// one property can be assigned to each. 
 
-	}
-	#endif
+		std::fstream input(fileNameDLSettings);
+		if (!input.is_open())
+		{
+			std::stringstream errorMessage;
+			errorMessage << "\nCould not read DL grammar settings, failed to open file:"
+									<< fileNameDLSettings << "\n(bso/spatial_design/conformal/cf_building_model.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+		
+		double WindowHeightRatio;
+		double WindowWidthRatio;
+		double StartLocationWindow;
+
+		std::string line;
+		boost::char_separator<char> sep(","); // defines what separates tokens in a string
+		typedef boost::tokenizer< boost::char_separator<char> > t_tokenizer; // settings for the boost::tokenizer
+		char type_ID; // holds information about what type of information is described by the line currently read
+
+		while(!input.eof())	//Get properties from file
+		{
+			getline(input, line); // get the next line from the file
+			boost::algorithm::trim(line); // remove white space from start and end of line (to see if it is an empty line, remove any incidental white space)
+			if (line == "") //skip empty lines (tokenizer does not like it)
+			{
+				continue; // continue to next line
+			}
+			t_tokenizer tok(line, sep); // tokenize the line
+			t_tokenizer::iterator token = tok.begin(); // set iterator to first token
+
+			try
+			{
+				type_ID = bso::utilities::trim_and_cast_char(*token);	++token; // interpret first token as type ID
+			}
+			catch (std::exception& e){continue;}
+
+			if(type_ID == 'C') // the 'C' indicators, indicate the lines which describe the window properties
+			{
+				WindowHeightRatio = bso::utilities::trim_and_cast_double(*token); ++token;
+				WindowWidthRatio = bso::utilities::trim_and_cast_double(*token); ++token;
+				StartLocationWindow = bso::utilities::trim_and_cast_double(*token); ++token;
+				break; // stop reading the file after retrieving the window properties line, since the other information in the file is not relevant and there is only one line defining the windows.
+			}
+			else{continue;} // if the line does not describe window properties, skip to next line
+		} 
+		input.close();
+
+		// Check retrieved window properties for validity, if not valid, throw error with explanation of the valid range and the retrieved values for easier debugging.
+		if ((WindowHeightRatio+StartLocationWindow)>100 || WindowHeightRatio>100 || WindowWidthRatio>100) 
+		{
+			std::stringstream errorMessage;
+			errorMessage << "\nEither input variables: WindowHeightRatio[%], WindowWidthRatio[%], or StartLocationWindow[%] \n"
+									<< "is out of valid range. The valid range for these variables is\n"
+									<< " between 0 and 100, and the sum of WindowHeightRatio and StartLocationWindow should not exceed 100.\n"
+									<< "The input values are: WindowHeightRatio = " << WindowHeightRatio << "%, WindowWidthRatio = " << WindowWidthRatio << "%, StartLocationWindow = " << StartLocationWindow << "%.\n"
+									<< "the dl_settings file should be checked for the correct input of these variables, see: "
+									<< fileNameDLSettings << "\n(bso/spatial_design/conformal/cf_building_model.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+
+		// Generate the window constraint points to account for in the conformal model
+		// for each space in the MS model based on the retrieved window properties and 
+		// store in member variable mConstrainsPerSpaceQH for later use in the generation of the conformal model.
+		for (const auto& space : msNModel)
+		{
+			unsigned int spaceID = space->getID();
+			std::vector<bso::utilities::geometry::vertex> addConstrainVertexTP;
+			const auto& spaceGeometry = space->getGeometry();
+
+			// get vertical quadrilaterals of space to determine the window location and dimensions, 
+			// as these are defined in relation to the vertical surfaces of the space.
+			for(const auto& quad : spaceGeometry.getQuadrilateral())
+			{
+				if(quad.getNormal().isHorizontal(mTol))
+				{
+					// This is a vertical surface; identify bottom and top edges
+					// Find minZ and maxZ to identify which vertices are bottom vs top
+					double minZ = quad[0].z();
+					double maxZ = quad[0].z();
+					
+					for(const auto& vertex : quad)
+					{
+						minZ = std::min(minZ, vertex.z());
+						maxZ = std::max(maxZ, vertex.z());
+					}
+					
+					// Separate vertices into bottom and top pairs
+					std::vector<bso::utilities::geometry::vertex> bottomVertices;
+					std::vector<bso::utilities::geometry::vertex> topVertices;
+					
+					for(const auto& vertex : quad)
+					{
+						if(std::abs(vertex.z() - minZ) < mTol)
+						{
+							bottomVertices.push_back(vertex);
+						}
+						else if(std::abs(vertex.z() - maxZ) < mTol)
+						{
+							topVertices.push_back(vertex);
+						}
+					}
+					
+					// Calculate actual edge dimensions using the actual vertices
+					// Horizontal width is the distance between the two bottom vertices
+					double horizontalWidth = std::sqrt(
+						std::pow(bottomVertices[1].x() - bottomVertices[0].x(), 2) +
+						std::pow(bottomVertices[1].y() - bottomVertices[0].y(), 2)
+					);
+					
+					double verticalHeight = maxZ - minZ;
+					
+					// Calculate the horizontal direction unit vector along the bottom edge
+					bso::utilities::geometry::vertex horizontalDir = {
+						(bottomVertices[1].x() - bottomVertices[0].x()) / horizontalWidth,
+						(bottomVertices[1].y() - bottomVertices[0].y()) / horizontalWidth,
+						0
+					};
+					
+					// Calculate window dimensions based on actual surface dimensions
+					double windowHeight = (WindowHeightRatio/100) * verticalHeight;
+					double windowWidth = (WindowWidthRatio/100) * horizontalWidth;
+					
+					// Calculate window vertical position
+					double windowBottomZ = minZ + ((100 - StartLocationWindow)/100) * verticalHeight - windowHeight;
+					double windowTopZ = minZ + ((100 - StartLocationWindow)/100) * verticalHeight;
+					
+					// Calculate window horizontal position (centered on surface)
+					// Start from the center of the bottom edge
+					bso::utilities::geometry::vertex edgeCenter = {
+						(bottomVertices[0].x() + bottomVertices[1].x()) / 2,
+						(bottomVertices[0].y() + bottomVertices[1].y()) / 2,
+						0
+					};
+					
+					// Calculate the start and end points of the window along the horizontal direction
+					bso::utilities::geometry::vertex windowHorizontalStart = {
+						edgeCenter.x() - (windowWidth / 2) * horizontalDir.x(),
+						edgeCenter.y() - (windowWidth / 2) * horizontalDir.y(),
+						0
+					};
+					
+					bso::utilities::geometry::vertex windowHorizontalEnd = {
+						edgeCenter.x() + (windowWidth / 2) * horizontalDir.x(),
+						edgeCenter.y() + (windowWidth / 2) * horizontalDir.y(),
+						0
+					};
+					
+					// Create constraint vertices at the four corners of the window
+					addConstrainVertexTP.push_back({windowHorizontalStart.x(), windowHorizontalStart.y(), windowBottomZ});
+					addConstrainVertexTP.push_back({windowHorizontalEnd.x(), windowHorizontalEnd.y(), windowBottomZ});
+					addConstrainVertexTP.push_back({windowHorizontalEnd.x(), windowHorizontalEnd.y(), windowTopZ});
+					addConstrainVertexTP.push_back({windowHorizontalStart.x(), windowHorizontalStart.y(), windowTopZ});
+					
+					mAddDelaunayConstrains.push_back({windowHorizontalStart.x(), windowHorizontalStart.y(), windowBottomZ});
+					mAddDelaunayConstrains.push_back({windowHorizontalEnd.x(), windowHorizontalEnd.y(), windowBottomZ});
+					mAddDelaunayConstrains.push_back({windowHorizontalEnd.x(), windowHorizontalEnd.y(), windowTopZ});
+					mAddDelaunayConstrains.push_back({windowHorizontalStart.x(), windowHorizontalStart.y(), windowTopZ});
+				}
+			}
+
+			mConstrainsPerSpaceTP[spaceID] = addConstrainVertexTP;
+		}
+		
+		makeConformalND(msNModel, mAddDelaunayConstrains);
+	} // 
 
 	cf_building_model::cf_building_model(const ms_N_building& msNModel, const std::vector<utilities::geometry::triangular_prism>& triPrism, const double& tol /*= 1e-3*/)
-	:	cf_geometry_model(tol), mMSNModel(msNModel), triPrismInput(triPrism), mTol(tol)
+	:	cf_geometry_model(tol), mMSNModel(msNModel), mTriPrismInput(triPrism), mTol(tol)
 	{ // 
 		int count = 0;
 		for (const auto& i : msNModel)

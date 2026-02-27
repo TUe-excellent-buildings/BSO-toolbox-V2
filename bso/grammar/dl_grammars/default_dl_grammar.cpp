@@ -14,7 +14,8 @@ De reden hiervoor is zodat er in de toekomst meerdere soorten grammar eventueel
 geschreven kunnen worden om een dl_model object te defineren op verschillende manieren.
 
 const std::string& fileName is de naam van de daylight setting file.
-The function below will generate a DL model. This contents preparing the radiance scene, based on the ms representation and settingfile. 
+The function below will generate a DL model. This contents preparing the radiance scene, 
+based on the ms representation and settingfile. 
 Several txt files are created onto which radiance operaties. 
 */
 	
@@ -33,7 +34,7 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
 	const std::vector<double> DF_Settings =  this->getDF_SettingsQH();
 	const std::vector<double> DF_Evaluation =  this->getDF_EvaluationQH();
     std::vector<std::tuple<unsigned int, int>> SpaceID_AmountGridPoints;
-    const std::vector<std::tuple<unsigned int, std::vector<bso::utilities::geometry::vertex>>> ConstrainsPerSpace = mCFBuilding.getConstrainsPerSpaceQH();
+    const std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>> ConstrainsPerSpace = mCFBuilding.getConstrainsPerSpaceQH();
 
 
 //generate daylight model 

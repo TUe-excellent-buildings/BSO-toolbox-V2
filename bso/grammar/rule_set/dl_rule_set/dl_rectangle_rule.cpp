@@ -259,7 +259,7 @@ void writeWindowRadiance(std::ofstream& file, std::vector<bso::utilities::geomet
 
 //----------------------------------------------------------------------------------------------------------------//
 
-bool isQuadInWindowArea(std::vector<bso::utilities::geometry::vertex>& quadVertex, const std::vector<std::tuple<unsigned int, std::vector<bso::utilities::geometry::vertex>>>& ConstrainsPerSpace)
+bool isQuadInWindowArea(std::vector<bso::utilities::geometry::vertex>& quadVertex, const std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>>& ConstrainsPerSpace)
 {
     /*
     this function checks if the current rectangle is within the bounds/area of the base window area of that space 
@@ -269,9 +269,8 @@ bool isQuadInWindowArea(std::vector<bso::utilities::geometry::vertex>& quadVerte
     sortQuadVertex(quadVertex);
     bool isWindow = false;
 
-    for (const auto& k : ConstrainsPerSpace) 
+    for (const auto& [spaceID, BaseWindowPoints] : ConstrainsPerSpace) 
     {
-        const auto& BaseWindowPoints = std::get<1>(k); //std::vector<bso::utilities::geometry::vertex> zijn er 4
 
         double XdomainStart = BaseWindowPoints[0][0];
         double XdomainEnd = BaseWindowPoints[1][0];

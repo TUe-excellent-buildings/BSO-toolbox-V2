@@ -1,5 +1,5 @@
-#ifndef BSO_BP_MODEL_CPP
-#define BSO_BP_MODEL_CPP
+#ifndef BP_MODEL_CPP
+#define BP_MODEL_CPP
 
 #include <boost/numeric/odeint.hpp>
 #include <boost/numeric/odeint/external/eigen/eigen_algebra.hpp>
@@ -434,4 +434,4 @@ bp_results bp_model::getPartialResults(bso::utilities::geometry::polyhedron* geo
 } // namespace building_physics 
 } // namespace bso
 
-#endif // BSO_BP_MODEL_CPP
+#endif // BP_MODEL_CPP

@@ -166,13 +166,13 @@ void xml_model::addSDModel(const bso::structural_design::sd_model& sd)
 } // add_structural_design()
 #endif // SD_MODEL_HPP
 
-#ifdef BSO_BP_MODEL_HPP
+#ifdef BP_MODEL_HPP
 void xml_model::addBPModel(const bso::building_physics::bp_model& bp)
 {
     // check if this SD_model has been initiated with the same conformal design
 
 } // add_building_physics_design()
-#endif // BSO_BP_MODEL_HPP
+#endif // BP_MODEL_HPP
 
 
 ms_building xml_model::initMSBuilding()

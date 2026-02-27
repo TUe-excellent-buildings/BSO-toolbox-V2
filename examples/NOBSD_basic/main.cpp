@@ -2,17 +2,17 @@
 #include <bso/spatial_design/cf_building.hpp>
 #include <bso/structural_design/sd_model.hpp>
 #include <bso/building_physics/bp_model.hpp>
-//#include <bso/daylight/dl_model.hpp>
+#include <bso/daylight/dl_model.hpp>
 #include <bso/grammar/grammar.hpp>
 #include <bso/visualization/visualization.hpp>
 
 int main(int argc, char* argv[])
 {
  // initialize a movable sizable model named MS
- bso::spatial_design::ms_N_building MS("ms_N_input_file.txt");
+ bso::spatial_design::ms_N_building MS("design_317");
 
  // convert MS to a conformal model name CF
- bso::spatial_design::cf_building CF(MS/*, "settings/dl_settings.txt"*/);
+ bso::spatial_design::cf_building CF(MS, "settings/dl_settings.txt");
 
  // create an instance of the grammar base class named gram using CF
  bso::grammar::grammar gram(CF);

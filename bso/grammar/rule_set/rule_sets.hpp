@@ -18,7 +18,7 @@
 #include <bso/grammar/rule_set/sd_rule_set/sd_rule_sets.hpp>
 #endif
 
-#ifdef BSO_BP_MODEL_HPP
+#ifdef BP_MODEL_HPP
 #include <bso/grammar/rule_set/bp_rule_set/bp_rule_sets.hpp>
 #endif
 

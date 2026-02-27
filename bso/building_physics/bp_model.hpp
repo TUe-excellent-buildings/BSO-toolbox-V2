@@ -1,5 +1,5 @@
-#ifndef BSO_BP_MODEL_HPP
-#define BSO_BP_MODEL_HPP
+#ifndef BP_MODEL_HPP
+#define BP_MODEL_HPP
 
 #include <bso/building_physics/state_space_system.hpp>
 #include <bso/building_physics/state/states.hpp>
@@ -97,4 +97,4 @@ struct bp_results
 
 #include <bso/building_physics/bp_model.cpp>
 
-#endif // BSO_BP_MODEL_HPP
+#endif // BP_MODEL_HPP

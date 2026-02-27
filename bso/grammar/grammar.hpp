@@ -12,7 +12,7 @@ namespace bso { namespace grammar {
 class DEFAULT_SD_GRAMMAR;
 #endif
 
-#ifdef BSO_BP_MODEL_HPP
+#ifdef BP_MODEL_HPP
 class DEFAULT_BP_GRAMMAR;
 #endif
 
@@ -60,7 +60,7 @@ private:
 	void mReadSDSettings(const std::string& fileName); // see file grammar_sd_specifics.cpp for content of this function
 	#endif
 
-	#ifdef BSO_BP_MODEL_HPP // variables and functions related to the building physics grammar
+	#ifdef BP_MODEL_HPP // variables and functions related to the building physics grammar
 	std::map<spatial_design::conformal::cf_space*, rule_set::bp_space_rule*> mBPSpaceRules;
 	std::map<spatial_design::conformal::cf_rectangle*, rule_set::bp_rectangle_rule*> mBPRectangleRules;
 	std::map<spatial_design::conformal::cf_triangle*, rule_set::bp_triangle_rule*> mBPTriangleRules;
@@ -80,7 +80,7 @@ private:
 	void mReadBPSettings(const std::string& fileName); // see file grammar_bp_specific.cpp for content of this function
 	#endif
 		
-	#ifdef BSO_DL_MODEL_HPP // variables and functions related to the daylight grammar
+	#ifdef DL_MODEL_HPP // variables and functions related to the daylight grammar
 	/*
 	Store here the variables defined in the 'setting file' for the daylight grammar variables.
 	These variables are obtained with the help of the function mReadDLSettings()
@@ -100,7 +100,7 @@ private:
 	std::vector<double> WindowDimensions;
 	std::vector<double> DF_Settings;
 	std::vector<double> DF_Evaluation;
-	std::vector<std::tuple<unsigned int, std::vector<bso::utilities::geometry::vertex>>> ConstrainsPerSpaceQH;
+	std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>> ConstrainsPerSpaceQH;
 	std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>> mRectangleWindowYNGram = {};
 
 	// rule sets/grammars to define the dl_model according to your rectangles
@@ -119,14 +119,14 @@ public:
 		{return mIntermediateSDModels;}
 	#endif
 
-	#ifdef BSO_BP_MODEL_HPP
+	#ifdef BP_MODEL_HPP
 	template <typename T = DEFAULT_BP_GRAMMAR, typename...ARGS>
 	bso::building_physics::bp_model bp_grammar(const ARGS&...);
 	const std::vector<building_physics::bp_model> getIntermediateBPModels() const
 		{return mIntermediateBPModels;}
 	#endif
 
-	#ifdef BSO_DL_MODEL_HPP 
+	#ifdef DL_MODEL_HPP 
 	template <typename T = DEFAULT_DL_GRAMMAR, typename...ARGS>
 	bso::daylight::dl_model dl_grammar(const ARGS&...);
 	
@@ -162,12 +162,12 @@ public:
 #include <bso/grammar/sd_grammars/volume_sd_grammar.cpp>
 #endif
 
-#ifdef BSO_BP_MODEL_HPP
+#ifdef BP_MODEL_HPP
 #include <bso/grammar/grammar_bp_specifics.cpp>
 #include <bso/grammar/bp_grammars/default_bp_grammar.cpp>
 #endif
 
-#ifdef BSO_DL_MODEL_HPP 
+#ifdef DL_MODEL_HPP 
 #include <bso/grammar/grammar_dl_specifics.cpp>
 #include <bso/grammar/dl_grammars/default_dl_grammar.cpp>
 #endif

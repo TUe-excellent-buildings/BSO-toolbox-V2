@@ -1,5 +1,5 @@
-#ifndef BP_MODEL_HPP
-#define BP_MODEL_HPP
+#ifndef VIS_BP_MODEL_HPP
+#define VIS_BP_MODEL_HPP
 
 #include <bso/building_physics/bp_model.hpp>
 #include <bso/visualization/models/model_base.hpp>
@@ -111,4 +111,4 @@ void BP_Model::render(const camera &cam) const
 } // namespace BSO
 
 
-#endif // BP_MODEL_HPP
+#endif // VIS_BP_MODEL_HPP

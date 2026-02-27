@@ -1,5 +1,5 @@
-#ifndef BSO_DL_MODEL_CPP
-#define BSO_DL_MODEL_CPP
+#ifndef DL_MODEL_CPP
+#define DL_MODEL_CPP
 
 #include <filesystem>
 #include <cstdlib>
@@ -458,4 +458,4 @@ namespace bso { namespace daylight {
 } // namespace daylight
 } // namespace bso
 
-#endif // BSO_DL_MODEL_CPP
+#endif // DL_MODEL_CPP

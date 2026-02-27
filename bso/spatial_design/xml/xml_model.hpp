@@ -29,9 +29,9 @@ public:
     void addSDModel(const bso::structural_design::sd_model& sd);
     #endif // SD_MODEL_HPP
 
-    #ifdef BSO_BP_MODEL_HPP
+    #ifdef BP_MODEL_HPP
     void addBPModel(const bso::building_physics::bp_model& bp);
-    #endif // BSO_BP_MODEL_HPP
+    #endif // BP_MODEL_HPP
 
     ms_building initMSBuilding();
 
