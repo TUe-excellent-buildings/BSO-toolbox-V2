@@ -623,13 +623,36 @@ std::map<int, SpaceInfo> getBuildingData(const bso::spatial_design::ms_N_buildin
 
 
 // -------------------------------------------------- //
+// EXPOSED FUNCTIONS
+// -------------------------------------------------- //
 double calculate_dissimilarity(const bso::spatial_design::ms_N_building MS1, const bso::spatial_design::ms_N_building MS2) {
 	// Load MS model A
 	std::map<int, SpaceInfo> buildingA = getBuildingData(MS1);
 	// Load MS model B
 	std::map<int, SpaceInfo> buildingB = getBuildingData(MS2);
 	double result = scale_dissimilarity(buildingA, buildingB);
-	return results;
+	return result;
 }
+
+double calculate_dissimilarity_weighted(const bso::spatial_design::ms_N_building MS1, const bso::spatial_design::ms_N_building MS2, 
+                                            int rot = 3, double w1 = 1, double w2 = 1, double w3 = 1) {
+    // Load MS model A
+    std::map<int, SpaceInfo> buildingA = getBuildingData(MS1);
+    // Load MS model B
+    std::map<int, SpaceInfo> buildingB = getBuildingData(MS2);
+    double result = scale_dissimilarity(buildingA, buildingB, rot, w1, w2, w3);
+    return result;
+}
+
+
+std::array<double, 3> calculate_dissimilarity_components(const bso::spatial_design::ms_N_building MS1, const bso::spatial_design::ms_N_building MS2) {
+    // Load MS model A
+    std::map<int, SpaceInfo> buildingA = getBuildingData(MS1);
+    // Load MS model B
+    std::map<int, SpaceInfo> buildingB = getBuildingData(MS2);
+    std::array<double, 3> result = opt_vec_dis(buildingA, buildingB);
+    return result;
+}
+
 
 #endif // DISSIMILARITY_CPP
