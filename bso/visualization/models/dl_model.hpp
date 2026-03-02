@@ -142,41 +142,6 @@ DL_Model::DL_Model(const bso::daylight::dl_model& dl, const std::string& type, c
 			this->addBoundaryLinesForSpace(i); //lines
 		}
 	}
-	else if (type == "orientation") //dlo
-	{	
-		std::vector<std::vector<const bso::spatial_design::conformal::cf_rectangle*>> CardinalDirections = dl.getCardinalDirections();
-
-		for (size_t i = 0; i < CardinalDirections.size(); ++i) //std::vector<std::vector<const bso::spatial_design::conformal::cf_rectangle*>>
-		{
-			for (size_t j = 0; j < CardinalDirections[i].size(); ++j)
-			{
-				const bso::spatial_design::conformal::cf_rectangle* rect = CardinalDirections[i][j];
-				std::vector<geom::vertex> rectangleVertices;
-				for (const auto& vertex : *rect) 
-				{
-				rectangleVertices.push_back(rect->getCenter() + vertex - rect->getCenter());
-				}
-				geom::quadrilateral rectangleGeometry(rectangleVertices);
-
-				if (i==0) {this->addPolygon(polygons, &rectangleGeometry, &pprops_north, &lprops_rectangles, 0.0);}
-				if (i==1) {this->addPolygon(polygons, &rectangleGeometry, &pprops_east, &lprops_rectangles, 0.0);}
-				if (i==2) {this->addPolygon(polygons, &rectangleGeometry, &pprops_south, &lprops_rectangles, 0.0);}
-				if (i==3) {this->addPolygon(polygons, &rectangleGeometry, &pprops_west, &lprops_rectangles, 0.0);}
-			}
-
-        }
-
-		for (const auto i: dl.getCeilings()) //==rectangle
-		{
-			std::vector<geom::vertex> rectangleVertices;
-			for (const auto& vertex : *i) 
-			{
-				rectangleVertices.push_back(i->getCenter() + vertex - i->getCenter());
-			}
-			geom::quadrilateral rectangleGeometry(rectangleVertices);
-			this->addPolygon(polygons, &rectangleGeometry, &pprops_wall, &lprops_rectangles, 0.0);
-		}
-    }
 		
 	pbsp = new random_bsp(polygons); 
 

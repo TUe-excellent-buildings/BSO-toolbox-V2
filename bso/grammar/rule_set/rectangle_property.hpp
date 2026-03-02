@@ -16,6 +16,7 @@ private:
 	
 	bool mIsFloor = false;
 	bool mIsWall = false;
+	bool mIsWindow = false;
 	bool mIsSpaceSeparating	= false;
 	bool mIsExternal = false;
 	bool mIsRoof = false;
@@ -33,6 +34,7 @@ public:
 	
 	const bool& isWall() const {return mIsWall;}
 	const bool& isFloor() const {return mIsFloor;}
+	const bool& isWindow() const {return mIsWindow;}
 	const bool& isSpaceSeparating() const {return mIsSpaceSeparating;}
 	const bool& isExternal() const {return mIsExternal;}
 	const bool& isRoof() const {return mIsRoof;}

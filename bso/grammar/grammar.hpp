@@ -38,6 +38,11 @@ private:
 	std::map<spatial_design::conformal::cf_surface*, rule_set::surface_property*> mSurfaceProperties;
 	std::map<spatial_design::conformal::cf_space*, rule_set::space_property*> mSpaceProperties;
 
+	// Holds the sets of window corner-vertices either four for rectangles or three for triangles for each space, 
+	// inserted in the conformal model so the rectangles/triangles in the conformal model reflects these boundaries.
+	// It is stored here so windows vs. wall can be identified based on the presence of these corner-vertices in the rectangle/triangle.
+	std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>> mWindowsPerSpace;
+
 	#ifdef SD_MODEL_HPP // variables and functions related to the structural design grammar
 	std::map<spatial_design::conformal::cf_vertex*, rule_set::sd_vertex_rule*> mSDVertexRules;
 	std::map<spatial_design::conformal::cf_line*, rule_set::sd_line_rule*> mSDLineRules;
@@ -100,7 +105,6 @@ private:
 	std::vector<double> WindowDimensions;
 	std::vector<double> DF_Settings;
 	std::vector<double> DF_Evaluation;
-	std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>> ConstrainsPerSpaceQH;
 	std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>> mRectangleWindowYNGram = {};
 
 	// rule sets/grammars to define the dl_model according to your rectangles
@@ -130,20 +134,6 @@ public:
 	template <typename T = DEFAULT_DL_GRAMMAR, typename...ARGS>
 	bso::daylight::dl_model dl_grammar(const ARGS&...);
 	
-	//QH functions to get access
-	const std::map<spatial_design::conformal::cf_point*, rule_set::point_property*>& getPointPropertiesQH() const;
-	const std::map<spatial_design::conformal::cf_rectangle*, rule_set::rectangle_property*> getRectanglePropertiesQH() { return mRectangleProperties;};
-	const std::map<spatial_design::conformal::cf_surface*, rule_set::surface_property*> getSurfacePropertiesQH() {return mSurfaceProperties;};
-	const std::map<spatial_design::conformal::cf_space*, rule_set::space_property*> getSpacePropertiesQH() {return mSpaceProperties;};
-	
-	void setrectWindowProperties(std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>>& rwYN) {mRectangleWindowYNGram =rwYN;}
-	const std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>>& getrectWindowProperties() const {return mRectangleWindowYNGram;}
-	
-	const std::vector<std::string> getReflectanceValuesQH() { return ReflectanceValues;};
-	const std::vector<std::string> getWindowPropertiesQH() { return WindowProperties;};
-	const std::vector<double> getWindowDimensionsQH() { return WindowDimensions;};
-	const std::vector<double> getDF_SettingsQH() { return DF_Settings;};
-	const std::vector<double> getDF_EvaluationQH() { return DF_Evaluation;};
 	#endif
 
 	std::vector<bso::utilities::geometry::quadrilateral> getExteriorWalls();

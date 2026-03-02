@@ -47,7 +47,16 @@ grammar::grammar(const spatial_design::cf_building& cf)
 	{
 		mSpaceProperties[i] = new rule_set::space_property(i);
 	}
-	
+
+	// Retrieve window constraints from the CF building model based on either QH or TP conformal model.
+	if(mCFBuilding.getWindowConstrainsPerSpaceQH().size() > 0)
+	{
+		mWindowsPerSpace = mCFBuilding.getWindowConstrainsPerSpaceQH();	
+	}
+	else if(mCFBuilding.getWindowConstrainsPerSpaceTP().size() > 0)
+	{
+		mWindowsPerSpace = mCFBuilding.getWindowConstrainsPerSpaceTP();	
+	}
 } // ctor()
 
 grammar::~grammar()

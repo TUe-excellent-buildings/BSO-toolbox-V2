@@ -29,7 +29,7 @@ namespace bso { namespace daylight {
 	
 	dl_model::dl_model(const dl_model& rhs) 
 	: SpaceID_AmountGridPoints(rhs.SpaceID_AmountGridPoints), DF_Settings(rhs.DF_Settings), DF_Evaluation(rhs.DF_Evaluation), folderName(rhs.folderName), 
-		mRectangleWindowYN(rhs.mRectangleWindowYN), mcf_space(rhs.mcf_space), mCardinalDirections(rhs.mCardinalDirections), mCeilings(rhs.mCeilings),
+		mRectangleWindowYN(rhs.mRectangleWindowYN), mcf_space(rhs.mcf_space), mCeilings(rhs.mCeilings),
 		DFresults(rhs.DFresults), roomInfo(rhs.roomInfo)
 	{
 
@@ -343,117 +343,6 @@ namespace bso { namespace daylight {
 		
 		return resultsDL;
 	}; //getPartialResults
-
-	std::string dl_model::BuildingOrientationAdvice()
-	{
-			double ADFaverageNorth;
-			double ADFaverageEast;
-			double ADFaverageSouth;
-			double ADFaverageWest;
-
-			for (size_t i=0; i< mCardinalDirections.size(); ++i)
-			{
-				std::vector<double> ADFperSpace;
-				for (const bso::spatial_design::conformal::cf_rectangle* rect : mCardinalDirections[i])
-				{
-					double SpaceID;
-					for (const auto j: (rect->cfSurfaces()))
-					{
-						SpaceID = (((j->cfSpaces())[0])->getSpaceID());
-					}
-
-					for (int j=0; j<DFresults.size(); ++j) //std::vector<std::vector<double>> DFresults; //per [i] : [i][0]=SpaceID, [1]=ADF [2]=Dt% [3]=Dtm% [4]=Score
-					{
-						if (SpaceID == DFresults[j][0])
-						{
-							ADFperSpace.push_back(DFresults[j][1]);
-							break;
-						}
-					}
-				}
-
-				double sum = std::accumulate(ADFperSpace.begin(), ADFperSpace.end(), 0.0);
-				double average = (ADFperSpace.size() > 0) ? sum / ADFperSpace.size() : 0.0;
-			
-				if (i==0) {ADFaverageNorth = average;}
-				if (i==1) {ADFaverageEast = average;}
-				if (i==2) {ADFaverageSouth = average;}
-				if (i==3) {ADFaverageWest = average;}
-			}
-
-			double max[4] = {ADFaverageNorth, ADFaverageEast, ADFaverageSouth, ADFaverageWest};
-			std::sort(max, max+4);
-
-			//max ADF should be north side
-			//if there equal values the max, order of below is leading
-			std::ostringstream oss;	
-			oss << std::fixed << std::setprecision(2);  // Set the precision to 2 decimal places
-			std::string ADFperSide;
-
-			if (max[3] == ADFaverageSouth)
-			{
-				std::vector<std::vector<const bso::spatial_design::conformal::cf_rectangle*>> temp(4);
-				temp[2] = mCardinalDirections[0]; 
-				temp[3] = mCardinalDirections[1];
-				temp[0] = mCardinalDirections[2];
-				temp[1] = mCardinalDirections[3];
-				mCardinalDirections = temp;
-
-				oss << "ADF per Cardinal Direction: "
-					<< "North: " << ADFaverageSouth
-					<< ", East: " << ADFaverageWest
-					<< ", South: " << ADFaverageNorth
-					<< " and West: " << ADFaverageEast;
-				ADFperSide = oss.str();
-			}
-			else if (max[3] == ADFaverageWest) 
-			{
-				std::vector<std::vector<const bso::spatial_design::conformal::cf_rectangle*>> temp(4);
-				
-				temp[2] = mCardinalDirections[1];
-				temp[3] = mCardinalDirections[2];
-				temp[0] = mCardinalDirections[3];
-				temp[1] = mCardinalDirections[0];
-				mCardinalDirections = temp;
-
-				oss << "ADF per Cardinal Direction: "
-					<< "North: " << ADFaverageEast
-					<< ", East: " << ADFaverageSouth
-					<< ", South: " << ADFaverageWest
-					<< " and West: " << ADFaverageNorth;
-				ADFperSide = oss.str();
-			}
-			else if (max[3] == ADFaverageEast) 
-			{
-				std::vector<std::vector<const bso::spatial_design::conformal::cf_rectangle*>> temp(4);			
-				temp[2] = mCardinalDirections[3];
-				temp[3] = mCardinalDirections[0];
-				temp[0] = mCardinalDirections[1];
-				temp[1] = mCardinalDirections[2];
-				mCardinalDirections = temp;
-
-				oss << "ADF per Cardinal Direction: "
-					<< "North: " << ADFaverageWest
-					<< ", East: " << ADFaverageNorth
-					<< ", South: " << ADFaverageEast
-					<< " and West: " << ADFaverageSouth;
-				ADFperSide = oss.str();
-			}
-			else if (max[3] == ADFaverageNorth) 
-			{
-				//nothings happens, cardinal directions (advice) are already in correct order
-				oss << "ADF per Cardinal Direction: "
-					<< "North: " << ADFaverageNorth
-					<< ", East: " << ADFaverageEast
-					<< ", South: " << ADFaverageSouth
-					<< " and West: " << ADFaverageWest;
-				ADFperSide = oss.str();
-			}
-				
-
-	return ADFperSide;
-
-	};//cardinal directions
 
 } // namespace daylight
 } // namespace bso

@@ -47,8 +47,7 @@ the daylight calculation will perform.
 
 		// For visualization
 		std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>> mRectangleWindowYN; 
-		std::vector<bso::spatial_design::conformal::cf_space*> mcf_space; 
-		std::vector<std::vector<const bso::spatial_design::conformal::cf_rectangle*>> mCardinalDirections; 
+		std::vector<bso::spatial_design::conformal::cf_space*> mcf_space;  
 		std::vector<const bso::spatial_design::conformal::cf_rectangle*> mCeilings;
 
 		public: 
@@ -73,14 +72,11 @@ the daylight calculation will perform.
 		const std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>>& getWindowProperties() const {return mRectangleWindowYN;}
 		void setSpacePropertiesQH(std::vector<bso::spatial_design::conformal::cf_space*>& temp_cf_space) {mcf_space = temp_cf_space;}
 		const std::vector<bso::spatial_design::conformal::cf_space*> getSpacePropertiesQH() const { return mcf_space; }
-		void setCardinalDirections(std::vector<std::vector<const bso::spatial_design::conformal::cf_rectangle*>>& directions) {mCardinalDirections = directions;}
-		const std::vector<std::vector<const bso::spatial_design::conformal::cf_rectangle*>> getCardinalDirections() const {return mCardinalDirections;}
 		void setCeilings(std::vector<const bso::spatial_design::conformal::cf_rectangle*>& ceilings) {mCeilings = ceilings;}
 		const std::vector<const bso::spatial_design::conformal::cf_rectangle*> getCeilings() const {return mCeilings;}
 
 		// Functions to request analysis
 		void analyse();
-		std::string BuildingOrientationAdvice();
 		
 		// This functions returns the results of the Radiance run, see BP and SD classes for examples on how this could be done.
 		dl_results getTotalResults();

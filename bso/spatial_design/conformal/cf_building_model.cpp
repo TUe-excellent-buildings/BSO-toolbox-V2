@@ -1003,7 +1003,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 			mConstrainVertexes.push_back({window_x2, window_y1, window_z2});
 			mConstrainVertexes.push_back({window_x1, window_y2, window_z2});
 
-			mConstrainsPerSpaceQH[spaceID] = addConstrainVertexQH;
+			mWindowConstrainsPerSpaceQH[spaceID] = addConstrainVertexQH;
 
 			// add all spaces to initial conformal model
 			// then make the geometry conformal model conformal with the function 
@@ -1189,7 +1189,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 				}
 			}
 
-			mConstrainsPerSpaceTP[spaceID] = addConstrainVertexTP;
+			mWindowConstrainsPerSpaceTP[spaceID] = addConstrainVertexTP;
 		}
 		
 		makeConformalND(msNModel, mAddDelaunayConstrains);

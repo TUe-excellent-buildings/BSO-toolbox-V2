@@ -32,8 +32,8 @@ namespace bso { namespace spatial_design { namespace conformal {
 		std::vector<bso::utilities::geometry::vertex> mConstrainVertexes;
 		std::vector<bso::utilities::geometry::vertex> mAddDelaunayConstrains; // vertices which should be added as constrain points for the delaunay triangulation, for example to make sure that the partitioning is conformal to the window openings.
 		std::string mfileNameDLSettings = ""; 
-		std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>> mConstrainsPerSpaceQH;
-		std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>> mConstrainsPerSpaceTP;
+		std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>> mWindowConstrainsPerSpaceQH;
+		std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>> mWindowConstrainsPerSpaceTP;
 
 		double mTol;
 		
@@ -73,8 +73,8 @@ namespace bso { namespace spatial_design { namespace conformal {
 		const std::vector<utilities::geometry::triangle> getDelaunayTri() const {return delaunayTri;} 
 
 		//function to give access to 
-		const std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>> getConstrainsPerSpaceQH() {return mConstrainsPerSpaceQH;}
-		const std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>> getConstrainsPerSpaceTP() {return mConstrainsPerSpaceTP;}
+		const std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>> getWindowConstrainsPerSpaceQH() {return mWindowConstrainsPerSpaceQH;}
+		const std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>> getWindowConstrainsPerSpaceTP() {return mWindowConstrainsPerSpaceTP;}
 		
 		friend std::ostream& operator << (std::ostream& stream, const cf_building_model& building);
 	};

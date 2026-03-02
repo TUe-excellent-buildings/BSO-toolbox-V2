@@ -3,6 +3,20 @@
 
 namespace bso { namespace grammar { namespace rule_set { namespace dl_rule_set {
 
+// Global polygon counters - reset per scene file
+static int gWallCount = 0;
+static int gFloorCount = 0;
+static int gCeilingCount = 0;
+static int gWindowCount = 0;
+
+void resetPolygonCounters()
+{
+	gWallCount = 0;
+	gFloorCount = 0;
+	gCeilingCount = 0;
+	gWindowCount = 0;
+} // resetPolygonCounters()
+
 dl_rectangle_rule::dl_rectangle_rule(rectangle_property* rectangleProperty)
 {
 	mRectangleProperty = rectangleProperty;
@@ -13,13 +27,6 @@ dl_rectangle_rule::~dl_rectangle_rule()
 	
 } // dtor()
 
-/*
-	rules are applied in the grammer
-	rules are the functions that enable the dl model to be generated. 
-	you apply it per structure type, in this case Rectangles!
-*/
-
-//----------------------------------------------------------------------------------------------------------------//
 std::string createFolder(const std::string& fileName) 
 {
     static int count = 0;
@@ -46,23 +53,23 @@ std::string createFolder(const std::string& fileName)
         }
     }
 
-
     ++count;
     return folderName;    
-}
-//----------------------------------------------------------------------------------------------------------------//
+} // createFolder()
 
 float formatNumber(float num) 
 {
     const float threshold = 1e-6; // Numbers below this threshold will be treated as zero
     return (std::fabs(num) < threshold) ? 0.0f : num;
-}
+} // formatNumber()
 
-double roundToTwoDecimals(double num) {
+double roundToTwoDecimals(double num) 
+{
     return std::round(num * 100) / 100;
-}
+} // roundToTwoDecimals()
 
-std::string formatDuration(std::chrono::microseconds duration) {
+std::string formatDuration(std::chrono::microseconds duration) 
+{
     auto hours = std::chrono::duration_cast<std::chrono::hours>(duration);
     duration -= hours;
     auto minutes = std::chrono::duration_cast<std::chrono::minutes>(duration);
@@ -76,7 +83,7 @@ std::string formatDuration(std::chrono::microseconds duration) {
         << std::setw(2) << std::setfill('0') << minutes.count() << ":"
         << std::setw(2) << std::setfill('0') << seconds.count();
     return oss.str();
-}
+} // formatDuration()
 
 void sortQuadVertex(std::vector<bso::utilities::geometry::vertex>& quadVertex) 
 {
@@ -154,9 +161,7 @@ void sortQuadVertex(std::vector<bso::utilities::geometry::vertex>& quadVertex)
     quadVertex[2] = p2;
     quadVertex[3] = p3;
     }
-}
-
-//----------------------------------------------------------------------------------------------------------------//
+} // sortQuadVertex()
 
 void writeMaterials(std::ofstream& file, const std::vector<std::string> ReflectanceValues, const std::vector<std::string> WindowProperties)
 {
@@ -173,71 +178,65 @@ void writeMaterials(std::ofstream& file, const std::vector<std::string> Reflecta
     file << "void plastic Wall 0 0 5 "<< ReflectanceValueWall <<" "<< Specularity <<" "<< Roughness << "\n\n";
     file << "void glass window_glass 0 0 3 "<<transmissivity<<"\n"; //material, only transmit light
 
-	//Below window materials are if window needs to be of illum, aka a light source, to handle illuminance calculation more efficient. 
-	//However than window is dependent on surface orientation. Therefore can only transmit light into one direction. 
-    //file << "skyfunc brightfunc window_dist 2 winxmit winxmit.cal 0 0\n"; 						// include angluar transmittence
-    //file << "window_dist illum window_illum \n\n1 window_glass\n0\n3 "<<transmittance<<"\n\n"; 	// illum makes it a light source
+	// Below window materials are if window needs to be of illum, aka a light source, to handle illuminance calculation more efficient. 
+	// However than window is dependent on surface orientation. Therefore can only transmit light into one direction. 
+    // file << "skyfunc brightfunc window_dist 2 winxmit winxmit.cal 0 0\n"; 						// include angluar transmittence
+    // file << "window_dist illum window_illum \n\n1 window_glass\n0\n3 "<<transmittance<<"\n\n"; 	// illum makes it a light source
     file << std::endl;
-}
+} // writeMaterials()
 
-void writeFloorRadiance(std::ofstream& file, std::vector<bso::utilities::geometry::vertex>& quadVertex)
+void writePolygonFloorRadiance(std::ofstream& file, std::vector<bso::utilities::geometry::vertex>& PolyVertex)
 {
-    static int count = 0;
-    ++count;
+    gFloorCount++;
 
-    file << "Floor polygon F"<<count<<"\n";
-    file << "0\n0\n12\n";
+    file << "Floor polygon F"<<gFloorCount<<"\n";
+    file << "0\n0\n" << PolyVertex.size()*3 << "\n";
 
-    for (const auto& vertex : quadVertex) {
+    for (const auto& vertex : PolyVertex) {
         file << std::setw(10) << std::right << vertex[0] << " "
              << std::setw(10) << std::right << vertex[1] << " "
              << std::setw(10) << std::right << vertex[2] << "\n";
     }
     file << std::endl;
+} // writePolygonFloorRadiance()
 
-}
-
-void writeCeilingRadiance(std::ofstream& file, std::vector<bso::utilities::geometry::vertex>& quadVertex)
+void writePolygonCeilingRadiance(std::ofstream& file, std::vector<bso::utilities::geometry::vertex>& PolyVertex)
 {
-	static int count = 0;
-    ++count;
-
-    if (quadVertex[0][2] != 0)
+    if (PolyVertex[0][2] != 0)
     {
-        file << "Ceiling polygon C"<<count<<"\n";
-        file << "0\n0\n12\n";
-        for (const auto& vertex : quadVertex) {
+        gCeilingCount++;
+        file << "Ceiling polygon C"<<gCeilingCount<<"\n";
+        file << "0\n0\n" << PolyVertex.size()*3 << "\n";
+        for (const auto& vertex : PolyVertex) {
             file << std::setw(10) << std::right << vertex[0] << " "
                  << std::setw(10) << std::right << vertex[1] << " "
                  << std::setw(10) << std::right << (vertex[2]-0.1) << "\n"; //-1 to place ceiling below floor for correct reflectance value
         }
         file << std::endl;
     }
-}
+} // writePolygonCeilingRadiance()
 
-void writeWallRadiance(std::ofstream& file, std::vector<bso::utilities::geometry::vertex>& quadVertex)
+void writePolygonWallRadiance(std::ofstream& file, std::vector<bso::utilities::geometry::vertex>& PolyVertex)
 {
-    static int count = 0;
-    ++count;
+    gWallCount++;
 
-    sortQuadVertex(quadVertex);
-    file << "Wall polygon W"<<count<<"\n";
-    file << "0\n0\n12\n";
-    for (const auto& vertex : quadVertex) {
+    sortQuadVertex(PolyVertex);
+    file << "Wall polygon W"<<gWallCount<<"\n";
+    file << "0\n0\n" << PolyVertex.size()*3 << "\n";
+    for (const auto& vertex : PolyVertex) {
         file << std::setw(10) << std::right << vertex[0] << " "
              << std::setw(10) << std::right << vertex[1] << " "
              << std::setw(10) << std::right << vertex[2] << "\n";
     }
     file << std::endl;
-}
+} // writePolygonWallRadiance()
 
 void writeWindowRadiance(std::ofstream& file, std::vector<bso::utilities::geometry::vertex>& quadVertex) 
 {
-    static int count = 0;
-    ++count;
+    gWindowCount++;
 
     sortQuadVertex(quadVertex);
-    file << "window_glass polygon window"<<count<<"\n";
+    file << "window_glass polygon window"<<gWindowCount<<"\n";
     file << "0\n0\n12\n"; // 12 coordinates: 4 points * 3 coordinates each
     
     file << std::setw(10) << formatNumber(quadVertex[0][0]) << " " 
@@ -255,11 +254,10 @@ void writeWindowRadiance(std::ofstream& file, std::vector<bso::utilities::geomet
     file << std::setw(10) << formatNumber(quadVertex[3][0]) << " " 
          << std::setw(10) << formatNumber(quadVertex[3][1]) << " " 
          << std::setw(10) << formatNumber(quadVertex[3][2]) << "\n\n";
-}
+} // writeWindowRadiance()
 
-//----------------------------------------------------------------------------------------------------------------//
-
-bool isQuadInWindowArea(std::vector<bso::utilities::geometry::vertex>& quadVertex, const std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>>& ConstrainsPerSpace)
+bool isQuadInWindowArea(std::vector<bso::utilities::geometry::vertex>& quadVertex, 
+    const std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>>& ConstrainsPerSpace)
 {
     /*
     this function checks if the current rectangle is within the bounds/area of the base window area of that space 
@@ -311,7 +309,7 @@ bool isQuadInWindowArea(std::vector<bso::utilities::geometry::vertex>& quadVerte
     } //loop over space
 
   return isWindow;      
-}
+} // isQuadInWindowArea()
 
 bool isOpenInternal(bso::spatial_design::conformal::cf_rectangle* cfRec)
 {
@@ -351,7 +349,7 @@ bool isOpenInternal(bso::spatial_design::conformal::cf_rectangle* cfRec)
             //             << "\n Default is: closed" << std::endl;
         }
     return hasWindowProperties;
-}
+} // isOpenInternal()
 
 bool isOpenExternal(bso::spatial_design::conformal::cf_rectangle* cfRec)
 {
@@ -378,315 +376,7 @@ bool isOpenExternal(bso::spatial_design::conformal::cf_rectangle* cfRec)
         }
     } //loop surface
     return hasWindowProperties;
-}
-
-//----------------------------------------------------------------------------------------------------------------//
-
-std::vector<std::vector<const bso::spatial_design::conformal::cf_rectangle*>> setCardinalDirection(std::vector<const bso::spatial_design::conformal::cf_rectangle* /*rectangle*/>& Rectangles)
-{
-    //According to Thijs the Goede vertical layers for cardinal directions. See below for his instructins
-    /*
-    According to Thijs the Goede vertical layers for cardinal directions.
-
-    https://research.tue.nl/en/studentTheses/co-evolutionary-building-design-simulation-for-structural-optimiz 
-    Co-evolutionary building design simulation for structural optimization with facade openings.
-    de Goede, T.Y.
-    Award date: 2019
-
-    {
-        First, rectangles with equal center point’s 𝑥𝑥-coordinates are stored in a temporary North-South
-        set, and rectangles with equal center point’s 𝑦𝑦-coordinates are stored in a temporary East-West set. Both temporary
-        sets list vertical layers in ascending order over the width or depth of a BSD. 
-        
-        Second, East- or West-facing rectangles are removed from the temporary North-South set. For this purpose, the procedure compares the
-        rectangle’s center point’s 𝑥𝑥-coordinate with its first-listed associated vertex 𝑥𝑥-coordinate, if they are equal then
-        the rectangle is removed. The same principle applies to the temporary East-West set; here, 𝑦𝑦-coordinates are
-        compared. 
-        
-        Third, the temporary North-South set is divided into a North set and South set and the temporary East-
-        West set is divided into an East set and West set. To accomplish this reordering, each vertical layer in a temporary
-        set is evaluated based on the rectangles center point’s 𝑧𝑧-coordinates. In case of the temporary North-South set,
-        rectangles in a vertical layer that share a center point’s 𝑧𝑧-coordinate are listed in ascending order based on their
-        center point’s 𝑦𝑦-coordinates. Subsequently, the first rectangle is stored in the corresponding vertical layer of the
-        South set, the second rectangle is stored in the corresponding vertical layer of the North set, and vice versa. The
-        same principle applies to the temporary East-West set; here, the ascending order is based on the center point’s 𝑥𝑥-
-        coordinates.
-    }
-
-    */
-
-    struct RectangleDataStructure 
-    {
-        const bso::spatial_design::conformal::cf_rectangle* rectangle;
-        bso::utilities::geometry::vertex center; 
-        std::vector<bso::utilities::geometry::vertex> cornerVertices;
-    };
-
-    std::vector<RectangleDataStructure> AllRectangles;
-    RectangleDataStructure rectData;
-
-    std::vector<std::vector<bso::utilities::geometry::vertex>> quadVertex; //vector rectangle vertexes
-    std::vector<bso::utilities::geometry::vertex> RCCenter;  //vector center vertexes
-
-    for(const auto j: (Rectangles))
-    {
-        const bso::utilities::geometry::quadrilateral* quad = j;
-        std::vector<bso::utilities::geometry::vertex> verticesForQuad;
-        for (const auto& vertex : *quad) {verticesForQuad.push_back(vertex);}
-
-        rectData.rectangle = j;
-        rectData.center = j->getCenter();
-        rectData.cornerVertices = verticesForQuad;
-        AllRectangles.push_back(rectData);
-    }
-    
-    //-----------------------------------------------------//
-    //First step: Group on x and y (NorthSouth and EastWest)
-    //-----------------------------------------------------//
-
-    std::vector<std::vector<RectangleDataStructure>> X_Groups_Rectangles; //North South
-    std::vector<std::vector<RectangleDataStructure>> Y_Groups_Rectangles; //East West
-
-    for (int q=0; q<2; ++q) //q=0=x, q=1=y
-    {
-        if (q==0) 
-        {
-            std::sort   (AllRectangles.begin(), AllRectangles.end(), 
-                        [](const RectangleDataStructure& a, const RectangleDataStructure& b) 
-                        { return a.center[0] < b.center[0]; }
-                        );
-        }
-        else if (q==1)
-        {
-            std::sort   (AllRectangles.begin(), AllRectangles.end(), 
-                        [](const RectangleDataStructure& a, const RectangleDataStructure& b) 
-                        { return a.center[1] < b.center[1]; }
-                        );
-        }
-
-        std::vector<std::vector<RectangleDataStructure>> Q_Groups_Rectangles;
-        std::vector<RectangleDataStructure> currentGroup;
-        double currentq = (AllRectangles.empty()) ? 0.0 : (q == 0 ? AllRectangles[0].center[0] : AllRectangles[0].center[1]);
-
-        for (auto& rect : AllRectangles) 
-        {
-            double rectq = (q == 0) ? rect.center[0] : rect.center[1];
-            if (rectq == currentq) 
-            {
-                currentGroup.push_back(rect);
-            } 
-            else 
-            {
-                // Push the current group to Q_Groups_Rectangles and start a new group
-                Q_Groups_Rectangles.push_back(currentGroup);
-                currentGroup.clear();
-                currentGroup.push_back(rect);
-                currentq = rectq;
-            }
-        }
-
-        if (!currentGroup.empty()) {Q_Groups_Rectangles.push_back(currentGroup);}
-    
-        if (q == 0) {X_Groups_Rectangles = Q_Groups_Rectangles;}
-        if (q == 1) {Y_Groups_Rectangles = Q_Groups_Rectangles;}
-    }
-
-
-
-    //-----------------------------------------------------//
-    //Second step: Remove east-west from northside group and visa versa
-    //-----------------------------------------------------//
-
-    // Loop through Xgroups and Ygroups, marking the matching vertex indices
-    std::vector<size_t> vertices_to_remove;
-
-    // Loop through Xgroups, marking the matching vertex indices
-    for (size_t i = 0; i < X_Groups_Rectangles.size(); ++i) 
-    {
-        if (!X_Groups_Rectangles[i].empty()) // first vertex of group, x - coordinate (assumed all to be the same)
-        {
-            const double vertex_x = X_Groups_Rectangles[i][0].center[0]; //i can acces first rectangle, because all rectangles within group have the same x coordinate
-            const double corner_vertex_x = X_Groups_Rectangles[i][0].cornerVertices[0][0];
-                if (vertex_x == corner_vertex_x ) //first vertex of rectangle, x-coordinate
-                {
-                    vertices_to_remove.push_back(i);
-                }
-        } 
-    }
-
-    // Remove the marked vertices from Xgroups
-    for (int i = vertices_to_remove.size() - 1; i >= 0; --i) 
-    {
-        X_Groups_Rectangles.erase(X_Groups_Rectangles.begin() + vertices_to_remove[i]);
-    }
-
-    //do the same for Y
-    vertices_to_remove.clear();
-    for (size_t i = 0; i < Y_Groups_Rectangles.size(); ++i) 
-    {
-        if (!Y_Groups_Rectangles[i].empty()) // first vertex of group, x - coordinate (assumed all to be the same)
-        {
-            const double vertex_y = Y_Groups_Rectangles[i][0].center[1];    //i can acces first rectangle, because all rectangles within group have the same x coordinate
-            const double corner_vertex_y = Y_Groups_Rectangles[i][0].cornerVertices[0][1];
-                if (vertex_y == corner_vertex_y ) //first vertex of rectangle, x-coordinate
-                {
-                    vertices_to_remove.push_back(i);
-                }
-        } 
-    }
-
-    // Remove the marked vertices from Xgroups
-    for (int i = vertices_to_remove.size() - 1; i >= 0; --i) 
-    {
-        Y_Groups_Rectangles.erase(Y_Groups_Rectangles.begin() + vertices_to_remove[i]);
-    }
-  
-
-    //-----------------------------------------------------//
-    // Third step: Split north and south set (X)
-    //-----------------------------------------------------//
-    std::vector<RectangleDataStructure> NorthRectangles;
-    std::vector<RectangleDataStructure> SouthRectangles;
-
-    for (size_t xgroup=0; xgroup < X_Groups_Rectangles.size(); ++xgroup)
-    {
-        // Group rectangles based on their z-coordinate
-        std::vector<std::vector<RectangleDataStructure>> XZ_Groups_Rectangles;
-        std::vector<RectangleDataStructure> currentGroup;
-
-        // Sort X_Rectangles by the z-coordinate of their center
-        std::sort   (X_Groups_Rectangles[xgroup].begin(), X_Groups_Rectangles[xgroup].end(), 
-                    [](const RectangleDataStructure& a, const RectangleDataStructure& b) 
-                    { return a.center[2] < b.center[2]; }  // Sort based on z-coordinate
-                    );
-        // Initialize the current group with the first rectangle's z-coordinate
-        double currentz = X_Groups_Rectangles[xgroup].empty() ? 0.0 : X_Groups_Rectangles[xgroup][0].center[2];
-        // Group rectangles based on their z-coordinate
-        for (auto& rect : X_Groups_Rectangles[xgroup]) 
-        {
-            double rectz = rect.center[2];  // Get the z-coordinate of the current rectangle
-            if (rectz == currentz) 
-            {currentGroup.push_back(rect);} 
-            else 
-            {
-                XZ_Groups_Rectangles.push_back(currentGroup);
-                currentGroup.clear();
-                currentGroup.push_back(rect);
-                currentz = rectz;
-            }
-        }
-        // Add the last group if it's not empty
-        if (!currentGroup.empty()) {XZ_Groups_Rectangles.push_back(currentGroup);}
-
-        // split group by alternately assigining to the south and north set
-        for (auto& group : XZ_Groups_Rectangles) 
-        {
-            //sort based on y-center cooridnate
-            std::sort   (group.begin(), group.end(), 
-                        [](const RectangleDataStructure& a, const RectangleDataStructure& b) 
-                        { return a.center[1] < b.center[1]; }
-                        );
-
-            // Alternate between North and South for each rectangle in the group
-            bool toggle = true;
-            for (const auto& rect : group) 
-            {
-                if (toggle) {SouthRectangles.push_back(rect);} 
-                else {NorthRectangles.push_back(rect);}
-                toggle = !toggle;  // Switch between North and South
-            }
-        } //assign north south
-
-    } //xgroup
-
-
-    //same for Y
-    std::vector<RectangleDataStructure> EastRectangles;
-    std::vector<RectangleDataStructure> WestRectangles;
-    for (size_t ygroup=0; ygroup < Y_Groups_Rectangles.size(); ++ygroup)
-    {
-        // Group rectangles based on their z-coordinate
-        std::vector<std::vector<RectangleDataStructure>> YZ_Groups_Rectangles;
-        std::vector<RectangleDataStructure> currentGroup;
-
-        // Sort X_Rectangles by the z-coordinate of their center
-        std::sort   (Y_Groups_Rectangles[ygroup].begin(), Y_Groups_Rectangles[ygroup].end(), 
-                    [](const RectangleDataStructure& a, const RectangleDataStructure& b) 
-                    { return a.center[2] < b.center[2]; }  // Sort based on z-coordinate
-                    );
-
-        // Initialize the current group with the first rectangle's z-coordinate
-        double currentz = Y_Groups_Rectangles[ygroup].empty() ? 0.0 : Y_Groups_Rectangles[ygroup][0].center[2];
-        // Group rectangles based on their z-coordinate
-        for (auto& rect : Y_Groups_Rectangles[ygroup]) 
-        {
-            double rectz = rect.center[2];  // Get the z-coordinate of the current rectangle
-            if (rectz == currentz) 
-            {currentGroup.push_back(rect);} 
-            else 
-            {
-                YZ_Groups_Rectangles.push_back(currentGroup);
-                currentGroup.clear();
-                currentGroup.push_back(rect);
-                currentz = rectz;
-            }
-        }
-        // Add the last group if it's not empty
-        if (!currentGroup.empty()) {YZ_Groups_Rectangles.push_back(currentGroup);}
-
-        // split group by alternately assigining to the east and west set
-        for (auto& group : YZ_Groups_Rectangles) 
-        {
-            //sort based on X-center cooridnate
-            std::sort   (group.begin(), group.end(), 
-                        [](const RectangleDataStructure& a, const RectangleDataStructure& b) 
-                        { return a.center[0] < b.center[0]; }
-                        );
-        
-            // Alternate between North and South for each rectangle in the group
-            bool toggle = true;
-            for (const auto& rect : group) 
-            {
-                if (toggle) {WestRectangles.push_back(rect);} 
-                else {EastRectangles.push_back(rect);}
-                toggle = !toggle;  // Switch between East and West
-            }
-        } //assign east and west
-    } //ygroup
-
-
-    //output (return of function)
-    std::vector<std::vector<const bso::spatial_design::conformal::cf_rectangle*>> finalCardinalDirections;
-    std::vector<const bso::spatial_design::conformal::cf_rectangle*> Temp;
-
-    for (size_t i =0; i < NorthRectangles.size(); ++i) {Temp.push_back(NorthRectangles[i].rectangle);}
-    finalCardinalDirections.push_back(Temp);
-    Temp.clear();
-
-    for (size_t i =0; i < EastRectangles.size(); ++i) {Temp.push_back(EastRectangles[i].rectangle);}
-    finalCardinalDirections.push_back(Temp);
-    Temp.clear();
-
-    for (size_t i =0; i < SouthRectangles.size(); ++i) {Temp.push_back(SouthRectangles[i].rectangle);}
-    finalCardinalDirections.push_back(Temp);
-    Temp.clear();
-
-    for (size_t i =0; i < WestRectangles.size(); ++i) {Temp.push_back(WestRectangles[i].rectangle);}
-    finalCardinalDirections.push_back(Temp);
-    Temp.clear();
-
-    if ((NorthRectangles.size()+EastRectangles.size()+SouthRectangles.size()+WestRectangles.size())!= (Rectangles.size()))
-    {
-        std::stringstream errorMessage;
-		errorMessage << "\nError, while determining cardinal directions per rectangle:\n"
-								 << "\t"    << (NorthRectangles.size()+EastRectangles.size()+SouthRectangles.size()+WestRectangles.size()) << " != " << (Rectangles.size())
-								 << "\t"    << "(bso/grammar/rule_set/dl_rule_set/dl_rectangle_rule.cpp)" << std::endl;
-		throw std::invalid_argument(errorMessage.str());
-    }
-
-    return finalCardinalDirections;
-}
-//----------------------------------------------------------------------------------------------------------------//
+} // isOpenExternal()
 
 void filterSurfacesForGrid(std::vector<bso::spatial_design::conformal::cf_surface>& vec, std::vector<unsigned int>& vec2) 
 {
@@ -715,10 +405,11 @@ void filterSurfacesForGrid(std::vector<bso::spatial_design::conformal::cf_surfac
             }
         }
     }
-}
+} // filterSurfacesForGrid()
 
 std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bso::spatial_design::conformal::cf_surface>& vec, std::ofstream& gridFile, 
-															std::vector<unsigned int>& SpaceID, const std::vector<double> DF_Settings) {
+															std::vector<unsigned int>& SpaceID, const std::vector<double> DF_Settings) 
+{
 
 	const double HorizontalOutdoorIlluminance = DF_Settings[0];
 	const double ReferenceHeight = DF_Settings[1];
@@ -779,9 +470,7 @@ std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bs
     }//loop per surface
 
     return tupleVec; 
-} //function loop
-
-//----------------------------------------------------------------------------------------------------------------//
+} // generateGridNEN()
 
 void dl_rectangle_rule::apply(bso::daylight::dl_model& dl) const
 {

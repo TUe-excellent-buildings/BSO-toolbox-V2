@@ -25,45 +25,35 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
 {	
 	// initialize a new DL model
 	bso::daylight::dl_model mDLModel;
+
 	// read the daylight settings and store in the grammar object
 	this->mReadDLSettings(fileName);
 
-    //retrieve needed objects
-	const std::vector<std::string> ReflectanceValues =  this->getReflectanceValuesQH();
-	const std::vector<std::string> WindowProperties =  this->getWindowPropertiesQH();
-	const std::vector<double> DF_Settings =  this->getDF_SettingsQH();
-	const std::vector<double> DF_Evaluation =  this->getDF_EvaluationQH();
-    std::vector<std::tuple<unsigned int, int>> SpaceID_AmountGridPoints;
-    const std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>> ConstrainsPerSpace = mCFBuilding.getConstrainsPerSpaceQH();
-
-
-//generate daylight model 
-
-	//make new folder into which you save all files constructed
+    // Generate daylight model:
+	// Step 1, make new folder into which you save all files constructed for the DL_model object
     std::string folderName = bso::grammar::rule_set::dl_rule_set::createFolder(fileName);
     
-    //Open scenefile
+    // Step 2, Open scenefile and write material functions to the scenefile based on the retrieved daylight settings from the file.
     std::ofstream sceneFile(folderName+"/"+"scene.rad", std::ios::trunc);
     if (!sceneFile.is_open()) {std::cerr << "Failed to open scene.rad for writing\n";}
-
+    bso::grammar::rule_set::dl_rule_set::resetPolygonCounters(); // Reset global polygon counters for each new scene file, so the inserted polygons in the scene file have correct numbering.
     bso::grammar::rule_set::dl_rule_set::writeMaterials(sceneFile, ReflectanceValues, WindowProperties);
 	
+    // Define helper varialbles
 	std::vector<bso::spatial_design::conformal::cf_surface> cfSurface;
     std::vector<unsigned int> SpaceID;
-
     std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>> RectangleWindowYN;
     std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/> map;
-    std::vector<const bso::spatial_design::conformal::cf_rectangle* /*rectangle*/> Rectangles = {};
     std::vector<const bso::spatial_design::conformal::cf_rectangle* /*rectangle*/> Ceilings = {};
     std::vector<std::vector<double>> roomInfo /*external==0 or internal==1*/ = {};
     std::vector<double> SpaceID_MinZ_EI(3);
 
-
-    //loop trough rectangles
-	for (const auto i: this->getRectanglePropertiesQH())
+    // Step 3, Loop trough rectangles and write the needed rectangles with the correct properties to the scenefile to building the actual scene.
+	for (const auto i: mRectangleProperties)
 	{
-
-		bso::utilities::geometry::quadrilateral* quad = i.first; //rectangles
+		// Retrieve the rectangle in the map for easy access later
+        bso::spatial_design::conformal::cf_rectangle* cfRec = i.first; // cf_rectangle
+        bso::utilities::geometry::quadrilateral* quad = i.first; //rectangles
         std::vector<bso::utilities::geometry::vertex> quadVertex; //points
         double min_z = std::numeric_limits<double>::max();
         for(const auto j: (*quad))
@@ -73,21 +63,22 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
             if (z_value < min_z) {min_z = z_value;}
         }        
 
-        bso::spatial_design::conformal::cf_rectangle* cfRec = i.first;
+        
         int SpaceIDforRoominfo;
         for (const auto j: (cfRec->cfSurfaces()))
-            {
-                SpaceIDforRoominfo=((j->cfSpaces())[0])->getSpaceID(); //retrieve corresponding spaceID
-            }
+        {
+            SpaceIDforRoominfo=((j->cfSpaces())[0])->getSpaceID(); //retrieve corresponding spaceID
+        }
 
+        // Check all properties of the rectangles and write to scene file based on that.
 		if ((i.second->isSpaceSeparating()==true)) //each rectangle forming a space
 		{
 			if (i.second->isExternal()==true)
             {
                 if (i.second->isFloor())
                 {   
-                    bso::grammar::rule_set::dl_rule_set::writeFloorRadiance(sceneFile, quadVertex);
-                    bso::grammar::rule_set::dl_rule_set::writeCeilingRadiance(sceneFile, quadVertex);
+                    bso::grammar::rule_set::dl_rule_set::writePolygonFloorRadiance(sceneFile, quadVertex);
+                    bso::grammar::rule_set::dl_rule_set::writePolygonCeilingRadiance(sceneFile, quadVertex);
                     map[cfRec] = false;
                     Ceilings.push_back(cfRec);
  
@@ -98,7 +89,7 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
                         SpaceID.push_back(((j->cfSpaces())[0])->getSpaceID()); //retrieve corresponding spaceID
                     }
 
-                RectangleWindowYN.push_back(map);
+                    RectangleWindowYN.push_back(map);
                 } //isfloor
 
                 else if (i.second->isWall())
@@ -111,12 +102,12 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
                     //&& == space seperating 
                     //&& == wall
                     //save rectangles for cardinal direction later on
-                    {
-                    const bso::spatial_design::conformal::cf_rectangle* rec = i.first;
-                    Rectangles.push_back(rec);
-                    }
+                    // {
+                    // const bso::spatial_design::conformal::cf_rectangle* rec = i.first;
+                    // Rectangles.push_back(rec);
+                    // }
 
-                    bool isWindow = bso::grammar::rule_set::dl_rule_set::isQuadInWindowArea(quadVertex, ConstrainsPerSpace); //check window properties
+                    bool isWindow = bso::grammar::rule_set::dl_rule_set::isQuadInWindowArea(quadVertex, mWindowsPerSpace); //check window properties
 
                     if (isWindow == true) 
                     {
@@ -127,7 +118,7 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
                             }
                             else if (bso::grammar::rule_set::dl_rule_set::isOpenExternal(cfRec)==false)
                             {
-                                bso::grammar::rule_set::dl_rule_set::writeWallRadiance(sceneFile, quadVertex);
+                                bso::grammar::rule_set::dl_rule_set::writePolygonWallRadiance(sceneFile, quadVertex);
                                 map[cfRec] = false;
                             }
                             
@@ -135,7 +126,7 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
 
                     else if (isWindow == false) //check window properties
                     {
-                        bso::grammar::rule_set::dl_rule_set::writeWallRadiance(sceneFile, quadVertex);
+                        bso::grammar::rule_set::dl_rule_set::writePolygonWallRadiance(sceneFile, quadVertex);
                         map[cfRec] = false;
                     }
                 RectangleWindowYN.push_back(map);
@@ -146,8 +137,8 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
             {
                 if (i.second->isFloor())
                 {
-                    bso::grammar::rule_set::dl_rule_set::writeFloorRadiance(sceneFile, quadVertex);
-                    bso::grammar::rule_set::dl_rule_set::writeCeilingRadiance(sceneFile, quadVertex);
+                    bso::grammar::rule_set::dl_rule_set::writePolygonFloorRadiance(sceneFile, quadVertex);
+                    bso::grammar::rule_set::dl_rule_set::writePolygonCeilingRadiance(sceneFile, quadVertex);
                     map[cfRec] = false;
 
                     //later for grid surfaces already need to be created
@@ -156,7 +147,7 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
                         cfSurface.push_back(*j);
                         SpaceID.push_back(((j->cfSpaces())[0])->getSpaceID());
                     } 
-                RectangleWindowYN.push_back(map);    
+                    RectangleWindowYN.push_back(map);    
                 } //isfloor
 
                 else if (i.second->isWall())
@@ -165,7 +156,7 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
                     SpaceID_MinZ_EI[1] = min_z;
                     SpaceID_MinZ_EI[2] = 1;
 
-                    bool isWindow = bso::grammar::rule_set::dl_rule_set::isQuadInWindowArea(quadVertex, ConstrainsPerSpace); //check window properties
+                bool isWindow = bso::grammar::rule_set::dl_rule_set::isQuadInWindowArea(quadVertex, mWindowsPerSpace); //check window properties
 
                     if (isWindow == true) 
                     {
@@ -176,14 +167,14 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
                        }
                        else if (bso::grammar::rule_set::dl_rule_set::isOpenInternal(cfRec)==false)
                        {
-                            bso::grammar::rule_set::dl_rule_set::writeWallRadiance(sceneFile, quadVertex);
+                            bso::grammar::rule_set::dl_rule_set::writePolygonWallRadiance(sceneFile, quadVertex);
                             map[cfRec] = false;
                        }
                     } //has windowproperties
 
                     else if (isWindow == false) //check window properties
                     {
-                        bso::grammar::rule_set::dl_rule_set::writeWallRadiance(sceneFile, quadVertex);
+                        bso::grammar::rule_set::dl_rule_set::writePolygonWallRadiance(sceneFile, quadVertex);
                         map[cfRec] = false;
                     }
 
@@ -201,28 +192,27 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
     std::ofstream gridFile(folderName+"/"+"grid.txt", std::ios::trunc);
     if (!gridFile.is_open()) {std::cerr << "Failed to open grid.rad for writing\n";}
 
+    // Generate the grid
+    std::vector<std::tuple<unsigned int, int>> SpaceID_AmountGridPoints;
     bso::grammar::rule_set::dl_rule_set::filterSurfacesForGrid(cfSurface, SpaceID);
     SpaceID_AmountGridPoints = bso::grammar::rule_set::dl_rule_set::generateGridNEN(cfSurface, gridFile, SpaceID, DF_Settings);
     gridFile.close(); 
 
     std::vector<bso::spatial_design::conformal::cf_space*> VectorCf_space;
-    for (const auto i: this->getSpacePropertiesQH()) 
+    for (const auto i: mSpaceProperties) 
     {
         bso::spatial_design::conformal::cf_space* cf_space = i.first;
         VectorCf_space.push_back(cf_space);
     }
     mDLModel.setSpacePropertiesQH(VectorCf_space);
 
-    //retrieve cardinal direction per outer Rectangles
-    std::vector<std::vector<const bso::spatial_design::conformal::cf_rectangle*>> CardinalDirections = bso::grammar::rule_set::dl_rule_set::setCardinalDirection(Rectangles);
-
-    this->setrectWindowProperties(RectangleWindowYN); //safe to grammar for sd
+    // Send all relevant data to the dl model
+    mRectangleWindowYNGram = RectangleWindowYN; //safe to grammar for sd
     mDLModel.setSpaceID_AmountGridPoints(SpaceID_AmountGridPoints);
     mDLModel.setfolderName(folderName);
     mDLModel.setDF_Settings(DF_Settings);
     mDLModel.setDF_Evaluation(DF_Evaluation);
     mDLModel.setWindowProperties(RectangleWindowYN); //safe to dl model for visualization
-    mDLModel.setCardinalDirections(CardinalDirections);
     mDLModel.setCeilings(Ceilings);
     mDLModel.setRoomInfo(roomInfo);
 
