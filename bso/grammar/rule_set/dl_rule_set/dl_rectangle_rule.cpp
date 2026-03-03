@@ -326,7 +326,60 @@ void writeWindowRadiance(std::ofstream& file, std::vector<bso::utilities::geomet
          << std::setw(10) << formatNumber(quadVertex[3][2]) << "\n\n";
 } // writeWindowRadiance()
 
-bool isQuadInWindowArea(std::vector<bso::utilities::geometry::vertex>& quadVertex, 
+bool isQuadInWindowArea(std::vector<bso::utilities::geometry::vertex>& quadVertex, const std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>>& ConstrainsPerSpace, const double& tol = 1e-3)
+{
+    /*
+    this function checks if the current rectangle is within the bounds/area of the base window area of that space 
+    it loops per space
+    */
+
+    sortQuadVertex(quadVertex);
+    bool isWindow = false;
+
+    for (const auto& [spaceID, BaseWindowPoints] : ConstrainsPerSpace)
+    {
+        double XdomainStart = BaseWindowPoints[0][0];
+        double XdomainEnd = BaseWindowPoints[1][0];
+
+        double YdomainStart = BaseWindowPoints[0][1];
+        double YdomainEnd = BaseWindowPoints[1][1];
+
+        double ZdomainStart = BaseWindowPoints[0][2];
+        double ZdomainEnd =BaseWindowPoints[2][2];
+
+
+        if (quadVertex[0][1] == quadVertex[2][1]) //y the same
+        {
+            //if y the same check if points lay in z and x domain
+            if (quadVertex[0][0] <= XdomainEnd && quadVertex[0][0] >= XdomainStart &&   //check quadVertex[0] X
+                quadVertex[2][0] <= XdomainEnd && quadVertex[2][0] >= XdomainStart &&   //check quadVertex[2] X
+                quadVertex[0][2] <= ZdomainEnd && quadVertex[0][2] >= ZdomainStart &&   //check quadVertex[0] Z
+                quadVertex[2][2] <= ZdomainEnd && quadVertex[2][2] >= ZdomainStart      //check quadVertex[2] Z
+                )
+            {
+                isWindow = true;
+                break;
+            }
+        }
+        else if (quadVertex[0][0] == quadVertex[2][0]) //x the same
+        {
+            //if x the same check if points lay in z and y domain
+            if (quadVertex[0][1] <= YdomainEnd && quadVertex[0][1] >= YdomainStart &&   //check quadVertex[0] Y
+                quadVertex[2][1] <= YdomainEnd && quadVertex[2][1] >= YdomainStart &&   //check quadVertex[2] Y
+                quadVertex[0][2] <= ZdomainEnd && quadVertex[0][2] >= ZdomainStart &&   //check quadVertex[0] Z
+                quadVertex[2][2] <= ZdomainEnd && quadVertex[2][2] >= ZdomainStart      //check quadVertex[2] Z
+                )
+            {
+                isWindow = true;
+                break;
+            }
+        }
+    } //loop over space
+
+  return isWindow;      
+}
+
+bool isTPQuadInWindowArea(std::vector<bso::utilities::geometry::vertex>& quadVertex, 
     const std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>>& ConstrainsPerSpace,
     const double& tol = 1e-3)
 {
@@ -477,7 +530,6 @@ std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bs
 															std::vector<unsigned int>& SpaceID, const std::vector<double> DF_Settings) 
 {
 
-	const double HorizontalOutdoorIlluminance = DF_Settings[0];
 	const double ReferenceHeight = DF_Settings[1];
 	const double space_margin = DF_Settings[2];
 	const double minGridSize = DF_Settings[3];

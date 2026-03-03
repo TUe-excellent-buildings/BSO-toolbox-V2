@@ -100,7 +100,9 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
 			SpaceID_MinZ_EI[1] = min_z;
 			SpaceID_MinZ_EI[2] = isExternal ? 0 : 1;
 
-			bool isWindow = bso::grammar::rule_set::dl_rule_set::isQuadInWindowArea(quadVertex, mWindowsPerSpace, 1e-3);
+			bool isWindow;
+			if(mTriangleProperties.size() > 0 /*i.e. ms_N_building with TP conformal model is provided*/) isWindow = bso::grammar::rule_set::dl_rule_set::isTPQuadInWindowArea(quadVertex, mWindowsPerSpace, 1e-3);
+			else isWindow = bso::grammar::rule_set::dl_rule_set::isQuadInWindowArea(quadVertex, mWindowsPerSpace, 1e-3);
 			bool isOpen = isExternal ? bso::grammar::rule_set::dl_rule_set::isOpenExternal(cfRec)
 			                         : bso::grammar::rule_set::dl_rule_set::isOpenInternal(cfRec);
 
