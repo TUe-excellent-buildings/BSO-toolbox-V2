@@ -527,7 +527,7 @@ void filterSurfacesForGrid(std::vector<bso::spatial_design::conformal::cf_surfac
 } // filterSurfacesForGrid()
 
 std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bso::spatial_design::conformal::cf_surface>& vec, std::ofstream& gridFile, 
-															std::vector<unsigned int>& SpaceID, const std::vector<double> DF_Settings) 
+															std::vector<unsigned int>& SpaceID, const std::vector<double> DF_Settings, std::vector<bso::utilities::geometry::vertex>& gridPoints) 
 {
 
 	const double ReferenceHeight = DF_Settings[1];
@@ -570,6 +570,7 @@ std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bs
         // Generate grid points
         for (int k = 0; k < num_points_dim; ++k) {
             for (int j = 0; j < num_points_dim; ++j) {
+                gridPoints.push_back({start_x + j * step_x + space_margin, start_y + k * step_y + space_margin, start_z + ReferenceHeight});
                 double x = start_x + j * step_x + space_margin;
                 double y = start_y + k * step_y + space_margin;
                 double z = start_z + ReferenceHeight;

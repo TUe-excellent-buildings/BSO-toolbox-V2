@@ -65,6 +65,9 @@ protected:
 
 	void addLabel(std::list<label*>& llist, label_props* lbprops, const std::string &text,
 											const bso::utilities::geometry::vertex& pos);
+	
+	void addPoint(std::list<polygon*> &plist, const bso::utilities::geometry::vertex& point,
+								polygon_props* pprops, line_props* lprops, const double& size = 1.0);
 
 public:
 	model_base(const std::vector<std::pair<bso::utilities::geometry::vertex, bso::utilities::geometry::vector>>& cuttingPlanes = {});
@@ -418,6 +421,25 @@ void model_base::addLabel(std::list<label*>& llist, label_props *lbprops, const 
 	llist.push_back(new label(lbprops, text, store.get_vertex(pos)));
 }
 
+void model_base::addPoint(std::list<polygon*> &plist, const bso::utilities::geometry::vertex& point,
+										polygon_props* pprops, line_props* lprops, const double& size /*= 1.0*/)
+{
+	// Create a small cube centered at the point
+	double halfSize = size / 2.0;
+	std::vector<bso::utilities::geometry::vertex> cubeVertices = {
+		point + bso::utilities::geometry::vertex{-halfSize, -halfSize, -halfSize},
+		point + bso::utilities::geometry::vertex{ halfSize, -halfSize, -halfSize},
+		point + bso::utilities::geometry::vertex{ halfSize,  halfSize, -halfSize},
+		point + bso::utilities::geometry::vertex{-halfSize,  halfSize, -halfSize},
+		point + bso::utilities::geometry::vertex{-halfSize, -halfSize,  halfSize},
+		point + bso::utilities::geometry::vertex{ halfSize, -halfSize,  halfSize},
+		point + bso::utilities::geometry::vertex{ halfSize,  halfSize,  halfSize},
+		point + bso::utilities::geometry::vertex{-halfSize,  halfSize,  halfSize}
+	};
+	
+	bso::utilities::geometry::quad_hexahedron cube(cubeVertices);
+	this->addPolyhedron(plist, &cube, pprops, lprops);
+}
 
 
 } // namespace visualization

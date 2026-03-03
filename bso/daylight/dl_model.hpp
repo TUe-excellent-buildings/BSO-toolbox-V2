@@ -5,7 +5,15 @@
 #include <sstream>
 #include <tuple>
 #include <map>
+#include <vector>
+#include <string>
 #include <chrono> //measure time to run
+// #include <bso/daylight/properties/surface_properties.hpp>
+// #include <bso/daylight/geometry/floor.hpp>
+// #include <bso/daylight/geometry/ceiling.hpp>
+// #include <bso/daylight/geometry/wall.hpp>
+// #include <bso/daylight/geometry/window.hpp>
+// #include <bso/daylight/geometry/space.hpp>
 // #include <string>
 // #include <iomanip>
 
@@ -51,12 +59,22 @@ the daylight calculation will perform.
 		std::vector<bso::spatial_design::conformal::cf_space*> mcf_space;  
 		std::vector<const bso::spatial_design::conformal::cf_rectangle*> mCeilings;
 		std::vector<const bso::spatial_design::conformal::cf_triangle*> mCeilingsTri;
+		std::vector<bso::utilities::geometry::vertex> mGridPoints; // grid points for visualization
 
-		// New definition
-		//std::vector<bso::utilities::geometry::polygon> mCeilings;
-		//std::vector<bso::utilities::geometry::polygon> mFloors;
-		//std::vector<bso::utilities::geometry::polygon> mWalls;
-		//std::vector<bso::utilities::geometry::polygon> mWindows;
+		// // Specialized radiance geometry entities to support alternative grammar definitions.
+		// std::vector<floor> mFloorEntities;
+		// std::vector<ceiling> mCeilingEntities;
+		// std::vector<wall> mWallEntities;
+		// std::vector<window> mWindowEntities;
+		// std::vector<space> mSpaceEntities;
+
+		// // Model settings which are set in the dl_setting file
+		// double horizontal_outdoor_illuminance; // [lx] described horizontal outdoor illuminance, used for daylight factor calculation, can be set in the dl_setting file. Typically 14400lx according to NEN.
+		// double reference_height; // [mm] described height from the floor at which the grid points for illuminance evaluation is placed, typically 850mm for work plane according to NEN.
+		// double space_margin; // [mm] described margin of space around the room, used for daylight factor calculation, can be set in the dl_setting file. Typically 500mm according to NEN.
+		// double minGridSize; // [mm] minimum grid size for grid generation, used for daylight factor calculation, can be set in the dl_setting file. Typically 10.0m according to NEN.
+		// double mDaylightfactor_target; // [%] described daylight factor target for the building, used for score calculation, can be set in the dl_setting file. Typically x% according to NEN.
+		// double Daylightfactor_minimum_target; // [%] described minimum daylight factor target for the building, used for score calculation, can be set in the dl_setting file. Typically y% according to NEN.
 
 		public: 
 		dl_model(); // emtry constructor
@@ -74,6 +92,8 @@ the daylight calculation will perform.
 
 		void setRoomInfo(std::vector<std::vector<double>>& a) {roomInfo = a;}
 		const std::vector<std::vector<double>>& getRoomInfo() const {return roomInfo;}
+		void setGridPoints(std::vector<bso::utilities::geometry::vertex>& gridPoints) {mGridPoints = gridPoints;}
+		const std::vector<bso::utilities::geometry::vertex>& getGridPoints() const {return mGridPoints;}
 		
 		// Set properties for visualization
 		void setWindowProperties(std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>>& rwYN) {mRectangleWindowYN =rwYN;}
@@ -86,6 +106,25 @@ the daylight calculation will perform.
 		const std::vector<const bso::spatial_design::conformal::cf_triangle*> getCeilingsTri() const {return mCeilingsTri;}
 		void setTriangles(std::vector<bso::spatial_design::conformal::cf_triangle*>& triangles) {mTriangles = triangles;}
 		const std::vector<bso::spatial_design::conformal::cf_triangle*> getTriangles() const {return mTriangles;}
+
+		// void addFloorEntity(const floor& floorEntity) {mFloorEntities.push_back(floorEntity);}
+		// void addCeilingEntity(const ceiling& ceilingEntity) {mCeilingEntities.push_back(ceilingEntity);}
+		// void addWallEntity(const wall& wallEntity) {mWallEntities.push_back(wallEntity);}
+		// void addWindowEntity(const window& windowEntity) {mWindowEntities.push_back(windowEntity);}
+		// void addSpaceEntity(const space& spaceEntity) {mSpaceEntities.push_back(spaceEntity);}
+		// void clearSpecializedGeometry()
+		// {
+		// 	mFloorEntities.clear();
+		// 	mCeilingEntities.clear();
+		// 	mWallEntities.clear();
+		// 	mWindowEntities.clear();
+		// 	mSpaceEntities.clear();
+		// }
+		// const std::vector<floor>& getFloorEntities() const {return mFloorEntities;}
+		// const std::vector<ceiling>& getCeilingEntities() const {return mCeilingEntities;}
+		// const std::vector<wall>& getWallEntities() const {return mWallEntities;}
+		// const std::vector<window>& getWindowEntities() const {return mWindowEntities;}
+		// const std::vector<space>& getSpaceEntities() const {return mSpaceEntities;}
 
 		// Functions to request analysis
 		void analyse();

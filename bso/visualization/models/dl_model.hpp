@@ -34,6 +34,8 @@ private:
 
     polygon_props pprops_window;
     polygon_props pprops_wall;
+	polygon_props pprops_wall_translucent;
+	polygon_props pprops_gridpoint;
 	polygon_props pprops_Space;
 
 	polygon_props pprops_north;
@@ -73,6 +75,15 @@ DL_Model::DL_Model(const bso::daylight::dl_model& dl, const std::string& type, c
     pprops_wall.shininess = 60.0f;
     pprops_wall.translucent = false;
     pprops_wall.twosided = true;
+
+	//polygon properties for walls/floors/ceilings to show the grid points so walls are translucent
+	pprops_wall_translucent.ambient = rgba(0.5f, 0.5f, 0.5f, 0.3f);
+	pprops_wall_translucent.diffuse = rgba(0.6f, 0.6f, 0.6f, 0.3f);
+	pprops_wall_translucent.specular = rgba(0.7f, 0.7f, 0.7f, 0.3f);
+	pprops_wall_translucent.emission = rgba(0.0f, 0.0f, 0.0f, 0.3f);
+    pprops_wall_translucent.shininess = 60.0f;
+    pprops_wall_translucent.translucent = true;
+    pprops_wall_translucent.twosided = true;
 
 	//boundary lines
 	lprops_space_boundary.width = 5.0f;
@@ -152,6 +163,70 @@ DL_Model::DL_Model(const bso::daylight::dl_model& dl, const std::string& type, c
 		{
 			this->addLabel(labels,&lbprops,std::to_string(i->getSpaceID()),i->getCenter()); // space numbers
 			this->addBoundaryLinesForSpace(i); //lines
+		}
+	}
+	else if(type == "grid")
+	{
+		//loop trough the rectangles in the daylight model
+		for (const auto& map : dl.getWindowProperties()) //std::vector<std::map<bso::spatial_design::conformal::cf_rectangle*, bool>> mRectangleWindowYN;
+		{
+			for (const auto& [cfRec,isWindow] : map) //for loop uses structure binding (C++17 feuature) to unpack each key-value from the map
+			{
+
+				std::vector<geom::vertex> rectangleVertices;
+				for (const auto& vertex : *cfRec) 
+				{
+					rectangleVertices.push_back(cfRec->getCenter() + vertex - cfRec->getCenter());
+				}
+
+				geom::quadrilateral rectangleGeometry(rectangleVertices);
+
+				if (isWindow==true) 
+				{
+					this->addPolygon(polygons, &rectangleGeometry, &pprops_window, &lprops_rectangles, 0.0);
+				}
+				else if (isWindow==false)
+				{
+					this->addPolygon(polygons, &rectangleGeometry, &pprops_wall_translucent, &lprops_rectangles, 0.0);
+				}
+
+			} //map [rect,isWindow] loop
+		} //getWindowProperties()
+		for (const auto& i : dl.getTriangles()) //std::vector<bso::spatial_design::conformal::cf_triangle*> mTriangles;
+		{
+			std::vector<geom::vertex> triangleVertices;
+			for (const auto& vertex : *i) 
+			{
+				triangleVertices.push_back(i->getCenter() + vertex - i->getCenter());
+			}
+
+			geom::triangle triangleGeometry(triangleVertices);
+
+			this->addPolygon(polygons, &triangleGeometry, &pprops_wall_translucent, &lprops_rectangles, 0.0);
+		} //getTriangles()
+
+		//boundary lines per space
+		pprops_Space.ambient = rgba(1.0f, 1.0f, 0.04f, 0.0f);
+		pprops_Space.diffuse = rgba(1.0f, 1.0f, 0.04f, 0.0f);
+		pprops_Space.specular = rgba(0.04f, 0.04f, 0.04f, 0.0f);
+		pprops_Space.emission = rgba(0.04f, 0.04f, 0.04f, 0.0f);
+		for (const auto& i : dl.getSpacePropertiesQH())
+		{
+			this->addLabel(labels,&lbprops,std::to_string(i->getSpaceID()),i->getCenter()); // space numbers
+			this->addBoundaryLinesForSpace(i); //lines
+		}
+		
+		// add grid points as cubes
+		pprops_gridpoint.ambient = rgba(1.0f, 0.0f, 0.0f, 1.0f);  // Red
+		pprops_gridpoint.diffuse = rgba(1.0f, 0.2f, 0.2f, 1.0f);
+		pprops_gridpoint.specular = rgba(1.0f, 0.4f, 0.4f, 1.0f);
+		pprops_gridpoint.shininess = 60.0f;
+		pprops_gridpoint.translucent = false;
+		pprops_gridpoint.twosided = true;
+		
+		for (const auto& gridPoint : dl.getGridPoints())
+		{
+			this->addPoint(polygons, gridPoint, &pprops_gridpoint, &lprops_rectangles, 100.0); // 100mm cube size
 		}
 	}
 		

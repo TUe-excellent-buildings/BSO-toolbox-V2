@@ -183,7 +183,8 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
     // Generate the grid
     std::vector<std::tuple<unsigned int, int>> SpaceID_AmountGridPoints;
     bso::grammar::rule_set::dl_rule_set::filterSurfacesForGrid(cfFloorSurface, SpaceID);
-	SpaceID_AmountGridPoints = bso::grammar::rule_set::dl_rule_set::generateGridNEN(cfFloorSurface, gridFile, SpaceID, mDF_Settings);
+	std::vector<bso::utilities::geometry::vertex> gridPoints;
+	SpaceID_AmountGridPoints = bso::grammar::rule_set::dl_rule_set::generateGridNEN(cfFloorSurface, gridFile, SpaceID, mDF_Settings, gridPoints);
     gridFile.close(); 
 
     std::vector<bso::spatial_design::conformal::cf_space*> VectorCf_space;
@@ -203,6 +204,7 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
     mDLModel.setCeilings(Ceilings);
 	mDLModel.setTriangles(Triangles);
     mDLModel.setRoomInfo(roomInfo);
+	mDLModel.setGridPoints(gridPoints); // safe to dl model for visualization
 
 	return mDLModel;
 } // default_dl_grammar
