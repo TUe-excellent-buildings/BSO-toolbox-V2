@@ -27,46 +27,11 @@ dl_rectangle_rule::~dl_rectangle_rule()
 	
 } // dtor()
 
-std::string createFolder(const std::string& fileName) 
-{
-    static int count = 0;
-    
-    std::string folderName = "Iteration_" + std::to_string(count);
-    std::string command = "mkdir -p \"" + folderName + "\""; // Use mkdir command to create directory
-
-    int result = std::system(command.c_str());
-
-    if (result != 0) 
-    {   
-        std::cerr << "Error creating directory: " << folderName << std::endl;
-        std::cerr << "Command executed: " << command << std::endl;
-    }
-    else    //if folder created, add dl_setting file also to it, since you can change it per run to change window properties. 
-    {
-        std::string copyCommand = "cp \"" + fileName + "\" \"" + folderName + "/\"";
-        int copyResult = std::system(copyCommand.c_str());
-
-        if (copyResult != 0) 
-        {
-            std::cerr << "Error copying file to directory: " << folderName << std::endl;
-            std::cerr << "Command executed: " << copyCommand << std::endl;
-        }
-    }
-
-    ++count;
-    return folderName;    
-} // createFolder()
-
 float formatNumber(float num) 
 {
     const float threshold = 1e-6; // Numbers below this threshold will be treated as zero
     return (std::fabs(num) < threshold) ? 0.0f : num;
 } // formatNumber()
-
-double roundToTwoDecimals(double num) 
-{
-    return std::round(num * 100) / 100;
-} // roundToTwoDecimals()
 
 std::string formatDuration(std::chrono::microseconds duration) 
 {
@@ -101,7 +66,7 @@ void sortQuadVertex(std::vector<bso::utilities::geometry::vertex>& quadVertex)
     std::sort(quadVertex.begin(), quadVertex.end(), [](const bso::utilities::geometry::vertex& a, 
     const bso::utilities::geometry::vertex& b) 
     {
-    return a[2] < b[2];
+        return a[2] < b[2];
     });
 
     bso::utilities::geometry::vertex p0 = quadVertex[0];
@@ -163,6 +128,111 @@ void sortQuadVertex(std::vector<bso::utilities::geometry::vertex>& quadVertex)
     }
 } // sortQuadVertex()
 
+void sortPolygonVertexGeneric(std::vector<bso::utilities::geometry::vertex>& vertices)
+{
+    /*
+    Type-agnostic polygon vertex sorting using convex hull approach.
+    Works for any convex polygon with N >= 3 vertices.
+    
+    Algorithm:
+    1. Compute polygon normal via cross product of first two edges
+    2. Find centroid (center of mass)
+    3. Sort vertices by polar angle around centroid in polygon's plane
+    4. Result: vertices ordered counter-clockwise when viewed from normal direction
+    */
+    
+    if (vertices.size() < 3) 
+    {
+        return; // Cannot sort polygon with less than 3 vertices
+    }
+
+    // Step 1: Compute polygon normal using Newell's method (robust for any polygon)
+    double nx = 0.0, ny = 0.0, nz = 0.0;
+    for (size_t i = 0; i < vertices.size(); ++i) 
+    {
+        const auto& v0 = vertices[i];
+        const auto& v1 = vertices[(i + 1) % vertices.size()];
+        
+        nx += (v0[1] - v1[1]) * (v0[2] + v1[2]);
+        ny += (v0[2] - v1[2]) * (v0[0] + v1[0]);
+        nz += (v0[0] - v1[0]) * (v0[1] + v1[1]);
+    }
+    
+    // Normalize the normal vector
+    double normalLength = std::sqrt(nx*nx + ny*ny + nz*nz);
+    if (normalLength < 1e-10)
+    {
+        return; // Degenerate polygon (all points collinear or coincident)
+    }
+    nx /= normalLength;
+    ny /= normalLength;
+    nz /= normalLength;
+
+    // Step 2: Compute centroid
+    double cx = 0.0, cy = 0.0, cz = 0.0;
+    for (const auto& vertex : vertices)
+    {
+        cx += vertex[0];
+        cy += vertex[1];
+        cz += vertex[2];
+    }
+    cx /= vertices.size();
+    cy /= vertices.size();
+    cz /= vertices.size();
+
+    // Step 3: Create orthonormal basis in the polygon's plane
+    // First basis vector: direction along first edge from centroid
+    double ux = vertices[0][0] - cx;
+    double uy = vertices[0][1] - cy;
+    double uz = vertices[0][2] - cz;
+    
+    double uLength = std::sqrt(ux*ux + uy*uy + uz*uz);
+    if (uLength < 1e-10)
+    {
+        return; // All vertices at centroid (degenerate)
+    }
+    ux /= uLength;
+    uy /= uLength;
+    uz /= uLength;
+
+    // Second basis vector: perpendicular to both normal and first basis vector
+    // v = normal × u
+    double vx = ny*uz - nz*uy;
+    double vy = nz*ux - nx*uz;
+    double vz = nx*uy - ny*ux;
+
+    // Step 4: Compute polar angles and sort
+    std::vector<std::pair<double, size_t>> angleIndices;
+    
+    for (size_t i = 0; i < vertices.size(); ++i)
+    {
+        // Vector from centroid to vertex
+        double dx = vertices[i][0] - cx;
+        double dy = vertices[i][1] - cy;
+        double dz = vertices[i][2] - cz;
+        
+        // Project onto basis vectors to get 2D coordinates in polygon plane
+        double px = dx*ux + dy*uy + dz*uz;  // Component along u
+        double py = dx*vx + dy*vy + dz*vz;  // Component along v
+        
+        // Compute angle (atan2 handles all quadrants correctly)
+        double angle = std::atan2(py, px);
+        angleIndices.push_back({angle, i});
+    }
+
+    // Sort by angle
+    std::sort(angleIndices.begin(), angleIndices.end());
+
+    // Step 5: Reorder vertices based on sorted angles
+    std::vector<bso::utilities::geometry::vertex> sortedVertices;
+    for (const auto& [angle, idx] : angleIndices)
+    {
+        sortedVertices.push_back(vertices[idx]);
+    }
+    
+    vertices = sortedVertices;
+} // sortPolygonVertexGeneric()
+
 void writeMaterials(std::ofstream& file, const std::vector<std::string> ReflectanceValues, const std::vector<std::string> WindowProperties)
 {
 	const std::string ReflectanceValueFloor = ReflectanceValues[0];
@@ -220,7 +290,7 @@ void writePolygonWallRadiance(std::ofstream& file, std::vector<bso::utilities::g
 {
     gWallCount++;
 
-    sortQuadVertex(PolyVertex);
+    sortPolygonVertexGeneric(PolyVertex);
     file << "Wall polygon W"<<gWallCount<<"\n";
     file << "0\n0\n" << PolyVertex.size()*3 << "\n";
     for (const auto& vertex : PolyVertex) {
@@ -235,7 +305,7 @@ void writeWindowRadiance(std::ofstream& file, std::vector<bso::utilities::geomet
 {
     gWindowCount++;
 
-    sortQuadVertex(quadVertex);
+    sortPolygonVertexGeneric(quadVertex);
     file << "window_glass polygon window"<<gWindowCount<<"\n";
     file << "0\n0\n12\n"; // 12 coordinates: 4 points * 3 coordinates each
     
@@ -257,55 +327,51 @@ void writeWindowRadiance(std::ofstream& file, std::vector<bso::utilities::geomet
 } // writeWindowRadiance()
 
 bool isQuadInWindowArea(std::vector<bso::utilities::geometry::vertex>& quadVertex, 
-    const std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>>& ConstrainsPerSpace)
+    const std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>>& ConstrainsPerSpace,
+    const double& tol = 1e-3)
 {
     /*
     this function checks if the current rectangle is within the bounds/area of the base window area of that space 
-    it loops per space
+    it loops per space and per constraint group (4 vertices per window)
+    uses quadrilateral isInsideOrOn to check if quad vertices fall within the window constraint area
+    supports rotated surfaces through proper geometry-based intersection testing with tolerance
     */
 
-    sortQuadVertex(quadVertex);
+    sortPolygonVertexGeneric(quadVertex);
     bool isWindow = false;
 
     for (const auto& [spaceID, BaseWindowPoints] : ConstrainsPerSpace) 
     {
-
-        double XdomainStart = BaseWindowPoints[0][0];
-        double XdomainEnd = BaseWindowPoints[1][0];
-
-        double YdomainStart = BaseWindowPoints[0][1];
-        double YdomainEnd = BaseWindowPoints[1][1];
-
-        double ZdomainStart = BaseWindowPoints[0][2];
-        double ZdomainEnd =BaseWindowPoints[2][2];
-
-
-        if (quadVertex[0][1] == quadVertex[2][1]) //y the same
+        // Iterate through constraint groups (each window constraint set has 4 vertices)
+        for (size_t constraintIdx = 0; constraintIdx + 3 < BaseWindowPoints.size(); constraintIdx += 4)
         {
-            //if y the same check if points lay in z and x domain
-            if (quadVertex[0][0] <= XdomainEnd && quadVertex[0][0] >= XdomainStart &&   //check quadVertex[0] X
-                quadVertex[2][0] <= XdomainEnd && quadVertex[2][0] >= XdomainStart &&   //check quadVertex[2] X
-                quadVertex[0][2] <= ZdomainEnd && quadVertex[0][2] >= ZdomainStart &&   //check quadVertex[0] Z
-                quadVertex[2][2] <= ZdomainEnd && quadVertex[2][2] >= ZdomainStart      //check quadVertex[2] Z
-                )
+            // Create a quadrilateral from the 4 window constraint vertices
+            std::vector<bso::utilities::geometry::vertex> constraintQuad;
+            for (size_t i = 0; i < 4; ++i)
+            {
+                constraintQuad.push_back(BaseWindowPoints[constraintIdx + i]);
+            }
+            
+            bso::utilities::geometry::quadrilateral windowQuad(constraintQuad, tol);
+
+            // Check if ALL quad vertices are inside or on the window constraint quadrilateral
+            bool allVerticesInWindow = true;
+            for (const auto& v : quadVertex)
+            {
+                if (!windowQuad.isInsideOrOn(v, tol))
+                {
+                    allVerticesInWindow = false;
+                    break;
+                }
+            }
+
+            if (allVerticesInWindow)
             {
                 isWindow = true;
                 break;
             }
-        }
-        else if (quadVertex[0][0] == quadVertex[2][0]) //x the same
-        {
-            //if x the same check if points lay in z and y domain
-            if (quadVertex[0][1] <= YdomainEnd && quadVertex[0][1] >= YdomainStart &&   //check quadVertex[0] Y
-                quadVertex[2][1] <= YdomainEnd && quadVertex[2][1] >= YdomainStart &&   //check quadVertex[2] Y
-                quadVertex[0][2] <= ZdomainEnd && quadVertex[0][2] >= ZdomainStart &&   //check quadVertex[0] Z
-                quadVertex[2][2] <= ZdomainEnd && quadVertex[2][2] >= ZdomainStart      //check quadVertex[2] Z
-                )
-            {
-                isWindow = true;
-                break;
-            }
-        }
+        } // loop over constraint groups
+        if (isWindow) break;
     } //loop over space
 
   return isWindow;      

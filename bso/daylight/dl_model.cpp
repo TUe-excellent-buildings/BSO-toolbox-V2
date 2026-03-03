@@ -6,6 +6,9 @@
 
 namespace bso { namespace daylight {
 	
+	// Static variable to keep track of the number of dl_model instances created, used for default folder naming convention.
+	static int dl_model_count = 0; 
+
 	// Helper function to get the radiance bin path relative to this library file
 	static std::string GetRadianceBinPath() {
 		std::filesystem::path filePath(__FILE__);
@@ -28,7 +31,7 @@ namespace bso { namespace daylight {
 	} // ctor()
 	
 	dl_model::dl_model(const dl_model& rhs) 
-	: SpaceID_AmountGridPoints(rhs.SpaceID_AmountGridPoints), DF_Settings(rhs.DF_Settings), DF_Evaluation(rhs.DF_Evaluation), folderName(rhs.folderName), 
+	: SpaceID_AmountGridPoints(rhs.SpaceID_AmountGridPoints), DF_Settings(rhs.DF_Settings), DF_Evaluation(rhs.DF_Evaluation), mFolderName(rhs.mFolderName), 
 		mRectangleWindowYN(rhs.mRectangleWindowYN), mcf_space(rhs.mcf_space), mCeilings(rhs.mCeilings),
 		DFresults(rhs.DFresults), roomInfo(rhs.roomInfo)
 	{
@@ -39,6 +42,37 @@ namespace bso { namespace daylight {
 	{
 
 	} // //dtor()	
+
+	std::string dl_model::createAndSetFolder(const std::string& settingFileName, const std::string& folderName /*= ""*/)
+	{		
+		// If no folder name is provided, create one based on the count of runs. If a folder name is provided, use that one instead.
+		if (folderName == ""){mFolderName = "Iteration_" + std::to_string(dl_model_count);}
+		else{mFolderName = folderName;}
+
+		std::string command = "mkdir -p \"" + mFolderName + "\""; // Use mkdir command to create directory
+
+		int result = std::system(command.c_str());
+
+		if (result != 0) 
+		{   
+			std::cerr << "Error creating directory: " << mFolderName << std::endl;
+			std::cerr << "Command executed: " << command << std::endl;
+		}
+		else    //if folder created, add dl_setting file also to it, since you can change it per run to change window properties. 
+		{
+			std::string copyCommand = "cp \"" + settingFileName + "\" \"" + mFolderName + "/\"";
+			int copyResult = std::system(copyCommand.c_str());
+
+			if (copyResult != 0) 
+			{
+				std::cerr << "Error copying file to directory: " << mFolderName << std::endl;
+				std::cerr << "Command executed: " << copyCommand << std::endl;
+			}
+		}
+
+		dl_model_count++; // Increment the count of dl_model instances so the next folder created will have a different name if the default naming convention is used.
+		return mFolderName;    
+	} // createAndSetFolder()
 
 	double roundToTwoDecimals(double num) 
 	{
@@ -88,14 +122,14 @@ namespace bso { namespace daylight {
 		// Generate sky
 		const std::string irrad = std::to_string(HorizontalOutdoorIlluminance/179.0); //generate diffuse irradiance in watss/meter2 to derive the zenith brightness 
 		const std::string skysettings = "-ang 45 0 -c -B "+irrad+" -g 0.2"; //-c=standard CIE overcast sky ,-B is zenetith brithness (irrad), -g ground reflectance
-		command = radianceBinPath + "/gensky "+skysettings+" > ./"+folderName+"/sky.rad"; 
+		command = radianceBinPath + "/gensky "+skysettings+" > ./"+mFolderName+"/sky.rad"; 
 		if (std::system(command.c_str()) != 0) {
 			std::cerr << "Failed to execute command: " << command << std::endl;
 			return;
 		}
 
 		// Create outside
-		std::ofstream outsideFile(folderName+"/"+"outside.rad", std::ios::trunc);
+		std::ofstream outsideFile(mFolderName+"/"+"outside.rad", std::ios::trunc);
 		if (!outsideFile.is_open()) {std::cerr << "Failed to open outside.rad for writing\n";}
 		outsideFile << "skyfunc glow sky_glow\n0\n0\n4 1 1 1 0\n";
 		outsideFile << "sky_glow source sky\n0\n0\n4 0 0 1 180\n";
@@ -104,7 +138,7 @@ namespace bso { namespace daylight {
 		outsideFile.close();
 
 		// Compile scene
-		command = radianceBinPath + "/oconv ./"+folderName+"/sky.rad ./"+folderName+"/outside.rad ./"+folderName+"/scene.rad > ./"+folderName+"/room.oct";
+		command = radianceBinPath + "/oconv ./"+mFolderName+"/sky.rad ./"+mFolderName+"/outside.rad ./"+mFolderName+"/scene.rad > ./"+mFolderName+"/room.oct";
 		if (std::system(command.c_str()) != 0) {
 			std::cerr << "Failed to execute command: " << command << std::endl;
 			return;
@@ -114,21 +148,21 @@ namespace bso { namespace daylight {
 		std::string rtraceSettings = "-I -h -aa 0 -ab 8 -ad 4096 -as 1024 -lw 1e-6 -lr 16"; 
 		//-I -h -aa 0 -ab 6 -ad 10240 -as 0 -lw 1e-6 -n 4       //Ward, 2024
 		//-I -h -aa 0 -ab 8 -ad 4096 -as 1024 -lw 1e-6 -lr 16   //Kharvari, 2020
-		command = radianceBinPath + "/rtrace "+ rtraceSettings + " -oov ./"+folderName+"/room.oct < ./"+folderName+"/grid.txt > ./"+folderName+"/results.txt";
+		command = radianceBinPath + "/rtrace "+ rtraceSettings + " -oov ./"+mFolderName+"/room.oct < ./"+mFolderName+"/grid.txt > ./"+mFolderName+"/results.txt";
 		if (std::system(command.c_str()) != 0) {
 			std::cerr << "Failed to execute command: " << command << std::endl;
 			return;
 		}
 
 		// Make lux.
-		command = radianceBinPath + "/rcalc -e '$1=179*(.265*$4+.670*$5+.065*$6)' ./"+folderName+"/results.txt > ./"+folderName+"/lux.txt";
+		command = radianceBinPath + "/rcalc -e '$1=179*(.265*$4+.670*$5+.065*$6)' ./"+mFolderName+"/results.txt > ./"+mFolderName+"/lux.txt";
 		if (std::system(command.c_str()) != 0) {
 			std::cerr << "Failed to execute command: " << command << std::endl;
 			return;
 		}
 
 		// // Make DF
-		// command = radianceBinPath + "/rcalc -e '$1=(100*179*(.265*$4+.670*$5+.065*$6))/"+std::to_string(HorizontalOutdoorIlluminance)+"' ./"+folderName+"/results.txt > ./"+folderName+"/DF.txt";
+		// command = radianceBinPath + "/rcalc -e '$1=(100*179*(.265*$4+.670*$5+.065*$6))/"+std::to_string(HorizontalOutdoorIlluminance)+"' ./"+mFolderName+"/results.txt > ./"+mFolderName+"/DF.txt";
 		// if (std::system(command.c_str()) != 0) {
 		// 	std::cerr << "Failed to execute command: " << command << std::endl;
 		// 	return;
@@ -144,8 +178,8 @@ namespace bso { namespace daylight {
 		const double Dtm = DF_Evaluation[1];
 
 		// Read output Radiance
-		std::ifstream inputFile("./"+folderName+"/lux.txt");
-		if (!inputFile.is_open()) {std::cerr << "Error opening luxfile. (./"+folderName+"/lux.txt)" << std::endl; return {};}
+		std::ifstream inputFile("./"+mFolderName+"/lux.txt");
+		if (!inputFile.is_open()) {std::cerr << "Error opening luxfile. (./"+mFolderName+"/lux.txt)" << std::endl; return {};}
 
 		double sum = 0.0;
 		int count = 0;
@@ -258,8 +292,8 @@ namespace bso { namespace daylight {
 		const double Dtm = DF_Evaluation[1];
 
 		// Read output Radiance
-		std::ifstream inputFile("./"+folderName+"/lux.txt");
-		if (!inputFile.is_open()) {std::cerr << "Error opening luxfile. (./"+folderName+"/lux.txt)" << std::endl; return {};}
+		std::ifstream inputFile("./"+mFolderName+"/lux.txt");
+		if (!inputFile.is_open()) {std::cerr << "Error opening luxfile. (./"+mFolderName+"/lux.txt)" << std::endl; return {};}
 
 		double sum = 0.0;
 		int count = 0;

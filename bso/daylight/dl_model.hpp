@@ -38,8 +38,8 @@ the daylight calculation will perform.
 		// Bellow, all variables are stored in case the copy constructor is called and the dl_model needs to be copied	
 		std::vector<std::tuple<unsigned int, int>> SpaceID_AmountGridPoints;	
 		std::vector<double> DF_Settings;	
-		std::vector<double> DF_Evaluation;	
-		std::string folderName;	
+		std::vector<double> DF_Evaluation;
+		std::string mFolderName;	// Contains both input and output files for the radiance run.
 		std::vector<std::vector<double>> DFresults; //[0]=SpaceID, [1]=ADF [2]=Dt% [3]=Dtm% [4]=Score 
 		
 		std::vector<std::vector<double>> roomInfo; /* SpaceID_MinZ_EI where E=external==0 or I=internal==1*/
@@ -47,8 +47,16 @@ the daylight calculation will perform.
 
 		// For visualization
 		std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>> mRectangleWindowYN; 
+		std::vector<bso::spatial_design::conformal::cf_triangle*> mTriangles; // floor/ceiling triangles for visualization
 		std::vector<bso::spatial_design::conformal::cf_space*> mcf_space;  
 		std::vector<const bso::spatial_design::conformal::cf_rectangle*> mCeilings;
+		std::vector<const bso::spatial_design::conformal::cf_triangle*> mCeilingsTri;
+
+		// New definition
+		//std::vector<bso::utilities::geometry::polygon> mCeilings;
+		//std::vector<bso::utilities::geometry::polygon> mFloors;
+		//std::vector<bso::utilities::geometry::polygon> mWalls;
+		//std::vector<bso::utilities::geometry::polygon> mWindows;
 
 		public: 
 		dl_model(); // emtry constructor
@@ -56,8 +64,8 @@ the daylight calculation will perform.
 		~dl_model(); // destructor --> destroy the directory and associated files for a Radiance run
 		
 		// Set and get of DL object
-		void setfolderName(const std::string& directoryname) {folderName = directoryname;}
-		std::string getFolderName() const {return folderName;}
+		std::string createAndSetFolder(const std::string& settingFileName, const std::string& folderName = ""); // creates a folder for the radiance run and saves the setting file into it, if foldername is not provided, creates one based on the count of runs. Returns the name of the created folder.
+		std::string getFolderName() const {return mFolderName;}
     	void setSpaceID_AmountGridPoints(const std::vector<std::tuple<unsigned int, int>>& points) {SpaceID_AmountGridPoints = points;}
 		const std::vector<std::tuple<unsigned int, int>>& getSpaceID_AmountGridPoints() const {return SpaceID_AmountGridPoints;}
 		void setDF_Settings(const std::vector<double>& settings) {DF_Settings = settings;}
@@ -74,6 +82,10 @@ the daylight calculation will perform.
 		const std::vector<bso::spatial_design::conformal::cf_space*> getSpacePropertiesQH() const { return mcf_space; }
 		void setCeilings(std::vector<const bso::spatial_design::conformal::cf_rectangle*>& ceilings) {mCeilings = ceilings;}
 		const std::vector<const bso::spatial_design::conformal::cf_rectangle*> getCeilings() const {return mCeilings;}
+		void setCeilingsTri(std::vector<const bso::spatial_design::conformal::cf_triangle*>& ceilingsTri) {mCeilingsTri = ceilingsTri;}
+		const std::vector<const bso::spatial_design::conformal::cf_triangle*> getCeilingsTri() const {return mCeilingsTri;}
+		void setTriangles(std::vector<bso::spatial_design::conformal::cf_triangle*>& triangles) {mTriangles = triangles;}
+		const std::vector<bso::spatial_design::conformal::cf_triangle*> getTriangles() const {return mTriangles;}
 
 		// Functions to request analysis
 		void analyse();

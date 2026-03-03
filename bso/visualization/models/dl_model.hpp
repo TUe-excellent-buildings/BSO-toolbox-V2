@@ -114,7 +114,7 @@ DL_Model::DL_Model(const bso::daylight::dl_model& dl, const std::string& type, c
 				std::vector<geom::vertex> rectangleVertices;
 				for (const auto& vertex : *cfRec) 
 				{
-				rectangleVertices.push_back(cfRec->getCenter() + vertex - cfRec->getCenter());
+					rectangleVertices.push_back(cfRec->getCenter() + vertex - cfRec->getCenter());
 				}
 
 				geom::quadrilateral rectangleGeometry(rectangleVertices);
@@ -130,6 +130,18 @@ DL_Model::DL_Model(const bso::daylight::dl_model& dl, const std::string& type, c
 
 			} //map [rect,isWindow] loop
 		} //getWindowProperties()
+		for (const auto& i : dl.getTriangles()) //std::vector<bso::spatial_design::conformal::cf_triangle*> mTriangles;
+		{
+			std::vector<geom::vertex> triangleVertices;
+			for (const auto& vertex : *i) 
+			{
+				triangleVertices.push_back(i->getCenter() + vertex - i->getCenter());
+			}
+
+			geom::triangle triangleGeometry(triangleVertices);
+
+			this->addPolygon(polygons, &triangleGeometry, &pprops_wall, &lprops_rectangles, 0.0);
+		} //getTriangles()
 
 		//boundary lines per space
 		pprops_Space.ambient = rgba(1.0f, 1.0f, 0.04f, 0.0f);

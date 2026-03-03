@@ -24,11 +24,11 @@ void grammar::mReadDLSettings(const std::string& fileName)
 	
 	//here it clears DLproperties
 	//and properties are defined
-	ReflectanceValues.clear();
-	WindowProperties.clear();
-	WindowDimensions.clear();
-	DF_Settings.clear();
-	DF_Evaluation.clear();
+	mReflectanceValues.clear();
+	mWindowProperties.clear();
+	mWindowDimensions.clear();
+	mDF_Settings.clear();
+	mDF_Evaluation.clear();
 
 	std::string line;
 	boost::char_separator<char> sep(","); // defines what separates tokens in a string
@@ -69,7 +69,7 @@ void grammar::mReadDLSettings(const std::string& fileName)
 				boost::algorithm::trim(Specularity);
 				std::string Roughness = *token; ++token;
 				boost::algorithm::trim(Roughness);		
-				ReflectanceValues = {ReflectanceValueFloor,ReflectanceValueCeiling,ReflectanceValueWall, Specularity, Roughness};
+				mReflectanceValues = {ReflectanceValueFloor,ReflectanceValueCeiling,ReflectanceValueWall, Specularity, Roughness};
 				break;
 			}
 			case 'B':
@@ -78,7 +78,7 @@ void grammar::mReadDLSettings(const std::string& fileName)
 				boost::algorithm::trim(transmissivity);
 				std::string transmittance = *token; ++token;
 				boost::algorithm::trim(transmittance);
-				WindowProperties = {transmissivity,transmittance};
+				mWindowProperties = {transmissivity,transmittance};
 				break;
 			}
 			case 'C':
@@ -86,7 +86,7 @@ void grammar::mReadDLSettings(const std::string& fileName)
 				double WindowHeightRatio = bso::utilities::trim_and_cast_double(*token); ++token;
 				double WindowWidthRatio = bso::utilities::trim_and_cast_double(*token); ++token;
 				double StartLocationWindow = bso::utilities::trim_and_cast_double(*token); ++token;
-				WindowDimensions = {WindowHeightRatio,WindowWidthRatio,StartLocationWindow};
+				mWindowDimensions = {WindowHeightRatio,WindowWidthRatio,StartLocationWindow};
 				break;
 			}
 			case 'D':
@@ -95,14 +95,14 @@ void grammar::mReadDLSettings(const std::string& fileName)
 				double ReferenceHeight = bso::utilities::trim_and_cast_double(*token); ++token;
 				double space_margin = bso::utilities::trim_and_cast_double(*token); ++token;
 				double minGridSize = bso::utilities::trim_and_cast_double(*token); ++token;
-				DF_Settings = {HorizontalOutdoorIlluminance,ReferenceHeight,space_margin,minGridSize};
+				mDF_Settings = {HorizontalOutdoorIlluminance,ReferenceHeight,space_margin,minGridSize};
 				break;
 			}			
 			case 'E':
 			{ // DF evaluation
 				double Dt = bso::utilities::trim_and_cast_double(*token); ++token;
 				double Dtm = bso::utilities::trim_and_cast_double(*token); ++token;
-				DF_Evaluation = {Dt,Dtm};
+				mDF_Evaluation = {Dt,Dtm};
 				break;
 			}	
 		}
