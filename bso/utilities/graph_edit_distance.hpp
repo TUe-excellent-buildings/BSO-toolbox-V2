@@ -216,4 +216,6 @@ private:
 
 } // namespace ged
 
+#include <bso\utilities\graph_edit_distance.cpp>
+
 #endif // GRAPH_EDIT_DISTANCE_HPP

@@ -1,4 +1,7 @@
-#include "graph_edit_distance.hpp"
+#ifndef GRAPH_EDIT_DISTANCE_CPP
+#define GRAPH_EDIT_DISTANCE_CPP
+
+// #include "graph_edit_distance.hpp"
 #include <boost/graph/adjacency_list.hpp>
 #include <algorithm>
 #include <queue>
@@ -1079,3 +1082,5 @@ std::vector<std::pair<int, int>> GraphEditDistance::get_optimal_node_mapping() {
     return mapping;
 }
 } // namespace ged
+
+#endif // GRAPH_EDIT_DISTANCE_CPP

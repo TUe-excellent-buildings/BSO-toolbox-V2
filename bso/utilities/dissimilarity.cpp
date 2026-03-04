@@ -430,13 +430,6 @@ GEDResult optimized_GED_poly(const std::map<int, SpaceInfo>& A, const std::map<i
 	config.node_subst_cost = [](Vertex u, Vertex v, const Graph& G1, const Graph& G2) {
 		return 0.0;  // Substitution is free
 	};
-	config.node_del_cost = [](Vertex u, const Graph& G1) {
-		return 100.0;  // Deletion costs 100
-	};
-	config.node_ins_cost = [](Vertex v, const Graph& G2) {
-		return 100.0;  // Insertion costs 100
-	};
-
 	config.edge_subst_cost = [](Edge e1, Edge e2, const Graph& G1, const Graph& G2) {
 		return 0.0;  // Edge substitution is free
 	};
@@ -446,6 +439,22 @@ GEDResult optimized_GED_poly(const std::map<int, SpaceInfo>& A, const std::map<i
 	config.edge_ins_cost = [](Edge e, const Graph& G2) {
 		return 1.0;  // Edge insertion costs 1
 	};
+
+    if (nspaces(A) == nspaces(B)) {
+        config.node_del_cost = [](Vertex u, const Graph& G1) {
+		return 100.0;  // Deletion costs 100
+	};
+	config.node_ins_cost = [](Vertex v, const Graph& G2) {
+		return 100.0;  // Insertion costs 100
+	};
+    } else {
+        config.node_del_cost = [](Vertex u, const Graph& G1) {
+		return 1.0;  // Deletion costs 1
+	};
+	config.node_ins_cost = [](Vertex v, const Graph& G2) {
+		return 1.0;  // Insertion costs 1
+	};
+    }
 
 	GraphEditDistance ged(G1, G2, config);
 
@@ -462,12 +471,19 @@ GEDResult optimized_GED_poly(const std::map<int, SpaceInfo>& A, const std::map<i
 
 	// Build the space mapping
 	std::map<int, int> space_mapping;
+
 	for (const auto& edit : optimal.node_edits) {
 		if (edit.u >= 0 && edit.v >= 0) {
 			// Substitution
 			space_mapping[space_ids_1[edit.u]] = space_ids_2[edit.v];
 		}
 	}
+
+    // // Print space mapping u -> v
+    // std::cout << "Space mapping (A -> B):" << std::endl;
+    // for (const auto& [u, v] : space_mapping) {
+    //     std::cout << "  " << u << " -> " << v << std::endl;
+    // }
 
 	int num_vertices = boost::num_vertices(G1);
 	int num_edges = boost::num_edges(G1);
@@ -635,7 +651,7 @@ double calculate_dissimilarity(const bso::spatial_design::ms_N_building MS1, con
 }
 
 double calculate_dissimilarity_weighted(const bso::spatial_design::ms_N_building MS1, const bso::spatial_design::ms_N_building MS2, 
-                                            int rot = 3, double w1 = 1, double w2 = 1, double w3 = 1) {
+                                        int rot = 3, double w1 = 1, double w2 = 1, double w3 = 1) {
     // Load MS model A
     std::map<int, SpaceInfo> buildingA = getBuildingData(MS1);
     // Load MS model B

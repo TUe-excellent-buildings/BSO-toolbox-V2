@@ -2,14 +2,11 @@
 unit_tests/all_test
 CITATION.cff
 CITATION.cff
-example/makefile
-example/makefile
 readme.md
-example/makefile
 readme.md
 code_developments_for_publications/scdp_performance_clusters_NOBSD/scdp_performance_clusters
 example/makefile
-example/makefile
+example/main.cpp
 unit_tests/grammar_test
 code_used_for_publications/Automation_in_construction_2020_design_response_grammar/design_response_grammar/design_response_grammar
 code_used_for_publications/Automation_in_construction_2020_design_response_grammar/design_response_grammar/designs/design_1.txt
