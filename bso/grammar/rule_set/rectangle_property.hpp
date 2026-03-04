@@ -41,6 +41,9 @@ public:
 	const bool& isOverhang() const {return mIsOverhang;}
 	const bool& isAboveGroundSurface() const {return mIsAboveGroundSurface;}
 	const bool& isBelowGroundSurface() const {return mIsBelowGroundSurface;}
+
+	// Function is used in the daylight grammar to set if the considered rectangle is a window.
+	void setIsWindow(const bool& isWindow) {mIsWindow = isWindow;} 
 };
 	
 } // namespace rule_set

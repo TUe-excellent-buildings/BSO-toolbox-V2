@@ -63,6 +63,14 @@ namespace bso { namespace utilities { namespace geometry {
 		return ((*this)-rhs).isZero(tol);
 	}
 	
+	double vertex::getDistance(const vertex& other) const
+	{
+		double dx = other[0] - (*this)[0];
+		double dy = other[1] - (*this)[1];
+		double dz = other[2] - (*this)[2];
+		return std::sqrt(dx * dx + dy * dy + dz * dz);
+	}
+	
 	bool vertex::operator <  (const vertex& rhs) const
 	{
 		for (unsigned int i = 0; i < 3; i++)

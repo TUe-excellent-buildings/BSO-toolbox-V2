@@ -64,6 +64,7 @@ int main(int argc, char* argv[])
  bso::visualization::visualize(SD,"element");
  bso::visualization::visualize(BP);
  bso::visualization::visualize(DL, "");
+ bso::visualization::visualize(DL, "grid");
  bso::visualization::endVisualization();
 
  return 0;

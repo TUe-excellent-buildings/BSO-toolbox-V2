@@ -109,7 +109,7 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
 			// Write window or wall based on window area and open/closed status
 			if (isWindow && isOpen)
 			{
-				bso::grammar::rule_set::dl_rule_set::writeWindowRadiance(sceneFile, quadVertex);
+				bso::grammar::rule_set::dl_rule_set::writeWindowRadiance(sceneFile, quadVertex, i.second);
 				map[cfRec] = true;
 			}
 			else

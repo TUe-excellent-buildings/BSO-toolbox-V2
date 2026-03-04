@@ -301,7 +301,7 @@ void writePolygonWallRadiance(std::ofstream& file, std::vector<bso::utilities::g
     file << std::endl;
 } // writePolygonWallRadiance()
 
-void writeWindowRadiance(std::ofstream& file, std::vector<bso::utilities::geometry::vertex>& quadVertex) 
+void writeWindowRadiance(std::ofstream& file, std::vector<bso::utilities::geometry::vertex>& quadVertex, rule_set::rectangle_property* rectangleProp) 
 {
     gWindowCount++;
 
@@ -324,6 +324,8 @@ void writeWindowRadiance(std::ofstream& file, std::vector<bso::utilities::geomet
     file << std::setw(10) << formatNumber(quadVertex[3][0]) << " " 
          << std::setw(10) << formatNumber(quadVertex[3][1]) << " " 
          << std::setw(10) << formatNumber(quadVertex[3][2]) << "\n\n";
+
+    rectangleProp->setIsWindow(true); // set rectangle property to window for use in SD and BP rules if needed.
 } // writeWindowRadiance()
 
 bool isQuadInWindowArea(std::vector<bso::utilities::geometry::vertex>& quadVertex, const std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>>& ConstrainsPerSpace, const double& tol = 1e-3)
@@ -529,66 +531,325 @@ void filterSurfacesForGrid(std::vector<bso::spatial_design::conformal::cf_surfac
 std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bso::spatial_design::conformal::cf_surface>& vec, std::ofstream& gridFile, 
 															std::vector<unsigned int>& SpaceID, const std::vector<double> DF_Settings, std::vector<bso::utilities::geometry::vertex>& gridPoints) 
 {
-
 	const double ReferenceHeight = DF_Settings[1];
 	const double space_margin = DF_Settings[2];
-	const double minGridSize = DF_Settings[3];
+	const double maxGridSize = DF_Settings[3];
 
     std::vector<int> amountGridPoints;
     std::vector<std::tuple<unsigned int, int>> tupleVec;
 
     for (int i = 0; i < vec.size(); i++) //loop per surface
-    {   
+    {
         int numGridPoints = 0;
 
-        // Determine the longer dimension of the surface
-        double minX = vec[i][0][0];
-        double minY = vec[i][0][1];
-        double maxX = vec[i][2][0];
-        double maxY = vec[i][2][1];
-        double w = maxX-minX;
-        double l = maxY-minY;
-        double d = std::max(l, w);
-        // Calculate the maximum grid cell size
-        double p_meter = std::min(minGridSize, 0.5 * std::pow(5, std::log10(d/1000))); 
-        double p = p_meter*1000; // mm
-        // Calculate the number of points in the relevant dimension
-        int num_points_dim = std::ceil(d/p);
-        // Calculate the spacing between grid points
-        double step = d / (num_points_dim - 1);
-        // Calculate the actual dimensions of the grid area (excluding wall thickness)
-        double actual_l = l - 2 * space_margin;
-        double actual_w = w - 2 * space_margin;
-        // Calculate the step sizes for x and y dimensions
-        double step_x = actual_w / (num_points_dim - 1);
-        double step_y = actual_l / (num_points_dim - 1);
-        // make start points
-        float start_x = minX;
-        float start_y = minY;
-        float start_z = vec[i][0][2]; //height per surface.
+        // Collect and sort vertices counter-clockwise
+        std::vector<bso::utilities::geometry::vertex> quadVertices;
+        for (const auto& v : vec[i]) 
+        {
+            quadVertices.push_back(v);
+        }
 
-        // Generate grid points
-        for (int k = 0; k < num_points_dim; ++k) {
-            for (int j = 0; j < num_points_dim; ++j) {
-                gridPoints.push_back({start_x + j * step_x + space_margin, start_y + k * step_y + space_margin, start_z + ReferenceHeight});
-                double x = start_x + j * step_x + space_margin;
-                double y = start_y + k * step_y + space_margin;
-                double z = start_z + ReferenceHeight;
-                gridFile<< std::setw(10) << x
-                        << std::setw(10) << y
-                        << std::setw(10) << z
-                        << std::setw(10) << 0
-                        << std::setw(10) << 0
-                        << std::setw(10) << 1 << std::endl;
-                numGridPoints++; // Increment the number of grid points
+        if (quadVertices.size() < 4)
+        {
+            amountGridPoints.push_back(0);
+            tupleVec.push_back(std::make_tuple(SpaceID[i], amountGridPoints[i]));
+            continue;
+        }
+
+        sortPolygonVertexGeneric(quadVertices);
+
+        // Calculate edge lengths directly from sorted vertices to ensure correct pairing
+        // After sorting counter-clockwise, edges are: 0->1, 1->2, 2->3, 3->0
+        double edge01 = quadVertices[0].getDistance(quadVertices[1]);
+        double edge12 = quadVertices[1].getDistance(quadVertices[2]);
+        double edge23 = quadVertices[2].getDistance(quadVertices[3]);
+        double edge30 = quadVertices[3].getDistance(quadVertices[0]);
+
+        // Characteristic dimensions (shortest edge in each direction)
+        // For a quadrilateral: opposite edges are 0-1 & 2-3, and 1-2 & 3-0
+        double dimA = std::min(edge01, edge23); // opposite edges 0->1 and 2->3
+        double dimB = std::min(edge12, edge30); // opposite edges 1->2 and 3->0
+
+        if (dimA <= 1e-9 || dimB <= 1e-9)
+        {
+            std::stringstream errorMessage;
+            errorMessage << "Error in generateGridNEN: Surface " << i << " (SpaceID: " << SpaceID[i] 
+                      << ")\n has dimensions (dimA=" << dimA << ", dimB=" << dimB 
+                      << ").\n These are infeasable and should not occur. \n"
+                      << "(bso/grammar/rule_set/dl_rule_set/dl_rectangle_rule.cpp). " << std::endl;
+            throw std::invalid_argument(errorMessage.str());            
+        }
+
+        // Determine d according to NEN B.2
+        // If aspect ratio >= 2, use shorter dimension; otherwise use longer dimension
+        double longerDim = std::max(dimA, dimB);
+        double shorterDim = std::min(dimA, dimB);
+        double aspectRatio;
+        if (shorterDim > 1e-9) aspectRatio = longerDim / shorterDim;
+        else aspectRatio = std::numeric_limits<double>::infinity();
+
+        double d;
+        if (aspectRatio >= 2.0) d = shorterDim;
+        else d = longerDim;
+
+        double d_other;
+        if (d == longerDim) d_other = shorterDim;
+        else d_other = longerDim;
+
+        bool d_is_dimA = (std::abs(d - dimA) < 1e-9);
+
+        // Calculate maximum grid cell size per NEN B.2: p = 0.5 × 5^log10(d)
+        double p_meter = 0.5 * std::pow(5, std::log10(d / 1000.0));
+        p_meter = std::min(p_meter, maxGridSize); // user cap
+
+        // Convert to mm for consistency with dimensions in mm
+        double p = p_meter * 1000.0;
+
+        // Number of points in relevant dimension: ceil(d/p)
+        int num_points_relevant = static_cast<int>(std::ceil(d / p));
+        if (num_points_relevant < 2) num_points_relevant = 2;
+
+        // Spacing in relevant dimension
+        double step = d / (num_points_relevant - 1);
+
+        // Number of points in the other dimension based on same spacing.
+        // Add 1 to include both boundary endpoints (same convention as relevant dimension).
+        int num_points_other = static_cast<int>(std::ceil(d_other / step)) + 1;
+        if (num_points_other < 2) num_points_other = 2;
+
+        int num_u = d_is_dimA ? num_points_relevant : num_points_other;
+        int num_v = d_is_dimA ? num_points_other : num_points_relevant;
+
+        // Check if space is too narrow for margin to be applied uniformly
+        double minDim = std::min(dimA, dimB);
+        bool validOffset = true;
+        if (minDim < 2.0 * space_margin)
+        {
+            // Space is too narrow for uniform margin on all sides; margin cannot be applied
+            std::cerr << "Warning: Surface " << i << " (SpaceID: " << SpaceID[i] 
+                      << ") is too narrow (min dimension=" << minDim 
+                      << " mm) for space margin (" << space_margin 
+                      << " mm). Using original polygon without margin offset." << std::endl;
+            validOffset = false;
+        }
+
+        // Build inward-offset quadrilateral (exclude wall band = space_margin)
+        std::vector<bso::utilities::geometry::vertex> poly(4);
+        for (int vi = 0; vi < 4; ++vi) {poly[vi] = {quadVertices[vi][0], quadVertices[vi][1], 0.0};}
+
+        double signedArea2 = 0.0;
+        for (int vi = 0; vi < 4; ++vi)
+        {
+            const auto& a = poly[vi];
+            const auto& b = poly[(vi + 1) % 4];
+            signedArea2 += (a[0] * b[1] - b[0] * a[1]);
+        }
+        double orientationSign = (signedArea2 >= 0.0) ? 1.0 : -1.0;
+
+        std::vector<bso::utilities::geometry::line_segment> offsetLines(4);
+
+        for (int ei = 0; ei < 4; ++ei)
+        {
+            const auto& a = poly[ei];
+            const auto& b = poly[(ei + 1) % 4];
+            double ex = b[0] - a[0];
+            double ey = b[1] - a[1];
+            double elen = std::sqrt(ex * ex + ey * ey);
+            if (elen <= 1e-9)
+            {
+                validOffset = false;
+                break;
             }
-        }//generate grid points
+
+            double nx = orientationSign * (-ey / elen);
+            double ny = orientationSign * ( ex / elen);
+
+            bso::utilities::geometry::vertex p = {a[0] + nx * space_margin, a[1] + ny * space_margin, 0.0};
+            bso::utilities::geometry::vertex d = {ex, ey, 0.0};
+            offsetLines[ei] = bso::utilities::geometry::line_segment(p, p + d);
+        }
+
+        std::vector<bso::utilities::geometry::vertex> inset(4);
+        if (validOffset)
+        {
+            for (int vi = 0; vi < 4; ++vi)
+            {
+                const auto& prev = offsetLines[(vi + 3) % 4];
+                const auto& curr = offsetLines[vi];
+                if (!prev.intersectsWith(curr, inset[vi], 1e-9))
+                {
+                    validOffset = false;
+                    break;
+                }
+            }
+        }
+
+        if (!validOffset)
+        {
+            // Fall back to 25% offset if margin offset is not geometrically feasible
+            double minDim = std::min(dimA, dimB);
+            double fallbackMargin = 0.25 * minDim;
+            
+            std::vector<bso::utilities::geometry::line_segment> fallbackOffsetLines(4);
+            bool fallbackValid = true;
+            
+            // Recompute offset lines with reduced margin
+            for (int ei = 0; ei < 4 && fallbackValid; ++ei)
+            {
+                const auto& a = poly[ei];
+                const auto& b = poly[(ei + 1) % 4];
+                double ex = b[0] - a[0];
+                double ey = b[1] - a[1];
+                double elen = std::sqrt(ex * ex + ey * ey);
+                if (elen <= 1e-9)
+                {
+                    fallbackValid = false;
+                    break;
+                }
+                
+                double nx = orientationSign * (-ey / elen);
+                double ny = orientationSign * ( ex / elen);
+                
+                bso::utilities::geometry::vertex p = {a[0] + nx * fallbackMargin, a[1] + ny * fallbackMargin, 0.0};
+                bso::utilities::geometry::vertex d = {ex, ey, 0.0};
+                fallbackOffsetLines[ei] = bso::utilities::geometry::line_segment(p, p + d);
+            }
+            
+            // Try to compute intersections for fallback offset
+            if (fallbackValid)
+            {
+                for (int vi = 0; vi < 4 && fallbackValid; ++vi)
+                {
+                    const auto& prev = fallbackOffsetLines[(vi + 3) % 4];
+                    const auto& curr = fallbackOffsetLines[vi];
+                    if (!prev.intersectsWith(curr, inset[vi], 1e-9))
+                    {
+                        fallbackValid = false;
+                        break;
+                    }
+                }
+            }
+            
+            // If fallback offset fails, use original polygon
+            if (!fallbackValid)
+            {
+                for (int vi = 0; vi < 4; ++vi)
+                {
+                    inset[vi] = poly[vi];
+                }
+            }
+        }
+
+        // Use average z of the surface vertices (for flat z=0 this stays 0)
+        double baseZ = 0.0;
+        for (const auto& v : quadVertices)
+        {
+            baseZ += v[2];
+        }
+        baseZ /= static_cast<double>(quadVertices.size());
+
+        // Track worst cell aspect ratio for NEN B.2 compliance check
+        double worstAspectRatio = 1.0;
+        int worstCellJu = 0, worstCellKv = 0;
+        double worstCellWidth = 0.0, worstCellHeight = 0.0;
+
+        // Store generated points in 2D structure for cell aspect ratio checking
+        std::vector<std::array<double, 2>> gridPointsXY(num_u * num_v);
+
+        // Generate grid points over inset quad using bilinear interpolation
+        for (int kv = 0; kv < num_v; ++kv)
+        {
+            double v = (num_v == 1) ? 0.0 : static_cast<double>(kv) / static_cast<double>(num_v - 1);
+            for (int ju = 0; ju < num_u; ++ju)
+            {
+                double u = (num_u == 1) ? 0.0 : static_cast<double>(ju) / static_cast<double>(num_u - 1);
+
+                double x = (1.0 - u) * (1.0 - v) * inset[0][0]
+                         + (u)       * (1.0 - v) * inset[1][0]
+                         + (u)       * (v)       * inset[2][0]
+                         + (1.0 - u) * (v)       * inset[3][0];
+
+                double y = (1.0 - u) * (1.0 - v) * inset[0][1]
+                         + (u)       * (1.0 - v) * inset[1][1]
+                         + (u)       * (v)       * inset[2][1]
+                         + (1.0 - u) * (v)       * inset[3][1];
+
+                double z = baseZ + ReferenceHeight;
+
+                gridPoints.push_back({x, y, z});
+                gridFile << std::setw(10) << x
+                         << std::setw(10) << y
+                         << std::setw(10) << z
+                         << std::setw(10) << 0
+                         << std::setw(10) << 0
+                         << std::setw(10) << 1 << std::endl;
+                numGridPoints++;
+                
+                // Store XY for cell checking
+                int idx = kv * num_u + ju;
+                gridPointsXY[idx] = {x, y};
+                
+                // Check cell aspect ratio (if not on last row or column)
+                if (ju < num_u - 1 && kv < num_v - 1)
+                {
+                    int idx_10 = kv * num_u + (ju + 1);
+                    int idx_11 = (kv + 1) * num_u + (ju + 1);
+                    int idx_01 = (kv + 1) * num_u + ju;
+                    
+                    // Get the 4 corners of this cell
+                    auto& p00 = gridPointsXY[idx];
+                    auto& p10 = gridPointsXY[idx_10];
+                    auto& p11 = gridPointsXY[idx_11];
+                    auto& p01 = gridPointsXY[idx_01];
+                    
+                    // Calculate cell dimensions (average of opposite sides)
+                    double width1 = std::sqrt(std::pow(p10[0] - p00[0], 2) + std::pow(p10[1] - p00[1], 2));
+                    double width2 = std::sqrt(std::pow(p11[0] - p01[0], 2) + std::pow(p11[1] - p01[1], 2));
+                    double height1 = std::sqrt(std::pow(p01[0] - p00[0], 2) + std::pow(p01[1] - p00[1], 2));
+                    double height2 = std::sqrt(std::pow(p11[0] - p10[0], 2) + std::pow(p11[1] - p10[1], 2));
+                    
+                    double avgWidth = (width1 + width2) / 2.0;
+                    double avgHeight = (height1 + height2) / 2.0;
+                    
+                    if (avgWidth > 1e-9 && avgHeight > 1e-9)
+                    {
+                        double aspectRatio = avgHeight / avgWidth;
+                        
+                        // Track worst aspect ratio (furthest from ideal 1.0)
+                        double deviationFromIdeal = std::abs(std::log(aspectRatio));
+                        double worstDeviation = std::abs(std::log(worstAspectRatio));
+                        
+                        if (deviationFromIdeal > worstDeviation)
+                        {
+                            worstAspectRatio = aspectRatio;
+                            worstCellJu = ju;
+                            worstCellKv = kv;
+                            worstCellWidth = avgWidth;
+                            worstCellHeight = avgHeight;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Report NEN B.2 compliance warning if worst cell is out of range
+        if (worstAspectRatio < 0.5 || worstAspectRatio > 2.0)
+        {
+            std::cerr << "Warning: Surface " << i << " (SpaceID: " << SpaceID[i] 
+                      << ") has worst-case grid cell aspect ratio = " << worstAspectRatio 
+                      << ", which is outside NEN B.2 recommended range [0.5, 2.0]. "
+                      << "(Grid: " << num_u << " x " << num_v 
+                      << " points, worst cell at [" << worstCellJu << "," << worstCellKv << "]"
+                      << ", size: " << (worstCellWidth/1000.0) << " x " << (worstCellHeight/1000.0) << " m)" 
+                      << std::endl;
+        }
+        
         gridFile << "\n" << std::endl;
         amountGridPoints.push_back(numGridPoints);
         tupleVec.push_back(std::make_tuple(SpaceID[i], amountGridPoints[i]));
-    }//loop per surface
+    }
 
-    return tupleVec; 
+    return tupleVec;
 } // generateGridNEN()
 
 void dl_rectangle_rule::apply(bso::daylight::dl_model& dl) const

@@ -99,18 +99,18 @@ private:
 	as a constent to fit the bso-toolbox current structuring
 	*/
 	
-	// dl parameters from settingsfile
+	// dl parameters from settings file
 	std::vector<std::string> mReflectanceValues;
 	std::vector<std::string> mWindowProperties;
 	std::vector<double> mWindowDimensions;
-	std::vector<double> mDF_Settings;
+	std::vector<double> mDF_Settings; // [0] = ?, [1] = reference height, [2] = space margin, [3] = max grid size
 	std::vector<double> mDF_Evaluation;
 	std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>> mRectangleWindowYNGram = {};
 
 	// rule sets/grammars to define the dl_model according to your rectangles
 	std::map<spatial_design::conformal::cf_rectangle*, rule_set::dl_rectangle_rule*> mDLRectangleRules;
 
-	// see file grammar_dl_specific.cpp for inplementation of these functions
+	// see file grammar_dl_specific.cpp for implementation of these functions
 	void mReadDLSettings(const std::string& fileName); 
 	#endif
 
