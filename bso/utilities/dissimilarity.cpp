@@ -619,8 +619,8 @@ std::map<int, SpaceInfo> getBuildingData(const bso::spatial_design::ms_N_buildin
 
 		// Collect points for this space
 		std::vector<Point_3> points;
-		for (const auto vPtr : space.getVertices()) {
-			points.push_back(Point_3((*vPtr)(0), (*vPtr)(1), (*vPtr)(2)));
+        for (const auto& v : space.getVertices()) {
+            points.push_back(Point_3(v[0], v[1], v[2]));
 		}
 
 		// Create convex hull --> polyhedron

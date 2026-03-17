@@ -1,8 +1,7 @@
 unit_tests/all_test
 CITATION.cff
 readme.md
-examples\NOBSD_basic
-examples\Orthogonal_basic
+examples/NOBSD_basic/example.cpp
 unit_tests/grammar_test
 code_developments_for_publications/scdp_performance_clusters_NOBSD/scdp_performance_clusters
 code_used_for_publications/Automation_in_construction_2020_design_response_grammar/design_response_grammar/design_response_grammar
