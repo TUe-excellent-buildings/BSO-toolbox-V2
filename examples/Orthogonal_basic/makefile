@@ -20,14 +20,14 @@ else
 endif
 
 # Compiler settings
-CPP = g++ -std=c++17
-FLAGS = -O3 -march=native -lglut -lGL -lGLU -lpthread $(DELAUNAY_FLAGS)
+CPP = g++ -g -std=c++17
+FLAGS = -march=native -lglut -lGL -lGLU -lpthread $(DELAUNAY_FLAGS)
 
 # Specify file(s) to be compiled
 MAINFILE = main.cpp
 
 # Specify name of executable
-EXE = example
+EXE = main
 
 .PHONY: all cls clean
 
@@ -37,7 +37,7 @@ cls:
 	@clear
 	@clear
 all:
-	$(CPP) $(D_LIB) -o example $(ALL_LIB) $(MAINFILE) $(FLAGS)
+	$(CPP) $(D_LIB) -o main $(ALL_LIB) $(MAINFILE) $(FLAGS)
 
 # Remove previously compiled executable
 clean:

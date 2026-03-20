@@ -6,6 +6,7 @@
 #include <bso/visualization/utilities/camera.hpp>
 
 #ifdef __unix__                    /* __unix__ is usually defined by compilers targeting Unix systems */
+//#include <GL/freeglut.h> // include the larger freeglut header for Unix, which includes the original glut.h and adds some extra functionality
 #include <GL/glut.h>
 #elif defined(_WIN32) || defined(WIN32)     /* _Win32 is usually defined by compilers targeting 32 or   64 bit Windows systems */
 #include <glut.h>

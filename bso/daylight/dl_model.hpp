@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include <chrono> //measure time to run
+
 // #include <bso/daylight/properties/surface_properties.hpp>
 // #include <bso/daylight/geometry/floor.hpp>
 // #include <bso/daylight/geometry/ceiling.hpp>
@@ -38,17 +39,70 @@ the daylight calculation will perform.
 	Build date: 2024-03-03
 	Build ID: cc0d3bfe86
 */
-	struct dl_results;
+	/*
+	//This struct below described the result output you obtain from your Radiance run
+	//and can be asked upon by the function getTotalResults() or partialresults(unsigned int& mID)
+	mDFpassbuilding =  the % of rooms which pass the DF targets from the NEN-norms
+	mDtbuilding = the % of rooms which pass the Dtarget 
+	mDtmbuilding = the % of rooms which pass the Dtarget minimum 
+	mTotalScore = the cumulative sum of score per room.
+	mADFbuilding = the ADF score of total building (sum of 1/ADF per room)
+	*/
+	struct dl_building_results
+	{
+		double mDFPassbuilding = 0.0; 
+		double mDtBuilding = 0.0;  
+		double mDtmBuilding = 0.0;  
+		double mTotalScore = 0.0; 
+		double mADFBuilding = 0.0; // true value
+		double mADFBuildingInverse = 0.0; // 1/mADFbuilding, used for optimization performance as it can be minimized.
+	};
+
+	// This struct stores the result output per individual space / room.
+	// It mirrors the per-space daylight results calculated in dl_model.cpp
+	// based on the Radiance lux.txt output.
+	// Members:
+	// mSpaceID          : ID of the space/room.
+	// mADF              : Average Daylight Factor of the room.
+	// mDtPercentage     : % of grid points with DF > Dtarget (Dt)
+	// mDtmPercentage    : % of grid points with DF > Dtarget minimum (Dtm)
+	// mScore            : Daylight score for the room (0–10) according to BS-EN 17037, calculated based on Dt% and Dtm% using the ScoreDFRoomNENminimize function.
+	// mPassDF           : true if both Dt and Dtm criteria are met.
+	// mPassDt, mPassDtm : true if individual Dt / Dtm criteria are met.
+	struct dl_space_result
+	{
+		unsigned int mSpaceID      = 0;
+		double       mADF          = 0.0;
+		double 		 mADFInverse  = 0.0; // 1/mADF, used for optimization performance as it can be minimized.
+		double       mDtPercentage = 0.0;
+		double       mDtmPercentage= 0.0;
+		double       mScore        = 0.0;
+		bool         mPassDF       = false;
+		bool         mPassDt       = false;
+		bool         mPassDtm      = false;
+	};
 
 	class dl_model
 	{
 		private: 
+		/*
+		// new variable to be implemented:
+		std::vector<simulation::space> mSpaces; // spaces/rooms in the building, each with its own geometry and properties
+
+		
+		
+		
+		*/
+		
+		
 		// Bellow, all variables are stored in case the copy constructor is called and the dl_model needs to be copied	
 		std::vector<std::tuple<unsigned int, int>> SpaceID_AmountGridPoints;	
 		std::vector<double> DF_Settings;	
 		std::vector<double> DF_Evaluation;
 		std::string mFolderName;	// Contains both input and output files for the radiance run.
-		std::vector<std::vector<double>> DFresults; //[0]=SpaceID, [1]=ADF [2]=Dt% [3]=Dtm% [4]=Score 
+		std::vector<dl_space_result> mSpaceResults; // per-space daylight results
+		dl_building_results mBuildingResults; // overall daylight results for the building
+		bool mResultsGenerated = false;           // true once results have been read from Radiance output
 		
 		std::vector<std::vector<double>> roomInfo; /* SpaceID_MinZ_EI where E=external==0 or I=internal==1*/
 		//for space separating wall rectangle for histogram 
@@ -60,6 +114,9 @@ the daylight calculation will perform.
 		std::vector<const bso::spatial_design::conformal::cf_rectangle*> mCeilings;
 		std::vector<const bso::spatial_design::conformal::cf_triangle*> mCeilingsTri;
 		std::vector<bso::utilities::geometry::vertex> mGridPoints; // grid points for visualization
+
+		// Internal helper to read lux.txt and populate mSpaceResults and mBuildingResults
+		void generateResults();
 
 		// // Specialized radiance geometry entities to support alternative grammar definitions.
 		// std::vector<floor> mFloorEntities;
@@ -88,7 +145,6 @@ the daylight calculation will perform.
 		const std::vector<std::tuple<unsigned int, int>>& getSpaceID_AmountGridPoints() const {return SpaceID_AmountGridPoints;}
 		void setDF_Settings(const std::vector<double>& settings) {DF_Settings = settings;}
 		void setDF_Evaluation(const std::vector<double>& evaluation) {DF_Evaluation = evaluation;}
-		void setDFresults(std::vector<std::vector<double>>& results) {DFresults = results;}
 
 		void setRoomInfo(std::vector<std::vector<double>>& a) {roomInfo = a;}
 		const std::vector<std::vector<double>>& getRoomInfo() const {return roomInfo;}
@@ -127,34 +183,15 @@ the daylight calculation will perform.
 		// const std::vector<space>& getSpaceEntities() const {return mSpaceEntities;}
 
 		// Functions to request analysis
-		void analyse();
+		void analyze();
 		
 		// This functions returns the results of the Radiance run, see BP and SD classes for examples on how this could be done.
-		dl_results getTotalResults();
-		dl_results getPartialResults(unsigned int& mID);
+		dl_building_results getTotalResults();
+		dl_building_results getPartialResults(unsigned int& mID);
+		const std::vector<dl_space_result>& getSpaceResults() const { return mSpaceResults; }
+		const dl_space_result& getSpaceResult(unsigned int& mID) const;
 
 	}; //daylight class
-	
-	/*
-	//This struct below described the result output you obtain from your Radiance run
-	//and can be asked upon by the function getTotalResults() or partialresults(unsigned int& mID)
-	mDFpassbuilding =  the % of rooms which pass the DF targets from the NEN-norms
-	mDtbuilding = the % of rooms which pass the Dt 
-	mDtmbuilding = the % of rooms which pass Dtm 
-	mTotalScore = the cumulative sum of score per room.
-	mADFbuilding = the ADF score of total building
-	mADFroom = the ADF per room for a histogram
-	*/
-	struct dl_results
-	{
-	double mDFpassbuilding = 0.0; 
-	double mDtbuilding = 0.0;  
-	double mDtmbuilding = 0.0;  
-	double mTotalScore = 0.0; 
-	double mADFbuilding = 0.0; 
-	double mADFroom = 0.0; 
-	};
-	
 	
 } // namespace daylight
 } // namespace bso

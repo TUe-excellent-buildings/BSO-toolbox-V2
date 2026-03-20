@@ -136,6 +136,8 @@ void grammar::mReadSDSettings(const std::string& fileName)
 			double E = bso::utilities::trim_and_cast_double(*token); ++token;
 			trussStructures[trussID] = structural_design::component::structure("truss",{
 				{"A",A},{"E",E}});
+			if(trussID == "1") mTrussStructureDefault = structural_design::component::structure("truss",{
+				{"A",A},{"E",E}});
 			break;
 		}
 		case 'G':
@@ -148,6 +150,8 @@ void grammar::mReadSDSettings(const std::string& fileName)
 			double v = bso::utilities::trim_and_cast_double(*token); ++token;
 			beamStructures[beamID] = structural_design::component::structure("beam",{
 				{"width",width},{"height",height},{"E",E},{"poisson",v}});
+			if(beamID == "1") mBeamStructureDefault = structural_design::component::structure("beam",{
+				{"width",width},{"height",height},{"E",E},{"poisson",v}});
 			break;
 		}
 		case 'H':
@@ -159,6 +163,8 @@ void grammar::mReadSDSettings(const std::string& fileName)
 			double v = bso::utilities::trim_and_cast_double(*token); ++token;
 			flatShellStructures[shellID] = structural_design::component::structure("flat_shell",{
 				{"thickness",thickness},{"E",E},{"poisson",v}});
+			if(shellID == "1") mFlatShellStructureDefault = structural_design::component::structure("flat_shell",{
+				{"thickness",thickness},{"E",E},{"poisson",v}});
 			break;
 		}
 		case 'I':
@@ -168,6 +174,8 @@ void grammar::mReadSDSettings(const std::string& fileName)
 			double E = bso::utilities::trim_and_cast_double(*token); ++token;
 			double v = bso::utilities::trim_and_cast_double(*token); ++token;
 			quadhexStructures[quadhexID] = structural_design::component::structure("quad_hexahedron",{
+				{"E",E},{"poisson",v}});
+			if(quadhexID == "1") mquadhexStructureDefault = structural_design::component::structure("quad_hexahedron",{
 				{"E",E},{"poisson",v}});
 			break;
 		}

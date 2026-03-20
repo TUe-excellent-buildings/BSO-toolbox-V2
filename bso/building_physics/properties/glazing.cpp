@@ -6,6 +6,11 @@
 
 namespace bso { namespace building_physics { namespace properties {
 
+glazing::glazing()
+{
+
+}
+
 glazing::glazing(const std::string& ID, const double& U,
 	const double& capacitancePerArea,
 	const std::pair<std::string,Eigen::Vector4d>& visualizationProps /*= {"",Eigen::Vector4d::Ones()}*/)
@@ -41,9 +46,11 @@ glazing::~glazing()
 
 glazing& glazing::operator = (const glazing& rhs)
 {
+	if (this == &rhs) return *this;
 	mID = rhs.mID;
 	mVisualizationProperties.first = rhs.mVisualizationProperties.first;
-	mVisualizationProperties.second << rhs.mVisualizationProperties.second;mID = rhs.mID;
+	mVisualizationProperties.second = rhs.mVisualizationProperties.second;
+	mU = rhs.mU;
 	mCapacitancePerArea = rhs.mCapacitancePerArea;
 	
 	return *this;

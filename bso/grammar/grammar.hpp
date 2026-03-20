@@ -60,6 +60,12 @@ private:
     std::map<std::string, structural_design::component::structure> mSDSpaceProperties;
 	structural_design::component::structure mLoadPanel;
 	std::multimap<std::string, structural_design::component::load> mLoads;
+
+	// Store defaults, assigned as ID values 1 in the setting files.
+	structural_design::component::structure mFlatShellStructureDefault;
+	structural_design::component::structure mBeamStructureDefault;
+	structural_design::component::structure mTrussStructureDefault;
+	structural_design::component::structure mquadhexStructureDefault;
 	unsigned int mMeshSize = 1;
 
 	void mReadSDSettings(const std::string& fileName); // see file grammar_sd_specifics.cpp for content of this function
@@ -79,6 +85,9 @@ private:
 	std::map<std::pair<std::string,std::string>,bso::building_physics::properties::construction> mBPFloorConstructions;
 	std::map<std::pair<std::string,std::string>,bso::building_physics::properties::glazing> mBPWallGlazings;
 	std::map<std::pair<std::string,std::string>,bso::building_physics::properties::glazing> mBPFloorGlazings;
+
+	// Default settings, assigned as ID values 1 in the setting files.
+	bso::building_physics::properties::glazing mGlazingDefault;
 
 	building_physics::bp_model mBPModel;
 	std::vector<building_physics::bp_model> mIntermediateBPModels;

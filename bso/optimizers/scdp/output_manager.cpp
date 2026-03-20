@@ -43,13 +43,15 @@ void output_manager::logError(const std::string& errorMessage,
 }
 
 // Function to create a result directory for the output files.
-// The directory is created in the current working directory and named "results".
-// The sub-directory is created based on the input file name, modification type, iteration number and current date and time.
+// The directory is created in the current working directory by default and
+// named according to mConfig.getResultBaseDir() (default: "results").
+// The sub-directory is created based on the input file name, modification
+// type, iteration number and current date and time.
 bool output_manager::createResultDir(std::string& dir) const
 {
 	// create resultDir path if not existing yet
 	bool resultDirGen = false;
-	std::string path = "results";
+	std::string path = mConfig.getResultBaseDir();
 	if (!std::filesystem::exists(path)) 
 	{
 		if (std::filesystem::create_directory(path)) 
@@ -86,8 +88,18 @@ bool output_manager::createStandardSubResultDir(std::string& dir, bool shortName
 	if(resultDirGen)
 	{
 		std::string path2;
-		if(shortName){path2 = path + mConfig.getInputFile() + "_" + mConfig.getModification() + "_-n=" + std::to_string(mConfig.getMaxIterationsInSequence());}
-		else{path2 = path + mConfig.getInputFile() + "_" + mConfig.getModification() + "_-n=" + std::to_string(mConfig.getMaxIterationsInSequence()) + "_" + getCurrentDateTime();}
+		if(shortName)
+		{
+			path2 = path + mConfig.getInputFile() + "_" + mConfig.getModification();
+			if(mConfig.getWeightedModification())path2 += "_" + mConfig.getWeightedModification();
+			path2 += "_-n=" + std::to_string(mConfig.getIterations());
+		}
+		else
+		{
+			path2 = path + mConfig.getInputFile() + "_" + mConfig.getModification();
+			if(mConfig.getWeightedModification()) path2 += "_" + mConfig.getWeightedModification();
+			path2 += "_-n=" + std::to_string(mConfig.getIterations()) + "_" + getCurrentDateTime();
+		}
 		if (!std::filesystem::exists(path2)) 
 		{
 			if (std::filesystem::create_directory(path2)) 
@@ -166,13 +178,13 @@ void output_manager::outputData(const OptimizationOutput& output)
 	out("Start outputting data",true,true,mConfig.getVerbose());
 
 	// Output the requested outputs:
-	std::vector<unsigned int> outputSpaces;
+	std::vector<unsigned int> outputDesignsIndex;
 	// if best, find which designs are best;
 	if (mConfig.getOutputAll())
 	{
 		for (unsigned int i = 0; i < output.msDesigns.size(); ++i)
 		{
-			outputSpaces.push_back(i);
+			outputDesignsIndex.push_back(i);
 		}
 	}
 
@@ -180,20 +192,60 @@ void output_manager::outputData(const OptimizationOutput& output)
 
 	if(mConfig.getPlot())
 	{
-		utilities::data_export dp(output.designPerformances, output.axisDesignPerformances, "Design Iteration");
-		std::string fileScatter = dir+"scatterData_" + mConfig.getInputFile() + "_" + output.modification;
-		std::string fileParetoFront = dir+"paretoFrontData_" + mConfig.getInputFile() + "_" + output.modification;
-		std::string fileNonParetoFront = dir+"paretoNonFrontData_" + mConfig.getInputFile() + "_" + output.modification;
-		std::string fileVector = dir+"vectorData_" + mConfig.getInputFile() + "_" + output.modification;
-		std::string plotScatter = dir+"scatterPlot_" + mConfig.getInputFile() + "_" + output.modification +".png";
-		std::string plotParetoFront = dir+"paretoFrontPlot_" + mConfig.getInputFile() + "_" + output.modification +".png";
-		std::string plotVector = dir+"vectorPlot_" + mConfig.getInputFile() + "_" + output.modification +".png";
-		try{dp.plotScatter2D(fileScatter, plotScatter, false, true);}
-		catch(const std::exception& e){std::cout << "During the generation of the scatter plots, the following error occurred:" << e.what() << '\n';}
-		try{dp.plotParetoFront2D(fileParetoFront, fileNonParetoFront, plotParetoFront, false, true);}
-		catch(const std::exception& e){std::cout << "During the generation of the paretoFront plots, the following error occurred:" << e.what() << '\n';}
-		try{dp.plotVector2D(fileVector, plotVector, mConfig.getVisualizePlot(), true);}
-		catch(const std::exception& e){std::cout << "During the generation of the Vector2D plots, the following error occurred:" << e.what() << '\n';}
+		// Number of stored iterations and objectives
+		const std::size_t nrIterations  = output.designPerformances.size();
+		const std::size_t nrObjectives  = output.axisDesignPerformances.size();
+
+		// 2D scatter/pareto/vector plots are only meaningful when exactly two
+		// objective dimensions are active.
+		if(nrObjectives == 2 && nrIterations > 0)
+		{
+			utilities::data_export dp(output.designPerformances, output.axisDesignPerformances, "Design Iteration");
+			std::string fileScatter = dir+"scatterData_" + mConfig.getInputFile() + "_" + output.modification;
+			std::string fileParetoFront = dir+"paretoFrontData_" + mConfig.getInputFile() + "_" + output.modification;
+			std::string fileNonParetoFront = dir+"paretoNonFrontData_" + mConfig.getInputFile() + "_" + output.modification;
+			std::string fileVector = dir+"vectorData_" + mConfig.getInputFile() + "_" + output.modification;
+			std::string plotScatter = dir+"scatterPlot_" + mConfig.getInputFile() + "_" + output.modification +".png";
+			std::string plotParetoFront = dir+"paretoFrontPlot_" + mConfig.getInputFile() + "_" + output.modification +".png";
+			std::string plotVector = dir+"vectorPlot_" + mConfig.getInputFile() + "_" + output.modification +".png";
+			try{dp.plotScatter2D(fileScatter, plotScatter, false, true);}
+			catch(const std::exception& e){std::cout << "During the generation of the scatter plots, the following error occurred:" << e.what() << '\n';}
+			try{dp.plotParetoFront2D(fileParetoFront, fileNonParetoFront, plotParetoFront, false, true);}
+			catch(const std::exception& e){std::cout << "During the generation of the paretoFront plots, the following error occurred:" << e.what() << '\n';}
+			try{dp.plotVector2D(fileVector, plotVector, mConfig.getVisualizePlot(), true);}
+			catch(const std::exception& e){std::cout << "During the generation of the Vector2D plots, the following error occurred:" << e.what() << '\n';}
+		}
+		// Multi-axis line plot is produced whenever there is at least one
+		// objective and at least one iteration.
+		if(nrIterations > 0 && nrObjectives > 0)
+		{
+			utilities::data_export dp(output.designPerformances, output.axisDesignPerformances, "Design Iteration");
+			std::string fileMultiAxis = dir+"multiAxisData_" + mConfig.getInputFile() + "_" + output.modification;
+			std::string plotMultiAxis = dir+"multiAxisPlot_" + mConfig.getInputFile() + "_" + output.modification +".png";
+			try{dp.plotMultiAxis2D(fileMultiAxis, plotMultiAxis, mConfig.getVisualizePlot(), true);}
+			catch(const std::exception& e){std::cout << "During the generation of the multi axis plots, the following error occurred:" << e.what() << '\n';}
+		}
+		// 3D objective-space and improvement-curve plots require at least
+		// three objective dimensions (sd, bp, dl_ADFbuilding). The data_export
+		// helpers will further validate that these specific names are present.
+		if(nrIterations > 0 && nrObjectives >= 3)
+		{ 
+			// Please note, this assumes a sd, bp and dl output where only the
+			// dl_ADFbuilding is taken into account for the improvement curves.
+			// If the objectives are different, the improvement-curve and 3D plots
+			// may not be generated as expected since the exporters look for
+			// specific objective names in the axisDataTypes to know which one is which.
+			utilities::data_export dp(output.designPerformances, output.axisDesignPerformances, "Design Iteration");
+			std::string fileObjective3D = dir+"objective3DData_" + mConfig.getInputFile() + "_" + output.modification;
+			std::string plotObjective3D = dir+"objective3DPlot_" + mConfig.getInputFile() + "_" + output.modification +".png";
+			std::string fileImprovementCurves = dir+"improvementCurvesData_" + mConfig.getInputFile() + "_" + output.modification;
+			std::string plotImprovementCurves = dir+"improvementCurvesPlot_" + mConfig.getInputFile() + "_" + output.modification +".png";
+			try{dp.plotObjectiveSpace3D(fileObjective3D, plotObjective3D, mConfig.getVisualizePlot(), true);} 
+			catch(const std::exception& e){std::cout << "During the generation of the objective space 3D plots, the following error occurred:" << e.what() << '\n';}
+			// By default do not show the knee point in the improvement-curve plot.
+			try{dp.plotImprovementCurves(fileImprovementCurves, plotImprovementCurves, mConfig.getVisualizePlot(), true, false);} 
+			catch(const std::exception& e){std::cout << "During the generation of the improvement curves plots, the following error occurred:" << e.what() << '\n';}
+		}
 		out("Made all plots",true,true,mConfig.getVerbose());
 	}
 
@@ -201,33 +253,45 @@ void output_manager::outputData(const OptimizationOutput& output)
 	{		
 		utilities::data_export dp(output.designPerformances, output.axisDesignPerformances, "Design Iteration");
 		dp.addToCombinedDataFile("combined_data.csv", output.modification, mConfig.getInputFile(), output.maxIterationsInSequence, output.msDesigns, output.sd_total_load, output.exteriorSurfaceArea);
-		dp.addToOverviewCombinedDataFile("overView_data.csv", output.modification, mConfig.getInputFile(), output.finalIteration, output.msDesigns[0]);
+		//dp.addToOverviewCombinedDataFile("overView_data.csv", output.modification, mConfig.getInputFile(), output.finalIteration, output.msDesigns[0]);
 		out("Combined the data in multiple run file",true,true,mConfig.getVerbose());
 	}
-	
-	for (const auto& i : outputSpaces)
+
+	if (mConfig.getResultLine()) // setup terminal description before outputting the result lines
 	{
-		if (mConfig.getResultLine())
+		// run indicators and descriptions:
+		std::cout << output.designName << "\t" << output.modification << std::endl;
+			if(output.weightedModification) std::cout << "weighted with: "; for(const auto& weight: output.objectiveWeights) std::cout << weight << " "; std::cout << std::endl;
+			if(output.deleteMethod == "cluster"){std::cout << "settings for clustering: "<< "\t" << output.designName << "\t" << output.RNGSeed << std::endl;}
+			// Axis descibtion
+			std::cout << "Iteration";
+			for(const auto& axisName: output.axisDesignPerformances){std::cout << "\t" << axisName;}
+			std::cout << std::endl;
+	}
+	
+	for (const auto& i : outputDesignsIndex)
+	{
+		if (mConfig.getResultLine()) // outputting the result lines to terminal
 		{
-			std::cout << output.designName << "\t"
-								<< output.modification << "\t"
-								<< i << "\t"
-								<< output.designPerformances[i](0) << "\t"
-								<< output.designPerformances[i](1) << "\t" << std::endl;
-								if(output.deleteMethod == "cluster")
-								{
-									std::cout << output.designName << output.RNGSeed << std::endl;
-								}
-			
+			std::cout << i;
+			const auto& dp = output.designPerformances[i];
+			for (unsigned int j = 0; j < dp.size(); ++j)
+			{
+				std::cout << "\t" << dp(j);
+			}
+			std::cout << std::endl;
 		}
-		if (mConfig.getMsFiles())
+		if (mConfig.getMsFiles()) // outputting the ms files for the designs
 		{
 			std::stringstream fileNameStream;
 			fileNameStream << dir << output.designName << "_"
 										<< output.modification << "_"
-										<< i << "_"
-										<< output.designPerformances[i](0) << "_"
-										<< output.designPerformances[i](1) << "_";
+										<< i << "_";
+										const auto& dp = output.designPerformances[i];
+										for (unsigned int j = 0; j < dp.size(); ++j)
+										{
+											fileNameStream << dp(j) << "_";
+										}
 										if(output.deleteMethod == "cluster")
 										{
 											fileNameStream << output.RNGSeed;

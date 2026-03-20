@@ -12,6 +12,52 @@
 
 namespace bso { namespace optimizers { namespace scdp {
 
+// Helper: parse a modification string (e.g. "sd", "sdbp", "bpsddl")
+// into a sequence of base tokens using the provided token set. Throws if invalid.
+static std::vector<std::string> parseModificationString(
+    const std::string& mod,
+    const std::vector<std::string>& baseTokens)
+{
+    std::string s = mod;
+    boost::trim(s);
+
+    std::vector<std::string> seq;
+
+    while (!s.empty())
+    {
+        bool matched = false;
+        for (const auto& token : baseTokens)
+        {
+            if (s.rfind(token, 0) == 0) // s starts with token
+            {
+                seq.push_back(token);
+                s.erase(0, token.size());
+                matched = true;
+                break;
+            }
+        }
+
+        if (!matched)
+        {
+            std::stringstream errorMessage;
+            errorMessage << "\nError, did not recognize: \"" << mod << "\"\n"
+                         << "as an option for -m or --modification.\n"
+                         << "Valid pattern is a sequence composed of: ";
+            for (std::size_t i = 0; i < baseTokens.size(); ++i)
+            {
+                errorMessage << baseTokens[i];
+                if (i + 1 < baseTokens.size()) errorMessage << ", ";
+            }
+            errorMessage << ".\n"
+                         << "use -h or --help for help\n"
+                         << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+            throw std::invalid_argument(errorMessage.str());
+        }
+    }
+
+    return seq;
+}
+
 scdp_config::scdp_config()
 {
 
@@ -41,7 +87,7 @@ void scdp_config::parseArguments(int argc, char* argv[])
         {
             std::stringstream helpMessage;
             helpMessage << "This program ...." << std::endl << std::endl
-			                    << "-i\t" << "or --input, to specify an input file,\n"
+                    << "-i\t" << "or --input, to specify an input file,\n"
 								<<   "\t" << "expects a string containing the file name\n"
 								<<   "\t" << "of the input file. \n"
 			             "-k\t" << "or --kMinMax, to specify a kMin and kMax for a\n"
@@ -54,13 +100,19 @@ void scdp_config::parseArguments(int argc, char* argv[])
 			             "-a\t" << "or --amount, to specify a amount of spaces\n"
 								<<   "\t" << "that should be removed in every iteration.\n"
 								<<	 "\t" << "Expects an integer number above 1.\n"
-			             "-m\t" << "or --modification, to specify which modification\n"
-								<<   "\t" << "will be applied: \'sd\' for the sd-modifications;\n"
-								<<   "\t" << "\'bp\' for the bp_modifications; \'weighted\' for sd and bp\n" 
-								<< 	 "\t" << " making half the performance value per space; \'sdbp\' to alternate\n"
-								<<   "\t" << "between sd and bp, starting with sd; \'bpsd\', dito\n"
-								<<   "\t" << "but now starting with bp. Only one option is possible.\n"
-			             "-n\t" << "or --nModifications, to specify the number of modifications\n"
+                         "-m\t" << "or --modification, to specify which modification\n"
+                                <<   "\t" << "will be applied: \'sd\' for the sd-modifications,\n"
+                                <<   "\t" << "\'bp\' for the bp_modifications, and \'dl\' for the dl-modifications.\n"
+                                <<   "\t" << "Any concatenation of these tokens is allowed, e.g. 'sdbp', 'bpdl', 'sdbpdl'.\n"
+                                <<   "\t" << "The string is parsed as a sequence of the 2-letter codes sd, bp, dl.\n"
+                                <<   "\t" << "In case of weighted option (i.e. -w): the sequence determine which objectives are \n"
+                                <<   "\t" << "included in the alteration based on weighter performance.\n "
+                                <<   "\t" << "In case of non-weighted option: the sequence determines the \n"
+                                <<   "\t" << "order in which the building design is altered for that single objective.\n"
+                         "-w\t" << "or --weights, to enable weighted objectives and optionally set weights.\n"
+                                <<   "\t" << "If no numbers follow, default weights 1/3, 1/3, 1/3 are used for (sd, bp, dl).\n"
+                                <<   "\t" << "If three numbers follow, they give the weights for (sd, bp, dl) in that order.\n"
+                         "-n\t" << "or --nModifications, to specify the number of modifications\n"
 								<<   "\t" << "that will be applied. Expects only a positive integer\n"
 			             "-d\t" << "or --deleteMethod, to specify how spaces are deleted:\n"
 								<<   "\t" << "\'cluster\' for cluster deleting spaces\n"
@@ -103,15 +155,22 @@ void scdp_config::parseArguments(int argc, char* argv[])
 								<<   "\t" << "\'best\' (default) will only write the best all the designs to\n"
 								<<   "\t" << "the specified format. More than one option can be given,\n"
 								<<   "\t" << "but \'all\' and \'best\' cannot be given simultaneously.\n"
-                        << "-rd\t" << "or --resultDir, can be used to specify a string for a sub-directory name in directory results, \n "
-                                <<   "\t" << "i.e. where the results will be stored.\n"
-								<<   "\t" << "by default the sub-directory will consist of: \n"
-								<< 	 "\t" << "inputFileName_modification_NrOfIterations_currentDateAndTime.\n"
-                                <<   "\t" << "If a string is given with this argument directly behind -rd, \n"
-                                <<   "\t" << "then the sub-directory will be named with this string instead.\n"
-                                <<   "\t" << "use argument 'shortStandard' to make a sub-directory with a shorter name: \n "
-                                <<   "\t" << "inputFileName_modification_NrOfIterations.\n"
-			             << "-v\t" << "or --visualization, to specify which models are visualized: \n"
+                     << "-rd\t" << "or --resultDir, controls where results are written.\n "
+                                <<   "\t" << "By default, results are written in a 'results' directory in the current working directory.\n"
+                                <<   "\t" << "Usage 1 (backwards compatible): -rd <name>\n"
+                                <<   "\t" << "    <name> is a sub-directory name (or 'shortStandard') that will be created inside 'results'.\n"
+                                <<   "\t" << "    By default the sub-directory will consist of: \n"
+                                <<   "\t" << "    inputFileName_modification_NrOfIterations_currentDateAndTime.\n"
+                                <<   "\t" << "    If <name> is given directly behind -rd, then the sub-directory will be named with this string instead.\n"
+                                <<   "\t" << "    Use argument 'shortStandard' to make a sub-directory with a shorter name: \n "
+                                <<   "\t" << "    inputFileName_modification_NrOfIterations(_weightmodification in case of weighted run).\n"
+                                <<   "\t" << "Usage 2: -rd <baseDir> <name>\n"
+                                <<   "\t" << "    <baseDir> specifies the main results directory to create/use (e.g. './result', '/tmp/result').\n"
+                                <<   "\t" << "    <name> is interpreted as in Usage 1 (sub-directory name or 'shortStandard').\n"
+                                <<   "\t" << "Usage 3: -rd <baseDirWithPath>\n"
+                                <<   "\t" << "    If the single argument contains '/' or '\\', it is interpreted as the base results directory;\n"
+                                <<   "\t" << "    a standard sub-directory name will then be created inside this base directory (as in default behavior).\n"
+			          << "-v\t" << "or --visualization, to specify which models are visualized: \n"
 								<<   "\t" << "\'ms\' for \'Movable Sizable\',\n"
 								<<   "\t" << "\'msc\' for \'Movable Sizable with visualization of clustering for -d cluster option\',\n"
 								<<   "\t" << "\'msw\' for \'Movable Sizable with visualization of worst spaces to less worst spaces for -d worst option\',\n"
@@ -122,19 +181,32 @@ void scdp_config::parseArguments(int argc, char* argv[])
 								<<   "\t" << "\'sd\' for'\'Structural Design\',\n"
 								<< 	 "\t" << "\'fe\' for \'Finite Elements of the structural design model\' and \n"
 								<<   "\t" << "\'bp\' for the \'Building Physics model\'.\n"
+                                <<   "\t" << "\'dl\' for the \'Daylight model\'.\n"
+                                <<   "\t" << "\'dlG\' for the \'Daylight model with grid visualization\'.\n"
+                                <<   "\t" << "\'dlD\' for the \'Daylight model with daylight factor visualization\'.\n"
+                                <<   "\t" << "\'dlI\' for the \'Daylight model with illuminance visualization\'.\n"
     							<<   "\t" << "More than one can be specified.\n"
-			             << "-is\t" << "or --iterationStrategy, to specify which iteration strategy to use: \n"
+			         << "-is\t" << "or --iterationStrategy, to specify which iteration strategy to use: \n"
 								<<   "\t" << "\'split_delete\' runs only split-delete iterations (default),\n"
 								<<   "\t" << "\'modification\' runs only modification iterations,\n"
 								<<   "\t" << "\'alternating\' alternates between split-delete and modification iterations,\n"
 								<<   "\t" << "starting with split-delete. Only one strategy is possible.\n"
-			             << "-sim\t" << "or --simulations, to specify which simulations to run: \n"
-								<<   "\t" << "\'sd\' for structural design simulation,\n"
-								<<   "\t" << "\'bp\' for building physics simulation.\n"
-								<<   "\t" << "More than one can be specified. Default is both (\'sd bp\').\n"
-								<<   "\t" << "Example: -sim sd    (only structural design)\n"
-								<<   "\t" << "Example: -sim bp    (only building physics)\n"
-								<<   "\t" << "Example: -sim sd bp (both simulations)\n"
+                    << "-sim\t" << "or --simulations, to specify which simulations to run: \n"
+                                <<   "\t" << "\'sd\' for structural design simulation,\n"
+                                <<   "\t" << "\'bp\' for building physics simulation,\n"
+                                <<   "\t" << "\'dl\' for daylighting simulation.\n"
+                                <<   "\t" << "More than one can be specified. Default is all (sd bp dl).\n"
+                                <<   "\t" << "Example: -sim sd       (only structural design)\n"
+                                <<   "\t" << "Example: -sim bp       (only building physics)\n"
+                                <<   "\t" << "Example: -sim dl       (only daylighting)\n"
+                                <<   "\t" << "Example: -sim sd bp   (sd and bp)\n"
+                                <<   "\t" << "Example: -sim sd bp dl (all three)\n"
+                    << "-sds\t" << "or --sdSettings, to specify the structural design settings file path.\n"
+                                <<   "\t" << "Expects a string path; default is settings/sd_settings.txt.\n"
+                    << "-bps\t" << "or --bpSettings, to specify the building physics settings file path.\n"
+                                <<   "\t" << "Expects a string path; default is settings/bp_settings.txt.\n"
+                    << "-dls\t" << "or --dlSettings, to specify the daylight settings file path.\n"
+                                <<   "\t" << "Expects a string path; default is settings/dl_settings_A.txt.\n"
                              << std::endl;
             std::cout << helpMessage.str();
             return;
@@ -271,15 +343,10 @@ void scdp_config::parseArguments(int argc, char* argv[])
             }
             modification = *arg;
             boost::trim(modification);
-            if (std::find(kModOptions.begin(), kModOptions.end(), modification) == kModOptions.end())
-            {
-                std::stringstream errorMessage;
-                errorMessage << "\nError, did not recognize: \"" << modification << "\"\n"
-                             << "as an option for -m or --modification.\n"
-                             << "use -h or --help for help\n"
-                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
-                throw std::invalid_argument(errorMessage.str());
-            }
+            // Validate and decode the modification string as a sequence of base tokens.
+            // This allows arbitrary combinations like "sd", "bpdl", "sdbpdl", etc.
+            // Any error will be thrown from parseModificationString.
+            modificationSequence = parseModificationString(modification, kModBaseOptions);
 
             if (++arg != args.end() && arg->operator[](0) != '-')
             {
@@ -289,6 +356,45 @@ void scdp_config::parseArguments(int argc, char* argv[])
                              << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
+        }
+        else if (*arg == "-w" || *arg == "--weights")
+        {
+            // Enable weighted objective; optionally override default weights.
+            mWeightedModification = true;
+
+            std::vector<double> weights;
+            while (++arg != args.end() && arg->operator[](0) != '-')
+            {
+                try
+                {
+                    double w = bso::utilities::trim_and_cast_double(*arg);
+                    weights.push_back(w);
+                }
+                catch (const std::exception& e)
+                {
+                    std::stringstream errorMessage;
+                    errorMessage << "\nError, could not parse weight specified after -w or --weights.\n"
+                                 << "Received error: " << e.what() << "\n"
+                                 << "use -h or --help for help\n"
+                                 << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                    throw std::invalid_argument(errorMessage.str());
+                }
+            }
+
+            if (weights.size() != 3 && !weights.empty())
+            {
+                // If weights are empty, we will use equal weights, 
+                // however, they can only be set when all the modification types are set. 
+                // So end of this function will initialize the default.
+                
+                std::stringstream errorMessage;
+                errorMessage << "\nError, expected either zero or three weights after -w or --weights,\n"
+                                << "corresponding to (sd, bp, dl). Received " << weights.size() << " value(s).\n"
+                                << "use -h or --help for help\n"
+                                << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                throw std::invalid_argument(errorMessage.str());
+            }
+            mObjectiveWeights = weights;
         }
         else if (*arg == "-n" || *arg == "--nModifications")
         {
@@ -495,8 +601,17 @@ void scdp_config::parseArguments(int argc, char* argv[])
         }
         else if (*arg == "-o" || *arg == "--output")
         {
-            while (++arg != args.end() && arg->operator[](0) != '-')
+            // Parse one or more output specifiers following -o/--output. We avoid
+            // incrementing 'arg' to args.end() inside the loop body to prevent
+            // undefined behaviour when the while-condition pre-increments it.
+            while (true)
             {
+                ++arg;
+                if (arg == args.end() || arg->operator[](0) == '-')
+                {
+                    break; // no more -o options
+                }
+
                 std::string outSpec = *arg;
                 boost::trim(outSpec);
                 if (outSpec == "result_line") resultLine = true;
@@ -505,12 +620,26 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 {
                     plot = true;
                     resultDir = true;
-                    if (++arg != args.end())
+
+                    // Optional extra flag immediately after 'plot' to control
+                    // visualization: 'true' or 'false'. Use a look-ahead iterator
+                    // so that we don't move 'arg' past args.end().
+                    auto next = std::next(arg);
+                    if (next != args.end())
                     {
-                        outSpec = *arg;
-                        if (outSpec == "true") {visualizePlot = true;}
-                        else if (outSpec == "false") {visualizePlot = false;}
-                        else {--arg;}
+                        std::string visSpec = *next;
+                        boost::trim(visSpec);
+                        if (visSpec == "true")
+                        {
+                            visualizePlot = true;
+                            arg = next; // consume the extra token
+                        }
+                        else if (visSpec == "false")
+                        {
+                            visualizePlot = false;
+                            arg = next; // consume the extra token
+                        }
+                        // Any other token is left for the next loop iteration
                     }
                     continue;
                 }
@@ -519,39 +648,45 @@ void scdp_config::parseArguments(int argc, char* argv[])
                     msFiles = true;
                     resultDir = true;
                 }
+                else if (outSpec == "msw_file")
+                {
+                    // When requested, write a colour-settings file for the
+                    // msw (Movable Sizable Worst) performance visualization.
+                    mswWriteFile = true;
+                }
                 else if (outSpec == "all") outputAll = true;
                 else if (outSpec == "best") outputBest = true;
                 else if (outSpec == "combine_data")
                 {
                     combineData = true;
-                    if (++arg != args.end())
+                    // Expect an unsigned integer for maxIterationsInSequence.
+                    auto next = std::next(arg);
+                    if (next == args.end() || next->operator[](0) == '-')
                     {
-                        if (arg->operator[](0) == '-')
-                        {
-                            std::stringstream errorMessage;
-                            errorMessage << "\nError, expected an unsigned integer value to be defined to \n"
-                                         << "state the maximum nr. of iteration in the sequence. \n"
-                                         << "argument for -o or --output. Use -h or\n"
-                                         << "--help for help\n"
-                                         << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
-                            throw std::invalid_argument(errorMessage.str());
-                        }
-                        try
-                        {
-                            maxIterationsInSequence = bso::utilities::trim_and_cast_int(*arg);
-                        }
-                        catch (const std::exception& e)
-                        {
-                            std::stringstream errorMessage;
-                            errorMessage << "\nError, expected an unsigned integer value to be defined to \n"
-                                         << "state the maximum nr. of iteration in the sequence. \n"
-                                         << "however, during trim anc cast integer got the following error: "
-                                         << e.what()
-                                         << "argument for -o or --output. Use -h or\n"
-                                         << "--help for help\n"
-                                         << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
-                            throw std::invalid_argument(errorMessage.str());
-                        }
+                        std::stringstream errorMessage;
+                        errorMessage << "\nError, expected an unsigned integer value to be defined to \n"
+                                     << "state the maximum nr. of iteration in the sequence. \n"
+                                     << "argument for -o or --output. Use -h or\n"
+                                     << "--help for help\n"
+                                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                        throw std::invalid_argument(errorMessage.str());
+                    }
+                    try
+                    {
+                        maxIterationsInSequence = bso::utilities::trim_and_cast_int(*next);
+                        arg = next; // consume the integer token
+                    }
+                    catch (const std::exception& e)
+                    {
+                        std::stringstream errorMessage;
+                        errorMessage << "\nError, expected an unsigned integer value to be defined to \n"
+                                     << "state the maximum nr. of iteration in the sequence. \n"
+                                     << "however, during trim anc cast integer got the following error: "
+                                     << e.what()
+                                     << "argument for -o or --output. Use -h or\n"
+                                     << "--help for help\n"
+                                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                        throw std::invalid_argument(errorMessage.str());
                     }
                     continue;
                 }
@@ -567,24 +702,58 @@ void scdp_config::parseArguments(int argc, char* argv[])
             }
         }
         else if (*arg == "-rd" || *arg == "--resultDir")
-		{
-			if (++arg == args.end() || arg->operator[](0) == '-')
-			{
-				std::stringstream errorMessage;
-                errorMessage << "\nError, expected a string after -rd or --resultDir to specify\n"
-                             << " a name for the sub-directory in directory results.\n"
+        {
+            if (++arg == args.end() || arg->operator[](0) == '-')
+            {
+                std::stringstream errorMessage;
+                errorMessage << "\nError, expected at least one string after -rd or --resultDir to specify\n"
+                             << " a name for the sub-directory and/or the base results directory.\n"
                              << "Use -h or --help for help\n"
                              << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str()); 
-			}
-			else
-			{
-				resultDir = true;
-				setSubDirName = *arg;
-				boost::trim(setSubDirName);
-				++arg;
-			}
-		}
+            }
+
+            // At this point *arg is the first token after -rd.
+            resultDir = true;
+            std::string firstToken = *arg;
+            boost::trim(firstToken);
+
+            // Look ahead: if there is a second non-flag token, interpret the
+            // first as the base directory and the second as the sub-directory
+            // name or keyword (e.g. "shortStandard").
+            auto next = arg;
+            ++next;
+            if (next != args.end() && next->operator[](0) != '-')
+            {
+                // Two-argument form: -rd <baseDir> <subDirOrKeyword>
+                resultBaseDir = firstToken;
+                setSubDirName = *next;
+                boost::trim(resultBaseDir);
+                boost::trim(setSubDirName);
+                arg = next + 1;
+            }
+            else
+            {
+                // Single-argument form. To remain backwards compatible while still
+                // allowing the user to override the base directory, we interpret
+                // tokens containing a path separator as a base directory, and other
+                // tokens (including 'shortStandard') as a pure sub-directory name.
+                if (firstToken.find('/') != std::string::npos || firstToken.find('\\') != std::string::npos)
+                {
+                    // Treat as base directory; keep subDirName empty so that the
+                    // standard naming scheme is used inside this base directory.
+                    resultBaseDir = firstToken;
+                    boost::trim(resultBaseDir);
+                }
+                else
+                {
+                    // Backwards compatible: only sub-directory name or keyword.
+                    setSubDirName = firstToken;
+                    boost::trim(setSubDirName);
+                }
+                ++arg;
+            }
+        }
         else if (*arg == "-v" || *arg == "--visualize")
         {
             while (++arg != args.end() && arg->operator[](0) != '-')
@@ -642,6 +811,7 @@ void scdp_config::parseArguments(int argc, char* argv[])
             // Reset to false when user explicitly specifies simulations
             runSDSimulation = false;
             runBPSimulation = false;
+            runDLSimulation = false;
             
             bool foundSim = false;
             while (++arg != args.end() && arg->operator[](0) != '-')
@@ -653,7 +823,7 @@ void scdp_config::parseArguments(int argc, char* argv[])
                     std::stringstream errorMessage;
                     errorMessage << "\nError, did not recognize: \"" << simSpec << "\"\n"
                                  << "as an option for -sim or --simulations as a specification\n"
-                                 << "of a simulation to run. Valid options are: sd, bp\n"
+                                 << "of a simulation to run. Valid options are: sd, bp, dl\n"
                                  << "Use -h or --help for help\n"
                                  << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                     throw std::invalid_argument(errorMessage.str());
@@ -662,6 +832,7 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 // Set corresponding boolean flag
                 if (simSpec == "sd") runSDSimulation = true;
                 if (simSpec == "bp") runBPSimulation = true;
+                if (simSpec == "dl") runDLSimulation = true;
                 foundSim = true;
             }
             
@@ -669,16 +840,88 @@ void scdp_config::parseArguments(int argc, char* argv[])
             {
                 std::stringstream errorMessage;
                 errorMessage << "\nError, expected at least one simulation type after\n"
-                             << "-sim or --simulations. Valid options are: sd, bp\n"
+                             << "-sim or --simulations. Valid options are: sd, bp, dl\n"
                              << "Use -h or --help for help\n"
                              << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
         }
+        else if (*arg == "-sds" || *arg == "--sdSettings")
+        {
+            if (++arg == args.end() || arg->operator[](0) == '-')
+            {
+                std::stringstream errorMessage;
+                errorMessage << "\nError, expected a path after -sds or --sdSettings.\n"
+                             << "Use -h or --help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                throw std::invalid_argument(errorMessage.str());
+            }
+            sd_settings_file = *arg;
+            boost::trim(sd_settings_file);
+            ++arg;
+        }
+        else if (*arg == "-bps" || *arg == "--bpSettings")
+        {
+            if (++arg == args.end() || arg->operator[](0) == '-')
+            {
+                std::stringstream errorMessage;
+                errorMessage << "\nError, expected a path after -bps or --bpSettings.\n"
+                             << "Use -h or --help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                throw std::invalid_argument(errorMessage.str());
+            }
+            bp_settings_file = *arg;
+            boost::trim(bp_settings_file);
+            ++arg;
+        }
+        else if (*arg == "-dls" || *arg == "--dlSettings")
+        {
+            if (++arg == args.end() || arg->operator[](0) == '-')
+            {
+                std::stringstream errorMessage;
+                errorMessage << "\nError, expected a path after -dls or --dlSettings.\n"
+                             << "Use -h or --help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                throw std::invalid_argument(errorMessage.str());
+            }
+            dl_settings_file = *arg;
+            boost::trim(dl_settings_file);
+            ++arg;
+        }
         else
         {
             std::stringstream errorMessage;
             errorMessage << "\nError, did not recognize argument: " << *arg << std::endl
+                            << "Use -h or --help for help\n"
+                            << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+            throw std::invalid_argument(errorMessage.str());
+        }
+    }
+
+    // If weighted simulation and no weight define, set the default weights based on the modification sequence.
+    if(mWeightedModification && mObjectiveWeights.empty())
+    {
+        // Set default based on included types sd,bp,sd in -m:
+        if(modificationSequence.size() == 3)
+        {
+            double oneThird = 1.0 / 3.0;
+            mObjectiveWeights = {oneThird,oneThird,oneThird};
+        }
+        else if(modificationSequence.size() == 2)
+        {
+            mObjectiveWeights = {0.0,0.0,0.0};
+            for(const auto &mod : modificationSequence)
+            {
+                if(mod == "sd"){mObjectiveWeights[0] = 0.5;}
+                else if(mod == "bp"){mObjectiveWeights[1] = 0.5;}
+                else if(mod == "dl"){mObjectiveWeights[2] = 0.5;}
+            }
+        }
+        else
+        {
+            std::stringstream errorMessage;
+            errorMessage << "\nError, the -w weighted option can only be used with more then one objective in the -m options.\n"
+                            << "Meaning that more then one objective is taken into acount. "<< std::endl
                             << "Use -h or --help for help\n"
                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
             throw std::invalid_argument(errorMessage.str());
@@ -731,31 +974,41 @@ void scdp_config::validate() const
         throw std::invalid_argument(errorMessage.str());
     }
     
-    // Validate that simulation flags match the modification type
-    if (modification == "sd" && !runSDSimulation)
+    // Validate that simulation flags match the modification sequence
+    // (any combination of sd, bp, dl). If the modificationSequence has
+    // already been filled during argument parsing, reuse it; otherwise
+    // parse it here (e.g. for default configurations).
+    std::vector<std::string> modSequence = modificationSequence.empty()
+        ? parseModificationString(modification, kModBaseOptions)
+        : modificationSequence;
+
+    bool needsSD = std::find(modSequence.begin(), modSequence.end(), "sd") != modSequence.end();
+    bool needsBP = std::find(modSequence.begin(), modSequence.end(), "bp") != modSequence.end();
+    bool needsDL = std::find(modSequence.begin(), modSequence.end(), "dl") != modSequence.end();
+
+    if (needsSD && !runSDSimulation)
     {
         std::stringstream errorMessage;
-        errorMessage << "\nError, modification type 'sd' requires SD simulation to be enabled.\n"
-                     << "Either use --sim sd or --sim sd bp, or change modification type.\n"
+        errorMessage << "\nError, modification requires SD simulation but SD is disabled.\n"
+                     << "Either include 'sd' in --sim or change modification type.\n"
                      << "use -h or --help for help\n"
                      << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
         throw std::invalid_argument(errorMessage.str());
     }
-    if (modification == "bp" && !runBPSimulation)
+    if (needsBP && !runBPSimulation)
     {
         std::stringstream errorMessage;
-        errorMessage << "\nError, modification type 'bp' requires BP simulation to be enabled.\n"
-                     << "Either use --sim bp or --sim sd bp, or change modification type.\n"
+        errorMessage << "\nError, modification requires BP simulation but BP is disabled.\n"
+                     << "Either include 'bp' in --sim or change modification type.\n"
                      << "use -h or --help for help\n"
                      << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
         throw std::invalid_argument(errorMessage.str());
     }
-    if ((modification == "sdbp" || modification == "bpsd" || modification == "weighted") && 
-        (!runSDSimulation || !runBPSimulation))
+    if (needsDL && !runDLSimulation)
     {
         std::stringstream errorMessage;
-        errorMessage << "\nError, modification type '" << modification << "' requires both SD and BP simulations.\n"
-                     << "Use --sim sd bp or omit --sim flag (defaults to both).\n"
+        errorMessage << "\nError, modification requires DL (daylighting) simulation but DL is disabled.\n"
+                     << "Either include 'dl' in --sim or change modification type.\n"
                      << "use -h or --help for help\n"
                      << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
         throw std::invalid_argument(errorMessage.str());

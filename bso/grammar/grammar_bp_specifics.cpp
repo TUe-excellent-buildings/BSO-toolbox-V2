@@ -211,6 +211,7 @@ void grammar::mReadBPSettings(const std::string& fileName)
 				
 				glazings.emplace(glazingPropIDs,bso::building_physics::properties::glazing(
 					ID, U, capPerArea));
+				if(ID == "1") {mGlazingDefault = bso::building_physics::properties::glazing(ID, U, capPerArea);}
 				break;
 			}
 			case 'K':

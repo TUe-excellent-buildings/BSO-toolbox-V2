@@ -5,34 +5,23 @@
 #include <sstream>
 
 namespace bso { namespace grammar {
-
-/*
-Deze text omschrijf het setup en doel van de functie hieronder.
-Deze functie hieronder is gedeclareerd in het public sectie van de grammar class, 
-maar is hier gedefineerd.
-De reden hiervoor is zodat er in de toekomst meerdere soorten grammar eventueel 
-geschreven kunnen worden om een dl_model object te defineren op verschillende manieren.
-
-const std::string& fileName is de naam van de daylight setting file.
-The function below will generate a DL model. This contents preparing the radiance scene, 
-based on the ms representation and settingfile. 
-Several txt files are created onto which radiance operaties. 
-*/
 	
 template <>
-bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::string& fileName)
+bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::string& fileName, const std::string& folderName)
 {	
 	// initialize a new DL model
 	bso::daylight::dl_model mDLModel;
 
-    // make new folder into which you save all files constructed for this DL_model object.
-    std::string folderName = mDLModel.createAndSetFolder(fileName);
+    // if no folder name is provided, use the default naming convention
+	std::string folder;
+	if(folderName != ""){folder = mDLModel.createAndSetFolder(fileName, folderName);}
+	else{folder = mDLModel.createAndSetFolder(fileName);}
 
 	// read the daylight settings and store in the grammar object
 	this->mReadDLSettings(fileName);
 
     // Open scenefile and write material functions to the scenefile based on the retrieved daylight settings from the file.
-    std::ofstream sceneFile(folderName+"/"+"scene.rad", std::ios::trunc);
+    std::ofstream sceneFile(folder+"/"+"scene.rad", std::ios::trunc);
     if (!sceneFile.is_open()) {std::cerr << "Failed to open scene.rad for writing\n";}
     bso::grammar::rule_set::dl_rule_set::resetPolygonCounters(); // Reset global polygon counters for each new scene file, so the inserted polygons in the scene file have correct numbering.
 	bso::grammar::rule_set::dl_rule_set::writeMaterials(sceneFile, mReflectanceValues, mWindowProperties);
@@ -70,6 +59,7 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
         int SpaceIDforRoominfo = ((cfRec->cfSurfaces()[0]->cfSpaces())[0])->getSpaceID(); // renders a segmentation fault without isSpaceSeparating() continue check, because some rectangles do not have surfaces and spaces associated to them.
 
 		bool isExternal = i.second->isExternal();
+		bool isAboveGroundSurface = i.second->isAboveGroundSurface();
 		bool isFloor = i.second->isFloor();
 		bool isWall = i.second->isWall();
 
@@ -102,8 +92,8 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
 
 			bool isWindow;
 			if(mTriangleProperties.size() > 0 /*i.e. ms_N_building with TP conformal model is provided*/) isWindow = bso::grammar::rule_set::dl_rule_set::isTPQuadInWindowArea(quadVertex, mWindowsPerSpace, 1e-3);
-			else isWindow = bso::grammar::rule_set::dl_rule_set::isQuadInWindowArea(quadVertex, mWindowsPerSpace, 1e-3);
-			bool isOpen = isExternal ? bso::grammar::rule_set::dl_rule_set::isOpenExternal(cfRec)
+			else isWindow = bso::grammar::rule_set::dl_rule_set::isQuadInWindowArea(quadVertex, mWindowsPerSpace, 1e-3);			
+			bool isOpen = isExternal ? bso::grammar::rule_set::dl_rule_set::isOpenExternal(cfRec) && isAboveGroundSurface
 			                         : bso::grammar::rule_set::dl_rule_set::isOpenInternal(cfRec);
 
 			// Write window or wall based on window area and open/closed status
@@ -177,7 +167,7 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
     sceneFile.close();
  
     // Open gridfile
-    std::ofstream gridFile(folderName+"/"+"grid.txt", std::ios::trunc);
+    std::ofstream gridFile(folder+"/"+"grid.txt", std::ios::trunc);
     if (!gridFile.is_open()) {std::cerr << "Failed to open grid.rad for writing\n";}
 
     // Generate the grid
@@ -195,7 +185,7 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
     }
     mDLModel.setSpacePropertiesQH(VectorCf_space);
 
-    // Send all relevant data to the dl model
+	// Send all relevant data to the dl model
     mRectangleWindowYNGram = RectangleWindowYN; //safe to grammar for sd
     mDLModel.setSpaceID_AmountGridPoints(SpaceID_AmountGridPoints);
 	mDLModel.setDF_Settings(mDF_Settings);
@@ -207,7 +197,19 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
 	mDLModel.setGridPoints(gridPoints); // safe to dl model for visualization
 
 	return mDLModel;
-} // default_dl_grammar
+} // default_dl_grammar (explicit folder)
+
+/*
+This overload allows calling the daylight grammar with only the settings
+file name. It delegates to the two-argument specialization above using
+an empty folder name, which triggers the default folder naming
+convention inside dl_model::createAndSetFolder.
+*/
+template <>
+bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::string& fileName)
+{
+	return this->dl_grammar<DEFAULT_DL_GRAMMAR>(fileName, std::string(""));
+}
 
 } // namespace grammar
 } // namespace bso

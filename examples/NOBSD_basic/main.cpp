@@ -17,6 +17,24 @@ int main(int argc, char* argv[])
  // create an instance of the grammar base class named gram using CF
  bso::grammar::grammar gram(CF);
 
+ // use the default daylight design grammar to create a
+ // daylight model named DL, using settings defined in
+ // settings/dl_settings.txt
+ // Note, the generation of the DL model will assign 
+ // which rectangles are windows or not and this is 
+ // accounted for in the structural design grammar 
+ // and building physics grammar as well, so it is important 
+ // to generate the DL model before the SD and BP model.
+ bso::daylight::dl_model DL = gram.dl_grammar <bso::grammar::DEFAULT_DL_GRAMMAR >(std::string("settings/dl_settings.txt"));
+
+ // analyze the daylight model
+ DL.analyze();
+
+ // output result of the analysis
+ std::cout << "ADF building score: " << DL.getTotalResults().mADFBuilding << std::endl;
+ std::cout << "ADF building score inverse for use during optimization: " << DL.getTotalResults().mADFBuildingInverse << std::endl;
+ std::cout << "NEN building score: " << DL.getTotalResults().mTotalScore << std::endl;
+
  // use the default structural design grammar to create a structural
  // design named SD, using settings defined in
  // settings/sd_settings.txt
@@ -42,18 +60,6 @@ int main(int argc, char* argv[])
  std::cout << "Total heating energy: " << BP.getTotalResults().mTotalHeatingEnergy << std::endl;
 
  std::cout << "Total cooling energy: " << BP.getTotalResults().mTotalCoolingEnergy << std::endl;
-
- // use the default daylight design grammar to create a
- // daylight model named DL, using settings defined in
- // settings/dl_settings.txt
- bso::daylight::dl_model DL = gram.dl_grammar <bso::grammar::DEFAULT_DL_GRAMMAR >(std::string("settings/dl_settings.txt"));
-
- // analyze the daylight model
- DL.analyse();
-
- // output result of the analysis
- std::cout << "ADF building score: " << DL.getTotalResults().mADFbuilding << std::endl;
- std::cout << "NEN building score: " << DL.getTotalResults().mTotalScore << std::endl;
 
  // visualize the different models
  bso::visualization::initVisualization(argc, argv);

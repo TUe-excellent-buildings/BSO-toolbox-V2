@@ -11,6 +11,7 @@ private:
 	double mU;
 	double mCapacitancePerArea;
 public:
+	glazing(); // empty constructor
 	glazing(const std::string& ID, const double& U, const double& capacitancePerArea,
 				  const std::pair<std::string,Eigen::Vector4d>& visualizationProps = {"",Eigen::Vector4d::Ones()});
 	~glazing();

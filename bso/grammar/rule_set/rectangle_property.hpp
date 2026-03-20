@@ -44,6 +44,7 @@ public:
 
 	// Function is used in the daylight grammar to set if the considered rectangle is a window.
 	void setIsWindow(const bool& isWindow) {mIsWindow = isWindow;} 
+	bool getIsWindow() const {return mIsWindow;}
 };
 	
 } // namespace rule_set

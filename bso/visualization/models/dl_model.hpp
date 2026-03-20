@@ -38,11 +38,6 @@ private:
 	polygon_props pprops_gridpoint;
 	polygon_props pprops_Space;
 
-	polygon_props pprops_north;
-	polygon_props pprops_east;
-	polygon_props pprops_south;
-	polygon_props pprops_west;
-
 	label_props lbprops;
 
 	line_props lprops_space_boundary;
@@ -53,7 +48,7 @@ private:
 }; // class DL_MODEL
 
 
-DL_Model::DL_Model(const bso::daylight::dl_model& dl, const std::string& type, const std::string title /*= "dl_model"*/)
+DL_Model::DL_Model(const bso::daylight::dl_model& dl, const std::string& type /*= ""*/, const std::string title /*= "dl_model"*/)
 {
 	namespace geom = bso::utilities::geometry;
 	mTitle = title;
@@ -88,31 +83,6 @@ DL_Model::DL_Model(const bso::daylight::dl_model& dl, const std::string& type, c
 	//boundary lines
 	lprops_space_boundary.width = 5.0f;
 	lprops_rectangles.width = 0.1f;
-
-	//polygon properties for nort (RED)
-	pprops_north.ambient = rgba(1.0f, 0.0f, 0.0f, 1.0f);
-    pprops_north.shininess = 60.0f;
-    pprops_north.translucent = false;
-    pprops_north.twosided = true;
-
-	//polygon properties for east (yellow)
-	pprops_east.ambient = rgba(1.0f, 1.0f, 0.0f, 1.0f);
-    pprops_east.shininess = 60.0f;
-    pprops_east.translucent = false;
-    pprops_east.twosided = true;
-
-	//polygon properties for south (black)
-	pprops_south.ambient = rgba(0.0f, 0.0f, 0.0f, 1.0f);
-    pprops_south.shininess = 60.0f;
-    pprops_south.translucent = false;
-    pprops_south.twosided = true;
-
-	//polygon properties for west (blue)
-	pprops_west.ambient = rgba(0.0f, 0.0f, 1.0f, 1.0f);
-    pprops_west.shininess = 60.0f;
-    pprops_west.translucent = false;
-    pprops_west.twosided = true;
-
 
 	if (type == "")
 	{

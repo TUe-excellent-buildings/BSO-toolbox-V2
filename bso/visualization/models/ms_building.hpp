@@ -10,6 +10,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <utility>
+#include <fstream>
 
 #ifdef SD_MODEL_HPP
 #include <bso/structural_design/sd_model.hpp>
@@ -531,6 +532,15 @@ MS_Model::MS_Model(const std::vector<utilities::data_point>& spaceData, const st
 									 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
 			throw std::runtime_error(errorMessage.str());
 	}
+	if(spaceData[0].size() != resultWeightFactor.size())
+	{
+		std::stringstream errorMessage;
+			errorMessage << "\nError in visualizing ms_N_buildings performance.\n"
+									 << "The inserted dimention of the data_point and the amount of inserted weight factors do not match,\n"
+									 << "therefore the data can not be weighted correctly for visualization: " << spaceData[0].size() << " and " << resultWeightFactor.size() << "\n"
+									 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
+			throw std::runtime_error(errorMessage.str());
+	}
 	double sumW = 0;
 	for(unsigned int j = 0; j < resultWeightFactor.size(); ++j){sumW = sumW + resultWeightFactor[j];}
 	if(sumW <= 1+0.000000001 && sumW >= 1+0.000000001)
@@ -627,6 +637,117 @@ MS_Model::MS_Model(const std::vector<utilities::data_point>& spaceData, const st
 
 	pbsp = new random_bsp(polygons);
 } //
+
+// Write a colour settings file that reproduces the same per-space colours
+// as the performance-based MS_Model constructor above. The resulting file
+// can be read by the existing MS_Model(const std::string&, const spatial_design::ms_N_building&, ...)
+// constructor (and the corresponding visualize overload) to recreate the
+// visualization without recomputing the performance values.
+inline void write_msN_performance_visualization_to_file(
+	const std::string& fileName,
+	const std::vector<utilities::data_point>& spaceData,
+	const std::vector<double>& resultWeightFactor,
+	float transparency = 1.0f)
+{
+	if (spaceData.empty())
+	{
+		std::stringstream errorMessage;
+		errorMessage << "\nError in writing ms_N_buildings performance visualization file.\n"
+						 << "The amount of inserted performances is zero, therefore there is nothing to write.\n"
+						 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
+		throw std::runtime_error(errorMessage.str());
+	}
+	if (spaceData[0].size() != resultWeightFactor.size())
+	{
+		std::stringstream errorMessage;
+		errorMessage << "\nError in writing ms_N_buildings performance visualization file.\n"
+						 << "The inserted dimension of the data_point and the amount of inserted weight factors do not match,\n"
+						 << "therefore the data can not be weighted correctly for visualization.\n"
+						 << "The dimensions are: " << spaceData[0].size() << " and " << resultWeightFactor.size() << "\n"
+						 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
+		throw std::runtime_error(errorMessage.str());
+	}
+
+	std::ofstream output(fileName.c_str());
+	if (!output.is_open())
+	{
+		std::stringstream errorMessage;
+		errorMessage << "Could not open file to write ms_N_building performance visualization: "
+						 << (fileName.empty() ? std::string("<empty file name>") : fileName) << "\n"
+						 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
+		throw std::invalid_argument(errorMessage.str());
+	}
+
+	// Header comments describing the format, matching the existing colour-input convention.
+	output << "# ms_N_building performance visualization colour settings" << std::endl;
+	output << "# space_ID\tambient(rgba)\t\tdiffuse(rgba)\t\tspecular(rgba)\temission(rgba)\tshininess(float value)\ttranslucent(bool)\t\ttwoSided(bool)" << std::endl;
+
+	float f1, f2, f3, f4 = transparency;
+	for (std::size_t i = 0; i < spaceData.size(); ++i)
+	{
+		if (spaceData[i].size() != resultWeightFactor.size())
+		{
+			std::stringstream errorMessage;
+			errorMessage << "\nError in writing ms_N_buildings performance visualization file.\n"
+						 << "The inserted resultWeightFactor does not have the same dimension as the data,\n"
+						 << "therefore can the data not be weighted for correct visualizations.\n"
+						 << "The dimensions were for the data point: " << spaceData[i].size()
+						 << " and for the resultWeightFactor " << resultWeightFactor.size() << "\n"
+						 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
+			throw std::runtime_error(errorMessage.str());
+		}
+
+		utilities::data_point dataWeighted = spaceData[i];
+		for (unsigned int j = 0; j < spaceData[i].size(); ++j)
+		{
+			dataWeighted(j) = (spaceData[i])(j) * resultWeightFactor[j];
+		}
+
+		double performance = 0.0;
+		for (unsigned int j = 0; j < dataWeighted.size(); ++j)
+		{
+			performance += dataWeighted(j);
+		}
+
+		double factor;
+		if (performance > 0.5 && performance <= (1.0 + 0.0001)) // red till yellow
+		{
+			factor = 1 - (performance - 0.5) / 0.5;
+			f1 = 1.0f;
+			f2 = static_cast<float>(1.0 * factor);
+			f3 = 0.0f;
+		}
+		else if (performance >= (0 - 0.001) && performance <= 0.5) // yellow till green
+		{
+			factor = (performance) / 0.5;
+			f1 = static_cast<float>(1.0 * factor);
+			f2 = 1.0f;
+			f3 = 0.0f;
+		}
+		else
+		{
+			std::stringstream errorMessage;
+			errorMessage << "\nError in writing ms_N_buildings performance visualization file.\n"
+						 << "The inserted spaceData contains results outside the range of 0 till 1,\n"
+						 << "as a result, the colors can not be defined correctly.\n"
+						 << "The found value is: " << performance << ".\n"
+						 << "Please normalize the data prior to importing the data in this function.\n"
+						 << "(bso/visualization/visualization/models/ms_N_building.hpp)" << std::endl;
+			throw std::runtime_error(errorMessage.str());
+		}
+
+		int spaceID = spaceData[i].getMSpacePtrs().back()->getID();
+
+		// Write one line following the existing colour settings format.
+		output << spaceID << ", "
+				 << f1 << "," << f2 << "," << f3 << "," << f4 << ", "
+				 << f1 << "," << f2 << "," << f3 << "," << f4 << ", "
+				 << f1 << "," << f2 << "," << f3 << "," << f4 << ", "
+				 << 0.0f << "," << 0.0f << "," << 0.0f << "," << 0.0f << ", "
+				 << 60.0f << ", "
+				 << "true, true" << std::endl;
+	}
+}
 
 MS_Model::MS_Model(const std::string& fileName, const spatial_design::ms_N_building& msN, 
 						const std::string& type /*= "spaces"*/, const std::string& title /*= "ms_building"*/,

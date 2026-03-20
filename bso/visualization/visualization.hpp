@@ -103,7 +103,14 @@ void keyboard(unsigned char key, int x, int y)
 		break;
 	case 'q' :
 	case 'Q' :
-		exit(0);
+		// In freeglut, leave the main loop so control returns to caller
+		// instead of terminating the entire process. Fall back to exit(0)
+		// when this option is not available.
+		#ifdef GLUT_ACTION_ON_WINDOW_CLOSE
+			glutLeaveMainLoop();
+		#else
+			exit(0);
+		#endif
 	default:
 		if (vpmanager.key_event(key, 0)) glutPostRedisplay();
 		break;
@@ -134,6 +141,12 @@ void initVisualization(int argc, char *argv[])
 	glutInitWindowSize(600, 300);
 	glutInitWindowPosition(100, 100);
 	glutCreateWindow(argv[0]);
+
+	// If using freeglut, make sure that closing the window causes
+	// glutMainLoop() to return instead of calling exit().
+	#ifdef GLUT_ACTION_ON_WINDOW_CLOSE
+		glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
+	#endif
 	
 	//maximize window (not fullscreen)
 	int scrw = glutGet(GLUT_SCREEN_WIDTH)/1.5,
@@ -209,9 +222,9 @@ void visualize(const bso::building_physics::bp_model& bp_model, const std::strin
 #endif // BP_MODEL_HPP
 
 #ifdef DL_MODEL_HPP
-void visualize(const bso::daylight::dl_model& dl_model, const std::string& title = "dl_model")
+void visualize(const bso::daylight::dl_model& dl_model, const std::string& type = "", const std::string& title = "dl_model")
 {
-	vpmanager.addviewport(new viewport(new DL_Model(dl_model,title)));
+	vpmanager.addviewport(new viewport(new DL_Model(dl_model, type, title)));
 }
 #endif // DL_MODEL_HPP
 

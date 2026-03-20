@@ -89,6 +89,7 @@ bso::building_physics::bp_model grammar::bp_grammar<DEFAULT_BP_GRAMMAR>(const st
 			bool constructionFound = false;
 			auto constuctionSearch = mBPFloorConstructions.find(usedTypes);
 			bool glazingFound = false;
+			bool isWindow = i.second->getIsWindow();
 			auto glazingSearch = mBPFloorGlazings.find(usedTypes);
 			if (i.second->isFloor())
 			{
@@ -109,7 +110,7 @@ bso::building_physics::bp_model grammar::bp_grammar<DEFAULT_BP_GRAMMAR>(const st
 				{
 					constructionFound = true;
 				}
-				if (glazingSearch != mBPWallGlazings.end())
+				if (glazingSearch != mBPWallGlazings.end()) // Glazing defined in setting file
 				{
 					glazingFound = true;
 				}
@@ -129,7 +130,11 @@ bso::building_physics::bp_model grammar::bp_grammar<DEFAULT_BP_GRAMMAR>(const st
 
 			// create a rectangle rule set
 			auto rectangleRuleSet = new rule_set::bp_rectangle_rule(i.second);
-			if (constructionFound)
+			if(isWindow)
+			{
+				rectangleRuleSet->assignGlazing(mGlazingDefault);
+			}
+			else if (constructionFound)
 			{
 				rectangleRuleSet->assignConstruction(constuctionSearch->second);
 			}

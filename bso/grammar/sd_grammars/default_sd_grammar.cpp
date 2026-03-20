@@ -59,7 +59,7 @@ bso::structural_design::sd_model grammar::sd_grammar<DEFAULT_SD_GRAMMAR>(const s
 			// create a rectangle rule set
 			auto sdRectangleRuleSet = new rule_set::sd_rectangle_rule(i.second);
 			mSDRectangleRules[i.first] = sdRectangleRuleSet;
-			if (structureSearch->second.type() != "none")
+			if (structureSearch->second.type() != "none" && i.second->getIsWindow() == false) 
 			{
 				sdRectangleRuleSet->assignStructure(structureSearch->second);
 			}
@@ -165,6 +165,44 @@ bso::structural_design::sd_model grammar::sd_grammar<DEFAULT_SD_GRAMMAR>(const s
 			if (SDTriangleRuleSearch != mSDTriangleRules.end())
 			{ // if that triangle is associated with an sd triangle rule, store its structural type
 				potentialStructures.push_back(SDTriangleRuleSearch->second->getStructure());
+			}
+		}
+
+		if(i.first->getVector().isVertical())
+		{
+			// If this line has window rectangles attached and no non-window
+			// rectangles with their own structure, assign the default beam.
+			bool hasWindow = false;
+			bool hasNonWindowRectWithStructure = false;
+			for (const auto& rect : i.first->cfRectangles())
+			{
+				auto rectPropIt = mRectangleProperties.find(rect);
+				if (rectPropIt == mRectangleProperties.end())
+				{
+					continue;
+				}
+				if (rectPropIt->second->getIsWindow())
+				{
+					hasWindow = true;
+				}
+				else
+				{
+					// Check if this non-window rectangle already has a structure
+					// assigned via its sd_rectangle_rule.
+					auto sdRectRuleIt = mSDRectangleRules.find(rect);
+					if (sdRectRuleIt != mSDRectangleRules.end() &&
+					    sdRectRuleIt->second->getStructure().type() != "none")
+					{
+						hasNonWindowRectWithStructure = true;
+					}
+				}
+			}
+
+			if (hasWindow && !hasNonWindowRectWithStructure)
+			{
+				// Use default beam structure for window lines set in sd_settings
+				// file (beam G, ID 1).
+				potentialStructures.push_back(mBeamStructureDefault);
 			}
 		}
 

@@ -17,9 +17,9 @@ class bp_model
 private:
 	state_space_system mSystem;
 	
-	std::vector<state::state*						 > mStates;
-	std::vector<state::dependent_state*  > mDependentStates;
-	std::vector<state::independent_state*> mIndependentStates;
+	std::vector<state::state*					 > mStates;
+	std::vector<state::dependent_state*  		 > mDependentStates;
+	std::vector<state::independent_state*		 > mIndependentStates;
 	std::vector<state::space* 					 > mSpaces;
 	std::vector<state::wall*  					 > mWalls;
 	std::vector<state::floor* 					 > mFloors;

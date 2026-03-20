@@ -3,6 +3,11 @@
 
 #include <filesystem>
 #include <cstdlib>
+#include <unistd.h> // for getpid() on POSIX systems
+#include <fstream>
+#include <cmath>
+#include <limits>
+#include <iostream>
 
 namespace bso { namespace daylight {
 	
@@ -26,14 +31,26 @@ namespace bso { namespace daylight {
 	}
 	
 	dl_model::dl_model() 
+	: mResultsGenerated(false)
 	{
-		
+	
 	} // ctor()
 	
 	dl_model::dl_model(const dl_model& rhs) 
-	: SpaceID_AmountGridPoints(rhs.SpaceID_AmountGridPoints), DF_Settings(rhs.DF_Settings), DF_Evaluation(rhs.DF_Evaluation), mFolderName(rhs.mFolderName), 
-		mRectangleWindowYN(rhs.mRectangleWindowYN), mcf_space(rhs.mcf_space), mCeilings(rhs.mCeilings),
-		DFresults(rhs.DFresults), roomInfo(rhs.roomInfo)
+	: SpaceID_AmountGridPoints(rhs.SpaceID_AmountGridPoints),
+	  DF_Settings(rhs.DF_Settings),
+	  DF_Evaluation(rhs.DF_Evaluation),
+	  mFolderName(rhs.mFolderName),
+		  mSpaceResults(rhs.mSpaceResults),
+		  mBuildingResults(rhs.mBuildingResults),
+	  mResultsGenerated(rhs.mResultsGenerated),
+	  roomInfo(rhs.roomInfo),
+	  mRectangleWindowYN(rhs.mRectangleWindowYN),
+	  mTriangles(rhs.mTriangles),
+	  mcf_space(rhs.mcf_space),
+	  mCeilings(rhs.mCeilings),
+	  mCeilingsTri(rhs.mCeilingsTri),
+	  mGridPoints(rhs.mGridPoints)
 	{
 
 	} //copy constructor
@@ -41,13 +58,30 @@ namespace bso { namespace daylight {
 	dl_model::~dl_model()
 	{
 
-	} // //dtor()	
+	} // dtor()	
 
 	std::string dl_model::createAndSetFolder(const std::string& settingFileName, const std::string& folderName /*= ""*/)
 	{		
-		// If no folder name is provided, create one based on the count of runs. If a folder name is provided, use that one instead.
-		if (folderName == ""){mFolderName = "Iteration_" + std::to_string(dl_model_count);}
-		else{mFolderName = folderName;}
+		// If no folder name is provided, create a per-process base directory
+		// and store each daylight iteration in a subdirectory of that base.
+		// This avoids collisions when multiple scdp_class/main processes run
+		// in parallel, because each process gets its own "Run_<pid>" folder
+		// and within that, "Iteration_<count>" subfolders.
+		//
+		// Pattern when folderName is empty:
+		// iteration:  "Run_<pid>/Iteration_<count>"
+		// If a folder name is provided explicitly, use that one instead.
+		if (folderName == "")
+		{
+			pid_t pid = getpid();
+			std::string base;
+			base = "Run_" + std::to_string(static_cast<long long>(pid));
+			mFolderName = base + "/Iteration_" + std::to_string(dl_model_count);
+		}
+		else
+		{
+			mFolderName = folderName;
+		}
 
 		std::string command = "mkdir -p \"" + mFolderName + "\""; // Use mkdir command to create directory
 
@@ -55,8 +89,11 @@ namespace bso { namespace daylight {
 
 		if (result != 0) 
 		{   
-			std::cerr << "Error creating directory: " << mFolderName << std::endl;
-			std::cerr << "Command executed: " << command << std::endl;
+			std::stringstream errorMessage;
+					errorMessage << "Error, could not create directory: " << mFolderName << " to store the radiance files, \n"
+								 << "Command executed: " << command << "\n" 
+								 << "(bso/daylight/dl_model.cpp). " << std::endl;
+					throw std::invalid_argument(errorMessage.str());
 		}
 		else    //if folder created, add dl_setting file also to it, since you can change it per run to change window properties. 
 		{
@@ -65,8 +102,11 @@ namespace bso { namespace daylight {
 
 			if (copyResult != 0) 
 			{
-				std::cerr << "Error copying file to directory: " << mFolderName << std::endl;
-				std::cerr << "Command executed: " << copyCommand << std::endl;
+				std::stringstream errorMessage;
+					errorMessage << "Error, could not copy dl_setting file, \n"
+								 << "Command executed: " << copyCommand << "\n" 
+								 << "(bso/daylight/dl_model.cpp). " << std::endl;
+					throw std::invalid_argument(errorMessage.str());
 			}
 		}
 
@@ -76,7 +116,7 @@ namespace bso { namespace daylight {
 
 	double roundToTwoDecimals(double num) 
 	{
-    	return std::round(num * 100) / 100;
+    	return std::round(num * 100.0) / 100.0;
 	}
 
 	double ScoreDFRoomNENminimize(double DtPercentage, double DtmPercentage)
@@ -87,10 +127,10 @@ namespace bso { namespace daylight {
 		if both are < 50%, linearly interpolate score 5-10 depending on Dtm (0-50%)
 		*/
 
-		double finalScore = 10;
-		if (DtmPercentage >= 50 && DtPercentage >= 50) {finalScore = 0; }
-		else if (DtmPercentage >= 50 && DtPercentage < 50) {finalScore = ( 5.0 - ((5.0/50.0)*DtPercentage)); }
-		else if (DtmPercentage < 50 && DtPercentage < 50) {finalScore = 10.0 - ((5.0/50.0)*DtmPercentage); }
+		double finalScore = 10.0;
+		if (DtmPercentage >= 50.0 && DtPercentage >= 50.0) {finalScore = 0.0; }
+		else if (DtmPercentage >= 50.0 && DtPercentage < 50.0) {finalScore = ( 5.0 - ((5.0/50.0)*DtPercentage)); }
+		else if (DtmPercentage < 50.0 && DtPercentage < 50.0) {finalScore = 10.0 - ((5.0/50.0)*DtmPercentage); }
 		return finalScore;
 	}
 
@@ -102,15 +142,19 @@ namespace bso { namespace daylight {
 		if both are < 50%, linearly interpolate score 0-5 depending on Dtm (0-50%)
 		*/
 
-		double finalScore = 0;
-		if (DtmPercentage >= 50 && DtPercentage >= 50) {finalScore = 10; }
-		else if (DtmPercentage >= 50 && DtPercentage < 50) {finalScore = ( 5.0 + ((5.0/50.0)*DtPercentage)); }
-		else if (DtmPercentage < 50 && DtPercentage < 50) {finalScore = ((5.0/50.0)*DtmPercentage); }
+		double finalScore = 0.0;
+		if (DtmPercentage >= 50.0 && DtPercentage >= 50.0) {finalScore = 10.0; }
+		else if (DtmPercentage >= 50.0 && DtPercentage < 50.0) {finalScore = ( 5.0 + ((5.0/50.0)*DtPercentage)); }
+		else if (DtmPercentage < 50.0 && DtPercentage < 50.0) {finalScore = ((5.0/50.0)*DtmPercentage); }
 		return finalScore;
 	}
 
-	void dl_model::analyse()
+	void dl_model::analyze()
 	{
+		// reset any previous results for a new analysis run
+		mSpaceResults.clear();
+		mResultsGenerated = false;
+
 		const double HorizontalOutdoorIlluminance = DF_Settings[0];
 		const std::string radianceBinPath = GetRadianceBinPath();
 		
@@ -120,17 +164,28 @@ namespace bso { namespace daylight {
 		std::string command;
 		
 		// Generate sky
-		const std::string irrad = std::to_string(HorizontalOutdoorIlluminance/179.0); //generate diffuse irradiance in watss/meter2 to derive the zenith brightness 
-		const std::string skysettings = "-ang 45 0 -c -B "+irrad+" -g 0.2"; //-c=standard CIE overcast sky ,-B is zenetith brithness (irrad), -g ground reflectance
+		const std::string irrad = std::to_string(HorizontalOutdoorIlluminance/179.0); //generate diffuse irradiance in watts/m2 to derive the zenith brightness 
+		const std::string skysettings = "-ang 45 0 -c -B "+irrad+" -g 0.2"; //-c=standard CIE overcast sky ,-B is zenith brightness (irrad), -g ground reflectance
 		command = radianceBinPath + "/gensky "+skysettings+" > ./"+mFolderName+"/sky.rad"; 
-		if (std::system(command.c_str()) != 0) {
-			std::cerr << "Failed to execute command: " << command << std::endl;
-			return;
+		if (std::system(command.c_str()) != 0) 
+		{
+			std::stringstream errorMessage;
+				errorMessage << "Error, could not generate the sky for the Radiance run, \n"
+								<< "Failed to execute command: " << command << "\n" 
+								<< "(bso/daylight/dl_model.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
 		}
 
 		// Create outside
 		std::ofstream outsideFile(mFolderName+"/"+"outside.rad", std::ios::trunc);
-		if (!outsideFile.is_open()) {std::cerr << "Failed to open outside.rad for writing\n";}
+		if (!outsideFile.is_open()) 
+		{
+			std::stringstream errorMessage;
+				errorMessage << "Error, could not open outside.rad for the Radiance run, \n"
+								<< "Failed to execute command: " << command << "\n" 
+								<< "(bso/daylight/dl_model.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+		}
 		outsideFile << "skyfunc glow sky_glow\n0\n0\n4 1 1 1 0\n";
 		outsideFile << "sky_glow source sky\n0\n0\n4 0 0 1 180\n";
 		outsideFile << "skyfunc glow ground_glow\n0\n0\n4 1 1 1 0\n";
@@ -139,9 +194,13 @@ namespace bso { namespace daylight {
 
 		// Compile scene
 		command = radianceBinPath + "/oconv ./"+mFolderName+"/sky.rad ./"+mFolderName+"/outside.rad ./"+mFolderName+"/scene.rad > ./"+mFolderName+"/room.oct";
-		if (std::system(command.c_str()) != 0) {
-			std::cerr << "Failed to execute command: " << command << std::endl;
-			return;
+		if (std::system(command.c_str()) != 0) 
+		{
+			std::stringstream errorMessage;
+				errorMessage << "Error, could not compile the scene for the Radiance run, \n"
+								<< "Failed to execute command: " << command << "\n" 
+								<< "(bso/daylight/dl_model.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
 		}
 
 		// Calculate illuminance
@@ -149,234 +208,193 @@ namespace bso { namespace daylight {
 		//-I -h -aa 0 -ab 6 -ad 10240 -as 0 -lw 1e-6 -n 4       //Ward, 2024
 		//-I -h -aa 0 -ab 8 -ad 4096 -as 1024 -lw 1e-6 -lr 16   //Kharvari, 2020
 		command = radianceBinPath + "/rtrace "+ rtraceSettings + " -oov ./"+mFolderName+"/room.oct < ./"+mFolderName+"/grid.txt > ./"+mFolderName+"/results.txt";
-		if (std::system(command.c_str()) != 0) {
-			std::cerr << "Failed to execute command: " << command << std::endl;
-			return;
+		if (std::system(command.c_str()) != 0) 
+		{
+			std::stringstream errorMessage;
+				errorMessage << "Error, could not calculate the illuminance for the Radiance run, \n"
+								<< "Failed to execute command: " << command << "\n" 
+								<< "(bso/daylight/dl_model.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
 		}
 
 		// Make lux.
 		command = radianceBinPath + "/rcalc -e '$1=179*(.265*$4+.670*$5+.065*$6)' ./"+mFolderName+"/results.txt > ./"+mFolderName+"/lux.txt";
-		if (std::system(command.c_str()) != 0) {
-			std::cerr << "Failed to execute command: " << command << std::endl;
-			return;
+		if (std::system(command.c_str()) != 0) 
+		{			
+			std::stringstream errorMessage;
+				errorMessage << "Error, could not make the lux text file containing the illuminance values for the Radiance run, \n"
+								<< "Failed to execute command: " << command << "\n" 
+								<< "(bso/daylight/dl_model.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
 		}
 
-		// // Make DF
-		// command = radianceBinPath + "/rcalc -e '$1=(100*179*(.265*$4+.670*$5+.065*$6))/"+std::to_string(HorizontalOutdoorIlluminance)+"' ./"+mFolderName+"/results.txt > ./"+mFolderName+"/DF.txt";
-		// if (std::system(command.c_str()) != 0) {
-		// 	std::cerr << "Failed to execute command: " << command << std::endl;
-		// 	return;
-		// }
+		// After Radiance has produced lux.txt, generate per-space and building results once.
+		generateResults();
 
 	}; //analyse()
 
-	dl_results dl_model::getTotalResults()
+	void dl_model::generateResults()
 	{
-		dl_results resultsDL;
+		if (mResultsGenerated) return;
+
 		const double HorizontalOutdoorIlluminance = DF_Settings[0];
 		const double Dt = DF_Evaluation[0];
 		const double Dtm = DF_Evaluation[1];
 
 		// Read output Radiance
 		std::ifstream inputFile("./"+mFolderName+"/lux.txt");
-		if (!inputFile.is_open()) {std::cerr << "Error opening luxfile. (./"+mFolderName+"/lux.txt)" << std::endl; return {};}
+		if (!inputFile.is_open()) {
+			std::stringstream errorMessage;
+			errorMessage << "Error, could not open the output lux.txt file from Radiance. " << std::endl
+									<< "(bso/daylight/dl_model.cpp). " << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
 
-		double sum = 0.0;
-		int count = 0;
-		std::vector<std::vector<double>> DFresults; //[0]=SpaceID, [1]=ADF [2]=Dt% [3]=Dtm% [4]=Score
-		std::vector<double> DFpass;
-		std::vector<double> Dtpass;
-		std::vector<double> Dtmpass;
-	
+		mSpaceResults.clear();
+		mSpaceResults.reserve(SpaceID_AmountGridPoints.size());
+
 		// iterate per surface / space
-		//one surface = one set of points (amount of gridpoints varies per surface)
+		// one surface = one set of points (amount of gridpoints varies per surface)
 		for (int i = 0; i < SpaceID_AmountGridPoints.size(); ++i) 
 		{
-				auto& tup = SpaceID_AmountGridPoints[i];
-				unsigned int SpaceID = std::get<0>(tup);
-				int gridPoints = std::get<1>(tup);
+			auto& tup = SpaceID_AmountGridPoints[i];
+			unsigned int SpaceID = std::get<0>(tup);
+			int gridPoints = std::get<1>(tup);
 
-				int requiredExceedingCount = static_cast<int>(std::ceil(gridPoints/2.0)); //round up
-				int pointsExceedingDt = 0;
-				int pointsExceedingDtm = 0;
+			int requiredExceedingCount = static_cast<int>(std::ceil(gridPoints/2.0)); //round up
+			int pointsExceedingDt = 0;
+			int pointsExceedingDtm = 0;
+			double sumDF = 0.0;
 
-				//iterate over each gridpoint per surface (space)
-				for (int j = 0; j < gridPoints; ++j) 
+			//iterate over each gridpoint per surface (space)
+			for (int j = 0; j < gridPoints; ++j) 
+			{
+				double Espace; // horizontal illuminance at points at target level
+				if (!(inputFile >> Espace)) 
 				{
-					double Espace; // horizontal illumance at points at target level
-					if (!(inputFile >> Espace)) {std::cerr << "Error reading Espace(lx) number from file." << std::endl; return {};}
-					
-					double DF = (Espace/HorizontalOutdoorIlluminance)*100; //daylight factor per point
-					if (DF > Dt) {pointsExceedingDt++;}
-					if (DF > Dtm) {pointsExceedingDtm++;}
-					sum += DF;
-				} //gridpoint per surface
+					inputFile.close();
+					std::stringstream errorMessage;
+					errorMessage << "Error, reading horizontal illuminance value from lux.txt, \n"
+								 << "as it could not open the output lux.txt file from Radiance. \n" 
+								 << "(bso/daylight/dl_model.cpp). " << std::endl;
+					throw std::invalid_argument(errorMessage.str());
+				}
+				
+				double DF = (Espace/HorizontalOutdoorIlluminance)*100.0; //daylight factor per point
+				if (DF > Dt) {pointsExceedingDt++;}
+				if (DF > Dtm) {pointsExceedingDtm++;}
+				sumDF += DF;
+			} //gridpoint per surface
 
-			double ADF = roundToTwoDecimals((sum/gridPoints)); 
-			int DFspace;
-			double DtPercentage = static_cast<double>(std::ceil((100/gridPoints)*pointsExceedingDt)); //per room 
-			double DtmPercentage = static_cast<double>(std::ceil((100/gridPoints)*pointsExceedingDtm));
+			double ADF = sumDF/static_cast<double>(gridPoints); //average daylight factor per space
 			int resultDt = (pointsExceedingDt >= requiredExceedingCount) ? 1 : 0;
 			int resultDtm = (pointsExceedingDtm >= requiredExceedingCount) ? 1 : 0;
+			bool passDt = (resultDt == 1);
+			bool passDtm = (resultDtm == 1);
+			bool passDF = passDt && passDtm;
+			double DtPercentage = std::ceil((100.0/static_cast<double>(gridPoints))*pointsExceedingDt); //per room 
+			double DtmPercentage = std::ceil((100.0/static_cast<double>(gridPoints))*pointsExceedingDtm);
+			double score = ScoreDFRoomNENminimize(DtPercentage, DtmPercentage);
 
-			if (resultDt==1 && resultDtm==1) {DFspace = 1; //fullfills
-			} else {DFspace = 0;} //does not fullfill
+			dl_space_result res;
+			res.mSpaceID       = SpaceID;
+			res.mADF           = ADF;
+			res.mADFInverse   = (ADF == 0.0) ? 1000000.0 : (1.0 / ADF); // store inverse for optimization performance
+			res.mDtPercentage  = DtPercentage;
+			res.mDtmPercentage = DtmPercentage;
+			res.mScore         = score;
+			res.mPassDF        = passDF;
+			res.mPassDt        = passDt;
+			res.mPassDtm       = passDtm;
+			mSpaceResults.push_back(res);
+		}
 
-			DFpass.push_back(DFspace); //stores wether or not space fullfills requirements
-			Dtpass.push_back(resultDt);
-			Dtmpass.push_back(resultDtm);
-
-			//[0]=SpaceID, [1]=ADF [2]=Dt% [3]=Dtm% [4]=Score(x/10)
-			DFresults.push_back(std::vector<double>(5));
-			DFresults[i][0] = SpaceID;
-			DFresults[i][1] = ADF;
-			DFresults[i][2] = DtPercentage;
-			DFresults[i][3] = DtmPercentage;
-			DFresults[i][4] = ScoreDFRoomNENminimize(DtPercentage, DtmPercentage);
-
-			pointsExceedingDt = 0;
-			pointsExceedingDtm = 0;
-			sum = 0;
-			ADF = 0.0;
-
-		} //close loop that iterates per space
-		setDFresults(DFresults);
-
-		// Close the file
 		inputFile.close();
 
+		// Compute building-level aggregate results based on mSpaceResults
 		int scoreDF = 0; 
 		int scoreDt = 0; 
 		int scoreDtm = 0;
 		double TotalScore = 0.0;
 		double ADFbuilding = 0.0;
+		double ADFbuilding_inverse = 0.0;
 
-
-		for (int i = 0; i < DFpass.size(); ++i) { scoreDF += DFpass[i];}
-		for (int i = 0; i < Dtpass.size(); ++i) { scoreDt += Dtpass[i];}
-		for (int i = 0; i < Dtmpass.size(); ++i) { scoreDtm += Dtmpass[i];}
-		for (int i = 0; i < DFresults.size(); ++i) {TotalScore += DFresults[i][4];}
-		for (int i = 0; i < DFresults.size(); ++i) 
-			{ if (DFresults[i][1] == 0) 
-				{
-					ADFbuilding += 0;
-				} 
-				else 
-				{	
-					ADFbuilding += (1 / DFresults[i][1]);
-				}
-			} 
+		for (const auto& s : mSpaceResults)
+		{
+			if (s.mPassDF)  { ++scoreDF; }
+			if (s.mPassDt)  { ++scoreDt; }
+			if (s.mPassDtm) { ++scoreDtm; }
+			TotalScore += s.mScore;	
+			ADFbuilding += s.mADF;
+			ADFbuilding_inverse += s.mADFInverse;
+		}
 		
-		double DFPassBuilding = ((100/DFpass.size())*scoreDF);
-		double DFPassDt = ((100/Dtpass.size())*scoreDt);
-		double DFPassDtm = ((100/Dtmpass.size())*scoreDtm);
+		const double n = static_cast<double>(mSpaceResults.size());
+		if (n > 0.0)
+		{
+			mBuildingResults.mDFPassbuilding = (100.0/n) * static_cast<double>(scoreDF);
+			mBuildingResults.mDtBuilding     = (100.0/n) * static_cast<double>(scoreDt);
+			mBuildingResults.mDtmBuilding    = (100.0/n) * static_cast<double>(scoreDtm);
+		}
+		mBuildingResults.mTotalScore      = TotalScore;
+		mBuildingResults.mADFBuilding     = ADFbuilding;
+		mBuildingResults.mADFBuildingInverse = ADFbuilding_inverse;
 
-		if (ADFbuilding==0){ADFbuilding = std::numeric_limits<double>::infinity();} //infity bc devision by zero
+		mResultsGenerated = true;
+	} // generateResults()
 
-		resultsDL.mDFpassbuilding = DFPassBuilding;
-		resultsDL.mDtbuilding = DFPassDt;
-		resultsDL.mDtmbuilding = DFPassDtm;
-		resultsDL.mTotalScore = TotalScore;
-		resultsDL.mADFbuilding = ADFbuilding;
-		
-		
-		return resultsDL;
+	dl_building_results dl_model::getTotalResults()
+	{
+		// If results have not been generated or there are no spaces, return default-initialized result
+		if (!mResultsGenerated || mSpaceResults.empty())
+		{
+			return dl_building_results{};
+		}
+		return mBuildingResults;
 	}; //getTotalResults
 
-	dl_results dl_model::getPartialResults(unsigned int& mID)
+	dl_building_results dl_model::getPartialResults(unsigned int& mID)
 	{
-	//-----------same as getTotalResults()----------------------------------------------------------//
-		dl_results resultsDL;
-		const double HorizontalOutdoorIlluminance = DF_Settings[0];
-		const double Dt = DF_Evaluation[0];
-		const double Dtm = DF_Evaluation[1];
-
-		// Read output Radiance
-		std::ifstream inputFile("./"+mFolderName+"/lux.txt");
-		if (!inputFile.is_open()) {std::cerr << "Error opening luxfile. (./"+mFolderName+"/lux.txt)" << std::endl; return {};}
-
-		double sum = 0.0;
-		int count = 0;
-		std::vector<std::vector<double>> DFresults; //[0]=SpaceID, [1]=ADF [2]=Dt% [3]=Dtm% [4]=Score
-		std::vector<double> DFpass;
-		std::vector<double> Dtpass;
-		std::vector<double> Dtmpass;
-	
-		// iterate per surface / space
-		//one surface = one set of points (amount of gridpoints varies per surface)
-		for (int i = 0; i < SpaceID_AmountGridPoints.size(); ++i) 
+		dl_building_results resultsDL;
+		if (!mResultsGenerated || mSpaceResults.empty())
 		{
-				auto& tup = SpaceID_AmountGridPoints[i];
-				unsigned int SpaceID = std::get<0>(tup);
-				int gridPoints = std::get<1>(tup);
+			return resultsDL;
+		}
 
-				int requiredExceedingCount = static_cast<int>(std::ceil(gridPoints/2.0)); //round up
-				int pointsExceedingDt = 0;
-				int pointsExceedingDtm = 0;
-
-				//iterate over each gridpoint per surface (space)
-				for (int j = 0; j < gridPoints; ++j) 
-				{
-					double Espace; // horizontal illumance at points at target level
-					if (!(inputFile >> Espace)) {std::cerr << "Error reading Espace(lx) number from file." << std::endl; return {};}
-					
-					double DF = (Espace/HorizontalOutdoorIlluminance)*100; //daylight factor per point
-					if (DF > Dt) {pointsExceedingDt++;}
-					if (DF > Dtm) {pointsExceedingDtm++;}
-					sum += DF;
-				} //gridpoint per surface
-
-			double ADF = roundToTwoDecimals((sum/gridPoints)); 
-			int DFspace;
-			double DtPercentage = static_cast<int>(std::ceil((100/gridPoints)*pointsExceedingDt)); //per room 
-			double DtmPercentage = static_cast<int>(std::ceil((100/gridPoints)*pointsExceedingDtm));
-			int resultDt = (pointsExceedingDt >= requiredExceedingCount) ? 1 : 0;
-			int resultDtm = (pointsExceedingDtm >= requiredExceedingCount) ? 1 : 0;
-
-			if (resultDt==1 && resultDtm==1) {DFspace = 1; //fullfills
-			} else {DFspace = 0;} //does not fullfill
-
-			DFpass.push_back(DFspace); //stores wether or not space fullfills requirements
-			Dtpass.push_back(resultDt);
-			Dtmpass.push_back(resultDtm);
-
-			//[0]=SpaceID, [1]=ADF [2]=Dt% [3]=Dtm% [4]=Score(x/10)
-			DFresults.push_back(std::vector<double>(5));
-			DFresults[i][0] = SpaceID;
-			DFresults[i][1] = ADF;
-			DFresults[i][2] = DtPercentage;
-			DFresults[i][3] = DtmPercentage;
-			DFresults[i][4] = ScoreDFRoomNENminimize(DtPercentage, DtmPercentage);
-
-			pointsExceedingDt = 0;
-			pointsExceedingDtm = 0;
-			sum = 0;
-			ADF = 0.0;
-
-		} //close loop that iterates per space
-		setDFresults(DFresults);
-		// Close the file
-		inputFile.close();
-		//-----------end same as getTotalResults()----------------------------------------------------------//
-
-
-		//ask for result per space
-			for (int q=0; q < DFresults.size(); ++q)
+		for (const auto& s : mSpaceResults)
+		{
+			if (s.mSpaceID == mID)
 			{
-				if (DFresults[q][0] == mID)
-					{
-						//[0]=SpaceID, [1]=ADF [2]=Dt% [3]=Dtm% [4]=Score(x/10)
-						resultsDL.mDtbuilding = DFresults[q][2];
-						resultsDL.mDtmbuilding = DFresults[q][3];
-						resultsDL.mTotalScore = DFresults[q][4];
-						resultsDL.mADFbuilding = (DFresults[q][1] == 0) ? 1000000 : (1/(DFresults[q][1]));
-						resultsDL.mADFroom = DFresults[q][1];
-						break;
-					}
+				resultsDL.mDtBuilding         = s.mDtPercentage;
+				resultsDL.mDtmBuilding        = s.mDtmPercentage;
+				resultsDL.mTotalScore         = s.mScore;
+				resultsDL.mADFBuilding        = s.mADF;
+				resultsDL.mADFBuildingInverse = s.mADFInverse;
+				break;
 			}
-		
+		}
 		return resultsDL;
 	}; //getPartialResults
+
+	const dl_space_result& dl_model::getSpaceResult(unsigned int& mID) const
+	{
+		// If results have not been generated (analyze not called), return empty default.
+		static const dl_space_result emptyResult;
+		if (!mResultsGenerated || mSpaceResults.empty())
+		{
+			return emptyResult;
+		}
+		// Return reference to the matching space result if found.
+		for (const auto& s : mSpaceResults)
+		{
+			if (s.mSpaceID == mID)
+			{
+				return s;
+			}
+		}
+		// If not found, return a static default-initialized result.
+		return emptyResult;
+	}
 
 } // namespace daylight
 } // namespace bso

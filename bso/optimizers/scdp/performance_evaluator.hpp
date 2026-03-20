@@ -20,12 +20,14 @@ public:
         spatial_design::ms_N_building& ms, 
         structural_design::sd_model& sd, 
         building_physics::bp_model& bp, 
+        daylight::dl_model& dl,
         const std::string& modificationType, 
         const std::string& performanceDivisionType,
         output_manager& outputMgr,
         bool verbose,
         bool sdAvailable = true,
-        bool bpAvailable = true);
+        bool bpAvailable = true,
+        bool dlAvailable = true);
 
     static void normalizeData(
         std::vector<utilities::data_point>& performances,
@@ -37,8 +39,10 @@ public:
     static void sortDataPointsHighestToLowest(
         std::vector<utilities::data_point>& performances,
         const std::string& modificationType,
+        const std::vector<std::string>& modificationSequence,
         const int iterationNr,
         const std::vector<double>& objectiveWeights,
+        bool weightedModification,
         output_manager& outputMgr,
         bool verbose);
 };

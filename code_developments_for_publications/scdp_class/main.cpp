@@ -9,6 +9,7 @@
 #include <bso/utilities/data_export.hpp>
 #include <bso/structural_design/sd_model.hpp>
 #include <bso/building_physics/bp_model.hpp>
+#include <bso/daylight/dl_model.hpp>
 #include <bso/grammar/grammar.hpp>
 #include <bso/visualization/visualization.hpp>
 

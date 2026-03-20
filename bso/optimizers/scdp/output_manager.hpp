@@ -21,6 +21,8 @@ struct OptimizationOutput
     const std::vector<double>& sd_total_load;
     const std::vector<double>& exteriorSurfaceArea;
     const std::string& modification;
+    const bool weightedModification;
+    const std::vector<double>& objectiveWeights;
     const std::string& designName;
     const std::string& deleteMethod;
     unsigned int maxIterationsInSequence;

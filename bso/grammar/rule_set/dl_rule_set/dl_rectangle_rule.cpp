@@ -490,7 +490,7 @@ bool isOpenExternal(bso::spatial_design::conformal::cf_rectangle* cfRec)
         else if //if no space type is applied.
             (SpaceType0 != "A" && SpaceType0 != "B")
         {
-            hasWindowProperties = false;
+            hasWindowProperties = true;
             // std::cerr   << "No Space type (open/closed) defined in input file"
             //             << "\n See isOpenExternal dl_rectangle_rule.cpp "
             //             << "\n Default is: closed" << std::endl;
