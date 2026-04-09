@@ -1,7 +1,6 @@
 #ifndef GRAPH_EDIT_DISTANCE_CPP
 #define GRAPH_EDIT_DISTANCE_CPP
 
-// #include "graph_edit_distance.hpp"
 #include <boost/graph/adjacency_list.hpp>
 #include <algorithm>
 #include <queue>
@@ -537,11 +536,20 @@ std::vector<int> GraphEditDistance::reduce_ind(
         }
     }
 
-    // Adjust indices
-    for (int r : remove) {
-        for (int& k : result) {
-            if (k >= r) k--;
+    // // Adjust indices
+    // for (int r : remove) {
+    //     for (int& k : result) {
+    //         if (k >= r) k--;
+    //     }
+    // }
+
+    // Count how many removed indices fall below each value, then adjust all at once
+    for (int& k : result) {
+        int shift = 0;
+        for (int r : remove) {
+            if (r < k) shift++;
         }
+        k -= shift;
     }
 
     return result;
@@ -756,6 +764,13 @@ std::vector<GraphEditDistance::EditOp> GraphEditDistance::get_edit_ops(
     // Find best from LSA
     int best_i = -1, best_j = -1;
     for (size_t idx = 0; idx < Cv.row_ind.size(); ++idx) {
+        // sanity check
+        // assert(idx < Cv.col_ind.size() && "col_ind shorter than row_ind");
+
+        // std::cout << "row_ind.size()=" << Cv.row_ind.size() 
+        //           << " col_ind.size()=" << Cv.col_ind.size() 
+        //           << " m=" << m << " n=" << n << std::endl;
+
         int i = Cv.row_ind[idx];
         int j = Cv.col_ind[idx];
         if (i < m || j < n) {
@@ -785,11 +800,12 @@ std::vector<GraphEditDistance::EditOp> GraphEditDistance::get_edit_ops(
         op.ij = {best_i, best_j};
 
         auto reduced = reduce_C(Cv.C, {best_i}, {best_j}, m, n);
-        std::vector<int> remove_indices = {best_i, m + best_j};
+        std::vector<int> remove_row_indices = {best_i, m + best_j};  // row: dummy at m + best_j
+        std::vector<int> remove_col_indices = {best_j, n + best_i};  // col: dummy at n + best_i
 
         op.Cv_ij.C = reduced;
-        op.Cv_ij.row_ind = reduce_ind(Cv.row_ind, remove_indices);
-        op.Cv_ij.col_ind = reduce_ind(Cv.col_ind, remove_indices);
+        op.Cv_ij.row_ind = reduce_ind(Cv.row_ind, remove_row_indices);
+        op.Cv_ij.col_ind = reduce_ind(Cv.col_ind, remove_col_indices);
         op.Cv_ij.ls = Cv.ls - Cv.C(best_i, best_j);
 
         op.xy = match_result.ij;

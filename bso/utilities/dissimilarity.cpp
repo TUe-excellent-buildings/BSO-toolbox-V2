@@ -51,15 +51,9 @@ struct RotatedVariants {
 
 struct GEDResult {
 	double cost;
-    std::map<int, SpaceInfo> poly1;
+    std::map<int, SpaceInfo> poly1;      // Relabeled A 
     int num_nodes;
     int num_edges;
-};
-
-struct Stats {
-    double min = std::numeric_limits<double>::infinity();
-    double max = -std::numeric_limits<double>::infinity();
-    double mean = 0.0;
 };
 
 
@@ -401,20 +395,30 @@ Graph graph_con_spaces_boost(const std::map<int, SpaceInfo>& building) {
 }
 
 
+SpaceInfo deep_copy_space(const SpaceInfo& src) {
+    SpaceInfo dst;
+    // CGAL polyhedra must be copied via copy_face_graph to preserve topology
+    CGAL::copy_face_graph(src.poly_space, dst.poly_space);
+    dst.center_of_mass = src.center_of_mass;
+    dst.points         = src.points;
+    return dst;
+}
+
+
 std::map<int, SpaceInfo> relabel_building(const std::map<int, SpaceInfo>& A, const std::map<int, int>& nm) {
 	std::map<int, SpaceInfo> relabeled;
-
+ 
 	for (const auto& [i, j] : nm) {
 		// Get current position of SpaceInfo
 		auto it = A.find(i);
         if (it == A.end()) {
 			throw std::runtime_error("Invalid node mapping: space ID " + std::to_string(i) + " not found in building");
 		}
-
-		// Copy SpaceInfo and reassign under new ID
-		relabeled[j] = it->second;
+ 
+		// Deep-copy SpaceInfo and reassign under new ID
+		relabeled[j] = deep_copy_space(it->second);
 	}
-
+ 
 	return relabeled;
 }
 
@@ -424,7 +428,7 @@ GEDResult optimized_GED_poly(const std::map<int, SpaceInfo>& A, const std::map<i
 	// Create boost graphs
 	Graph G1 = graph_con_spaces_boost(A);
 	Graph G2 = graph_con_spaces_boost(B);
-
+ 
 	GEDConfig config;
 	// Set costs explicitly - set high del/ins cost to avoid those operations unless strictly necessary
 	config.node_subst_cost = [](Vertex u, Vertex v, const Graph& G1, const Graph& G2) {
@@ -439,7 +443,7 @@ GEDResult optimized_GED_poly(const std::map<int, SpaceInfo>& A, const std::map<i
 	config.edge_ins_cost = [](Edge e, const Graph& G2) {
 		return 1.0;  // Edge insertion costs 1
 	};
-
+ 
     if (nspaces(A) == nspaces(B)) {
         config.node_del_cost = [](Vertex u, const Graph& G1) {
 		return 100.0;  // Deletion costs 100
@@ -455,64 +459,67 @@ GEDResult optimized_GED_poly(const std::map<int, SpaceInfo>& A, const std::map<i
 		return 1.0;  // Insertion costs 1
 	};
     }
-
+ 
 	GraphEditDistance ged(G1, G2, config);
-
 	EditPath optimal = ged.get_optimal_edit_path();
-
+ 
 	// Build space ID vectors
 	std::vector<int> space_ids_1, space_ids_2;
-	for (const auto& [id, info] : A) {
-		space_ids_1.push_back(id);
-	}
-	for (const auto& [id, info] : B) {
-		space_ids_2.push_back(id);
-	}
+	for (const auto& [id, info] : A) space_ids_1.push_back(id);
+	for (const auto& [id, info] : B) space_ids_2.push_back(id);
 
-	// Build the space mapping
-	std::map<int, int> space_mapping;
+    // Create placeholder for poly1 and empty space for insertions
+    std::map<int, SpaceInfo> poly1;
+    SpaceInfo empty{};
 
-	for (const auto& edit : optimal.node_edits) {
-		if (edit.u >= 0 && edit.v >= 0) {
-			// Substitution
-			space_mapping[space_ids_1[edit.u]] = space_ids_2[edit.v];
-		}
-	}
+    for (const auto& edit : optimal.node_edits) {
+        // std::cout << "u=" << edit.u << "  v=" << edit.v << std::endl;
+        if (edit.u >= 0 && edit.v >= 0) {
+            // Match: remap A's space to B's key
+            int a_id = space_ids_1[edit.u];
+            int b_id = space_ids_2[edit.v];
+            poly1[b_id] = deep_copy_space(A.at(a_id));
 
-    // // Print space mapping u -> v
-    // std::cout << "Space mapping (A -> B):" << std::endl;
-    // for (const auto& [u, v] : space_mapping) {
-    //     std::cout << "  " << u << " -> " << v << std::endl;
-    // }
+        } else if (edit.u == -1 && edit.v >= 0) {
+            // Insertion: B has a space with no A-partner — placeholder scores 1.0
+            int b_id = space_ids_2[edit.v];
+            poly1[b_id] = empty;
+        }
+        // Deletion (u>=0, v==-1): drop silently, no pair needed
+    }
 
-	int num_vertices = boost::num_vertices(G1);
-	int num_edges = boost::num_edges(G1);
-	std::map<int, SpaceInfo> relabeled_building = relabel_building(A, space_mapping);
-
-	// Prepare result
     GEDResult result;
-    result.cost = optimal.cost;
-    result.poly1 = relabeled_building;
-    result.num_nodes = num_vertices;
-    result.num_edges = num_edges;
-
+    result.cost      = optimal.cost;
+    result.poly1     = poly1;
+    result.num_nodes = boost::num_vertices(G1);
+    result.num_edges = boost::num_edges(G1);
     return result;
 }
 
 
 double geometrical_dis(const std::map<int, SpaceInfo>& A, const std::map<int, SpaceInfo>& B, int n_rot) {
-	int n = std::min(A.size(), B.size());
+	// For any pair where either polyhedron is empty (fictional space), the maximum intersection is 0
+    // so intersec() would return 1.0 - 0 / (volume_sum - 0) = 1.0. 
+	int n = A.size();
 	if (n == 0) return 0.0;
-
+ 
 	double sum = 0.0;
-
-	for (int i = 1; i <= n; ++i) {
-		const Polyhedron& poly1 = A.at(i).poly_space;
-		const Polyhedron& poly2 = B.at(i).poly_space;
-
+ 
+	for (const auto& [id, infoA] : A) {
+		// Guard: if A or B space is fictional (no vertices), score = 1.0
+		if (infoA.poly_space.size_of_vertices() == 0 ||
+		    B.count(id) == 0 ||
+		    B.at(id).poly_space.size_of_vertices() == 0) {
+			sum += 1.0;
+			continue;
+		}
+ 
+		const Polyhedron& poly1 = infoA.poly_space;
+		const Polyhedron& poly2 = B.at(id).poly_space;
+ 
 		sum += intersec(poly1, poly2, n_rot);
 	}
-
+ 
 	return sum / static_cast<double>(n);
 }
 
@@ -545,26 +552,26 @@ double building_diagonal(const std::map<int, SpaceInfo>& building) {
 
 
 double transposition_dis(const std::map<int, SpaceInfo>& A_remap, const std::map<int, SpaceInfo>& buildingA, const std::map<int, SpaceInfo>& buildingB) {
-	const int n = std::min(buildingA.size(), buildingB.size());
-	if (n == 0) return 0.0;
+    const int n = A_remap.size();	
+    if (n == 0) return 0.0;
 
 	double t = 0.0;
 
-	// Compare matching spaces only
-	for (int i = 1; i <= n; ++i) {
-		const Point_3& a = getCentroid(A_remap.at(i).poly_space);
-		const Point_3& b = getCentroid(buildingB.at(i).poly_space);
-		const Vector_3 dis = a - b;
+    for (const auto& [id, infoA] : A_remap) {
+        // If a space in A is fictional skip distance computation, effectively adding zero contribution.
+        if  (infoA.poly_space.size_of_vertices() == 0) continue;
 
+        const Point_3& a = getCentroid(infoA.poly_space);
+        const Point_3& b = getCentroid(buildingB.at(id).poly_space);
+		const Vector_3 dis = a - b;
+ 
 		t += std::sqrt(dis.x() * dis.x() +
 					   dis.y() * dis.y() +
 					   dis.z() * dis.z());
 	}
-
-	// Normalize by the building diagonal
-	double diag1 = building_diagonal(buildingA);
-	double diag2 = building_diagonal(buildingB);
-	double norm = std::max(diag1, diag2);
+ 
+	// Normalize by the original building diagonal
+	double norm = std::max(building_diagonal(buildingA), building_diagonal(buildingB));
 	if (norm == 0.0) return 0.0;
 
 	return (t / static_cast<double>(n)) / norm;
@@ -590,9 +597,9 @@ std::array<double, 3> opt_vec_dis(const std::map<int, SpaceInfo>& buildingA, con
 
 	std::array<double, 3> dissimilarity = {part1, part2, part3};
 
-//	std::cout<< "Topological dissimilarity:   " << part1 << std::endl;
-//	std::cout<< "Geometrical dissimilarity:   " << part2 << std::endl;
-//	std::cout<< "Transposition dissimilarity: " << part3 << std::endl;
+    // std::cout<< "Topological dissimilarity:   " << part1 << std::endl;
+	// std::cout<< "Geometrical dissimilarity:   " << part2 << std::endl;
+	// std::cout<< "Transposition dissimilarity: " << part3 << std::endl;
 	return dissimilarity;
 }
 
@@ -603,8 +610,6 @@ double scale_dissimilarity(const std::map<int, SpaceInfo>& buildingA, const std:
 	std::array<double, 3> dissimilarity = opt_vec_dis(buildingA, buildingB, r);
 
 	double diss_value = (w1 * dissimilarity[0] + w2 * dissimilarity[1] + w3 * dissimilarity[2]) / weightSum;
-//	std::cout << "Dissimilarity measure: " << diss_value << "\n" << std::endl;
-
 	return diss_value;
 }
 
@@ -639,36 +644,17 @@ std::map<int, SpaceInfo> getBuildingData(const bso::spatial_design::ms_N_buildin
 
 
 // -------------------------------------------------- //
-// EXPOSED FUNCTIONS
+// First value is the total dissimilarity, followed by the three components (topological, geometrical, transposition)
 // -------------------------------------------------- //
-double calculate_dissimilarity(const bso::spatial_design::ms_N_building MS1, const bso::spatial_design::ms_N_building MS2) {
-	// Load MS model A
+std::array<double, 4> calculate_dissimilarity(const bso::spatial_design::ms_N_building MS1, const bso::spatial_design::ms_N_building MS2) {
 	std::map<int, SpaceInfo> buildingA = getBuildingData(MS1);
-	// Load MS model B
 	std::map<int, SpaceInfo> buildingB = getBuildingData(MS2);
-	double result = scale_dissimilarity(buildingA, buildingB);
-	return result;
+
+    std::array<double, 3> components = opt_vec_dis(buildingA, buildingB);
+    double total = (components[0] + components[1] + components[2])/3.0;
+	std::array<double, 4> dissimilarity = {total, components[0], components[1], components[2]};
+
+	return dissimilarity;
 }
-
-double calculate_dissimilarity_weighted(const bso::spatial_design::ms_N_building MS1, const bso::spatial_design::ms_N_building MS2, 
-                                        int rot = 3, double w1 = 1, double w2 = 1, double w3 = 1) {
-    // Load MS model A
-    std::map<int, SpaceInfo> buildingA = getBuildingData(MS1);
-    // Load MS model B
-    std::map<int, SpaceInfo> buildingB = getBuildingData(MS2);
-    double result = scale_dissimilarity(buildingA, buildingB, rot, w1, w2, w3);
-    return result;
-}
-
-
-std::array<double, 3> calculate_dissimilarity_components(const bso::spatial_design::ms_N_building MS1, const bso::spatial_design::ms_N_building MS2) {
-    // Load MS model A
-    std::map<int, SpaceInfo> buildingA = getBuildingData(MS1);
-    // Load MS model B
-    std::map<int, SpaceInfo> buildingB = getBuildingData(MS2);
-    std::array<double, 3> result = opt_vec_dis(buildingA, buildingB);
-    return result;
-}
-
 
 #endif // DISSIMILARITY_CPP
