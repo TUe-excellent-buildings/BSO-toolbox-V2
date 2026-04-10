@@ -196,10 +196,12 @@ void scdp_optimizer::initializeDesign()
 		throw std::invalid_argument(errorMessage.str());
 	}
 	mOutputManager.out("Initialized initial MS_N building model", true, true, mConfig.getVerbose());
+	if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("after initializeDesign");}
 }
 
 void scdp_optimizer::getDesignResults()
 {   
+    if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("start getDesignResults");}
     try
 	{
         // step 1, add object to store the performance of the current design
@@ -246,16 +248,19 @@ void scdp_optimizer::getDesignResults()
             // directory, grouped per iteration.
             const std::string& resultDir = mOutputManager.getResultDir();
             std::string dlFolder = resultDir + "/Iteration_" + std::to_string(mCurrentIteration);
-            mDLModels.push_back(grm.dl_grammar<grammar::DEFAULT_DL_GRAMMAR>(mConfig.getDLSettingsFile(), dlFolder));
-            mOutputManager.out("Generated daylight model",true,true,mConfig.getVerbose());
+            mDLModelLast.clear(); // Clear the vector to free memory from the previous iteration's model before generating a new one, since DL models can be quite large and we only need to keep the latest one for the next iteration's modifications.
+            mDLModelLast.push_back(bso::daylight::dl_model(grm.dl_grammar<grammar::DEFAULT_DL_GRAMMAR>(mConfig.getDLSettingsFile(), dlFolder)));
+            mOutputManager.out("Generated daylight model",true,true,mConfig.getVerbose(), true);
             
             // step 4, evaluate DL and store results
-            mDLModels.back().analyze();
+            if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("pre DL analysis");}
+            mDLModelLast.back().analyze();
+            if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("post SD analysis");}
             mOutputManager.out("Evaluated daylight model, ADFbuildingInverse: ",false,false,mConfig.getVerbose());
-            dlResult1 = mDLModels.back().getTotalResults().mADFBuildingInverse; // optimization runs on inverse ADF, but we have the regular ADF as well for reference
+            dlResult1 = mDLModelLast.back().getTotalResults().mADFBuildingInverse; // optimization runs on inverse ADF, but we have the regular ADF as well for reference
             mOutputManager.out(dlResult1,false,false,mConfig.getVerbose());
-            mOutputManager.out(", mBS-EN score: ",false,false,mConfig.getVerbose());
-            dlResult2 = mDLModels.back().getTotalResults().mTotalScore;
+            mOutputManager.out(", mBS-EN score: ",false,false,mConfig.getVerbose(), true);
+            dlResult2 = mDLModelLast.back().getTotalResults().mTotalScore;
             mOutputManager.out(dlResult2,true,true,mConfig.getVerbose());
             mDesignPerformances.back()(2) = dlResult1;
 			mDesignPerformances.back()(3) = dlResult2;
@@ -271,14 +276,17 @@ void scdp_optimizer::getDesignResults()
         if(mConfig.getRunSDSimulation())
         {
             // step 3, generate SD
-            mSDModels.push_back(grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(mConfig.getSDSettingsFile()));
+            mSDModelLast.clear(); // Clear the vector to free memory from the previous iteration's model before generating a new one, since SD models can be quite large and we only need to keep the latest one for the next iteration's modifications.
+            mSDModelLast.push_back(bso::structural_design::sd_model(grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(mConfig.getSDSettingsFile())));
             mOutputManager.out("Generated structural model",true,true,mConfig.getVerbose());
             
             // step 4, evaluate SD and store results
-            mSDModels.back().analyze();
+            if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("pre SD analysis");}
+            mSDModelLast.back().analyze();
+            if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("post SD analysis");}
             mOutputManager.out("Evaluated structural model: ",false,false,mConfig.getVerbose());
-            sdResult = mSDModels.back().getTotalResults().mTotalStrainEnergy;
-            mSdTotalLoad.push_back(mSDModels.back().getTotalLoad());
+            sdResult = mSDModelLast.back().getTotalResults().mTotalStrainEnergy;
+            mSdTotalLoad.push_back(mSDModelLast.back().getTotalLoad());
             mOutputManager.out(sdResult,true,true,mConfig.getVerbose());
             mDesignPerformances.back()(0) = sdResult;
         }
@@ -294,13 +302,16 @@ void scdp_optimizer::getDesignResults()
         if(mConfig.getRunBPSimulation())
         {
             // step 5, generate BP
-            mBPModels.push_back(grm.bp_grammar<grammar::DEFAULT_BP_GRAMMAR>(mConfig.getBPSettingsFile()));
+            mBPModelLast.clear(); // Clear the vector to free memory from the previous iteration's model before generating a new one, since BP models can be quite large and we only need to keep the latest one for the next iteration's modifications.
+            mBPModelLast.push_back(bso::building_physics::bp_model(grm.bp_grammar<grammar::DEFAULT_BP_GRAMMAR>(mConfig.getBPSettingsFile())));
             mOutputManager.out("Generated building physics model",true,true,mConfig.getVerbose());
             
             // step 6, evaluate BP and store results
-            mBPModels.back().simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
+            if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("pre BP analysis");}
+            mBPModelLast.back().simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
+            if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("post BP analysis");}
             mOutputManager.out("Evaluated building physics model: ",false,false,mConfig.getVerbose());
-            bpResult = mBPModels.back().getTotalResults().mTotalEnergy;
+            bpResult = mBPModelLast.back().getTotalResults().mTotalEnergy;
             mOutputManager.out(bpResult,true,true,mConfig.getVerbose());
             mDesignPerformances.back()(1) = bpResult;
         }
@@ -311,7 +322,12 @@ void scdp_optimizer::getDesignResults()
             mOutputManager.out("Skipped BP simulation (not in --sim list)",true,true,mConfig.getVerbose());
         }
         
-        // step 4, export visualizations
+        // step 4, export visualizations and visualization text files if specified in config
+        bool mswVisualized = false;
+        // flags to ensure visualization text file is only written once per iteration.
+        bool dlVisualAlreadyWritten = false; 
+        bool sdVisualAlreadyWritten = false; // flag to ensure SD visualization text file is only written once per iteration, even if multiple SD-related visualizations are specified in the config
+        bool bpVisualAlreadyWritten = false; // flag to ensure BP visualization text file is only written once per iteration, even if multiple BP-related visualizations are specified in the config
         if (!mConfig.getVisualizations().empty()) for (const auto& visOption : mConfig.getVisualizations())
         {
             if (visOption == "ms") visualization::visualize(mMSDesigns.back(),"","ms_N_building",4.0);
@@ -320,27 +336,58 @@ void scdp_optimizer::getDesignResults()
             if (visOption == "bo") visualization::visualize(cf.back(),"boundarylines");
             if (visOption == "tr") visualization::visualize(cf.back(),"trirec");
             if (visOption == "tp") visualization::visualize(cf.back(),"triangular_prism");
-            if (visOption == "sd" && mConfig.getRunSDSimulation() && !mSDModels.empty()) visualization::visualize(mSDModels.back());
-            if (visOption == "sdC" && mConfig.getRunSDSimulation() && !mSDModels.empty()) visualization::visualize(mSDModels.back(), "component");
-            if (visOption == "sdD" && mConfig.getRunSDSimulation() && !mSDModels.empty()) visualization::visualize(mSDModels.back(), "density");
-            if (visOption == "fe" && mConfig.getRunSDSimulation() && !mSDModels.empty()) visualization::visualize(mSDModels.back(), "element");
-            if (visOption == "fe" && mConfig.getRunSDSimulation() && !mSDModels.empty()) visualization::visualize(mSDModels.back(), "strain_energy");
-            if (visOption == "bp" && mConfig.getRunBPSimulation() && !mBPModels.empty()) visualization::visualize(mBPModels.back());
-            if (visOption == "dl" && mConfig.getRunDLSimulation() && !mDLModels.empty()) visualization::visualize(mDLModels.back());
-            if (visOption == "dlG" && mConfig.getRunDLSimulation() && !mDLModels.empty()) visualization::visualize(mDLModels.back(), "grid");
-            if (visOption == "dlD" && mConfig.getRunDLSimulation() && !mDLModels.empty()) visualization::visualize(mDLModels.back(), "daylight_factor");
-            if (visOption == "dlI" && mConfig.getRunDLSimulation() && !mDLModels.empty()) visualization::visualize(mDLModels.back(), "illuminance");
-
-            if (visOption == "msw" && mCurrentIteration == mConfig.getIterations()) 
+            if (visOption == "sd" && mConfig.getRunSDSimulation()) 
+            {
+                visualization::visualize(mSDModelLast.back());
+                if(mConfig.getSdVisualWriteFile()) sdVisualAlreadyWritten = true;
+            }
+            if (visOption == "sdC" && mConfig.getRunSDSimulation()) 
+            {
+                visualization::visualize(mSDModelLast.back(), "component");
+                if(mConfig.getSdVisualWriteFile()) sdVisualAlreadyWritten = true;
+            }
+            if (visOption == "sdD" && mConfig.getRunSDSimulation()) visualization::visualize(mSDModelLast.back(), "density");
+            if (visOption == "fe" && mConfig.getRunSDSimulation()) 
+            {
+                visualization::visualize(mSDModelLast.back(), "element");
+                if(mConfig.getSdVisualWriteFile()) sdVisualAlreadyWritten = true;
+            }
+            if (visOption == "fe" && mConfig.getRunSDSimulation())
+            {
+                visualization::visualize(mSDModelLast.back(), "strain_energy");
+                if(mConfig.getSdVisualWriteFile()) sdVisualAlreadyWritten = true;
+            }
+            if (visOption == "bp" && mConfig.getRunBPSimulation()) 
+            {
+                visualization::visualize(mBPModelLast.back());
+                if(mConfig.getBpVisualWriteFile()) bpVisualAlreadyWritten = true;
+            }
+            if (visOption == "dl" && mConfig.getRunDLSimulation())
+            {
+                visualization::visualize(mDLModelLast.back(), "", "dl_model", mConfig.getDlVisualWriteFile(), mOutputManager.getVisualizationSubDir() + "/dl_iteration_" + std::to_string(mCurrentIteration) + ".txt");
+                if (mConfig.getDlVisualWriteFile()) dlVisualAlreadyWritten = true;
+            }
+            if (visOption == "dlG" && mConfig.getRunDLSimulation())
+            {
+                visualization::visualize(mDLModelLast.back(), "grid", "dl_model", mConfig.getDlVisualWriteFile(), mOutputManager.getVisualizationSubDir() + "/dl_iteration_" + std::to_string(mCurrentIteration) + ".txt");
+                if (mConfig.getDlVisualWriteFile()) dlVisualAlreadyWritten = true;
+            }
+            // if (visOption == "dlD" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "daylight_factor");
+            // if (visOption == "dlI" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "illuminance");
+            if (visOption == "msw" && mCurrentIteration == mConfig.getIterations()) mswVisualized = true; // set a flag to indicate that the final MSW visualization has been done, so that it is not generated again in the outputResults() function after the optimization process is finished.
+        }
+        if(mCurrentIteration == mConfig.getIterations())
+        {
+            if (mswVisualized || mConfig.getMswVisualWriteFile()) 
             { // Normally generated right before modification. However, in last iteration there is no modification, but we still want to visualize the final MSW with performance coloring.
                 // Get performances per space
                 std::vector<utilities::data_point> performances;
                 structural_design::sd_model dummySD;
                 building_physics::bp_model dummyBP;
                 bso::daylight::dl_model dummyDL;
-                structural_design::sd_model& sdRef = mConfig.getRunSDSimulation() && !mSDModels.empty() ? mSDModels.back() : dummySD;
-                building_physics::bp_model& bpRef = mConfig.getRunBPSimulation() && !mBPModels.empty() ? mBPModels.back() : dummyBP;
-                bso::daylight::dl_model& dlRef = mConfig.getRunDLSimulation() && !mDLModels.empty() ? mDLModels.back() : dummyDL;
+                structural_design::sd_model& sdRef = mConfig.getRunSDSimulation() ? mSDModelLast.back() : dummySD;
+                building_physics::bp_model& bpRef = mConfig.getRunBPSimulation() ? mBPModelLast.back() : dummyBP;
+                bso::daylight::dl_model& dlRef = mConfig.getRunDLSimulation() ? mDLModelLast.back() : dummyDL;
                 performance_evaluator::getPerformancePerSpace(performances, mMSDesigns.back(), sdRef, bpRef, dlRef, mConfig.getModification(), mConfig.getPerformanceDivision(), mOutputManager, mConfig.getVerbose(), mConfig.getRunSDSimulation(), mConfig.getRunBPSimulation(), mConfig.getRunDLSimulation());
 
                 // step 3, normalize the data points
@@ -349,8 +396,31 @@ void scdp_optimizer::getDesignResults()
                 performance_evaluator::normalizeData(performances, utopianPoint, distopianPoint, mOutputManager, mConfig.getVerbose());
 
                 // Visualize the performance of spaces
-                visualizeMsw(performances, mCurrentIteration, mConfig.getObjectiveWeights());
+                visualizeMsw(mMSDesigns.back(), performances, mCurrentIteration, mConfig.getObjectiveWeights());
             }
+        }
+        if (mConfig.getDlVisualWriteFile() && mConfig.getRunDLSimulation() && !dlVisualAlreadyWritten)
+        {
+            const std::string dlVisFileName = mOutputManager.getVisualizationSubDir() + "/dl_iteration_" + std::to_string(mCurrentIteration) + ".txt";
+            bso::visualization::DL_Model dlVisualFileModel(mDLModelLast.back(), "", "dl_model");
+            dlVisualFileModel.writeToFile(dlVisFileName);
+            bso::visualization::DL_Model dlVisualGridFileModel(mDLModelLast.back(), "grid", "dl_model");
+            dlVisualGridFileModel.writeToFile(dlVisFileName);
+            mOutputManager.out("Wrote DL visualization text file (without sending DL viewport)", true, true, mConfig.getVerbose());
+        }
+        if (mConfig.getSdVisualWriteFile() && mConfig.getRunSDSimulation() && !sdVisualAlreadyWritten)
+        {
+            // const std::string sdVisFileName = mOutputManager.getVisualizationSubDir() + "/sd_iteration_" + std::to_string(mCurrentIteration) + ".txt";
+            // bso::visualization::SD_Model sdVisualFileModel(mSDModelLast.back(), "", "sd_model");
+            // sdVisualFileModel.writeToFile(sdVisFileName);
+            // mOutputManager.out("Wrote SD visualization text file (without sending SD viewport)", true, true, mConfig.getVerbose());
+        }
+        if (mConfig.getBpVisualWriteFile() && mConfig.getRunBPSimulation() && !bpVisualAlreadyWritten)
+        {
+            // const std::string bpVisFileName = mOutputManager.getVisualizationSubDir() + "/bp_iteration_" + std::to_string(mCurrentIteration) + ".txt";
+            // bso::visualization::BP_Model bpVisualFileModel(mBPModelLast.back(), "", "bp_model");
+            // bpVisualFileModel.writeToFile(bpVisFileName);
+            // mOutputManager.out("Wrote BP visualization text file (without sending BP viewport)", true, true, mConfig.getVerbose());
         }
         mOutputManager.out("Sent models to visualization",true,true,mConfig.getVerbose());
     }
@@ -370,6 +440,7 @@ void scdp_optimizer::getDesignResults()
         // After outputting the results, rethrow the exception to allow for debugging if needed
         throw;
 	}
+    if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("after getDesignResults");}
 } // getDesignResults()
 
 std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatial_design::ms_N_building& ms, const std::string& objective)
@@ -527,10 +598,9 @@ void scdp_optimizer::runSplitDeleteIteration(const std::string& modificationType
         structural_design::sd_model dummySD;
         building_physics::bp_model dummyBP;
         bso::daylight::dl_model dummyDL;
-        structural_design::sd_model& sdRef = mConfig.getRunSDSimulation() && !mSDModels.empty() ? mSDModels.back() : dummySD;
-        building_physics::bp_model& bpRef = mConfig.getRunBPSimulation() && !mBPModels.empty() ? mBPModels.back() : dummyBP;
-        bso::daylight::dl_model& dlRef = mConfig.getRunDLSimulation() && !mDLModels.empty() ? mDLModels.back() : dummyDL;
-        mOutputManager.out("Timer start for getPerformancePerSpace. ",true,true,mConfig.getVerbose());
+        structural_design::sd_model& sdRef = mConfig.getRunSDSimulation() ? mSDModelLast.back() : dummySD;
+        building_physics::bp_model& bpRef = mConfig.getRunBPSimulation() ? mBPModelLast.back() : dummyBP;
+        bso::daylight::dl_model& dlRef = mConfig.getRunDLSimulation() ? mDLModelLast.back() : dummyDL;
         performance_evaluator::getPerformancePerSpace(performances, newMS, sdRef, bpRef, dlRef, modificationType, mConfig.getPerformanceDivision(), mOutputManager, mConfig.getVerbose(), mConfig.getRunSDSimulation(), mConfig.getRunBPSimulation(), mConfig.getRunDLSimulation());
 
         // step 3, normalize the data points
@@ -539,7 +609,7 @@ void scdp_optimizer::runSplitDeleteIteration(const std::string& modificationType
         performance_evaluator::normalizeData(performances, utopianPoint, distopianPoint, mOutputManager, mConfig.getVerbose());
 
         // Visualize the performance of spaces
-        visualizeMsw(performances, mCurrentIteration, mConfig.getObjectiveWeights());
+        visualizeMsw(newMS, performances, mCurrentIteration, mConfig.getObjectiveWeights());
 
         // Step 4, delete spaces
         deleteSpaces(newMS, performances, modificationType, distopianPoint);
@@ -594,9 +664,9 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
         structural_design::sd_model dummySD;
         building_physics::bp_model dummyBP;
         bso::daylight::dl_model dummyDL2;
-        structural_design::sd_model& sdRef = mConfig.getRunSDSimulation() && !mSDModels.empty() ? mSDModels.back() : dummySD;
-        building_physics::bp_model& bpRef = mConfig.getRunBPSimulation() && !mBPModels.empty() ? mBPModels.back() : dummyBP;
-        bso::daylight::dl_model& dlRef2 = mConfig.getRunDLSimulation() && !mDLModels.empty() ? mDLModels.back() : dummyDL2;
+        structural_design::sd_model& sdRef = mConfig.getRunSDSimulation() ? mSDModelLast.back() : dummySD;
+        building_physics::bp_model& bpRef = mConfig.getRunBPSimulation() ? mBPModelLast.back() : dummyBP;
+        bso::daylight::dl_model& dlRef2 = mConfig.getRunDLSimulation() ? mDLModelLast.back() : dummyDL2;
         performance_evaluator::getPerformancePerSpace(performances, newMS, sdRef, bpRef, dlRef2, modificationType, mConfig.getPerformanceDivision(), mOutputManager, mConfig.getVerbose(), mConfig.getRunSDSimulation(), mConfig.getRunBPSimulation(), mConfig.getRunDLSimulation());
 
         // step 3, get data for 'worstAdapt' method if selected, 
@@ -635,7 +705,7 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
         performance_evaluator::normalizeData(performances, utopianPoint, distopianPoint, mOutputManager, mConfig.getVerbose());
 
         // step 5, visualize the performance of spaces
-        visualizeMsw(performances, mCurrentIteration, mConfig.getObjectiveWeights(), "_bases_Mod_decision");
+        visualizeMsw(newMS, performances, mCurrentIteration, mConfig.getObjectiveWeights(), "_bases_Del_Mod_decision");
 
         // Step 6, delete spaces
         deleteSpaces(newMS, performances, modificationType, distopianPoint);
@@ -670,7 +740,18 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
                 else if(mCurrentIteration % 2) {shiftInMostHeadingDirection = true;}
                 
                 double averageWidthSpace = newMS.getAverageHorizontalRibSize();
-                newMS.shiftFillPlaneCentre(averageWidthSpace, shiftInMostHeadingDirection, 6, mConfig.getVerbose());
+                try
+                {
+                    newMS.shiftFillPlaneCentre(averageWidthSpace, shiftInMostHeadingDirection, 6, mConfig.getVerbose());
+                }
+                catch(const std::exception& e)                
+                {
+                    mOutputManager.out("Error during shiftFillPlaneCentre: ",false,false,true);
+                    mOutputManager.out(e.what(),true,true,mConfig.getVerbose());
+                    // Continue run as the nr. of spaces will be corrected later in this method.
+                    // Also, later iterations may still be successful and we want to gather as much data as possible,
+                    // but log the error for debugging and future improvement of the method.
+                }
                 mOutputManager.out("shiftFillPlaneCentre done ",true,true,mConfig.getVerbose());
             }
         }
@@ -726,7 +807,7 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
         // Export after_modification_ms visualizations
         if (!mConfig.getVisualizations().empty()) for (const auto& visOption : mConfig.getVisualizations())
         {
-            if (visOption == "ms") visualization::visualize(newMS,"","After_modification_ms",4.0);
+            if (visOption == "ms") visualization::visualize(newMS,"","After_del_Mod_ms",4.0);
         }
 
         // step 14, recover the number of spaces if needed.
@@ -744,12 +825,12 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
             performance_evaluator::normalizeData(intermediateResults, utopianPoint, distopianPoint, mOutputManager, mConfig.getVerbose());
             
             // Visualize the performance of spaces
-            visualizeMsw(intermediateResults, mCurrentIteration, mConfig.getObjectiveWeights(), "_bases_delete_decision");
+            visualizeMsw(newMS, intermediateResults, mCurrentIteration, mConfig.getObjectiveWeights(), "_retrieve_nr_space_delete");
             
             // Delete spaces to recover initial number of spaces.
             deleteSpaces(newMS, intermediateResults, modificationType, distopianPoint);
         }
-                if(newMS.getSpacePtrs().size() < mNrSpaces) // when using cluster delete method, it can happen that more spaces are deleted than intended, so we need to check if we need to split spaces to recover the initial number of spaces.
+        if(newMS.getSpacePtrs().size() < mNrSpaces) // when using cluster delete method, it can happen that more spaces are deleted than intended, so we need to check if we need to split spaces to recover the initial number of spaces.
         {
             if(mConfig.getSplitMethod() == "performance")
             {
@@ -763,7 +844,7 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
                 performance_evaluator::normalizeData(intermediateResults, utopianPoint, distopianPoint, mOutputManager, mConfig.getVerbose());
                 
                 // Visualize the performance of spaces
-                visualizeMsw(intermediateResults, mCurrentIteration, mConfig.getObjectiveWeights(), "_bases_split_decision");
+                visualizeMsw(newMS,intermediateResults, mCurrentIteration, mConfig.getObjectiveWeights(), "_retrieve_nr_spaces_split");
                 splitSpaces(newMS, intermediateResults, modificationType, mCurrentIteration, mConfig.getObjectiveWeights());
             }
             else // if split method is not performance, we can split spaces without getting intermediate results, as the performance of spaces will not be used for the split decision.
@@ -1037,7 +1118,7 @@ void scdp_optimizer::enforceConstraints(spatial_design::ms_N_building& ms)
 // by its performance data points from the modification type for this iteration
 // while profiding an iteration number in the title.
 // Keep in mind. The inserted performance data points should already be normalized.
-void scdp_optimizer::visualizeMsw(
+void scdp_optimizer::visualizeMsw(const spatial_design::ms_N_building& ms,
     const std::vector<bso::utilities::data_point>& performances, 
     const int interationNr, const std::vector<double>& objectiveWeights, std::string titleAddition)
 {
@@ -1045,109 +1126,124 @@ void scdp_optimizer::visualizeMsw(
     //  index 0 -> BP objective
     //  index 1 -> SD objective
     //  index 2 -> DL objective (e.g. ADFbuilding utilized for performance decisions)
-    if (!mConfig.getVisualizations().empty()) for (const auto& visOption : mConfig.getVisualizations())
-    {
-        if (visOption == "msw")
-        {
-            float transparency = 1.0f;
-            // Always create a weight vector that matches the 3 objectives (bp, sd, dl)
-            std::vector<double> resultModificationFactor = {0.0, 0.0, 0.0};
-            std::string titleBase = "ms_N_worst";
-            std::string title = titleBase;
 
-            // If weighted modification is enabled, combine objectives using the
-            // provided weights (ordered as sd, bp, dl in the config).
-            if (mConfig.getWeightedModification())
+    bool visualizeMsw = std::find(mConfig.getVisualizations().begin(), mConfig.getVisualizations().end(), "msw") != mConfig.getVisualizations().end();
+    
+    if (visualizeMsw || mConfig.getMswVisualWriteFile())
+    {
+        float transparency = 1.0f;
+        // Always create a weight vector that matches the 3 objectives (bp, sd, dl)
+        std::vector<double> resultModificationFactor = {0.0, 0.0, 0.0};
+        std::string titleBase = "ms_N_worst";
+        std::string title = titleBase;
+
+        // If weighted modification is enabled, combine objectives using the
+        // provided weights (ordered as sd, bp, dl in the config).
+        if (mConfig.getWeightedModification())
+        {
+            if (!objectiveWeights.empty())
             {
-                if (!objectiveWeights.empty())
+                // objectiveWeights: [sd, bp, dl] -> resultModificationFactor: [bp, sd, dl]
+                if (objectiveWeights.size() >= 2)
                 {
-                    // objectiveWeights: [sd, bp, dl] -> resultModificationFactor: [bp, sd, dl]
-                    if (objectiveWeights.size() >= 2)
-                    {
-                        resultModificationFactor[0] = objectiveWeights[1]; // bp
-                        resultModificationFactor[1] = objectiveWeights[0]; // sd
-                    }
-                    if (objectiveWeights.size() >= 3)
-                    {
-                        resultModificationFactor[2] = objectiveWeights[2]; // dl
-                    }
+                    resultModificationFactor[0] = objectiveWeights[1]; // bp
+                    resultModificationFactor[1] = objectiveWeights[0]; // sd
                 }
-                title = titleBase + "_weighted_" + std::to_string(interationNr) + titleAddition;
+                if (objectiveWeights.size() >= 3)
+                {
+                    resultModificationFactor[2] = objectiveWeights[2]; // dl
+                }
+            }
+            title = titleBase + "_weighted_" + std::to_string(interationNr) + titleAddition;
+        }
+        else
+        {
+            // Non-weighted: pick the active objective for the current iteration.
+            std::string activeToken = getActiveObjective();
+
+            if (activeToken == "sd")
+            {
+                resultModificationFactor[1] = 1.0; // SD only
+                title = titleBase + "_sd_" + std::to_string(interationNr) + titleAddition;
+            }
+            else if (activeToken == "bp")
+            {
+                resultModificationFactor[0] = 1.0; // BP only
+                title = titleBase + "_bp_" + std::to_string(interationNr) + titleAddition;
+            }
+            else if (activeToken == "dl")
+            {
+                resultModificationFactor[2] = 1.0; // DL only
+                title = titleBase + "_dl_" + std::to_string(interationNr) + titleAddition;
             }
             else
             {
-                // Non-weighted: pick the active objective for the current iteration.
-				std::string activeToken = getActiveObjective();
-
-                if (activeToken == "sd")
-                {
-                    resultModificationFactor[1] = 1.0; // SD only
-                    title = titleBase + "_sd_" + std::to_string(interationNr) + titleAddition;
-                }
-                else if (activeToken == "bp")
-                {
-                    resultModificationFactor[0] = 1.0; // BP only
-                    title = titleBase + "_bp_" + std::to_string(interationNr) + titleAddition;
-                }
-                else if (activeToken == "dl")
-                {
-                    resultModificationFactor[2] = 1.0; // DL only
-                    title = titleBase + "_dl_" + std::to_string(interationNr) + titleAddition;
-                }
-                else
-                {
-                    std::stringstream errorMessage;
-                    errorMessage << "Error, active objective token not recognized: " << activeToken << "\n"
-                                 << "(bso/optimizers/scdp/scdp_optimizer.cpp::visualizeMsw function)\n";
-                    throw std::invalid_argument(errorMessage.str());
-                }
+                std::stringstream errorMessage;
+                errorMessage << "Error, active objective token not recognized: " << activeToken << "\n"
+                                << "(bso/optimizers/scdp/scdp_optimizer.cpp::visualizeMsw function)\n";
+                throw std::invalid_argument(errorMessage.str());
             }
-			
-            // Optionally write a colour-settings file so that the same
-            // performance visualization can be reconstructed later without
-            // recomputing performances. The file name is derived from the
-            // current title for traceability.
-            if (mConfig.getMswWriteFile())
-            {
-                std::string safeTitle = title;
-                // Replace spaces with underscores to avoid path issues.
-                std::replace(safeTitle.begin(), safeTitle.end(), ' ', '_');
-                std::string fileName = safeTitle + "_colors.txt";
-                bso::visualization::write_msN_performance_visualization_to_file(fileName, performances, resultModificationFactor, transparency);
-                mOutputManager.out("Wrote msw performance colour-settings file: " + fileName, true, true, mConfig.getVerbose());
-            }
-
+        }
+        
+        // Optionally write a colour-settings file so that the same
+        // performance visualization can be reconstructed later without
+        // recomputing performances. The file name is derived from the
+        // current title for traceability.
+        if (mConfig.getMswVisualWriteFile())
+        {
+            std::string safeTitle = title;
+            // Replace spaces with underscores to avoid path issues.
+            std::replace(safeTitle.begin(), safeTitle.end(), ' ', '_');
+            std::string fileName = mOutputManager.getVisualizationSubDir() + safeTitle + "_colors.txt";
+            // Write color file:
+            bso::visualization::write_msN_performance_visualization_to_file(fileName, performances, resultModificationFactor, transparency);
+            // Write accomanied ms_file:
+            std::string msFileName = mOutputManager.getVisualizationSubDir() + safeTitle + "_ms.txt";
+            ms.writeToFile(msFileName);
+            mOutputManager.out("Wrote msw performance colour-settings file: " + fileName, true, true, mConfig.getVerbose());
+        }
+        if (visualizeMsw)
+        {
             bso::visualization::visualize(performances, resultModificationFactor, transparency, title, 4.0);
             mOutputManager.out("Sent ms performances models to visualization",true,true,mConfig.getVerbose());
-            break;
         }
     }
 } // visualizeMsw
 
 void scdp_optimizer::runSplitDeleteOnlyIterations()
 {
+    mOutputManager.startTimer("total_loop");
     while (mCurrentIteration < mConfig.getIterations())
     {
+        mOutputManager.startTimer("iteration");
         runSplitDeleteIteration(mConfig.getModification());
         // incrementing the iteration number is done within the runSplitDeleteIteration function.
+        mOutputManager.endTimer("iteration");
     }
+    mOutputManager.endTimer("total_loop");
     mOutputManager.out("\nCompleted all split-delete iterations", true, true, mConfig.getVerbose());
 } // runSplitDeleteOnlyIterations()
 
 void scdp_optimizer::runModificationOnlyIterations()
 {
+    mOutputManager.startTimer("total_loop");
     while (mCurrentIteration < mConfig.getIterations())
     {
+        mOutputManager.startTimer("iteration");
         runModificationIteration(mConfig.getModification());
         // incrementing the iteration number is done within the runModificationIteration function.
-    } 
+        mOutputManager.endTimer("iteration");
+    }
+    mOutputManager.endTimer("total_loop");
     mOutputManager.out("\nCompleted all modification iterations", true, true, mConfig.getVerbose());
 } // runModificationOnlyIterations()
 
 void scdp_optimizer::runAlternatingIterations()
 {
+    mOutputManager.startTimer("total_loop");
     while (mCurrentIteration < mConfig.getIterations())
     {
+        mOutputManager.startTimer("iteration");
         if (mCurrentIteration % 2 == 0)
         {
             runSplitDeleteIteration(mConfig.getModification());
@@ -1158,7 +1254,9 @@ void scdp_optimizer::runAlternatingIterations()
             runModificationIteration(mConfig.getModification());
             // incrementing the iteration number is done within the runModificationIteration function.
         }
+        mOutputManager.endTimer("iteration");
     }
+    mOutputManager.endTimer("total_loop");
     mOutputManager.out("\nCompleted all alternating iterations", true, true, mConfig.getVerbose());
 } // runAlternatingIterations()
 

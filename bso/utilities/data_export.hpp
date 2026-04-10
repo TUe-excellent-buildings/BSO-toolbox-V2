@@ -71,12 +71,12 @@ public:
 	data_export(const std::vector<data_point>& data, std::vector<std::string> axisDataTypes, std::string plotName);
 	data_export(utilities::data_export& rhs);
 	~data_export();
-	
+
 	// Write data to file for GNUplot generation with Plot functions below.
 	void writeDataToFile(const std::vector<std::shared_ptr<data_point> >& data, std::string fileName, std::string dataKind = "");
 	void writeVectorStyleFile(const std::vector<std::shared_ptr<data_point> >& data, std::string fileName);
 	void writeMultiAxisFile(const std::vector<std::shared_ptr<data_point> >& data, std::string fileName);
-	
+
 	// New helpers for matplotlib-based post-processing scripts:
 	//  - writeObjective3DFile: 3D objective space (sd, bp, dl_ADFbuilding) + knee marker
 	//  - writeImprovementCurvesFile: per-objective improvement [%] vs iteration + knee marker
@@ -85,6 +85,8 @@ public:
 
 	// Write data to the same file in case of sequential runs to create an excel overview of severals runs
 	void addToCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int& nrIterations, const std::vector<bso::spatial_design::ms_N_building>& msDesigns, const std::vector<double>& sd_total_load, const std::vector<double>& exteriorWallArea);
+	// Parallel version: each run writes to its own file, to be combined later
+	void addToCombinedDataFileParallel(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int& nrIterations, const std::vector<bso::spatial_design::ms_N_building>& msDesigns, const std::vector<double>& sd_total_load, const std::vector<double>& exteriorWallArea);
 	// void addToOverviewCombinedDataFile(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int numberOfIterationsPerformed, const bso::spatial_design::ms_N_building& initialDesign); // function is not up to date yet with the additional objective possibilities in scdp_optimizer, so it is currently not used and not up to date with the current data collection, but it can be used as a basis for an overview file function in the future if desired.
 
 	// Plot functions for mData using gnuPlot for two variables

@@ -686,7 +686,19 @@ namespace bso { namespace spatial_design { namespace conformal {
 		bso::utilities::splitLines(delauneyPoints, delauneyLines, mTol);// this prevent the generation of triangles on one line or triangles containing duplicate vertices
 
 		// Send all vertices and constrain lines to the delauney triangulation and receive all triangles
-		std::vector<utilities::geometry::triangle> delaunayTri = bso::utilities::delaunay(delauneyPoints, delauneyLines, mTol);
+		std::vector<utilities::geometry::triangle> delaunayTri;
+		try
+		{
+			delaunayTri = bso::utilities::delaunay(delauneyPoints, delauneyLines, mTol);
+		}
+		catch(const std::exception& e)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "The triangulation for the generation of a cf_building_model failed.\n"
+						 << "Received the following error message from the triangulation function: \n" << e.what() << "\n"
+						 << "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
 		
 		// identify which triangles should be used to generate a triangular prism cell in the space and generate that space and accompanying geometric entities
 		int i = 0;

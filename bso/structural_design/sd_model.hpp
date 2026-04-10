@@ -55,16 +55,18 @@ namespace bso { namespace structural_design {
 		sd_results getTotalResults();
 		sd_results getPartialResults(bso::utilities::geometry::polygon* geom);
 		sd_results getPartialResults(bso::utilities::geometry::polyhedron* geom);
+		sd_results getPartialResults(bso::utilities::geometry::quad_hexahedron* geom);
+		// NOT DONE YET: Batched partial results.
 		// Batched partial results: compute sd_results for many spaces in one
 		// pass over the FEA elements to reduce repeated work compared to
 		// calling the single-space getPartialResults in a loop.
 		// To indicate, for 50 spaces the getPartialResults() would require
 		// 50 passes over the FEA elements, previously taking 5 minutes. 
 		// Utilizing the getPartialResultsBatch() reduces this to 1 pass over the FEA elements, taking 
-		std::vector<sd_results> getPartialResultsBatch(
-			const std::vector<bso::utilities::geometry::polygon*>& geoms);
-		std::vector<sd_results> getPartialResultsBatch(
-			const std::vector<bso::utilities::geometry::polyhedron*>& geoms);
+		// std::vector<sd_results> getPartialResultsBatch(
+		// 	const std::vector<bso::utilities::geometry::polygon*>& geoms);
+		// std::vector<sd_results> getPartialResultsBatch(
+		// 	const std::vector<bso::utilities::geometry::polyhedron*>& geoms);
 		double getTotalLoad();
 		
 		fea* getFEA() {return mFEA;}

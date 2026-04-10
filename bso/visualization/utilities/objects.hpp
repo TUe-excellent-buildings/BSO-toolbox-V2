@@ -3,7 +3,11 @@
 
 #include <bso/visualization/utilities/datatypes.hpp>
 
+#include <algorithm>
 #include <iostream>
+#include <regex>
+#include <sstream>
+#include <vector>
 
 namespace bso { namespace visualization
 {
@@ -72,12 +76,70 @@ namespace bso { namespace visualization
         //linked list of boundary edges
         polygon(polygon_props *ppr,
                 edge *pbnd)
-          : pprops(ppr), lprops(NULL), pbound(pbnd) { }
+                    : pprops(ppr), lprops(NULL), pbound(pbnd) { }
 
         polygon(polygon_props *ppr,
                 line_props    *lpr,
                 edge          *pbnd)
-          : pprops(ppr), lprops(lpr), pbound(pbnd) { }
+                    : pprops(ppr), lprops(lpr), pbound(pbnd) { }
+
+          polygon(polygon_props *ppr,
+                line_props    *lpr,
+                edge          *pbnd,
+                std::string pprops_name,
+                std::string lprops_name)
+            : pprops(ppr), lprops(lpr), pbound(pbnd), polygon_props_name(pprops_name), line_props_name(lprops_name) { }
+
+        polygon(std::string line, polygon_props *ppr, line_props *lpr)
+                    : pprops(ppr), lprops(lpr), pbound(nullptr), owns_geometry(true)
+        {
+            std::size_t firstComma = line.find(',');
+            std::size_t secondComma = (firstComma == std::string::npos) ? std::string::npos : line.find(',', firstComma + 1);
+            std::size_t thirdComma = (secondComma == std::string::npos) ? std::string::npos : line.find(',', secondComma + 1);
+            std::size_t fourthComma = (thirdComma == std::string::npos) ? std::string::npos : line.find(',', thirdComma + 1);
+
+            if (firstComma != std::string::npos && secondComma != std::string::npos)
+            {
+                polygon_props_name = line.substr(firstComma + 1, secondComma - firstComma - 1);
+            }
+            if (thirdComma != std::string::npos && fourthComma != std::string::npos)
+            {
+                line_props_name = line.substr(thirdComma + 1, fourthComma - thirdComma - 1);
+            }
+
+            // Parse complete edge triplets from the line.
+            std::vector<edge*> edges;
+            const std::regex edgeRegex(R"(Edge:Vertex\(([^)]*)\),Normal\(([^)]*)\),EdgeFlag\(([^)]*)\))");
+            for (std::sregex_iterator it(line.begin(), line.end(), edgeRegex), end; it != end; ++it)
+            {
+                double vx = 0.0, vy = 0.0, vz = 0.0;
+                double nx = 0.0, ny = 0.0, nz = 0.0;
+                int edgeFlagValue = 1;
+
+                std::string vertexValues = (*it)[1].str();
+                std::replace(vertexValues.begin(), vertexValues.end(), ',', ' ');
+                std::istringstream vss(vertexValues);
+                vss >> vx >> vy >> vz;
+
+                std::string normalValues = (*it)[2].str();
+                std::replace(normalValues.begin(), normalValues.end(), ',', ' ');
+                std::istringstream nss(normalValues);
+                nss >> nx >> ny >> nz;
+
+                std::istringstream fss((*it)[3].str());
+                fss >> edgeFlagValue;
+
+                vertex* v = new vertex(vx, vy, vz);
+                normal* n = new normal(nx, ny, nz);
+                edges.push_back(new edge(v, n, edgeFlagValue != 0));
+            }
+
+            // Link edges in a circular list
+            for (size_t i = 0; i < edges.size(); ++i) {
+                edges[i]->pnext = edges[(i + 1) % edges.size()];
+            }
+            pbound = edges.empty() ? nullptr : edges[0];
+        }
 
         ~polygon();
 
@@ -88,6 +150,32 @@ namespace bso { namespace visualization
         inline const polygon_props *get_polygon_props() { return pprops; }
         inline const line_props *get_line_props() { return lprops; }
         inline const edge *get_boundary() { return pbound; }
+
+        // Export polygon data to a file in a new line of the file and state 
+        // the polygon_props_name and line_props_name so their keys can be used 
+        // to link in the models to their properties when the file is read back into these models
+        void write_to_file(std::ofstream& out) const 
+        {
+            // Write polygon properties and line properties names for later linking
+            out << "PolygonPropsName," << polygon_props_name << ",LinePropsName," << line_props_name;
+
+            // Write boundary edges
+            edge* currentEdge = pbound;
+            do 
+            {
+                out << ",Edge:Vertex(" << currentEdge->pvert->x << ","
+                    << currentEdge->pvert->y << ","
+                    << currentEdge->pvert->z << "),Normal("
+                    << currentEdge->pnorm->x << ","
+                    << currentEdge->pnorm->y << ","
+                    << currentEdge->pnorm->z << "),EdgeFlag("
+                    << currentEdge->edgeflag << ")";
+
+                currentEdge = currentEdge->pnext;
+            } while (currentEdge != pbound);
+            out << std::endl;
+        }
+        
     private:
         //allow the output stream operator access to the
         //private members, this is actually a bit silly, we
@@ -98,6 +186,9 @@ namespace bso { namespace visualization
         line_props    *lprops;
         edge          *pbound;
 
+        std::string polygon_props_name = "";
+        std::string line_props_name = "";
+        bool owns_geometry = false;
     };
 
     std::ostream &operator<<(std::ostream &os, const polygon &poly);
@@ -117,6 +208,12 @@ namespace bso { namespace visualization
         ~label() { }
 
         void render() const;
+
+        void write_to_file(std::ofstream& out) const
+        {
+            out << "LabelPropsName,lbprops,LabelText," << lbtext
+                << ",Position," << *ppos << std::endl;
+        }
 
     private:
         std::string  lbtext;
@@ -154,8 +251,15 @@ namespace bso { namespace visualization
         edge *pedge = pbound,
              *pnext;
 
+        if (pbound == nullptr) return;
+
         do {
             pnext = pedge->pnext;
+            if (owns_geometry)
+            {
+                delete pedge->pvert;
+                delete pedge->pnorm;
+            }
             delete pedge;
             pedge = pnext;
         } while (pedge != pbound);

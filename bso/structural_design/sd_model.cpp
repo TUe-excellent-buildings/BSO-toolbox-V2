@@ -4,6 +4,7 @@
 #include <bso/structural_design/topology_optimization/topology_optimization.hpp>
 #include <unordered_map>
 #include <vector>
+#include <chrono> // for timing functions
 
 namespace bso { namespace structural_design {
 	
@@ -546,177 +547,209 @@ namespace bso { namespace structural_design {
 		return results;
 	} // getPartialResults()
 
-	std::vector<sd_results> sd_model::getPartialResultsBatch(
-		const std::vector<bso::utilities::geometry::polygon*>& geoms)
+	sd_results sd_model::getPartialResults(bso::utilities::geometry::quad_hexahedron* geom)
 	{
-		std::vector<sd_results> results(geoms.size());
-		if (geoms.empty()) return results;
-		if (!mIsMeshed)
+		sd_results results;
+		
+		for (const auto& i : mFEA->getElements())
 		{
-			std::stringstream errorMessage;
-			errorMessage << "\nError, called getPartialResultsBatch() on an unmeshed\n"
-			             << "structural design model,\n"
-			             << "(bso/structural_design/sd_model.cpp)" << std::endl;
-			throw std::runtime_error(errorMessage.str());
-		}
-
-		// Cache, for each FEA node, whether it lies inside/on each geometry.
-		// This avoids calling isInsideOrOn for the same node/geometry pair
-		// multiple times across many elements.
-		std::unordered_map<const void*, std::vector<bool>> nodeInsideMap; // std::vector<bool> is indexed by geometry index, value is whether the node lies inside/on that geometry stored for each node.
-		// First ensure we have entries for all nodes.
-		for (const auto& ele : mFEA->getElements())
-		{
-			for (const auto& node : ele->getNodes())
+			bool allPointsInsideOrOn = true;
+			for (const auto& j : i->getNodes())
 			{
-				const void* key = static_cast<const void*>(node); // use the untyped pointer, so not the typed pointer of a element::node as a unique key.
-				if (nodeInsideMap.find(key) != nodeInsideMap.end()) continue;
-				auto* vertexPtr = dynamic_cast<bso::utilities::geometry::vertex*>(node);
-				if (!vertexPtr) continue;
-				std::vector<bool> inside(geoms.size(), false);
-				for (std::size_t g = 0; g < geoms.size(); ++g)
+				auto vertexPtr = dynamic_cast<bso::utilities::geometry::vertex*>(j);
+				if (!geom->isInsideOrOn(*vertexPtr)) 
 				{
-					if (geoms[g] != nullptr)
-					{
-						inside[g] = geoms[g]->isInsideOrOn(*vertexPtr);
-					}
-				}
-				nodeInsideMap.emplace(key, std::move(inside));
-			}
-		}
-
-		// Now aggregate element contributions per geometry.
-		for (const auto& ele : mFEA->getElements())
-		{
-			// For each geometry, check if all nodes of the element lie inside/on.
-			std::vector<bool> elemInside(geoms.size(), true);
-			for (const auto& node : ele->getNodes())
-			{
-				const void* key = static_cast<const void*>(node);
-				auto it = nodeInsideMap.find(key);
-				if (it == nodeInsideMap.end())
-				{
-					// If we have no information for this node, conservatively
-					// treat it as outside all geometries.
-					for (std::size_t g = 0; g < geoms.size(); ++g)
-					{
-						elemInside[g] = false;
-					}
+					allPointsInsideOrOn = false;
 					break;
 				}
-				const auto& insideVec = it->second;
-				for (std::size_t g = 0; g < geoms.size(); ++g)
-				{
-					if (!insideVec[g])
-					{
-						elemInside[g] = false;
-					}
-				}
 			}
+			if (!allPointsInsideOrOn) continue;
 
-			for (std::size_t g = 0; g < geoms.size(); ++g)
+			if (i->isActiveInCompliance())
 			{
-				if (!elemInside[g]) continue;
-				if (ele->isActiveInCompliance())
-				{
-					results[g].mTotalStrainEnergy += ele->getTotalEnergy();
-					if (ele->isFlatShell())
-					{
-						results[g].mShearStrainEnergy += ele->getTotalEnergy("shear");
-						results[g].mAxialStrainEnergy += ele->getTotalEnergy("axial");
-						results[g].mBendStrainEnergy  += ele->getTotalEnergy("bending");
-					}
-					results[g].mTotalStructuralVolume += ele->getVolume();
-				}
-				else
-				{
-					results[g].mGhostStrainEnergy += ele->getTotalEnergy();
-					results[g].mGhostStructuralVolume += ele->getVolume();
-				}
+				results.mTotalStrainEnergy += i->getTotalEnergy();
+				results.mTotalStructuralVolume += i->getVolume();
+			}
+			else
+			{
+				results.mGhostStrainEnergy += i->getTotalEnergy();
+				results.mGhostStructuralVolume += i->getVolume();
 			}
 		}
-
 		return results;
-	} // getPartialResultsBatch(polygon)
+	} // getPartialResults()
 
-	std::vector<sd_results> sd_model::getPartialResultsBatch(
-		const std::vector<bso::utilities::geometry::polyhedron*>& geoms)
-	{
-		std::vector<sd_results> results(geoms.size());
-		if (geoms.empty()) return results;
-		if (!mIsMeshed)
-		{
-			std::stringstream errorMessage;
-			errorMessage << "\nError, called getPartialResultsBatch() on an unmeshed\n"
-			             << "structural design model,\n"
-			             << "(bso/structural_design/sd_model.cpp)" << std::endl;
-			throw std::runtime_error(errorMessage.str());
-		}
+	// std::vector<sd_results> sd_model::getPartialResultsBatch(
+	// 	const std::vector<bso::utilities::geometry::polygon*>& geoms)
+	// {
+	// 	std::vector<sd_results> results(geoms.size());
+	// 	if (geoms.empty()) return results;
+	// 	if (!mIsMeshed)
+	// 	{
+	// 		std::stringstream errorMessage;
+	// 		errorMessage << "\nError, called getPartialResultsBatch() on an unmeshed\n"
+	// 		             << "structural design model,\n"
+	// 		             << "(bso/structural_design/sd_model.cpp)" << std::endl;
+	// 		throw std::runtime_error(errorMessage.str());
+	// 	}
 
-		std::unordered_map<const void*, std::vector<bool>> nodeInsideMap;
-		for (const auto& ele : mFEA->getElements())
-		{
-			for (const auto& node : ele->getNodes())
-			{
-				const void* key = static_cast<const void*>(node);
-				if (nodeInsideMap.find(key) != nodeInsideMap.end()) continue;
-				auto* vertexPtr = dynamic_cast<bso::utilities::geometry::vertex*>(node);
-				if (!vertexPtr) continue;
-				std::vector<bool> inside(geoms.size(), false);
-				for (std::size_t g = 0; g < geoms.size(); ++g)
-				{
-					if (geoms[g] != nullptr)
-					{
-						inside[g] = geoms[g]->isInsideOrOn(*vertexPtr);
-					}
-				}
-				nodeInsideMap.emplace(key, std::move(inside));
-			}
-		}
+	// 	// Cache, for each FEA node, whether it lies inside/on each geometry.
+	// 	// This avoids calling isInsideOrOn for the same node/geometry pair
+	// 	// multiple times across many elements.
+	// 	std::unordered_map<const void*, std::vector<bool>> nodeInsideMap; // std::vector<bool> is indexed by geometry index, value is whether the node lies inside/on that geometry stored for each node.
+	// 	// First ensure we have entries for all nodes.
+	// 	for (const auto& ele : mFEA->getElements())
+	// 	{
+	// 		for (const auto& node : ele->getNodes())
+	// 		{
+	// 			const void* key = static_cast<const void*>(node); // use the untyped pointer, so not the typed pointer of a element::node as a unique key.
+	// 			if (nodeInsideMap.find(key) != nodeInsideMap.end()) continue;
+	// 			auto* vertexPtr = dynamic_cast<bso::utilities::geometry::vertex*>(node);
+	// 			if (!vertexPtr) continue;
+	// 			std::vector<bool> inside(geoms.size(), false);
+	// 			for (std::size_t g = 0; g < geoms.size(); ++g)
+	// 			{
+	// 				if (geoms[g] != nullptr)
+	// 				{
+	// 					inside[g] = geoms[g]->isInsideOrOn(*vertexPtr);
+	// 				}
+	// 			}
+	// 			nodeInsideMap.emplace(key, std::move(inside));
+	// 		}
+	// 	}
 
-		for (const auto& ele : mFEA->getElements())
-		{
-			std::vector<bool> elemInside(geoms.size(), true);
-			for (const auto& node : ele->getNodes())
-			{
-				const void* key = static_cast<const void*>(node);
-				auto it = nodeInsideMap.find(key);
-				if (it == nodeInsideMap.end())
-				{
-					for (std::size_t g = 0; g < geoms.size(); ++g)
-					{
-						elemInside[g] = false;
-					}
-					break;
-				}
-				const auto& insideVec = it->second;
-				for (std::size_t g = 0; g < geoms.size(); ++g)
-				{
-					if (!insideVec[g])
-					{
-						elemInside[g] = false;
-					}
-				}
-			}
+	// 	// Now aggregate element contributions per geometry.
+	// 	for (const auto& ele : mFEA->getElements())
+	// 	{
+	// 		// For each geometry, check if all nodes of the element lie inside/on.
+	// 		std::vector<bool> elemInside(geoms.size(), true);
+	// 		for (const auto& node : ele->getNodes())
+	// 		{
+	// 			const void* key = static_cast<const void*>(node);
+	// 			auto it = nodeInsideMap.find(key);
+	// 			if (it == nodeInsideMap.end())
+	// 			{
+	// 				// If we have no information for this node, conservatively
+	// 				// treat it as outside all geometries.
+	// 				for (std::size_t g = 0; g < geoms.size(); ++g)
+	// 				{
+	// 					elemInside[g] = false;
+	// 				}
+	// 				break;
+	// 			}
+	// 			const auto& insideVec = it->second;
+	// 			for (std::size_t g = 0; g < geoms.size(); ++g)
+	// 			{
+	// 				if (!insideVec[g])
+	// 				{
+	// 					elemInside[g] = false;
+	// 				}
+	// 			}
+	// 		}
 
-			for (std::size_t g = 0; g < geoms.size(); ++g)
-			{
-				if (!elemInside[g]) continue;
-				if (ele->isActiveInCompliance())
-				{
-					results[g].mTotalStrainEnergy += ele->getTotalEnergy();
-					results[g].mTotalStructuralVolume += ele->getVolume();
-				}
-				else
-				{
-					results[g].mGhostStrainEnergy += ele->getTotalEnergy();
-					results[g].mGhostStructuralVolume += ele->getVolume();
-				}
-			}
-		}
+	// 		for (std::size_t g = 0; g < geoms.size(); ++g)
+	// 		{
+	// 			if (!elemInside[g]) continue;
+	// 			if (ele->isActiveInCompliance())
+	// 			{
+	// 				results[g].mTotalStrainEnergy += ele->getTotalEnergy();
+	// 				if (ele->isFlatShell())
+	// 				{
+	// 					results[g].mShearStrainEnergy += ele->getTotalEnergy("shear");
+	// 					results[g].mAxialStrainEnergy += ele->getTotalEnergy("axial");
+	// 					results[g].mBendStrainEnergy  += ele->getTotalEnergy("bending");
+	// 				}
+	// 				results[g].mTotalStructuralVolume += ele->getVolume();
+	// 			}
+	// 			else
+	// 			{
+	// 				results[g].mGhostStrainEnergy += ele->getTotalEnergy();
+	// 				results[g].mGhostStructuralVolume += ele->getVolume();
+	// 			}
+	// 		}
+	// 	}
 
-		return results;
-	} // getPartialResultsBatch(polyhedron)
+	// 	return results;
+	// } // getPartialResultsBatch(polygon)
+
+	// std::vector<sd_results> sd_model::getPartialResultsBatch(
+	// 	const std::vector<bso::utilities::geometry::polyhedron*>& geoms)
+	// {
+	// 	std::vector<sd_results> results(geoms.size());
+	// 	if (geoms.empty()) return results;
+	// 	if (!mIsMeshed)
+	// 	{
+	// 		std::stringstream errorMessage;
+	// 		errorMessage << "\nError, called getPartialResultsBatch() on an unmeshed\n"
+	// 		             << "structural design model,\n"
+	// 		             << "(bso/structural_design/sd_model.cpp)" << std::endl;
+	// 		throw std::runtime_error(errorMessage.str());
+	// 	}
+
+	// 	std::unordered_map<const void*, std::vector<bool>> nodeInsideMap;
+	// 	for (const auto& ele : mFEA->getElements())
+	// 	{
+	// 		for (const auto& node : ele->getNodes())
+	// 		{
+	// 			const void* key = static_cast<const void*>(node);
+	// 			if (nodeInsideMap.find(key) != nodeInsideMap.end()) continue;
+	// 			auto* vertexPtr = dynamic_cast<bso::utilities::geometry::vertex*>(node);
+	// 			if (!vertexPtr) continue;
+	// 			std::vector<bool> inside(geoms.size(), false);
+	// 			for (std::size_t g = 0; g < geoms.size(); ++g)
+	// 			{
+	// 				if (geoms[g] != nullptr)
+	// 				{
+	// 					inside[g] = geoms[g]->isInsideOrOn(*vertexPtr);
+	// 				}
+	// 			}
+	// 			nodeInsideMap.emplace(key, std::move(inside));
+	// 		}
+	// 	}
+
+	// 	for (const auto& ele : mFEA->getElements())
+	// 	{
+	// 		std::vector<bool> elemInside(geoms.size(), true);
+	// 		for (const auto& node : ele->getNodes())
+	// 		{
+	// 			const void* key = static_cast<const void*>(node);
+	// 			auto it = nodeInsideMap.find(key);
+	// 			if (it == nodeInsideMap.end())
+	// 			{
+	// 				for (std::size_t g = 0; g < geoms.size(); ++g)
+	// 				{
+	// 					elemInside[g] = false;
+	// 				}
+	// 				break;
+	// 			}
+	// 			const auto& insideVec = it->second;
+	// 			for (std::size_t g = 0; g < geoms.size(); ++g)
+	// 			{
+	// 				if (!insideVec[g])
+	// 				{
+	// 					elemInside[g] = false;
+	// 				}
+	// 			}
+	// 		}
+
+	// 		for (std::size_t g = 0; g < geoms.size(); ++g)
+	// 		{
+	// 			if (!elemInside[g]) continue;
+	// 			if (ele->isActiveInCompliance())
+	// 			{
+	// 				results[g].mTotalStrainEnergy += ele->getTotalEnergy();
+	// 				results[g].mTotalStructuralVolume += ele->getVolume();
+	// 			}
+	// 			else
+	// 			{
+	// 				results[g].mGhostStrainEnergy += ele->getTotalEnergy();
+	// 				results[g].mGhostStructuralVolume += ele->getVolume();
+	// 			}
+	// 		}
+	// 	}
+
+	// 	return results;
+	// } // getPartialResultsBatch(polyhedron)
 
 	double sd_model::getTotalLoad()
 	{

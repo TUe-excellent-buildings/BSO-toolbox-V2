@@ -112,7 +112,7 @@ private:
 	std::vector<std::string> mReflectanceValues;
 	std::vector<std::string> mWindowProperties;
 	std::vector<double> mWindowDimensions;
-	std::vector<double> mDF_Settings; // [0] = ?, [1] = reference height, [2] = space margin, [3] = max grid size
+	std::vector<double> mDF_Settings; // [0] = horizontal_outdoor_illuminance[lx], [1] = reference height [mm], [2] = space margin [mm], [3] = max grid size [m]
 	std::vector<double> mDF_Evaluation;
 	std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>> mRectangleWindowYNGram = {};
 

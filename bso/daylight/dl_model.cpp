@@ -80,7 +80,11 @@ namespace bso { namespace daylight {
 		}
 		else
 		{
-			mFolderName = folderName;
+			// Always force relative path
+			if (!folderName.empty() && folderName[0] == '/')
+				mFolderName = "./" + folderName.substr(1);
+			else
+				mFolderName = folderName;
 		}
 
 		std::string command = "mkdir -p \"" + mFolderName + "\""; // Use mkdir command to create directory

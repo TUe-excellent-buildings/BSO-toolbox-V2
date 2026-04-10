@@ -48,26 +48,33 @@ protected:
 											 //labels will update the bbox accordingly
 	
 	polygon* create_polygon(polygon_props *pprops, line_props *lprops,
-						vertex vertarr[], normal normarr[], int indices[], int vcount);
+						vertex vertarr[], normal normarr[], int indices[], int vcount, 
+						std::string pprops_name = "", std::string lprops_name = "");
 	polygon* create_polygon(polygon_props *pprops, line_props *lprops,
 						vertex vertarr[], normal normarr[], int indices[], 
-						bool edgeflags[], int vcount);
+						bool edgeflags[], int vcount, std::string pprops_name = "", 
+						std::string lprops_name = "");
 											 
 	void addLineSegment(std::list<polygon*> &plist, bso::utilities::geometry::line_segment const* l,
 											polygon_props* pprops, line_props* lprops, const double& width = 0.0,
 											const bso::utilities::geometry::vector& widthDir = {0,0,0},
-											const double& thickness = 0);
+											const double& thickness = 0,
+											std::string pprops_name = "", std::string lprops_name = "");
 	void addPolygon(std::list<polygon*> &plist, bso::utilities::geometry::polygon const* p,
 									polygon_props* pprops, line_props* lprops,
-									const double& thickness = 0);
+									const double& thickness = 0,
+									std::string pprops_name = "", 
+									std::string lprops_name = ""); 
 	void addPolyhedron(std::list<polygon*> &plist, bso::utilities::geometry::polyhedron const* p,
-										 polygon_props* pprops, line_props* lprops);
+										 polygon_props* pprops, line_props* lprops,
+										 std::string pprops_name = "", std::string lprops_name = "");
 
 	void addLabel(std::list<label*>& llist, label_props* lbprops, const std::string &text,
 											const bso::utilities::geometry::vertex& pos);
 	
 	void addPoint(std::list<polygon*> &plist, const bso::utilities::geometry::vertex& point,
-								polygon_props* pprops, line_props* lprops, const double& size = 1.0);
+								polygon_props* pprops, line_props* lprops, const double& size = 1.0,
+								std::string pprops_name = "", std::string lprops_name = "");
 
 public:
 	model_base(const std::vector<std::pair<bso::utilities::geometry::vertex, bso::utilities::geometry::vector>>& cuttingPlanes = {});
@@ -89,7 +96,8 @@ model_base::model_base(const std::vector<std::pair<bso::utilities::geometry::ver
 void model_base::addLineSegment(std::list<polygon*> &plist, bso::utilities::geometry::line_segment const* l,
 									polygon_props* pprops, line_props* lprops, const double& width /*= 0*/,
 									const bso::utilities::geometry::vector& widthDir /*= {0,0,0}*/,
-									const double& thickness /*= 0*/)
+									const double& thickness /*= 0*/,
+									std::string pprops_name /*= ""*/, std::string lprops_name /*= ""*/)
 {
 	auto vec = l->getVector();
 	auto widthDirCopy = widthDir;
@@ -127,13 +135,14 @@ void model_base::addLineSegment(std::list<polygon*> &plist, bso::utilities::geom
 	}
 
 	bso::utilities::geometry::quadrilateral p = widthVertices;
-	this->addPolygon(plist,&p,pprops,lprops,thickness);
+	this->addPolygon(plist,&p,pprops,lprops,thickness,pprops_name,lprops_name);
 
 } // 
 
 void model_base::addPolygon(std::list<polygon*> &plist, bso::utilities::geometry::polygon const* p,
 									polygon_props* pprops, line_props* lprops,
-									const double& thickness /*= 0*/)
+									const double& thickness /*= 0*/,
+									std::string pprops_name /*= ""*/, std::string lprops_name /*= ""*/)
 {
 	auto pNormal = p->getNormal();
 	pNormal.normalize();
@@ -227,7 +236,7 @@ void model_base::addPolygon(std::list<polygon*> &plist, bso::utilities::geometry
 			indices[i*2]   = i;
 			indices[i*2+1] = 0;
 		}
-		plist.push_back(this->create_polygon(pprops,lprops,vertices,normals, indices,orderedVertices.size()));
+		plist.push_back(this->create_polygon(pprops,lprops,vertices,normals, indices,orderedVertices.size(), pprops_name, lprops_name));
 	}
 	else 
 	{ // make a 3D polygon out of it
@@ -240,22 +249,23 @@ void model_base::addPolygon(std::list<polygon*> &plist, bso::utilities::geometry
 		if(thicknessVertices.size() == 6)
 		{
 			bso::utilities::geometry::triangular_prism threeDGeometry(thicknessVertices);
-			this->addPolyhedron(plist,&threeDGeometry,pprops,lprops);
+			this->addPolyhedron(plist,&threeDGeometry,pprops,lprops,pprops_name,lprops_name);
 		}
 		else
 		{
 			bso::utilities::geometry::quad_hexahedron threeDGeometry(thicknessVertices);
-			this->addPolyhedron(plist,&threeDGeometry,pprops,lprops);
+			this->addPolyhedron(plist,&threeDGeometry,pprops,lprops,pprops_name,lprops_name);
 		}
 	}
 } // 
 
 void model_base::addPolyhedron(std::list<polygon*> &plist, bso::utilities::geometry::polyhedron const* p,
-									 polygon_props* pprops, line_props* lprops)
+									 polygon_props* pprops, line_props* lprops,
+									 std::string pprops_name /*= ""*/, std::string lprops_name /*= ""*/)
 {
 	for (const auto& i : p->getPolygons())
 	{
-		this->addPolygon(plist, i, pprops, lprops, 0.0);
+		this->addPolygon(plist, i, pprops, lprops, 0.0, pprops_name, lprops_name);
 	}
 	for (const auto& i : mCuttingPlanes)
 	{
@@ -293,12 +303,12 @@ void model_base::addPolyhedron(std::list<polygon*> &plist, bso::utilities::geome
 		if (unOrderedVertices.size() == 3)
 		{
 			bso::utilities::geometry::triangle tr(unOrderedVertices);
-			this->addPolygon(plist, &tr, pprops, lprops, 0.0);
+			this->addPolygon(plist, &tr, pprops, lprops, 0.0, pprops_name, lprops_name);
 		}
 		else if (unOrderedVertices.size() == 4)
 		{
 			bso::utilities::geometry::quadrilateral quad(unOrderedVertices);
-			this->addPolygon(plist, &quad, pprops, lprops, 0.0);
+			this->addPolygon(plist, &quad, pprops, lprops, 0.0, pprops_name, lprops_name);
 		}
 		else 
 		{ // error
@@ -349,7 +359,9 @@ polygon *model_base::create_polygon(polygon_props *pprops,
 										vertex vertarr[], //vertices
 										normal normarr[], //normals
 										int    indices[], //vertex indices
-										int    vcount)     //number of vertices
+										int    vcount,
+										std::string pprops_name /*= ""*/, 
+										std::string lprops_name /*= ""*/)     //number of vertices
 {
 		//create a circularly linked list of edges
 		//copy the vertices and normals
@@ -375,7 +387,7 @@ polygon *model_base::create_polygon(polygon_props *pprops,
 		pedge->pnext = pbound;
 
 		//create a new polygon
-		return new polygon(pprops, lprops, pbound);
+		return new polygon(pprops, lprops, pbound, pprops_name, lprops_name);
 }
 
 polygon *model_base::create_polygon(polygon_props *pprops,
@@ -384,7 +396,9 @@ polygon *model_base::create_polygon(polygon_props *pprops,
 										normal normarr[], //normals
 										int    indices[], //vertex indices
 										bool   edgeflags[],
-										int    vcount)     //number of vertices
+										int    vcount,
+										std::string pprops_name /*= ""*/, 
+										std::string lprops_name /*= ""*/)     //number of vertices
 {
 		//create a circularly linked list of edges
 		//copy the vertices and normals
@@ -411,7 +425,7 @@ polygon *model_base::create_polygon(polygon_props *pprops,
 		pedge->pnext = pbound;
 
 		//create a new polygon
-		return new polygon(pprops, lprops, pbound);
+		return new polygon(pprops, lprops, pbound, pprops_name, lprops_name);
 }
 
 void model_base::addLabel(std::list<label*>& llist, label_props *lbprops, const std::string &text,
@@ -422,7 +436,8 @@ void model_base::addLabel(std::list<label*>& llist, label_props *lbprops, const 
 }
 
 void model_base::addPoint(std::list<polygon*> &plist, const bso::utilities::geometry::vertex& point,
-										polygon_props* pprops, line_props* lprops, const double& size /*= 1.0*/)
+										polygon_props* pprops, line_props* lprops, const double& size /*= 1.0*/,
+										std::string pprops_name /*= ""*/, std::string lprops_name /*= ""*/)
 {
 	// Create a small cube centered at the point
 	double halfSize = size / 2.0;
@@ -438,7 +453,7 @@ void model_base::addPoint(std::list<polygon*> &plist, const bso::utilities::geom
 	};
 	
 	bso::utilities::geometry::quad_hexahedron cube(cubeVertices);
-	this->addPolyhedron(plist, &cube, pprops, lprops);
+	this->addPolyhedron(plist, &cube, pprops, lprops, pprops_name, lprops_name);
 }
 
 

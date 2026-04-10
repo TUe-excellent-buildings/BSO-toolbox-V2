@@ -66,16 +66,23 @@ private:
     // Output options
     bool resultLine = false;
     bool msFiles = false;
-    bool mswWriteFile = false; // if true, write msw performance colour file when visualizing
     bool plot = false;
     bool visualizePlot = false;
     bool verbose = false;
+    bool logMemoryUsage = false;
     bool outputAll = false;
     bool outputBest = false;
     bool resultDir = false;
     bool combineData = false;
+    bool parallel = false; // If true, use parallel data combining logic
     unsigned int maxIterationsInSequence = 0; // in case a combined data file is made, this should be set the maximum nr. of iterations.
     std::vector<std::string> visualizations; // see kVisOptions for options
+
+    // Output text file visualization options (NOTE: msFiles can also be used for visualization)
+    bool mswVisualWriteFile = false; // if true, write msw performance colour file will be outputted as well as the accompanied ms_design for visualization
+    bool dlVisualWriteFile = false; // if true, write daylight model file when visualizing
+    bool sdVisualWriteFile = false; // if true, write sd model file when visualizing
+    bool bpVisualWriteFile = false; // if true, write bp model file when visualizing
     
     // Result directory naming storage, see -rd / --resultDir option for details.
     // Base directory for results. By default this is "results", but can be
@@ -127,16 +134,21 @@ public:
     unsigned int getRngSeed() const { return rngSeed; }
     bool getResultLine() const { return resultLine; }
     bool getMsFiles() const { return msFiles; }
-    bool getMswWriteFile() const { return mswWriteFile; }
+    bool getMswVisualWriteFile() const { return mswVisualWriteFile; }
+    bool getDlVisualWriteFile() const { return dlVisualWriteFile; }
+    bool getSdVisualWriteFile() const { return sdVisualWriteFile; }
+    bool getBpVisualWriteFile() const { return bpVisualWriteFile; }
     bool getPlot() const { return plot; }
     bool getVisualizePlot() const { return visualizePlot; }
     bool getVerbose() const { return verbose; }
+    bool getLogMemoryUsage() const { return logMemoryUsage; }
     bool getOutputAll() const { return outputAll; }
     bool getOutputBest() const { return outputBest; }
     bool getResultDir() const { return resultDir; }
     const std::string& getResultBaseDir() const { return resultBaseDir; }
     const std::string& getSubDirName() const { return setSubDirName; }
     bool getCombineData() const { return combineData; }
+    bool getParallel() const { return parallel; }
     unsigned int getMaxIterationsInSequence() const { return maxIterationsInSequence; }
     const std::vector<std::string>& getVisualizations() const { return visualizations; }
     bool getRunSDSimulation() const { return runSDSimulation; }

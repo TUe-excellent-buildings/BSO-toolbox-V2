@@ -1,3 +1,4 @@
+#include <map>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -14,6 +15,26 @@ output_manager::output_manager(const scdp_config& config) : mConfig(config)
 {
 	// Initialize the result directory if the option is set in the configuration
 	if(mConfig.getResultDir()){setResultDir();}
+	if(mConfig.getMswVisualWriteFile() || mConfig.getDlVisualWriteFile() || mConfig.getSdVisualWriteFile() || mConfig.getBpVisualWriteFile())
+	{
+		if(mResultDir != ""){mVisualizationSubDir = mResultDir + "Visualization/";}
+		else{mVisualizationSubDir = "Visualization/";}
+		if (!std::filesystem::exists(mVisualizationSubDir)) 
+		{
+			if (std::filesystem::create_directory(mVisualizationSubDir)) 
+			{
+				out("Visualization directory created successfully.",true,true,mConfig.getVerbose());
+			} 
+			else 
+			{
+				out("Failed to create visualization directory.",true,true,mConfig.getVerbose());
+			}
+		} 
+		else 
+		{
+			out("Visualization directory already exists.",true,true,mConfig.getVerbose());
+		}
+	}
 }
 
 // This logError function is used to log error messages to a file named "error_log" in the result directory if it exists,
@@ -173,7 +194,7 @@ void output_manager::setResultDir()
 	mResultDir = dir;
 } 
 
-void output_manager::outputData(const OptimizationOutput& output)
+void output_manager::outputData(const OptimizationOutput& output, bool verbose /*= false*/)
 {
 	out("Start outputting data",true,true,mConfig.getVerbose());
 
@@ -251,10 +272,19 @@ void output_manager::outputData(const OptimizationOutput& output)
 
 	if(mConfig.getCombineData())
 	{		
-		utilities::data_export dp(output.designPerformances, output.axisDesignPerformances, "Design Iteration");
-		dp.addToCombinedDataFile("combined_data.csv", output.modification, mConfig.getInputFile(), output.maxIterationsInSequence, output.msDesigns, output.sd_total_load, output.exteriorSurfaceArea);
-		//dp.addToOverviewCombinedDataFile("overView_data.csv", output.modification, mConfig.getInputFile(), output.finalIteration, output.msDesigns[0]);
-		out("Combined the data in multiple run file",true,true,mConfig.getVerbose());
+		if(mConfig.getParallel())
+		{
+			utilities::data_export dp(output.designPerformances, output.axisDesignPerformances, "Design Iteration");
+			std::string fileCombinedParallel = dir+"combined_data_parallel.csv";
+			dp.addToCombinedDataFileParallel(fileCombinedParallel, output.modification, mConfig.getInputFile(), output.maxIterationsInSequence, output.msDesigns, output.sd_total_load, output.exteriorSurfaceArea);
+			out("Combined the data in multiple run file",true,true,mConfig.getVerbose());
+		}
+		else
+		{
+			utilities::data_export dp(output.designPerformances, output.axisDesignPerformances, "Design Iteration");
+			dp.addToCombinedDataFile("combined_data.csv", output.modification, mConfig.getInputFile(), output.maxIterationsInSequence, output.msDesigns, output.sd_total_load, output.exteriorSurfaceArea);
+			out("Combined the data in multiple run file",true,true,mConfig.getVerbose());
+		}
 	}
 
 	if (mConfig.getResultLine()) // setup terminal description before outputting the result lines
@@ -314,6 +344,38 @@ std::string output_manager::getCurrentDateTime()
     std::stringstream ss;
     ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d_%H-%M-%S");
     return ss.str();
+}
+
+void output_manager::startTimer(const std::string& label) const 
+{
+    mTimers[label] = std::chrono::steady_clock::now();
+}
+
+double output_manager::endTimer(const std::string& label, bool print) const 
+{
+    auto it = mTimers.find(label);
+    if (it == mTimers.end()) return -1.0;
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed = end - it->second;
+    double seconds = elapsed.count();
+    double minutes = seconds / 60.0;
+    if (print) 
+	{
+        std::cout << label << " duration: " << seconds << " s (" << minutes << " min)" << std::endl;
+    }
+    mTimers.erase(it);
+    return seconds;
+}
+
+// Logs memory usage to std::cout with an optional label
+void output_manager::log_memory_usage(const std::string& label) const 
+{
+    std::ifstream statm("/proc/self/statm");
+    long size = 0, resident = 0;
+    statm >> size >> resident;
+    long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024;
+	std::cout << "[MEM] " << label << " VmSize: " << (size * page_size_kb)
+			<< " kB, VmRSS: " << (resident * page_size_kb) << " kB" << std::endl;
 }
 
 }}} // namespace bso::optimizers::scdp

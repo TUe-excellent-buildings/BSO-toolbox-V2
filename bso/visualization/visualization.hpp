@@ -222,9 +222,9 @@ void visualize(const bso::building_physics::bp_model& bp_model, const std::strin
 #endif // BP_MODEL_HPP
 
 #ifdef DL_MODEL_HPP
-void visualize(const bso::daylight::dl_model& dl_model, const std::string& type = "", const std::string& title = "dl_model")
+void visualize(const bso::daylight::dl_model& dl_model, const std::string& type = "", const std::string& title = "dl_model", bool writeToFile = false, std::string fileName = "")
 {
-	vpmanager.addviewport(new viewport(new DL_Model(dl_model, type, title)));
+	vpmanager.addviewport(new viewport(new DL_Model(dl_model, type, title, writeToFile, fileName)));
 }
 #endif // DL_MODEL_HPP
 

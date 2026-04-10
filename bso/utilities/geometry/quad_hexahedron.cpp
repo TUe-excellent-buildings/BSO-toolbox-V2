@@ -335,6 +335,36 @@ namespace bso { namespace utilities { namespace geometry {
 
 	bool quad_hexahedron::isInsideOrOn(const vertex& p1, const double& tol /*= 1e-3*/) const
 	{ // 
+		
+		// First: Perform fast pre-check using AABB of the hexahedron, 
+		// if the point is outside the AABB, it cannot be inside or on the hexahedron. 
+		// This is a fast check that can save us from doing the more expensive checks 
+		// for points that are clearly outside.
+
+		// Compute AABB from the 8 vertices
+		double minX = std::numeric_limits<double>::max();
+		double minY = std::numeric_limits<double>::max();
+		double minZ = std::numeric_limits<double>::max();
+		double maxX = -std::numeric_limits<double>::max();
+		double maxY = -std::numeric_limits<double>::max();
+		double maxZ = -std::numeric_limits<double>::max();
+
+		for (const auto& v : mVertices) { 
+			minX = std::min(minX, v.x());
+			minY = std::min(minY, v.y());
+			minZ = std::min(minZ, v.z());
+			maxX = std::max(maxX, v.x());
+			maxY = std::max(maxY, v.y());
+			maxZ = std::max(maxZ, v.z());
+		}
+
+		// Fast AABB check
+		if (p1.x() < minX - tol || p1.x() > maxX + tol ||
+			p1.y() < minY - tol || p1.y() > maxY + tol ||
+			p1.z() < minZ - tol || p1.z() > maxZ + tol)
+        return false;
+		
+		// Perform slow but accurate check when needed.
 		// check if it is inside a tetrahedron
 		for (const auto& i : mTetrahedrons) if (i.isInsideOrOn(p1, tol)) return true;
 		return false;

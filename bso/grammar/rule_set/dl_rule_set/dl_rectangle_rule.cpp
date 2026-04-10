@@ -531,9 +531,9 @@ void filterSurfacesForGrid(std::vector<bso::spatial_design::conformal::cf_surfac
 std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bso::spatial_design::conformal::cf_surface>& vec, std::ofstream& gridFile, 
 															std::vector<unsigned int>& SpaceID, const std::vector<double> DF_Settings, std::vector<bso::utilities::geometry::vertex>& gridPoints) 
 {
-	const double ReferenceHeight = DF_Settings[1];
-	const double space_margin = DF_Settings[2];
-	const double maxGridSize = DF_Settings[3];
+	const double ReferenceHeight = DF_Settings[1]; // [mm]
+	const double space_margin = DF_Settings[2]; // [mm]
+	const double maxGridSize = DF_Settings[3]; // [m]
 
     std::vector<int> amountGridPoints;
     std::vector<std::tuple<unsigned int, int>> tupleVec;
@@ -569,6 +569,8 @@ std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bs
         // For a quadrilateral: opposite edges are 0-1 & 2-3, and 1-2 & 3-0
         double dimA = std::min(edge01, edge23); // opposite edges 0->1 and 2->3
         double dimB = std::min(edge12, edge30); // opposite edges 1->2 and 3->0
+        double opposingA = std::max(edge01, edge23); // opposite edge length used to determine nr. of grid points in that direction
+        double opposingB = std::max(edge12, edge30); // opposite edge length used to determine nr. of grid points in that direction
 
         if (dimA <= 1e-9 || dimB <= 1e-9)
         {
@@ -582,17 +584,24 @@ std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bs
 
         // Determine d according to NEN B.2
         // If aspect ratio >= 2, use shorter dimension; otherwise use longer dimension
-        double longerDim = std::max(dimA, dimB);
-        double shorterDim = std::min(dimA, dimB);
+        bool aIsLonger = (dimA > dimB);
+        double longerDim          = aIsLonger ? dimA      : dimB;
+        double shorterDim         = aIsLonger ? dimB      : dimA;
+        double opposingLongerDim  = aIsLonger ? opposingA : opposingB;
+        double opposingShorterDim = aIsLonger ? opposingB : opposingA;
+
         double aspectRatio;
         if (shorterDim > 1e-9) aspectRatio = longerDim / shorterDim;
         else aspectRatio = std::numeric_limits<double>::infinity();
 
-        double d;
-        if (aspectRatio >= 2.0) d = shorterDim;
-        else d = longerDim;
+        bool useShorterDimFord = (aspectRatio >= 2.0);
+        double d = useShorterDimFord ? shorterDim : longerDim;
+        double d_opposing = useShorterDimFord ? opposingShorterDim : opposingLongerDim;
 
-        double d_other;
+        bool dIsLongerDim = (d == longerDim);
+        double d_other = dIsLongerDim ? shorterDim : longerDim; // the other dimension that is not used for d calculation, needed for grid point calculation in that direction
+        double d_other_opposing = dIsLongerDim ? opposingShorterDim : opposingLongerDim; // the opposing edge length of the other dimension, needed for grid point calculation in that direction
+        
         if (d == longerDim) d_other = shorterDim;
         else d_other = longerDim;
 
@@ -606,7 +615,7 @@ std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bs
         double p = p_meter * 1000.0;
 
         // Number of points in relevant dimension: ceil(d/p)
-        int num_points_relevant = static_cast<int>(std::ceil(d / p));
+        int num_points_relevant = static_cast<int>(std::ceil(d_opposing / p)); // Calculated with the longer opposing edge length to ensure grid cells do not exceed max size in that direction
         if (num_points_relevant < 2) num_points_relevant = 2;
 
         // Spacing in relevant dimension
@@ -614,7 +623,7 @@ std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bs
 
         // Number of points in the other dimension based on same spacing.
         // Add 1 to include both boundary endpoints (same convention as relevant dimension).
-        int num_points_other = static_cast<int>(std::ceil(d_other / step)) + 1;
+        int num_points_other = static_cast<int>(std::ceil(d_other_opposing / step)) + 1; // Calculated with the opposing edge length of the other dimension to maintain consistent spacing, ensuring grid cells do not exceed max size in that direction
         if (num_points_other < 2) num_points_other = 2;
 
         int num_u = d_is_dimA ? num_points_relevant : num_points_other;
@@ -635,8 +644,9 @@ std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bs
 
         // Build inward-offset quadrilateral (exclude wall band = space_margin)
         std::vector<bso::utilities::geometry::vertex> poly(4);
-        for (int vi = 0; vi < 4; ++vi) {poly[vi] = {quadVertices[vi][0], quadVertices[vi][1], 0.0};}
+        for (int vi = 0; vi < 4; ++vi) {poly[vi] = {quadVertices[vi][0], quadVertices[vi][1], 0.0};} // flatten the polygon to z=0
 
+        // Utilize the shoelace formula to determine polygon orientation (clockwise vs counter-clockwise)
         double signedArea2 = 0.0;
         for (int vi = 0; vi < 4; ++vi)
         {
@@ -644,25 +654,41 @@ std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bs
             const auto& b = poly[(vi + 1) % 4];
             signedArea2 += (a[0] * b[1] - b[0] * a[1]);
         }
-        double orientationSign = (signedArea2 >= 0.0) ? 1.0 : -1.0;
+        // orientationSign = 1.0 for counter-clockwise, -1.0 for clockwise, 
+        // to be used for inward offset direction determination.
+        double orientationSign = (signedArea2 >= 0.0) ? 1.0 : -1.0; 
 
         std::vector<bso::utilities::geometry::line_segment> offsetLines(4);
 
+        /*
+            Image for understanding the offset line construction per edge:
+        
+            original edge (for this ei):
+            a ---------------------------> b
+            \            n=(nx,ny)
+             \             (unit inward normal)
+              \  space_margin
+               \
+                p ----------------------> p + d
+                    shifted edge = offsetLines[ei]
+                    where d = (ex, ey)
+        */
+
         for (int ei = 0; ei < 4; ++ei)
         {
-            const auto& a = poly[ei];
-            const auto& b = poly[(ei + 1) % 4];
-            double ex = b[0] - a[0];
-            double ey = b[1] - a[1];
-            double elen = std::sqrt(ex * ex + ey * ey);
-            if (elen <= 1e-9)
+            const auto& a = poly[ei]; // defines current vertex
+            const auto& b = poly[(ei + 1) % 4]; // defines next vertex with wrap-around for last edge of the polygon
+            double ex = b[0] - a[0]; // edge vector x component
+            double ey = b[1] - a[1]; // edge vector y component
+            double elen = std::sqrt(ex * ex + ey * ey); // length of the edge
+            if (elen <= 1e-9) // only checks if division by zero would be performed
             {
                 validOffset = false;
                 break;
             }
 
-            double nx = orientationSign * (-ey / elen);
-            double ny = orientationSign * ( ex / elen);
+            double nx = orientationSign * (-ey / elen); // inward pointing unit normal vector to the current edge (x component)
+            double ny = orientationSign * ( ex / elen); // inward pointing unit normal vector to the current edge (y component)
 
             bso::utilities::geometry::vertex p = {a[0] + nx * space_margin, a[1] + ny * space_margin, 0.0};
             bso::utilities::geometry::vertex d = {ex, ey, 0.0};
@@ -673,7 +699,7 @@ std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bs
         if (validOffset)
         {
             for (int vi = 0; vi < 4; ++vi)
-            {
+            { // define the inset vertices and check if adjacent offset lines intersect properly to form a valid inset quadrilateral
                 const auto& prev = offsetLines[(vi + 3) % 4];
                 const auto& curr = offsetLines[vi];
                 if (!prev.intersectsWith(curr, inset[vi], 1e-9))
@@ -733,10 +759,12 @@ std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bs
             // If fallback offset fails, use original polygon
             if (!fallbackValid)
             {
-                for (int vi = 0; vi < 4; ++vi)
-                {
-                    inset[vi] = poly[vi];
-                }
+                std::stringstream errorMessage;
+                errorMessage << "Error in generateGridNEN: Surface " << i << " (SpaceID: " << SpaceID[i] 
+                        << ")\n has dimensions (dimA=" << dimA << ", dimB=" << dimB 
+                        << ").\n The fallbackOffset where invalid and should not occur be posible to occur. \n"
+                        << "(bso/grammar/rule_set/dl_rule_set/dl_rectangle_rule.cpp). " << std::endl;
+                throw std::invalid_argument(errorMessage.str());  
             }
         }
 

@@ -108,6 +108,19 @@ namespace bso { namespace utilities {
 						constraintLines.push_back(t);
 					}
 				}
+
+				for (const auto& line: delaunayLines)
+				{
+					if(line.isSameAs(t, mTol)) continue;
+					if(t.intersectsWith(line, mTol))
+					{
+						std::stringstream errorMessage;
+						errorMessage << "Error, two constraint lines intersect each other, which is not allowed for use in triangulation of CGAL. \n"
+									 << "The following two lines intersect: " << t << " and " << line << std::endl
+									 << "(bso/utilities/delaunay)." << std::endl;
+						throw std::runtime_error(errorMessage.str());
+					}
+				}
 			}
 		}
 
@@ -144,7 +157,8 @@ namespace bso { namespace utilities {
 		std::map<std::pair<double,double>, Vertex_handle> coord_to_vh;
 
 		// Insert all unique points (avoid duplicates)
-		for (const auto& v : delaunayPoints) {
+		for (const auto& v : delaunayPoints) 
+		{
 			std::pair<double,double> key{v.x(), v.y()};
 			if (coord_to_vh.find(key) == coord_to_vh.end()) {
 				Point p(v.x(), v.y());
@@ -155,7 +169,8 @@ namespace bso { namespace utilities {
 
 		// Insert constraints, detect degenerate endpoints, and validate
 		size_t idx = 0;
-		for (const auto& line : delaunayLines) {
+		for (const auto& line : delaunayLines) 
+		{
 			const auto &va = line[0];
 			const auto &vb = line[1];
 
@@ -170,18 +185,30 @@ namespace bso { namespace utilities {
 			Point pA(va.x(), va.y());
 			Point pB(vb.x(), vb.y());
 
-			try {
+			try 
+			{
 				cdt.insert_constraint(pA, pB); // use Point overload
-			} catch (const std::exception& e) {
-				std::cerr << "Exception inserting constraint idx=" << idx
-						  << " endpoints (" << va << ") - (" << vb << "): " << e.what() << std::endl;
-				throw; // rethrow or continue depending on desired behavior
+			} 
+			catch (const std::exception& e) 
+			{
+				std::stringstream errorMessage;
+				errorMessage << "Exception inserting constraint idx=" << idx
+						  << " endpoints (" << va << ") - (" << vb << "): \n"
+						  << "The following error was received: " << e.what() << std::endl
+						  << "It could be that two crossing constrain lines were \n"
+						  << "inserted, which is not allowed for use in triangulation of CGAL. \n"
+						  << "The following constrain lines were inserted: " << std::endl;
+				for(const auto& t: delaunayLines){errorMessage << t << std::endl;}
+				errorMessage << "(bso/utilities/delaunay)." << std::endl;
+				throw std::runtime_error(errorMessage.str());
 			}
 
-			if (!cdt.is_valid()) {
+			if (!cdt.is_valid()) 
+			{
 				std::stringstream ss;
 				ss << "CDT invalid after inserting constraint index " << idx
-				   << " endpoints (" << va << ") - (" << vb << ")";
+				   << " endpoints (" << va << ") - (" << vb << ")"
+				   << "(bso/utilities/delaunay)." << std::endl;
 				throw std::runtime_error(ss.str());
 			}
 			++idx;

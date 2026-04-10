@@ -7,6 +7,200 @@
 
 namespace bso { namespace utilities {
 
+void data_export::addToCombinedDataFileParallel(const std::string& fileName, const std::string& runKind, const std::string& designName, const unsigned int& nrIterations, const std::vector<bso::spatial_design::ms_N_building>& msDesigns, const std::vector<double>& sd_total_load, const std::vector<double>& exteriorWallArea)
+{
+    if(fileName == "")
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\nError, expected a file name with at least one character, but the file name did not had any.\n"
+                     << "(bso/utilities/data_export.cpp). " << std::endl;
+        throw std::invalid_argument(errorMessage.str());
+    }
+    if(designName == "")
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\nError, expected a designName with at least one character, but the designName name did not had any.\n"
+                     << "(bso/utilities/data_export.cpp). " << std::endl;
+        throw std::invalid_argument(errorMessage.str());
+    }
+    if(runKind == "")
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\nError, expected a runKind with at least one character, but the runKind name did not had any.\n"
+                     << "(bso/utilities/data_export.cpp). " << std::endl;
+        throw std::invalid_argument(errorMessage.str());
+    }
+    if(mData.size() == 0)
+    {
+        if((*mData[0]).size() != mAxisDataTypes.size())
+        {
+            std::stringstream errorMessage;
+            errorMessage << "\nError, expected the size of the data points in mData to be equal to the size of mAxisDataTypes \n"
+                         << "to know which data is which and to give the plot axis variables.\n"
+                         << "The found size of the data points in mData is: " << (*mData[0]).size() 
+                         << "\nand it contains these variables: " << std::endl;
+            for(const auto& i: mAxisDataTypes) errorMessage << i << "; ";
+            errorMessage << "(bso/utilities/data_export.cpp). " << std::endl;
+            throw std::invalid_argument(errorMessage.str());
+        }
+    }
+
+    std::ofstream outputFile(fileName);
+    if (!outputFile.is_open())
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\nError, unable to open file.\n"
+                     << "(bso/utilities/data_export.cpp). " << std::endl;
+        throw std::invalid_argument(errorMessage.str());
+    }
+
+    // Get relevant data to write to file:
+    std::vector<utilities::data_point> mDataNormalized;
+    CombinedStats stats = computeCombinedStats(nrIterations, mDataNormalized);
+    MsDesignData msData = collectMsDesignData(msDesigns);
+
+    // Write headers and data (copy from addToCombinedDataFile 'file does not exist yet' branch)
+    outputFile << "," << designName << "_" << runKind;
+    for(int axisIndex = 1; axisIndex < mAxisDataTypes.size(); axisIndex++)
+    {
+        outputFile << ",";
+    }
+    outputFile << "," << std::endl << ",";
+    for(std::string i: mAxisDataTypes)
+    {
+        outputFile << i << ",";
+    }
+    outputFile << std::endl;
+    unsigned int iteration = 0;
+    for(const auto& i: mData)
+    {
+        outputFile << iteration << ",";
+        for(unsigned int j=0; j< mAxisDataTypes.size(); j++)
+        {
+            outputFile << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << (*i)(j) << ",";
+        }
+        outputFile << std::endl;
+        iteration++;
+    }
+    while(iteration <= nrIterations)
+    {
+        outputFile << iteration << ",";
+        for(unsigned int j=0; j< mAxisDataTypes.size(); j++)
+        {
+            outputFile << ",";
+        }
+        outputFile << std::endl;
+        iteration++;
+    }
+    outputFile << "kneePoint,";
+    if(mData.size() == 0){for(long unsigned int j=0; j< mAxisDataTypes.size(); j++){outputFile << ",";}}
+    else
+    {
+        for(long unsigned int j=0; j< stats.kneePoint.size(); j++){outputFile << stats.kneePoint(j) << ",";}
+    }
+    outputFile << std::endl;
+
+    // Output a "<axisName>Best" row for each objective, using the corresponding bestDataPoints entry when available.
+    for(long unsigned int obj = 0; obj < mAxisDataTypes.size(); ++obj)
+    {
+        outputFile << mAxisDataTypes[obj] << "Best,";
+        if(mData.size() == 0)
+        {
+            for(long unsigned int j = 0; j < mAxisDataTypes.size(); ++j){outputFile << ",";}
+        }
+        else if(obj < stats.bestDataPoints.size())
+        {
+            for(unsigned int j = 0; j < stats.bestDataPoints[obj].size(); ++j){outputFile << stats.bestDataPoints[obj](j) << ",";}
+        }
+        else
+        {
+            for(long unsigned int j = 0; j < mAxisDataTypes.size(); ++j){outputFile << ",";}
+        }
+        outputFile << std::endl;
+    }
+    if(mData.size() == 0)
+    {
+        outputFile << "kneePoint iteration,";
+        for(unsigned int j=0; j< mAxisDataTypes.size(); j++){outputFile << ",";}
+        outputFile << std::endl;
+        for(const auto objectiveName: mAxisDataTypes)
+        {
+            outputFile << objectiveName << "Best iteration,";
+            for(unsigned int j=0; j< mAxisDataTypes.size(); j++){outputFile << ",";}
+            outputFile<< std::endl;
+        }
+        for(const auto objectiveName: mAxisDataTypes)
+        {
+            outputFile << objectiveName << " last iteration vs. first iteration,";
+            for(unsigned int j=0; j< mAxisDataTypes.size(); j++){outputFile << ",";}
+            outputFile<< std::endl;
+        }
+        for(const auto objectiveName: mAxisDataTypes)
+        {
+            outputFile << objectiveName << " best iteration vs. first iteration,";
+            for(unsigned int j=0; j< mAxisDataTypes.size(); j++){outputFile << ",";}
+            outputFile<< std::endl;
+        }
+
+        // output the msDesign data:
+        outputFile << "," << designName << runKind << std::endl;
+        outputFile << "MS Design data,Recdif" << std::endl;
+        std::vector<double> emptyDataVector;
+        initVectorToFile(emptyDataVector, mAxisDataTypes, nrIterations, outputFile);
+        outputFile << ",Ratio biggest vs. smallest floor area space" << std::endl;
+        initVectorToFile(emptyDataVector, mAxisDataTypes, nrIterations, outputFile);
+        outputFile << ",nrElevations" << std::endl;
+        initVectorToFile(emptyDataVector, mAxisDataTypes, nrIterations, outputFile);
+        outputFile << ",total loads" << std::endl;
+        initVectorToFile(emptyDataVector, mAxisDataTypes, nrIterations, outputFile);
+        outputFile << ",exterior surface area," << std::endl;
+        initVectorToFile(emptyDataVector, mAxisDataTypes, nrIterations, outputFile);
+        outputFile << ",isFragmented" << std::endl;
+        initVectorToFile(emptyDataVector, mAxisDataTypes, nrIterations, outputFile);
+    }
+    else
+    {
+        outputFile << "kneePoint iteration," << stats.kneePointIteration;
+        for(unsigned int j=0; j< mAxisDataTypes.size(); j++){outputFile << ",";}
+        outputFile << std::endl;
+        for(unsigned int index=0; index<mAxisDataTypes.size(); index++)
+        {
+            outputFile << mAxisDataTypes[index] << "Best iteration," << stats.bestIterations[index];
+            for(unsigned int j=0; j< mAxisDataTypes.size(); j++){outputFile << ",";}
+            outputFile << std::endl;
+        }
+        for(unsigned int index=0; index<mAxisDataTypes.size(); index++)
+        {
+            outputFile << mAxisDataTypes[index] << " last iteration vs. first iteration," << stats.lastImprovementPercentages[index];
+            for(unsigned int j=0; j< mAxisDataTypes.size(); j++){outputFile << ",";}
+            outputFile << std::endl;
+        }
+        for(unsigned int index=0; index<mAxisDataTypes.size(); index++)
+        {
+            outputFile << mAxisDataTypes[index] << " best iteration vs. first iteration," << stats.bestImprovementPercentages[index];
+            for(unsigned int j=0; j< mAxisDataTypes.size(); j++){outputFile << ",";}
+            outputFile << std::endl;
+        }
+
+        // output the msDesign data:
+        outputFile << "\n," << designName << runKind << std::endl;
+        outputFile << "MS Design data,Recdif" << std::endl;
+        initVectorToFile(msData.averageRecDif, mAxisDataTypes, nrIterations, outputFile);
+        outputFile << ",Ratio biggest vs. smallest floor area space" << std::endl;
+        initVectorToFile(msData.ratioBiggestSmallestFloorAreaSpace, mAxisDataTypes, nrIterations, outputFile);
+        outputFile << ",nrElevations" << std::endl;
+        initVectorToFile(msData.nrElevations, mAxisDataTypes, nrIterations, outputFile);
+        outputFile << ",total loads" << std::endl;
+        initVectorToFile(sd_total_load, mAxisDataTypes, nrIterations, outputFile);
+        outputFile << ",exterior surface area" << std::endl;
+        initVectorToFile(exteriorWallArea, mAxisDataTypes, nrIterations, outputFile);
+        outputFile << ",isFragmented" << std::endl;
+        initVectorToFile(msData.isFragmented, mAxisDataTypes, nrIterations, outputFile);
+    }
+
+    outputFile.close();
+}
+
 data_export::data_export()
 {
 
@@ -282,20 +476,20 @@ void data_export::writeObjective3DFile(const std::string& fileName) const
 
     int sdIndex  = -1;
     int bpIndex  = -1;
-    int dlIndex  = -1; // mADFbuilding_inverse
+    int dlIndex  = -1; // dl_ADFbuilding_inverse
     int dlScoreIndex = -1; // optional: dl_score (BS EN 17037-2018)
     for(std::size_t i = 0; i < mAxisDataTypes.size(); ++i)
     {
         const std::string& name = mAxisDataTypes[i];
         if(name == "sd") sdIndex = static_cast<int>(i);
         else if(name == "bp") bpIndex = static_cast<int>(i);
-        else if(name == "mADFbuilding_inverse") dlIndex = static_cast<int>(i);
+        else if(name == "dl_ADFbuilding_inverse") dlIndex = static_cast<int>(i);
         else if(name == "dl_score") dlScoreIndex = static_cast<int>(i);
     }
     if(sdIndex < 0 || bpIndex < 0 || dlIndex < 0)
     {
         std::stringstream errorMessage;
-        errorMessage << "\nError, could not find required objective names 'sd', 'bp' and 'mADFbuilding_inverse' in mAxisDataTypes.\n"
+        errorMessage << "\nError, could not find required objective names 'sd', 'bp' and 'dl_ADFbuilding_inverse' in mAxisDataTypes.\n"
                      << "Current axis types: ";
         for(const auto& name : mAxisDataTypes) errorMessage << name << "; ";
         errorMessage << "\n(bso/utilities/data_export.cpp). " << std::endl;
@@ -370,7 +564,7 @@ void data_export::writeImprovementCurvesFile(const std::string& fileName) const
 
     int sdIndex  = -1;
     int bpIndex  = -1;
-    int dlIndex  = -1; // mADFbuilding_inverse
+    int dlIndex  = -1; // dl_ADFbuilding_inverse
     int dlScoreIndex = -1; // optional: dl_score (BS EN 17037-2018)
     for(std::size_t i = 0; i < mAxisDataTypes.size(); ++i)
     {

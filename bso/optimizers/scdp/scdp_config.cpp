@@ -142,6 +142,7 @@ void scdp_config::parseArguments(int argc, char* argv[])
 								<<   "\t" << "\'result_line\' prints a line with the input\n"
 								<<   "\t" << "parameters and the results; \'verbose\' prints\n"
 								<<   "\t" << "a descriptive outline of the process;\n"
+                                <<   "\t" << "\'memory_usage\' will log memory usage at key points during the optimization process;\n"
 								<<   "\t" << "\'plot\' will make a data file (needed for plotting), \n"
 								<< 	 "\t" << "visualize the plot to screen and the plot will be written to a png file\n"
 								<<	 "\t" << "\'combine_data\' will make a data file where separate runs of this, \n"
@@ -151,6 +152,10 @@ void scdp_config::parseArguments(int argc, char* argv[])
 								<< 	 "\t" << "by an unsigned integer value of the maximum iterations. \n"
 								<< 	 "\t" << "This file can be loaded into excel to compare individual runs of this executable.\n"
 								<<   "\t" << "\'ms_files\' will write the ms designs to files\n"
+                                <<   "\t" << "\'msw_file\' will write the msw designs to files, so designed colored for performance\n"
+                                <<   "\t" << "\'dlVisualWriteFile\' will write the dl visualization to files which can be visualized directly\n"
+                                <<   "\t" << "\'sdVisualWriteFile\' will write the sd visualization to files which can be visualized directly \n"
+                                <<   "\t" << "\'bpVisualWriteFile\' will write the bp visualization to files which can be visualized directly\n"
 								<<   "\t" << "\'all\' will write all the designs to the specified format\n"
 								<<   "\t" << "\'best\' (default) will only write the best all the designs to\n"
 								<<   "\t" << "the specified format. More than one option can be given,\n"
@@ -616,6 +621,7 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 boost::trim(outSpec);
                 if (outSpec == "result_line") resultLine = true;
                 else if (outSpec == "verbose") verbose = true;
+                else if (outSpec == "memory_usage") logMemoryUsage = true;
                 else if (outSpec == "plot")
                 {
                     plot = true;
@@ -652,7 +658,7 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 {
                     // When requested, write a colour-settings file for the
                     // msw (Movable Sizable Worst) performance visualization.
-                    mswWriteFile = true;
+                    mswVisualWriteFile = true;
                 }
                 else if (outSpec == "all") outputAll = true;
                 else if (outSpec == "best") outputBest = true;
@@ -689,6 +695,18 @@ void scdp_config::parseArguments(int argc, char* argv[])
                         throw std::invalid_argument(errorMessage.str());
                     }
                     continue;
+                }
+                else if (outSpec == "dlVisualWriteFile") 
+                {
+                    dlVisualWriteFile = true;
+                }
+                else if (outSpec == "sdVisualWriteFile") 
+                {
+                    sdVisualWriteFile = true;
+                }
+                else if (outSpec == "bpVisualWriteFile") 
+                {
+                    bpVisualWriteFile = true;
                 }
                 else
                 {
@@ -754,6 +772,12 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 ++arg;
             }
         }
+        else if (*arg == "-pl" || *arg == "--parallel")
+        {
+            parallel = true;
+            ++arg;
+            continue;
+        }        
         else if (*arg == "-v" || *arg == "--visualize")
         {
             while (++arg != args.end() && arg->operator[](0) != '-')
@@ -1012,6 +1036,42 @@ void scdp_config::validate() const
                      << "use -h or --help for help\n"
                      << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
         throw std::invalid_argument(errorMessage.str());
+    }
+    if (dlVisualWriteFile && !runDLSimulation)
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\nError, cannot write DL visualization file when DL simulation is disabled.\n"
+                     << "Either include 'dl' in --sim or remove the 'dlVisualWriteFile' option from -o/--output.\n"
+                     << "use -h or --help for help\n"
+                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+        throw std::invalid_argument(errorMessage.str());
+    }
+    if (sdVisualWriteFile && !runSDSimulation)
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\nError, cannot write SD visualization file when SD simulation is disabled.\n"
+                     << "Either include 'sd' in --sim or remove the 'sdVisualWriteFile' option from -o/--output.\n"
+                     << "use -h or --help for help\n"
+                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+        throw std::invalid_argument(errorMessage.str());    
+    }
+    if (bpVisualWriteFile && !runBPSimulation)
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\nError, cannot write BP visualization file when BP simulation is disabled.\n"
+                     << "Either include 'bp' in --sim or remove the 'bpVisualWriteFile' option from -o/--output.\n"
+                     << "use -h or --help for help\n"
+                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+        throw std::invalid_argument(errorMessage.str());    
+    }
+    if (mswVisualWriteFile && !runDLSimulation && !runSDSimulation && !runBPSimulation)
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\nError, cannot write msw visualization file when all simulations are disabled.\n"
+                     << "Either include 'sd', 'bp', or 'dl' in --sim or remove the 'mswVisualWriteFile' option from -o/--output.\n"
+                     << "use -h or --help for help\n"
+                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+        throw std::invalid_argument(errorMessage.str());    
     }
 }
 

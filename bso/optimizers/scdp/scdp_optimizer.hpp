@@ -22,9 +22,9 @@ private:
     // Data structures to hold the current state of the optimization, i.e. .back() is the current design, model, or performance.
     unsigned int mCurrentIteration = 0;
     std::vector<spatial_design::ms_N_building> mMSDesigns;
-    std::vector<structural_design::sd_model> mSDModels;
-    std::vector<building_physics::bp_model> mBPModels;
-    std::vector<daylight::dl_model> mDLModels;
+    std::vector<structural_design::sd_model> mSDModelLast; // Only hold the last model to save memory
+    std::vector<building_physics::bp_model> mBPModelLast; // Only hold the last model to save memory
+    std::vector<daylight::dl_model> mDLModelLast; // Only hold the last model to save memory
     std::string getActiveObjective() const; // Get the active objective token ("sd", "bp" or "dl") for the current iteration based on the parsed modificationSequence.
 
     // Store the initial designs values which should be constant for 
@@ -57,7 +57,8 @@ private:
                       const std::vector<double>& objectiveWeights);
     void modifyDesign(spatial_design::ms_N_building& ms, unsigned int iteration);
     void enforceConstraints(spatial_design::ms_N_building& ms);
-    void visualizeMsw(const std::vector<utilities::data_point>& performances, 
+    void visualizeMsw(const spatial_design::ms_N_building& ms,
+                      const std::vector<utilities::data_point>& performances, 
                       const int interationNr, const std::vector<double>& objectiveWeights,
                       std::string titleAddition = "");
 
@@ -79,9 +80,9 @@ public:
     void runOptimization();
         
     const auto& getDesigns() const { return mMSDesigns; }
-    const auto& getSDModels() const { return mSDModels; }
-    const auto& getBPModels() const { return mBPModels; }
-    const auto& getDLModels() const { return mDLModels; }
+    const auto& getSDModel() const { return mSDModelLast; }
+    const auto& getBPModel() const { return mBPModelLast; }
+    const auto& getDLModel() const { return mDLModelLast; }
     const auto& getPerformances() const { return mDesignPerformances; }
 };
 

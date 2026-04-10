@@ -3,7 +3,9 @@
 
 #include <vector>
 #include <bso/utilities/geometry.hpp>
+#if defined(BSO_USE_FADE)
 #include <bso/utilities/geometry/polygon_non_convex.hpp>
+#endif // defined(BSO_USE_FADE)
 
 namespace bso { namespace utilities {
 	

@@ -4,8 +4,10 @@
 namespace bso { namespace grammar {
 
 grammar::grammar(const spatial_design::cf_building& cf)
-:	mCFBuilding(cf),
-	mLoadPanel(structural_design::component::structure())
+:	mCFBuilding(cf)
+#ifdef SD_MODEL_HPP
+	,mLoadPanel(structural_design::component::structure())
+#endif
 {
 	for (const auto& i : mCFBuilding.cfVertices())
 	{

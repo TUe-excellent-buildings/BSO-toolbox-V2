@@ -26,34 +26,62 @@ void performance_evaluator::getPerformancePerSpace(
 {
 	std::vector<std::string> axisDataTypes = {"bp","sd","dl"};
 
-	// Determine which objectives are requested by the modificationType string.
-	// The modificationType is a concatenation of 2-letter tokens: "sd", "bp", "dl".
-	// Here we only need to know whether SD,BP and/or DL are part of the modification;
-	const bool usesSD = (modificationType.find("sd") != std::string::npos);
-	const bool usesBP = (modificationType.find("bp") != std::string::npos);
-	const bool usesDL = (modificationType.find("dl") != std::string::npos);
+    // Determine which objectives are requested by the modificationType string.
+    // The modificationType is a concatenation of 2-letter tokens: "sd", "bp", "dl".
+    // Here we only need to know whether SD,BP and/or DL are part of the modification;
+    const bool usesSD = (modificationType.find("sd") != std::string::npos);
+    const bool usesBP = (modificationType.find("bp") != std::string::npos);
+    const bool usesDL = (modificationType.find("dl") != std::string::npos);
 
-	for (const auto& j : ms.getSpacePtrs())
+    using clock = std::chrono::high_resolution_clock;
+    double totalSD = 0.0, totalBP = 0.0, totalDL = 0.0;
+    int countSD = 0, countBP = 0, countDL = 0;
+
+    for (const auto& j : ms.getSpacePtrs())
+    {
+        bso::utilities::data_point tempDataPoint({0,0,0});
+        std::stringstream spaceString;
+        spaceString << *j;
+        tempDataPoint.addLabel(spaceString.str());
+        tempDataPoint.addSpacePtr(j);
+
+        auto spaceGeom = j->getGeometry();
+        unsigned int spaceID = j->getID();
+        // Only collect SD/BP performance data when the corresponding objective is
+        // both available and requested by the modificationType.
+        if (sdAvailable && usesSD) {
+            auto t0 = clock::now();
+            tempDataPoint(1) = sd.getPartialResults(&spaceGeom).mTotalStrainEnergy;
+            auto t1 = clock::now();
+            totalSD += std::chrono::duration<double>(t1 - t0).count();
+            ++countSD;
+        }
+        if (bpAvailable && usesBP) {
+            auto t0 = clock::now();
+            tempDataPoint(0) = bp.getPartialResults(&spaceGeom).mTotalEnergy;
+            auto t1 = clock::now();
+            totalBP += std::chrono::duration<double>(t1 - t0).count();
+            ++countBP;
+        }
+        if (dlAvailable && usesDL) {
+            auto t0 = clock::now();
+            tempDataPoint(2) = dl.getPartialResults(spaceID).mADFBuildingInverse; // run optimization on inverse ADF
+            auto t1 = clock::now();
+            totalDL += std::chrono::duration<double>(t1 - t0).count();
+            ++countDL;
+        }
+
+        if(performanceDivisionType == "floorArea"){tempDataPoint /= j->getFloorArea();}
+        else if(performanceDivisionType == "surfaceArea"){tempDataPoint /= j->getSurfaceArea();}	
+        else if(performanceDivisionType == "volumeArea"){tempDataPoint /= j->getVolume();}
+
+        performances.push_back(tempDataPoint);
+    }
+	if(verbose)
 	{
-		bso::utilities::data_point tempDataPoint({0,0,0});
-		std::stringstream spaceString;
-		spaceString << *j;
-		tempDataPoint.addLabel(spaceString.str());
-		tempDataPoint.addSpacePtr(j);
-
-		auto spaceGeom = j->getGeometry();
-		unsigned int spaceID = j->getID();
-		// Only collect SD/BP performance data when the corresponding objective is
-		// both available and requested by the modificationType.
-		if (sdAvailable && usesSD){tempDataPoint(1) = sd.getPartialResults(&spaceGeom).mTotalStrainEnergy;}
-		if (bpAvailable && usesBP){tempDataPoint(0) = bp.getPartialResults(&spaceGeom).mTotalEnergy;}
-		if (dlAvailable && usesDL){tempDataPoint(2) = dl.getPartialResults(spaceID).mADFBuildingInverse;} // run optimization on inverse ADF
-
-		if(performanceDivisionType == "floorArea"){tempDataPoint /= j->getFloorArea();}
-		else if(performanceDivisionType == "surfaceArea"){tempDataPoint /= j->getSurfaceArea();}	
-		else if(performanceDivisionType == "volumeArea"){tempDataPoint /= j->getVolume();}
-
-		performances.push_back(tempDataPoint);
+		if (countSD > 0) std::cout << "SD performance retrieval: " + std::to_string(totalSD) + " s for " + std::to_string(countSD) + " spaces (" + std::to_string(totalSD/countSD) + " s/space)" << std::endl;
+		if (countBP > 0) std::cout << "BP performance retrieval: " + std::to_string(totalBP) + " s for " + std::to_string(countBP) + " spaces (" + std::to_string(totalBP/countBP) + " s/space)" << std::endl;
+		if (countDL > 0) std::cout << "DL performance retrieval (Note wall clock will take longer): " + std::to_string(totalDL) + " s for " + std::to_string(countDL) + " spaces (" + std::to_string(totalDL/countDL) + " s/space)" << std::endl;
 	}
     outputMgr.out("Collected performances for each space",true,true,verbose);
 } // getPerformancePerSpace
