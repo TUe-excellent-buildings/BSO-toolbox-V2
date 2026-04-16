@@ -100,6 +100,9 @@ private:
     const std::vector<std::string> kIterationStrategyOptions = {"split_delete", "modification", "alternating"};
     const std::vector<std::string> kSimOptions = {"sd", "bp", "dl"};
 
+    // Helper functions:
+    std::string objectiveWeightsToString(const std::vector<double>& weights) const;
+
 public:
     scdp_config(); // empty_constructor
     scdp_config(int argc, char* argv[]);
@@ -121,6 +124,7 @@ public:
     const std::string& getModification() const { return modification; }
     bool getWeightedModification() const { return mWeightedModification; }
     const std::vector<double>& getObjectiveWeights() const { return mObjectiveWeights; }
+    const std::string getObjectiveWeightsString() const { return objectiveWeightsToString(mObjectiveWeights); }
     const std::string& getAddMethod() const { return addMethod; }
     const std::string& getIterationStrategy() const { return iterationStrategy; }
     const std::string& getPerformanceDivision() const { return performanceDivision; }

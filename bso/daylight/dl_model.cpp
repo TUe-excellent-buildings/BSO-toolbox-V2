@@ -170,7 +170,7 @@ namespace bso { namespace daylight {
 		// Generate sky
 		const std::string irrad = std::to_string(HorizontalOutdoorIlluminance/179.0); //generate diffuse irradiance in watts/m2 to derive the zenith brightness 
 		const std::string skysettings = "-ang 45 0 -c -B "+irrad+" -g 0.2"; //-c=standard CIE overcast sky ,-B is zenith brightness (irrad), -g ground reflectance
-		command = radianceBinPath + "/gensky "+skysettings+" > ./"+mFolderName+"/sky.rad"; 
+		command = "\"" + radianceBinPath + "/gensky\" " + skysettings + " > \"./" + mFolderName + "/sky.rad\"";
 		if (std::system(command.c_str()) != 0) 
 		{
 			std::stringstream errorMessage;
@@ -197,7 +197,7 @@ namespace bso { namespace daylight {
 		outsideFile.close();
 
 		// Compile scene
-		command = radianceBinPath + "/oconv ./"+mFolderName+"/sky.rad ./"+mFolderName+"/outside.rad ./"+mFolderName+"/scene.rad > ./"+mFolderName+"/room.oct";
+		command = "\"" + radianceBinPath + "/oconv\" \"./" + mFolderName + "/sky.rad\" \"./" + mFolderName + "/outside.rad\" \"./" + mFolderName + "/scene.rad\" > \"./" + mFolderName + "/room.oct\"";
 		if (std::system(command.c_str()) != 0) 
 		{
 			std::stringstream errorMessage;
@@ -211,7 +211,7 @@ namespace bso { namespace daylight {
 		std::string rtraceSettings = "-I -h -aa 0 -ab 8 -ad 4096 -as 1024 -lw 1e-6 -lr 16"; 
 		//-I -h -aa 0 -ab 6 -ad 10240 -as 0 -lw 1e-6 -n 4       //Ward, 2024
 		//-I -h -aa 0 -ab 8 -ad 4096 -as 1024 -lw 1e-6 -lr 16   //Kharvari, 2020
-		command = radianceBinPath + "/rtrace "+ rtraceSettings + " -oov ./"+mFolderName+"/room.oct < ./"+mFolderName+"/grid.txt > ./"+mFolderName+"/results.txt";
+		command = "\"" + radianceBinPath + "/rtrace\" " + rtraceSettings + " -oov \"./" + mFolderName + "/room.oct\" < \"./" + mFolderName + "/grid.txt\" > \"./" + mFolderName + "/results.txt\"";
 		if (std::system(command.c_str()) != 0) 
 		{
 			std::stringstream errorMessage;
@@ -222,7 +222,7 @@ namespace bso { namespace daylight {
 		}
 
 		// Make lux.
-		command = radianceBinPath + "/rcalc -e '$1=179*(.265*$4+.670*$5+.065*$6)' ./"+mFolderName+"/results.txt > ./"+mFolderName+"/lux.txt";
+		command = "\"" + radianceBinPath + "/rcalc\" -e '$1=179*(.265*$4+.670*$5+.065*$6)' \"./" + mFolderName + "/results.txt\" > \"./" + mFolderName + "/lux.txt\"";
 		if (std::system(command.c_str()) != 0) 
 		{			
 			std::stringstream errorMessage;
@@ -259,6 +259,8 @@ namespace bso { namespace daylight {
 
 		// iterate per surface / space
 		// one surface = one set of points (amount of gridpoints varies per surface)
+		int valuesRead = 0;
+
 		for (int i = 0; i < SpaceID_AmountGridPoints.size(); ++i) 
 		{
 			auto& tup = SpaceID_AmountGridPoints[i];
@@ -278,11 +280,15 @@ namespace bso { namespace daylight {
 				{
 					inputFile.close();
 					std::stringstream errorMessage;
-					errorMessage << "Error, reading horizontal illuminance value from lux.txt, \n"
-								 << "as it could not open the output lux.txt file from Radiance. \n" 
+					errorMessage << "Error, reading horizontal illuminance values from lux.txt.\n"
+								 << "Radiance produced fewer readable values than expected for the generated grid.\n"
+								 << "Read " << valuesRead << " values before the stream failed while processing SpaceID " << SpaceID
+								 << " (grid point " << (j + 1) << " of " << gridPoints << ").\n"
+								 << "Input file: ./" << mFolderName << "/lux.txt\n"
 								 << "(bso/daylight/dl_model.cpp). " << std::endl;
 					throw std::invalid_argument(errorMessage.str());
 				}
+				++valuesRead;
 				
 				double DF = (Espace/HorizontalOutdoorIlluminance)*100.0; //daylight factor per point
 				if (DF > Dt) {pointsExceedingDt++;}

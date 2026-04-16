@@ -12,6 +12,9 @@
 #include <cstdlib>
 #include <cmath>
 #include <algorithm>
+#include <sstream>
+#include <iomanip>
+#include <vector>
 
 namespace bso { namespace visualization
 {
@@ -24,7 +27,8 @@ public:
 					 const std::string& title ="sd_model",
 					 const bool& ghostly = false,
 					 const std::vector<std::pair<bso::utilities::geometry::vertex,
-					 bso::utilities::geometry::vector>>& cuttingPlanes = {});
+					 bso::utilities::geometry::vector>>& cuttingPlanes = {},
+					 const bool& showLegend = false);
 	~SD_Model();
 	void render(const camera &cam) const;
 	const std::string get_description();
@@ -37,7 +41,20 @@ private:
 	std::string mTitle;
 	std::list<polygon*> polygons;
 	std::list<label*> labels;
+
+	// Legend related members in case of visualizing strain energy or density
+	struct legend_bin
+	{
+		rgba color;
+		double lower;
+		double upper;
+	};
+	bool mDrawOverlayLegend = false;
+	bool mLegendUsesStrainEnergy = false;
+	std::string mLegendTitle;
+	std::vector<legend_bin> mLegendBins;
 	
+	// colors and properties for different types of elements
 	rgba yellow = rgba(1.0,1.0,0.30,0.15);
 	rgba blue = rgba(0.30, 0.30, 1.0, 0.15);
 	rgba grey = rgba(0.65, 0.65, 0.65, 0.15);
@@ -45,6 +62,8 @@ private:
 
 	polygon_props beamprops, trussprops, shellprops, quadhexprops,
 								beamprops_t, trussprops_t, shellprops_t, quadhexprops_t;
+
+	// maps for storing the color properties of the different clusters of elements (for strain energy or density visualization)
 	std::map<double, polygon_props*> clusterPProps;
 	std::map<double, line_props*> clusterLProps;
 
@@ -58,7 +77,8 @@ SD_Model::SD_Model(const bso::structural_design::sd_model& sd,
 									 const std::string& title /*="sd_model"*/,
 									 const bool& ghostly /*= false*/,
 									 const std::vector<std::pair<bso::utilities::geometry::vertex,
-									 bso::utilities::geometry::vector>>& cuttingPlanes /*= {}*/)
+									 bso::utilities::geometry::vector>>& cuttingPlanes /*= {}*/,
+									 const bool& showLegend /*= false*/)
 : model_base(cuttingPlanes)
 {
 	mTitle = title;
@@ -221,32 +241,54 @@ SD_Model::SD_Model(const bso::structural_design::sd_model& sd,
 			}
 		}
 		
-		unsigned int nClusters = 8;
+		unsigned int nClusters = 12;
 		for (unsigned int i = 0; i < nClusters; ++i)
 		{
-			// initialise variables that handle the gradient of the colormap (just try it :) )
-			double beta = 10;
-			double eta = 0.62;
-
-			// color gradient: on scale of 0-1 the colorband obtained by given beta and eta
 			double colorGradient = (double)(i+1)/(double)nClusters;
 
-			// compute the color values for this color gradient
-			double red = (tanh(beta * eta) + tanh(beta * (colorGradient - eta))) /
-									 (tanh(beta * eta) + tanh(beta * (1 - eta)));
-			double green = pow((0.5 + 0.5*cos(2*PI*colorGradient - PI)), (eta/3));
-			double blue = 1 - ((tanh(beta * (1 - eta)) + tanh(beta * (colorGradient - (1 - eta)))) /
-												 (tanh(beta * (1 - eta)) + tanh(beta * eta)));
-			double alpha;
-
-			if (i < 2)
+			// Explicit ordered gradient: low values start blue and transition to red.
+			rgba c0, c1;
+			double localT = 0.0;
+			if (colorGradient <= 0.25)
 			{
-				alpha = 0.01;
+				c0 = rgba(0.0, 2.0 / 255.0, 1.0, 1.0);
+				c1 = rgba(0.0, 1.0, 1.0, 1.0);
+				localT = colorGradient / 0.25;
+			}
+			else if (colorGradient <= 0.5)
+			{
+				c0 = rgba(0.0, 1.0, 1.0, 1.0);
+				c1 = rgba(0.0, 1.0, 0.0, 1.0);
+				localT = (colorGradient - 0.25) / 0.25;
+			}
+			else if (colorGradient <= 0.75)
+			{
+				c0 = rgba(0.0, 1.0, 0.0, 1.0);
+				c1 = rgba(1.0, 1.0, 0.0, 1.0);
+				localT = (colorGradient - 0.5) / 0.25;
 			}
 			else
 			{
-				alpha = 0.9;
+				c0 = rgba(1.0, 1.0, 0.0, 1.0);
+				c1 = rgba(1.0, 0.0, 0.0, 1.0);
+				localT = (colorGradient - 0.75) / 0.25;
 			}
+
+			double red = c0[0] + (c1[0] - c0[0]) * localT;
+			double green = c0[1] + (c1[1] - c0[1]) * localT;
+			double blue = c0[2] + (c1[2] - c0[2]) * localT;
+			
+			// Set alpha value for to make colors more transparent.
+			double alpha = 1.0;
+			// old code to differentiate between elements to for example only visualize the highest density elements.
+			// if (i < 2) 
+			// {
+			// 	alpha = 0.01;
+			// }
+			// else
+			// {
+			// 	alpha = 0.9;
+			// }
 
 			// assign the color values to the graphic properties structure
 			polygon_props* tempPPropPtr = new polygon_props;
@@ -262,6 +304,30 @@ SD_Model::SD_Model(const bso::structural_design::sd_model& sd,
 
 			clusterPProps[minValue+colorGradient*(maxValue-minValue)] = tempPPropPtr;
 			clusterLProps[minValue+colorGradient*(maxValue-minValue)] = tempLPropPtr;
+		}
+
+		if (type == "density" || type == "strain_energy")
+		{ // only show legend for these types of visualizations, as the element type visualization does not have a gradient of colors but only a few discrete colors for the different element types
+			mDrawOverlayLegend = showLegend;
+			mLegendUsesStrainEnergy = (type == "strain_energy");
+			mLegendTitle = (type == "density") ? "Density legend" : "Strain energy legend (|E|)";
+			mLegendBins.clear();
+
+			double lower = minValue;
+			for (const auto& entry : clusterPProps)
+			{
+				legend_bin bin;
+				bin.color = entry.second->diffuse;
+				bin.lower = lower;
+				bin.upper = entry.first;
+				mLegendBins.push_back(bin);
+				lower = entry.first;
+			}
+
+			if (!mLegendBins.empty())
+			{
+				mLegendBins.back().upper = maxValue;
+			}
 		}
 		
 		for (const auto& i : sd.getFEA()->getElements())
@@ -412,6 +478,111 @@ void SD_Model::render(const camera &cam) const
 	pbsp->render_btf(cam);
 
 	for (auto& i : labels) i->render();
+
+	if (mDrawOverlayLegend && !mLegendBins.empty())
+	{
+		auto formatValue = [](double value) -> std::string
+		{
+			std::ostringstream ss;
+			double absValue = std::abs(value);
+			if (absValue >= 1000.0 || (absValue > 0.0 && absValue < 1e-3))
+			{
+				ss << std::scientific << std::setprecision(2) << value;
+			}
+			else
+			{
+				ss << std::fixed << std::setprecision(3) << value;
+			}
+			return ss.str();
+		};
+
+		auto convertLegendValue = [&](double value) -> double
+		{
+			if (!mLegendUsesStrainEnergy) return value;
+			double actual = std::pow(10.0, value) - 1.0;
+			return (actual < 0.0 ? 0.0 : actual);
+		};
+
+		int vp[4];
+		glGetIntegerv(GL_VIEWPORT, vp);
+		int viewportWidth = vp[2];
+		int viewportHeight = vp[3];
+
+		const int pad = 10;
+		const int boxW = 18;
+		const int boxH = 12;
+		const int rowGap = 5;
+		const int textXOffset = boxW + 10;
+		const int titleHeight = 16;
+		const int panelW = 340;
+		const int panelH = titleHeight + 14 + (int)mLegendBins.size() * (boxH + rowGap) + pad;
+		const int panelX = viewportWidth - panelW - pad;
+		const int panelY = viewportHeight - panelH - pad;
+
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glLoadIdentity();
+		glOrtho(0.0, (GLdouble)viewportWidth, 0.0, (GLdouble)viewportHeight, 0.0, 1.0);
+
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
+		glLoadIdentity();
+
+		glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_CURRENT_BIT);
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_LIGHTING);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glColor4f(0.0f, 0.0f, 0.0f, 0.55f);
+		glBegin(GL_QUADS);
+		glVertex3i(panelX, panelY, 0);
+		glVertex3i(panelX + panelW, panelY, 0);
+		glVertex3i(panelX + panelW, panelY + panelH, 0);
+		glVertex3i(panelX, panelY + panelH, 0);
+		glEnd();
+
+		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		glRasterPos3i(panelX + pad, panelY + panelH - titleHeight, 0);
+		for (char c : mLegendTitle) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, c);
+
+		int rowIndex = 0;
+		for (auto it = mLegendBins.rbegin(); it != mLegendBins.rend(); ++it, ++rowIndex)
+		{
+			int rowY = panelY + panelH - titleHeight - 12 - (rowIndex + 1) * (boxH + rowGap);
+
+			glColor4f(it->color[0], it->color[1], it->color[2], 1.0f);
+			glBegin(GL_QUADS);
+			glVertex3i(panelX + pad, rowY, 0);
+			glVertex3i(panelX + pad + boxW, rowY, 0);
+			glVertex3i(panelX + pad + boxW, rowY + boxH, 0);
+			glVertex3i(panelX + pad, rowY + boxH, 0);
+			glEnd();
+
+			double lower = convertLegendValue(it->lower);
+			double upper = convertLegendValue(it->upper);
+			std::string rangeText;
+			if (mLegendUsesStrainEnergy)
+			{
+				rangeText = "|E| in [" + formatValue(lower) + ", " + formatValue(upper) + "]";
+			}
+			else
+			{
+				rangeText = "rho in [" + formatValue(lower) + ", " + formatValue(upper) + "]";
+			}
+
+			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+			glRasterPos3i(panelX + pad + textXOffset, rowY + 2, 0);
+			for (char c : rangeText) glutBitmapCharacter(GLUT_BITMAP_8_BY_13, c);
+		}
+
+		glPopAttrib();
+
+		glPopMatrix();
+		glMatrixMode(GL_PROJECTION);
+		glPopMatrix();
+		glMatrixMode(GL_MODELVIEW);
+	}
 	
 	glPopAttrib();
 }

@@ -805,12 +805,13 @@ std::vector<std::tuple<unsigned int, int>> generateGridNEN(	const std::vector<bs
                 double z = baseZ + ReferenceHeight;
 
                 gridPoints.push_back({x, y, z});
-                gridFile << std::setw(10) << x
-                         << std::setw(10) << y
-                         << std::setw(10) << z
-                         << std::setw(10) << 0
-                         << std::setw(10) << 0
-                         << std::setw(10) << 1 << std::endl;
+                gridFile << std::setprecision(12)
+                         << x << ' '
+                         << y << ' '
+                         << z << ' '
+                         << 0 << ' '
+                         << 0 << ' '
+                         << 1 << std::endl;
                 numGridPoints++;
                 
                 // Store XY for cell checking

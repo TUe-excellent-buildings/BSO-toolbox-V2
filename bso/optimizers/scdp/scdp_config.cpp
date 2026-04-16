@@ -1073,6 +1073,20 @@ void scdp_config::validate() const
                      << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
         throw std::invalid_argument(errorMessage.str());    
     }
+} // 
+
+std::string scdp_config::objectiveWeightsToString(const std::vector<double>& weights) const
+{
+	std::ostringstream stream;
+	for (std::size_t i = 0; i < weights.size(); ++i)
+	{
+		if (i > 0)
+		{
+			stream << "-";
+		}
+		stream << weights[i];
+	}
+	return stream.str();
 }
 
 }}} // namespace bso::optimizers::scdp

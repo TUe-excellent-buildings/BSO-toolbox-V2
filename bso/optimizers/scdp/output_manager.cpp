@@ -10,7 +10,6 @@
 #include <bso/visualization/visualization.hpp>
 
 namespace bso { namespace optimizers { namespace scdp {
-
 output_manager::output_manager(const scdp_config& config) : mConfig(config)
 {
 	// Initialize the result directory if the option is set in the configuration
@@ -112,13 +111,13 @@ bool output_manager::createStandardSubResultDir(std::string& dir, bool shortName
 		if(shortName)
 		{
 			path2 = path + mConfig.getInputFile() + "_" + mConfig.getModification();
-			if(mConfig.getWeightedModification())path2 += "_" + mConfig.getWeightedModification();
+			if(mConfig.getWeightedModification()){path2 += "_" + mConfig.getObjectiveWeightsString();}
 			path2 += "_-n=" + std::to_string(mConfig.getIterations());
 		}
 		else
 		{
 			path2 = path + mConfig.getInputFile() + "_" + mConfig.getModification();
-			if(mConfig.getWeightedModification()) path2 += "_" + mConfig.getWeightedModification();
+			if(mConfig.getWeightedModification()){path2 += "_" + mConfig.getObjectiveWeightsString();}
 			path2 += "_-n=" + std::to_string(mConfig.getIterations()) + "_" + getCurrentDateTime();
 		}
 		if (!std::filesystem::exists(path2)) 

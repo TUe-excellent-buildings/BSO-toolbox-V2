@@ -232,9 +232,23 @@ void visualize(const bso::daylight::dl_model& dl_model, const std::string& type 
 void visualize(const bso::structural_design::sd_model& sd, const std::string& type ="component",
 							 const std::string& title ="sd_model", const bool& ghostly = false,
 							 const std::vector<std::pair<bso::utilities::geometry::vertex,
-							 bso::utilities::geometry::vector>>& cuttingPlanes = {})
+							 bso::utilities::geometry::vector>>& cuttingPlanes = {},
+							 const bool& showLegend = false)
 {
-	vpmanager.addviewport(new viewport(new SD_Model(sd, type, title, ghostly, cuttingPlanes)));
+	vpmanager.addviewport(new viewport(new SD_Model(sd, type, title, ghostly, cuttingPlanes, showLegend)));
+}
+
+void visualize(const bso::structural_design::sd_model& sd, const std::string& type,
+							 const std::string& title, const bool& ghostly,
+							 const bool& showLegend)
+{
+	vpmanager.addviewport(new viewport(new SD_Model(sd, type, title, ghostly, {}, showLegend)));
+}
+
+void visualize(const bso::structural_design::sd_model& sd, const std::string& type,
+							 const bool& showLegend)
+{
+	vpmanager.addviewport(new viewport(new SD_Model(sd, type, "sd_model", false, {}, showLegend)));
 }
 #endif // SD_MODEL_HPP
 

@@ -346,7 +346,6 @@ void scdp_optimizer::getDesignResults()
                 visualization::visualize(mSDModelLast.back(), "component");
                 if(mConfig.getSdVisualWriteFile()) sdVisualAlreadyWritten = true;
             }
-            if (visOption == "sdD" && mConfig.getRunSDSimulation()) visualization::visualize(mSDModelLast.back(), "density");
             if (visOption == "fe" && mConfig.getRunSDSimulation()) 
             {
                 visualization::visualize(mSDModelLast.back(), "element");
@@ -354,7 +353,7 @@ void scdp_optimizer::getDesignResults()
             }
             if (visOption == "fe" && mConfig.getRunSDSimulation())
             {
-                visualization::visualize(mSDModelLast.back(), "strain_energy");
+                visualization::visualize(mSDModelLast.back(), "strain_energy", true);
                 if(mConfig.getSdVisualWriteFile()) sdVisualAlreadyWritten = true;
             }
             if (visOption == "bp" && mConfig.getRunBPSimulation()) 
