@@ -68,6 +68,8 @@ std::cout << "Total cooling energy: " << BP.getTotalResults().mTotalCoolingEnerg
  bso::visualization::visualize(CF,"cuboid");
  bso::visualization::visualize(SD,"component");
  bso::visualization::visualize(SD,"element");
+ bso::visualization::visualize(SD,"strain_energy", true);
+ bso::visualization::visualize(SD,"strain_energy", false);
  bso::visualization::visualize(BP);
  bso::visualization::visualize(DL, "");
  bso::visualization::visualize(DL, "grid");

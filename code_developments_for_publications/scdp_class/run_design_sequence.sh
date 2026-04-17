@@ -3,6 +3,9 @@
 echo "Running bash script" 
 echo "for ./main with the following input arguments:"
 
+# Set this nohup ./run_design_sequence.sh > terminalLog 2>&1 &
+# last PID: 407064
+
 # Define the executable
 EXECUTABLE="./main"
 
@@ -37,6 +40,13 @@ echo "line No. $i: $line"
 i=$((i+1))
 done < $INPUT_FILE
 
+# Directory to store per-run logs
+LOG_DIR="./logs_sequential_runs"
+mkdir -p "$LOG_DIR"
+
+pids=()
+run_index=1
+
 echo "Start executing"
 # Read input arguments from the file
 while IFS= read -r ARG || [ -n "$ARG" ]; do
@@ -47,11 +57,18 @@ while IFS= read -r ARG || [ -n "$ARG" ]; do
         echo "Empty line detected, skipping..."
         continue
 	fi
-    
-    echo "Running $EXECUTABLE with arguments $ARG"
-    
-    $EXECUTABLE $ARG
-	
+
+    # Derive a simple label from the design id (if present)
+    DESIGN=$(echo "$ARG" | grep -oP '(?<=-i )design_[^ ]+' || true)
+    if [ -z "$DESIGN" ]; then
+        DESIGN="run"
+    fi
+
+    LOG_FILE="$LOG_DIR/${DESIGN}_$run_index.log"
+    echo "Running $EXECUTABLE with arguments $ARG, logging to $LOG_FILE"
+    # Redirect stdout and stderr of this run to its own log file, run sequentially
+    $EXECUTABLE $ARG >"$LOG_FILE" 2>&1
+    run_index=$((run_index+1))
 done < "$INPUT_FILE"
 
 echo "Bash script execution completed."
