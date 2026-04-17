@@ -72,6 +72,8 @@ BOOST_FIXTURE_TEST_CASE(output_data_with_no_outputs_does_not_throw, OutputManage
     std::vector<double> loads;
     std::vector<double> exterior_area;
     std::string modification = "sd";
+    bool weighted_modification = false;
+    std::vector<double> objective_weights;
     std::string design_name = "design_1";
     std::string delete_method = "off";
 
@@ -82,6 +84,8 @@ BOOST_FIXTURE_TEST_CASE(output_data_with_no_outputs_does_not_throw, OutputManage
         loads,
         exterior_area,
         modification,
+        weighted_modification,
+        objective_weights,
         design_name,
         delete_method,
         0,
