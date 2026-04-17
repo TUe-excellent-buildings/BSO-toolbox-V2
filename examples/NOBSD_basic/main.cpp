@@ -68,8 +68,6 @@ int main(int argc, char* argv[])
  //bso::visualization::visualize(CF,"triangular_prism");
  bso::visualization::visualize(SD,"component");
  bso::visualization::visualize(SD,"element");
- bso::visualization::visualize(SD,"strain_energy", true);
- // bso::visualization::visualize(SD,"density");
  bso::visualization::visualize(BP);
  bso::visualization::visualize(DL, "");
  bso::visualization::visualize(DL, "grid");
