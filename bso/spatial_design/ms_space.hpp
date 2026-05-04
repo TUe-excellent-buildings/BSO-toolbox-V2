@@ -31,8 +31,7 @@ public:
 	void setPVertex(const std::vector <utilities::geometry::vertex> vertexes);
 	void setCoordinates(const utilities::geometry::vertex& coords);
 	void setDimensions(const utilities::geometry::vector& dims);
-	void setID(const unsigned int& id);
-	
+	void setID(const unsigned int& id);	
 	unsigned int getID() const; // returns the ID of the space
 	utilities::geometry::vertex getCoordinates() const; // return the coordinates of the space
 	utilities::geometry::vector getDimensions() const; // return the dimensions of the space

@@ -639,15 +639,15 @@ void data_export::writeImprovementCurvesFile(const std::string& fileName) const
         double dlImp = std::numeric_limits<double>::quiet_NaN();
         double dlScoreImp = std::numeric_limits<double>::quiet_NaN();
 
-        if(sd0 != 0.0) sdImp = (1.0 - (sdVal / sd0)) * 100.0;
-        if(bp0 != 0.0) bpImp = (1.0 - (bpVal / bp0)) * 100.0;
-        if(dl0 != 0.0) dlImp = (1.0 - (dlVal / dl0)) * 100.0;
+        if(sd0 != 0.0) sdImp = ((sd0-sdVal) / sd0) * 100.0;
+        if(bp0 != 0.0) bpImp = ((bp0-bpVal) / bp0) * 100.0;
+        if(dl0 != 0.0) dlImp = ((dl0-dlVal) / dl0) * 100.0;
         if(hasDlScore)
         {
             double dlScoreVal = point(dlScoreIndex);
             if(dlScore0 != 0.0)
             {
-                dlScoreImp = (1.0 - (dlScoreVal / dlScore0)) * 100.0;
+                dlScoreImp = ((dlScore0-dlScoreVal) / dlScore0) * 100.0;
             }
         }
 
@@ -774,8 +774,8 @@ data_export::CombinedStats data_export::computeCombinedStats(const unsigned int 
         {
             const double bestValue = (*(mData[stats.bestIterations[obj]]))(obj);
             const double lastValue = (*(mData[lastIndex]))(obj);
-            stats.bestImprovementPercentages[obj] = (1.0 - (bestValue/initialValue))*100.0;
-            stats.lastImprovementPercentages[obj] = (1.0 - (lastValue/initialValue))*100.0;
+            stats.bestImprovementPercentages[obj] = ((initialValue-bestValue)/initialValue)*100.0;
+            stats.lastImprovementPercentages[obj] = ((initialValue-lastValue)/initialValue)*100.0;
         }
         else
         {

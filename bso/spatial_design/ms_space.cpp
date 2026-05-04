@@ -333,6 +333,11 @@ void ms_space::reset()
 	sDefMethod = "";
 	mSpaceType = "";
 	mSurfaceTypes.clear();
+	highlightInVisualization  = false;
+	highlightInVisualization1 = false;
+	highlightInVisualization2 = false;
+	highlightInVisualization3 = false;
+	highlightInVisualization4 = false;
 } // reset()
 
 bool ms_space::checkValidity() const

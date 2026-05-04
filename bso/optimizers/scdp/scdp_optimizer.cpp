@@ -259,7 +259,7 @@ void scdp_optimizer::getDesignResults()
             mOutputManager.out("Evaluated daylight model, ADFbuildingInverse: ",false,false,mConfig.getVerbose());
             dlResult1 = mDLModelLast.back().getTotalResults().mADFBuildingInverse; // optimization runs on inverse ADF, but we have the regular ADF as well for reference
             mOutputManager.out(dlResult1,false,false,mConfig.getVerbose());
-            mOutputManager.out(", mBS-EN score: ",false,false,mConfig.getVerbose(), true);
+            mOutputManager.out(", mBS-EN score: ",true,true,mConfig.getVerbose(), true);
             dlResult2 = mDLModelLast.back().getTotalResults().mTotalScore;
             mOutputManager.out(dlResult2,true,true,mConfig.getVerbose());
             mDesignPerformances.back()(2) = dlResult1;
@@ -792,6 +792,14 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
             {
                 if (visOption == "ms") visualization::visualize(newMS,"","red_overlapping_spaces",4.0);
             }
+            if (mConfig.getMsFiles())
+            {
+                std::stringstream fileNameStream;
+                fileNameStream << mOutputManager.getVisualizationSubDir() << "ms_"
+                                << mCurrentIteration << "_red_overlapping_spaces_before_removal";
+                std::string fileName = fileNameStream.str();
+                newMS.writeToFile(fileName);
+            }
 
             for(const auto& space: overlappingSpaces)
             {
@@ -807,6 +815,14 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
         if (!mConfig.getVisualizations().empty()) for (const auto& visOption : mConfig.getVisualizations())
         {
             if (visOption == "ms") visualization::visualize(newMS,"","After_del_Mod_ms",4.0);
+        }
+        if (mConfig.getMsFiles())
+        {
+            std::stringstream fileNameStream;
+            fileNameStream << mOutputManager.getVisualizationSubDir() << "ms_"
+                            << mCurrentIteration << "_After_deleteSpace&addModification_ms";
+            std::string fileName = fileNameStream.str();
+            newMS.writeToFile(fileName);
         }
 
         // step 14, recover the number of spaces if needed.
