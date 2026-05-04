@@ -2,6 +2,7 @@
 #include <cctype>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -175,9 +176,11 @@ static bool extractIterationFromDesignFileName(const std::string& fileName, int&
 
 static bool extractIterationFromMsOrColorFileName(const std::string& fileName, int& iteration)
 {
-	// Expected patterns example:
+	// Expected patterns examples:
 	// - ms_N_worst_bp_10_ms.txt
 	// - ms_N_worst_bp_10_colors.txt
+	// - ms_N_worst_sd_1_retrieve_nr_space_delete_ms.txt
+	// - ms_0_After_deleteSpace&addModification_ms
 	std::string baseName = fileName;
 	if (endsWith(baseName, "_ms.txt"))
 	{
@@ -187,9 +190,37 @@ static bool extractIterationFromMsOrColorFileName(const std::string& fileName, i
 	{
 		baseName = baseName.substr(0, baseName.size() - std::string("_colors.txt").size());
 	}
+	else if (endsWith(baseName, "_ms"))
+	{
+		baseName = baseName.substr(0, baseName.size() - std::string("_ms").size());
+	}
+	else if (startsWith(baseName, "ms_"))
+	{
+		// Keep the full name for patterns like: ms_i__red_overlapping_spaces_before_removal
+	}
 	else
 	{
 		return false;
+	}
+
+	if (!startsWith(baseName, "ms_")) return false;
+
+	std::size_t tokenStart = 3; // After "ms_"
+	while (tokenStart < baseName.size())
+	{
+		const std::size_t tokenEnd = baseName.find('_', tokenStart);
+		const std::string token =
+			(tokenEnd == std::string::npos)
+				? baseName.substr(tokenStart)
+				: baseName.substr(tokenStart, tokenEnd - tokenStart);
+
+		if (parseUnsignedIntToken(token, iteration))
+		{
+			return true;
+		}
+
+		if (tokenEnd == std::string::npos) break;
+		tokenStart = tokenEnd + 1;
 	}
 
 	const std::size_t lastUnderscore = baseName.rfind('_');
@@ -197,6 +228,24 @@ static bool extractIterationFromMsOrColorFileName(const std::string& fileName, i
 
 	const std::string iterationToken = baseName.substr(lastUnderscore + 1);
 	return parseUnsignedIntToken(iterationToken, iteration);
+}
+
+static int extractStageOrder(const VisualizationJob& job)
+{
+	if (job.isDl) return 90;
+
+	const std::string fileName = fs::path(job.msFile).filename().string();
+
+	if (startsWith(fileName, "design_")) return 0;
+
+	if (fileName.find("_bases_Del_Mod_decision_") != std::string::npos) return 10;
+	if (fileName.find("red_overlapping_spaces_before_removal") != std::string::npos) return 20;
+	if (fileName.find("After_deleteSpace&addModification") != std::string::npos) return 30;
+	if (fileName.find("_retrieve_nr_space_delete_") != std::string::npos) return 40;
+
+	if (startsWith(fileName, "ms_")) return 50;
+
+	return 80;
 }
 
 static bool extractIterationFromDlFileName(const std::string& fileName, int& iteration)
@@ -311,7 +360,10 @@ static std::vector<VisualizationJob> collectJobs(const std::vector<std::string>&
 				continue;
 			}
 
-			if (endsWith(fileName, "_ms.txt"))
+			if (startsWith(fileName, "ms_") &&
+				(endsWith(fileName, "_ms.txt") ||
+				 endsWith(fileName, "_ms") ||
+				 fileName.find("red_overlapping_spaces_before_removal") != std::string::npos))
 			{
 				msTxtFiles.insert(fullPath);
 			}
@@ -380,6 +432,18 @@ static std::vector<VisualizationJob> collectJobs(const std::vector<std::string>&
 			if (lhsIteration != rhsIteration)
 			{
 				return lhsIteration < rhsIteration;
+			}
+
+			const int lhsStage = extractStageOrder(lhs);
+			const int rhsStage = extractStageOrder(rhs);
+			if (lhsStage != rhsStage)
+			{
+				return lhsStage < rhsStage;
+			}
+
+			if (lhs.useColor != rhs.useColor)
+			{
+				return !lhs.useColor;
 			}
 
 			if (lhs.msFile == rhs.msFile)
