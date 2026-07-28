@@ -371,7 +371,7 @@ void scdp_optimizer::getDesignResults()
                 visualization::visualize(mDLModelLast.back(), "grid", "dl_model", mConfig.getDlVisualWriteFile(), mOutputManager.getVisualizationSubDir() + "/dl_iteration_" + std::to_string(mCurrentIteration) + ".txt");
                 if (mConfig.getDlVisualWriteFile()) dlVisualAlreadyWritten = true;
             }
-            // if (visOption == "dlD" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "daylight_factor");
+            if (visOption == "dlD" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "DF");
             // if (visOption == "dlI" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "illuminance");
             if (visOption == "msw" && mCurrentIteration == mConfig.getIterations()) mswVisualized = true; // set a flag to indicate that the final MSW visualization has been done, so that it is not generated again in the outputResults() function after the optimization process is finished.
         }

@@ -263,6 +263,8 @@ namespace bso { namespace daylight {
 
 		for (int i = 0; i < SpaceID_AmountGridPoints.size(); ++i) 
 		{
+			std::vector<dl_grid_point_result> gridPointResults; // Store results for each grid point in the current space
+			
 			auto& tup = SpaceID_AmountGridPoints[i];
 			unsigned int SpaceID = std::get<0>(tup);
 			int gridPoints = std::get<1>(tup);
@@ -294,6 +296,21 @@ namespace bso { namespace daylight {
 				if (DF > Dt) {pointsExceedingDt++;}
 				if (DF > Dtm) {pointsExceedingDtm++;}
 				sumDF += DF;
+
+				// store results for each grid point.
+				dl_grid_point_result pointResult;
+				if (static_cast<std::size_t>(valuesRead - 1) < mGridPoints.size())
+				{
+					pointResult.mGridPointLocation = mGridPoints[static_cast<std::size_t>(valuesRead - 1)];
+				}
+				pointResult.mSpaceID = SpaceID;
+				pointResult.mGridPointIndex = j;
+				pointResult.horizontal_illuminance = Espace;
+				pointResult.mDF = DF;
+				pointResult.mDt = Dt;
+				pointResult.mDtm = Dtm;
+				gridPointResults.push_back(pointResult); // Store results from each grid point in the current space
+				mGridPointResults.push_back(pointResult); // Store results from each grid point in the building
 			} //gridpoint per surface
 
 			double ADF = sumDF/static_cast<double>(gridPoints); //average daylight factor per space
@@ -316,6 +333,7 @@ namespace bso { namespace daylight {
 			res.mPassDF        = passDF;
 			res.mPassDt        = passDt;
 			res.mPassDtm       = passDtm;
+			res.mGridPointResults = gridPointResults;
 			mSpaceResults.push_back(res);
 		}
 

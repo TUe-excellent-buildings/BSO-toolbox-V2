@@ -39,23 +39,17 @@ the daylight calculation will perform.
 	Build date: 2024-03-03
 	Build ID: cc0d3bfe86
 */
-	/*
-	//This struct below described the result output you obtain from your Radiance run
-	//and can be asked upon by the function getTotalResults() or partialresults(unsigned int& mID)
-	mDFpassbuilding =  the % of rooms which pass the DF targets from the NEN-norms
-	mDtbuilding = the % of rooms which pass the Dtarget 
-	mDtmbuilding = the % of rooms which pass the Dtarget minimum 
-	mTotalScore = the cumulative sum of score per room.
-	mADFbuilding = the ADF score of total building (sum of 1/ADF per room)
-	*/
-	struct dl_building_results
+
+
+	struct dl_grid_point_result
 	{
-		double mDFPassbuilding = 0.0; 
-		double mDtBuilding = 0.0;  
-		double mDtmBuilding = 0.0;  
-		double mTotalScore = 0.0; 
-		double mADFBuilding = 0.0; // true value
-		double mADFBuildingInverse = 0.0; // 1/mADFbuilding, used for optimization performance as it can be minimized.
+		bso::utilities::geometry::vertex mGridPointLocation; // 3D coordinates of the grid point
+		unsigned int mSpaceID = 0; // ID of the space/room to which the grid point belongs
+		unsigned int mGridPointIndex = 0; // Index of the grid point within the space/room corrosponding to the order in which grid points are generated and evaluated utilizing the SpaceID_AmountGridPoints variable
+		double horizontal_illuminance = 0.0; // horizontal illuminance at the grid point
+		double mDF = 0.0; // Daylight Factor at the grid point
+		double mDt = 0.0; // Daylight target value at the grid point
+		double mDtm = 0.0; // Daylight target minimum value at the grid point
 	};
 
 	// This struct stores the result output per individual space / room.
@@ -80,6 +74,26 @@ the daylight calculation will perform.
 		bool         mPassDF       = false;
 		bool         mPassDt       = false;
 		bool         mPassDtm      = false;
+		std::vector<dl_grid_point_result> mGridPointResults; // Store results for each grid point in the space		
+	};
+
+	/*
+	//This struct below described the result output you obtain from your Radiance run
+	//and can be asked upon by the function getTotalResults() or partialresults(unsigned int& mID)
+	mDFpassbuilding =  the % of rooms which pass the DF targets from the NEN-norms
+	mDtbuilding = the % of rooms which pass the Dtarget 
+	mDtmbuilding = the % of rooms which pass the Dtarget minimum 
+	mTotalScore = the cumulative sum of score per room.
+	mADFbuilding = the ADF score of total building (sum of 1/ADF per room)
+	*/
+	struct dl_building_results
+	{
+		double mDFPassbuilding = 0.0; 
+		double mDtBuilding = 0.0;  
+		double mDtmBuilding = 0.0;  
+		double mTotalScore = 0.0; 
+		double mADFBuilding = 0.0; // true value
+		double mADFBuildingInverse = 0.0; // 1/mADFbuilding, used for optimization performance as it can be minimized.
 	};
 
 	class dl_model
@@ -100,6 +114,7 @@ the daylight calculation will perform.
 		std::vector<double> DF_Settings;	
 		std::vector<double> DF_Evaluation;
 		std::string mFolderName;	// Contains both input and output files for the radiance run.
+		std::vector<dl_grid_point_result> mGridPointResults; // Store results for each grid point in the building
 		std::vector<dl_space_result> mSpaceResults; // per-space daylight results
 		dl_building_results mBuildingResults; // overall daylight results for the building
 		bool mResultsGenerated = false;           // true once results have been read from Radiance output
@@ -190,6 +205,7 @@ the daylight calculation will perform.
 		dl_building_results getPartialResults(unsigned int& mID);
 		const std::vector<dl_space_result>& getSpaceResults() const { return mSpaceResults; }
 		const dl_space_result& getSpaceResult(unsigned int& mID) const;
+		const std::vector<dl_grid_point_result>& getGridPointResults() const { return mGridPointResults; }
 
 	}; //daylight class
 	

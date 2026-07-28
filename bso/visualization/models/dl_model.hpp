@@ -13,6 +13,7 @@
 #include <cmath>
 #include <algorithm>
 #include <fstream>
+#include <iomanip>
 #include <map>
 #include <regex>
 #include <sstream>
@@ -42,11 +43,23 @@ private:
     std::list<polygon*> polygons;
 	std::list<label*> labels;
 
+	// Legend related members for DF visualization
+	struct legend_bin
+	{
+		rgba color;
+		double lower;
+		double upper;
+	};
+	bool mDrawOverlayLegend = false;
+	std::string mLegendTitle;
+	std::vector<legend_bin> mLegendBins;
+
     polygon_props pprops_window;
     polygon_props pprops_wall;
 	polygon_props pprops_wall_translucent;
 	polygon_props pprops_gridpoint;
 	polygon_props pprops_Space;
+	std::vector<polygon_props> pprops_color_gradient;
 
 	label_props lbprops;
 
@@ -214,10 +227,10 @@ DL_Model::DL_Model(const bso::daylight::dl_model& dl,
 	mType = type;
 
 	//polygon properties for windows
-	pprops_window.ambient = rgba(0.3f, 0.5f, 0.7f, 0.3f);
-	pprops_window.diffuse = rgba(0.2f, 0.6f, 0.8f, 0.3f);
-	pprops_window.specular = rgba(0.4f, 0.7f, 0.8f, 0.3f);
-	pprops_window.emission = rgba(0.0f, 0.0f, 0.0f, 0.3f);
+	pprops_window.ambient = rgba(0.3f, 0.5f, 0.7f, 0.15f);
+	pprops_window.diffuse = rgba(0.2f, 0.6f, 0.8f, 0.15f);
+	pprops_window.specular = rgba(0.4f, 0.7f, 0.8f, 0.15f);
+	pprops_window.emission = rgba(0.0f, 0.0f, 0.0f, 0.15f);
     pprops_window.shininess = 60.0f;
     pprops_window.translucent = true;
     pprops_window.twosided = true;
@@ -232,10 +245,10 @@ DL_Model::DL_Model(const bso::daylight::dl_model& dl,
     pprops_wall.twosided = true;
 
 	//polygon properties for walls/floors/ceilings to show the grid points so walls are translucent
-	pprops_wall_translucent.ambient = rgba(0.5f, 0.5f, 0.5f, 0.3f);
-	pprops_wall_translucent.diffuse = rgba(0.6f, 0.6f, 0.6f, 0.3f);
-	pprops_wall_translucent.specular = rgba(0.7f, 0.7f, 0.7f, 0.3f);
-	pprops_wall_translucent.emission = rgba(0.0f, 0.0f, 0.0f, 0.3f);
+	pprops_wall_translucent.ambient = rgba(0.5f, 0.5f, 0.5f, 0.15f);
+	pprops_wall_translucent.diffuse = rgba(0.6f, 0.6f, 0.6f, 0.15f);
+	pprops_wall_translucent.specular = rgba(0.7f, 0.7f, 0.7f, 0.15f);
+	pprops_wall_translucent.emission = rgba(0.0f, 0.0f, 0.0f, 0.15f);
     pprops_wall_translucent.shininess = 60.0f;
     pprops_wall_translucent.translucent = true;
     pprops_wall_translucent.twosided = true;
@@ -358,6 +371,152 @@ DL_Model::DL_Model(const bso::daylight::dl_model& dl,
 		{
 			this->addPoint(polygons, gridPoint, &pprops_gridpoint, &lprops_rectangles, 100.0, "pprops_gridpoint", "lprops_rectangles"); // 100mm cube size
 		}
+	}
+	else if(type == "DF")
+	{
+		mDrawOverlayLegend = true;
+		mLegendTitle = "Daylight factor legend [%]";
+		mLegendBins.clear();
+
+		// Provide a translucent vieuw of the building for reference
+		for (const auto& map : dl.getWindowProperties()) //std::vector<std::map<bso::spatial_design::conformal::cf_rectangle*, bool>> mRectangleWindowYN;
+		{
+			for (const auto& [cfRec,isWindow] : map) //for loop uses structure binding (C++17 feuature) to unpack each key-value from the map
+			{
+
+				std::vector<geom::vertex> rectangleVertices;
+				for (const auto& vertex : *cfRec) 
+				{
+					rectangleVertices.push_back(cfRec->getCenter() + vertex - cfRec->getCenter());
+				}
+
+				geom::quadrilateral rectangleGeometry(rectangleVertices);
+
+				if (isWindow==true) 
+				{
+					this->addPolygon(polygons, &rectangleGeometry, &pprops_window, &lprops_rectangles, 0.0, "pprops_window", "lprops_rectangles");
+				}
+				else if (isWindow==false)
+				{
+					this->addPolygon(polygons, &rectangleGeometry, &pprops_wall_translucent, &lprops_rectangles, 0.0, "pprops_wall_translucent", "lprops_rectangles");
+				}
+
+			} //map [rect,isWindow] loop
+		} //getWindowProperties()
+		for (const auto& i : dl.getTriangles()) //std::vector<bso::spatial_design::conformal::cf_triangle*> mTriangles;
+		{
+			std::vector<geom::vertex> triangleVertices;
+			for (const auto& vertex : *i) 
+			{
+				triangleVertices.push_back(i->getCenter() + vertex - i->getCenter());
+			}
+
+			geom::triangle triangleGeometry(triangleVertices);
+
+			this->addPolygon(polygons, &triangleGeometry, &pprops_wall_translucent, &lprops_rectangles, 0.0, "pprops_wall_translucent", "lprops_rectangles");
+		} //getTriangles()
+
+		// //boundary lines per space
+		// pprops_Space.ambient = rgba(1.0f, 1.0f, 0.04f, 0.0f);
+		// pprops_Space.diffuse = rgba(1.0f, 1.0f, 0.04f, 0.0f);
+		// pprops_Space.specular = rgba(0.04f, 0.04f, 0.04f, 0.0f);
+		// pprops_Space.emission = rgba(0.04f, 0.04f, 0.04f, 0.0f);
+		// for (const auto& i : dl.getSpacePropertiesQH())
+		// {
+		// 	this->addLabel(labels,&lbprops,std::to_string(i->getSpaceID()),i->getCenter()); // space numbers
+		// 	this->addBoundaryLinesForSpace(i); //lines
+		// }
+
+		// Ad the DF results as colored cubes at the grid points
+		const auto& gridPointResults = dl.getGridPointResults();
+		pprops_color_gradient.clear();
+		pprops_color_gradient.reserve(gridPointResults.size()); // reserve memory so addition to this vector will not invalidate the references to the polygon_props objects
+
+		// Determine the min and max DF values for normalization
+		double minDF = 0.0;
+		double maxDF = 0.0;
+		if (!gridPointResults.empty())
+		{
+			minDF = gridPointResults.front().mDF;
+			maxDF = gridPointResults.front().mDF;
+			for (const auto& gridPointResult : gridPointResults)
+			{
+				minDF = std::min(minDF, gridPointResult.mDF);
+				maxDF = std::max(maxDF, gridPointResult.mDF);
+			}
+		}
+
+		// helper function to map normalized DF values to colors (blue -> green -> yellow)
+		auto dfColor = [](double t) -> rgba
+		{
+			t = std::clamp(t, 0.0, 1.0);
+			if (t <= (1.0 / 3.0))
+			{
+				double u = t / (1.0 / 3.0);
+				return rgba(0.0f, static_cast<float>(u), 1.0f, 1.0f);
+			}
+			if (t <= (2.0 / 3.0))
+			{
+				double u = (t - (1.0 / 3.0)) / (1.0 / 3.0);
+				return rgba(0.0f, 1.0f, static_cast<float>(1.0 - u), 1.0f);
+			}
+			double u = (t - (2.0 / 3.0)) / (1.0 / 3.0);
+			return rgba(static_cast<float>(u), 1.0f, 0.0f, 1.0f);
+		};
+
+		for (const auto& gridPointResult : gridPointResults)
+		{
+			double normalizedDF = 0.0;
+			if (maxDF > minDF)
+			{
+				normalizedDF = (gridPointResult.mDF - minDF) / (maxDF - minDF);
+			}
+
+			polygon_props dfProps = pprops_gridpoint;
+			dfProps.ambient = dfColor(normalizedDF);
+			dfProps.diffuse = dfProps.ambient;
+			dfProps.specular = rgba(0.1f, 0.1f, 0.1f, 1.0f);
+			dfProps.emission = rgba(0.0f, 0.0f, 0.0f, 1.0f);
+			dfProps.shininess = 20.0f;
+			dfProps.translucent = false;
+			dfProps.twosided = false;
+			pprops_color_gradient.push_back(dfProps);
+
+			this->addPoint(polygons, gridPointResult.mGridPointLocation, &(pprops_color_gradient.back()), &lprops_rectangles, 100.0, "", "lprops_rectangles");
+		}
+
+		// Build overlay legend with 12 categories using DF value bins.
+		const unsigned int nLegendBins = 12;
+		if (!gridPointResults.empty())
+		{
+			double span = maxDF - minDF;
+			for (unsigned int i = 0; i < nLegendBins; ++i)
+			{
+				double lower = minDF;
+				double upper = maxDF;
+				if (span > 0.0)
+				{
+					lower = minDF + (static_cast<double>(i) / static_cast<double>(nLegendBins)) * span;
+					upper = minDF + (static_cast<double>(i + 1) / static_cast<double>(nLegendBins)) * span;
+				}
+
+				double tMid = (static_cast<double>(i) + 0.5) / static_cast<double>(nLegendBins);
+				legend_bin bin;
+				bin.color = dfColor(tMid);
+				bin.lower = lower;
+				bin.upper = upper;
+				mLegendBins.push_back(bin);
+			}
+		}
+
+	}
+	else if(type == "NEN")
+	{
+
+	}
+	else if(type == "Horizontal_Illuminance")
+	{
+
 	}
 	
 	pbsp = new random_bsp(polygons); 
@@ -494,6 +653,94 @@ void DL_Model::render(const camera &cam) const
 	for (lbit = labels.begin(); lbit != labels.end(); lbit++)
 	{
 		(*lbit)->render();
+	}
+
+	if (mDrawOverlayLegend && !mLegendBins.empty())
+	{
+		auto formatValue = [](double value) -> std::string
+		{
+			std::ostringstream ss;
+			double absValue = std::abs(value);
+			if (absValue >= 1000.0 || (absValue > 0.0 && absValue < 1e-3))
+			{
+				ss << std::scientific << std::setprecision(2) << value;
+			}
+			else
+			{
+				ss << std::fixed << std::setprecision(3) << value;
+			}
+			return ss.str();
+		};
+
+		int vp[4];
+		glGetIntegerv(GL_VIEWPORT, vp);
+		int viewportWidth = vp[2];
+		int viewportHeight = vp[3];
+
+		const int pad = 10;
+		const int boxW = 18;
+		const int boxH = 12;
+		const int rowGap = 5;
+		const int textXOffset = boxW + 10;
+		const int titleHeight = 16;
+		const int panelW = 340;
+		const int panelH = titleHeight + 14 + (int)mLegendBins.size() * (boxH + rowGap) + pad;
+		const int panelX = viewportWidth - panelW - pad;
+		const int panelY = viewportHeight - panelH - pad;
+
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glLoadIdentity();
+		glOrtho(0.0, (GLdouble)viewportWidth, 0.0, (GLdouble)viewportHeight, 0.0, 1.0);
+
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
+		glLoadIdentity();
+
+		glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_CURRENT_BIT);
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_LIGHTING);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glColor4f(0.0f, 0.0f, 0.0f, 0.55f);
+		glBegin(GL_QUADS);
+		glVertex3i(panelX, panelY, 0);
+		glVertex3i(panelX + panelW, panelY, 0);
+		glVertex3i(panelX + panelW, panelY + panelH, 0);
+		glVertex3i(panelX, panelY + panelH, 0);
+		glEnd();
+
+		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		glRasterPos3i(panelX + pad, panelY + panelH - titleHeight, 0);
+		for (char c : mLegendTitle) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, c);
+
+		int rowIndex = 0;
+		for (auto it = mLegendBins.rbegin(); it != mLegendBins.rend(); ++it, ++rowIndex)
+		{
+			int rowY = panelY + panelH - titleHeight - 12 - (rowIndex + 1) * (boxH + rowGap);
+
+			glColor4f(it->color[0], it->color[1], it->color[2], 1.0f);
+			glBegin(GL_QUADS);
+			glVertex3i(panelX + pad, rowY, 0);
+			glVertex3i(panelX + pad + boxW, rowY, 0);
+			glVertex3i(panelX + pad + boxW, rowY + boxH, 0);
+			glVertex3i(panelX + pad, rowY + boxH, 0);
+			glEnd();
+
+			std::string rangeText = "DF in [" + formatValue(it->lower) + ", " + formatValue(it->upper) + "]";
+
+			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+			glRasterPos3i(panelX + pad + textXOffset, rowY + 2, 0);
+			for (char c : rangeText) glutBitmapCharacter(GLUT_BITMAP_8_BY_13, c);
+		}
+
+		glPopAttrib();
+
+		glPopMatrix();
+		glMatrixMode(GL_PROJECTION);
+		glPopMatrix();
+		glMatrixMode(GL_MODELVIEW);
 	}
 	glPopAttrib();
 }
