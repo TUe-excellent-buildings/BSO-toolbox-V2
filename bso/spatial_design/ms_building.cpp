@@ -8,6 +8,7 @@
 #include <utility>
 #include <stdexcept>
 #include <exception>
+#include <array>
 #include <boost/algorithm/string.hpp>
 #include <bitset>
 
@@ -35,6 +36,18 @@ ms_building::ms_building(std::string fileName)
 	}
 	
 	std::string line;
+	std::vector<std::pair<unsigned int, std::array<bool, 5>>> highlightSpecs;
+
+	auto parseBoolToken = [](std::string text) -> bool
+	{
+		boost::algorithm::trim(text);
+		boost::algorithm::to_lower(text);
+		if (text == "1" || text == "true") return true;
+		if (text == "0" || text == "false") return false;
+		std::stringstream errorMessage;
+		errorMessage << "Could not parse highlight flag token to bool: '" << text << "'.";
+		throw std::invalid_argument(errorMessage.str());
+	};
 
 	while (!input.eof()) // Parse the input file line by line
 	{
@@ -59,6 +72,27 @@ ms_building::ms_building(std::string fileName)
 										<< "(bso/spatial_design/ms_building.cpp)." << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 			}
+			else if (line.substr(0,2) == "H," || line.substr(0,2) == "h,")
+			{ // Highlight specification line, expected format: H,spaceID,h0,h1,h2,h3,h4 (h0 to h4 are bools indicating whether to highlight in visualization, visualization1, visualization2, visualization3, and visualization4 respectively)
+				std::vector<std::string> parts;
+				boost::split(parts, line, boost::is_any_of(","));
+				if(parts.size() != 7)
+				{
+					std::stringstream errorMessage;
+					errorMessage << "Invalid highlight specification. Expected 7 comma-separated tokens: H,spaceID,h0,h1,h2,h3,h4. Got line:" << std::endl
+									 << line << std::endl;
+					throw std::invalid_argument(errorMessage.str());
+				}
+				unsigned int id = static_cast<unsigned int>(std::stoul(boost::algorithm::trim_copy(parts[1])));
+				std::array<bool, 5> flags = {
+					parseBoolToken(parts[2]),
+					parseBoolToken(parts[3]),
+					parseBoolToken(parts[4]),
+					parseBoolToken(parts[5]),
+					parseBoolToken(parts[6])
+				};
+				highlightSpecs.push_back({id, flags});
+			}
 			else
 			{
 				continue;
@@ -81,6 +115,32 @@ ms_building::ms_building(std::string fileName)
 								 << ((fileName.empty())? "the file did not contain a valid definition of a space" : fileName) << std::endl
 								 << "(bso/spatial_design/ms_building.cpp). " << std::endl;
 		throw std::invalid_argument(errorMessage.str());
+	}
+	// Check the highlight specifications for validity and apply them to the spaces
+	for (const auto& spec : highlightSpecs)
+	{
+		ms_space* target = nullptr;
+		for (auto* s : mSpaces)
+		{
+			if (s->getID() == spec.first)
+			{
+				target = s;
+				break;
+			}
+		}
+		if (!target)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Encountered highlight specification for unknown space ID " << spec.first
+							 << " while parsing file: " << fileName << std::endl
+							 << "(bso/spatial_design/ms_building.cpp)." << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+		target->highlightInVisualization = spec.second[0];
+		target->highlightInVisualization1 = spec.second[1];
+		target->highlightInVisualization2 = spec.second[2];
+		target->highlightInVisualization3 = spec.second[3];
+		target->highlightInVisualization4 = spec.second[4];
 	}
 	
 	mLastSpaceID = this->getLastSpaceID();
@@ -939,6 +999,34 @@ std::ostream& operator <<(std::ostream& stream, const ms_building& building)
 		if (!first) stream << std::endl;
 		else first = false;
 		stream << *i;
+	}
+
+	std::vector<ms_space*> highlightedSpaces;
+	for (auto i : building.getSpacePtrs())
+	{
+		if (i->highlightInVisualization || i->highlightInVisualization1 ||
+			i->highlightInVisualization2 || i->highlightInVisualization3 ||
+			i->highlightInVisualization4)
+		{
+			highlightedSpaces.push_back(i);
+		}
+	}
+
+	if (!highlightedSpaces.empty())
+	{
+		stream << std::endl << "#HIGHLIGHT_FLAGS_BEGIN";
+		for (auto i : highlightedSpaces)
+		{
+			stream << std::endl
+			       << "H,"
+			       << i->getID() << ","
+			       << (i->highlightInVisualization ? 1 : 0) << ","
+			       << (i->highlightInVisualization1 ? 1 : 0) << ","
+			       << (i->highlightInVisualization2 ? 1 : 0) << ","
+			       << (i->highlightInVisualization3 ? 1 : 0) << ","
+			       << (i->highlightInVisualization4 ? 1 : 0);
+		}
+		stream << std::endl << "#HIGHLIGHT_FLAGS_END";
 	}
 	
 	return stream;

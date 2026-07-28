@@ -8,6 +8,7 @@
 #include <utility>
 #include <stdexcept>
 #include <exception>
+#include <array>
 #include <boost/algorithm/string.hpp>
 #include <bitset>
 
@@ -40,6 +41,17 @@ ms_N_building::ms_N_building(std::string fileName)
 	}
 	
 	std::string line;
+	std::vector<std::pair<unsigned int, std::array<bool, 5>>> highlightSpecs;
+	auto parseBoolToken = [](std::string text) -> bool
+	{
+		boost::algorithm::trim(text);
+		boost::algorithm::to_lower(text);
+		if (text == "1" || text == "true") return true;
+		if (text == "0" || text == "false") return false;
+		std::stringstream errorMessage;
+		errorMessage << "Could not parse highlight flag token to bool: '" << text << "'.";
+		throw std::invalid_argument(errorMessage.str());
+	};
 
 	while (!input.eof()) // Parse the input file line by line
 	{
@@ -63,6 +75,29 @@ ms_N_building::ms_N_building(std::string fileName)
 										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 			}
+			else if (line.substr(0,2) == "H," || line.substr(0,2) == "h,")
+			{ // Highlight specification line, expected format: H,spaceID,h0,h1,h2,h3,h4 (h0 to h4 are bools indicating whether to highlight in visualization, visualization1, visualization2, visualization3, and visualization4 respectively)
+				std::vector<std::string> parts;
+				boost::split(parts, line, boost::is_any_of(","));
+				if (parts.size() != 7)
+				{
+					std::stringstream errorMessage;
+					errorMessage << "Invalid highlight specification. Expected 7 comma-separated tokens: H,spaceID,h0,h1,h2,h3,h4. Got line:" << std::endl
+									 << line << std::endl
+									 << "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+					throw std::invalid_argument(errorMessage.str());
+				}
+
+				unsigned int id = static_cast<unsigned int>(std::stoul(boost::algorithm::trim_copy(parts[1])));
+				std::array<bool, 5> flags = {
+					parseBoolToken(parts[2]),
+					parseBoolToken(parts[3]),
+					parseBoolToken(parts[4]),
+					parseBoolToken(parts[5]),
+					parseBoolToken(parts[6])
+				};
+				highlightSpecs.push_back({id, flags});
+			}
 			else
 			{
 				continue;
@@ -85,6 +120,34 @@ ms_N_building::ms_N_building(std::string fileName)
 								 << ((fileName.empty())? "the file did not contain a valid definition of a space" : fileName) << std::endl
 								 << "(bso/spatial_design/ms_N_building.cpp). " << std::endl;
 		throw std::invalid_argument(errorMessage.str());
+	}
+
+	// Check the highlight specifications for validity and apply them to the spaces.
+	for (const auto& spec : highlightSpecs)
+	{
+		ms_space* target = nullptr;
+		for (auto* s : mSpaces)
+		{
+			if (s->getID() == spec.first)
+			{
+				target = s;
+				break;
+			}
+		}
+		if (!target)
+		{
+			std::stringstream errorMessage;
+			errorMessage << "Encountered highlight specification for unknown space ID " << spec.first
+							 << " while parsing file: " << fileName << std::endl
+							 << "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+			throw std::invalid_argument(errorMessage.str());
+		}
+
+		target->highlightInVisualization = spec.second[0];
+		target->highlightInVisualization1 = spec.second[1];
+		target->highlightInVisualization2 = spec.second[2];
+		target->highlightInVisualization3 = spec.second[3];
+		target->highlightInVisualization4 = spec.second[4];
 	}
 	
 	mLastSpaceID = this->getLastSpaceID();
@@ -556,7 +619,7 @@ void ms_N_building::splitSpace(ms_space* spacePtr, const std::vector<std::pair<u
 		}
 		firstFloorDone = true;
 		
-		//find axis 0 and axis 1
+		// find axis 0 and axis 1
 		bso::utilities::geometry::vector axis0v = (axisL[0]).getVector(), axis1v = (axisL[1]).getVector();
 		for(auto j: i->getLines())
 		{
@@ -877,7 +940,7 @@ void ms_N_building::splitSpace(ms_space& space, int splitAmount, bso::utilities:
 	this->splitSpace(this->getSpacePtr(space), splitAmount, lineToSplit);
 } // splitSpace()
 
-void ms_N_building::duplicateElevation(double atZFromGround, double elevationHeight, bool duplicateBelowZLevel)
+void ms_N_building::duplicateElevation(double atZFromGround, double elevationHeight, bool duplicateBelowZLevel /*= true*/ , const double& tol /*= 1e-3*/)
 {
 	if(elevationHeight <= 0)
 	{
@@ -891,33 +954,53 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 	// Find spaces which gets intersected, connected (a horizontal Quad of space coincides with atZFromGround),
 	// or need to be shifted to be able to add an elevation
 	std::vector<int> intersectedSpaces;
-	std::vector<int> connectedSpaces;
+	std::vector<int> connectedSpacesBelow;
 	std::vector<int> connectedSpacesTop;
 	std::vector<int> toShiftSpaces;
+	intersectedSpaces.reserve(mSpaces.size());
+	connectedSpacesBelow.reserve(mSpaces.size());
+	connectedSpacesTop.reserve(mSpaces.size());
+	toShiftSpaces.reserve(mSpaces.size());
+
+	auto onPlane = [tol](double zValue, double zPlane)
+	{
+		return (zValue >= zPlane - tol && zValue <= zPlane + tol);
+	};
+
 	for (long unsigned int i=0; i<mSpaces.size(); i++)
 	{
-		bso::utilities::geometry::quad_hexahedron spaceGeom = mSpaces[i]->getGeometry();
-		bso::utilities::geometry::vertex center = spaceGeom.getCenter();
-		bso::utilities::geometry::vertex checkVertex = {center.x(),center.y(),atZFromGround};
-		if(spaceGeom.isInside(checkVertex))
+		const auto& vertices = mSpaces[i]->getVertices();
+		double minZ = vertices[0].z();
+		double maxZ = vertices[0].z();
+		for (const auto& v : vertices)
+		{
+			if (v.z() < minZ) minZ = v.z();
+			if (v.z() > maxZ) maxZ = v.z();
+		}
+
+		if(atZFromGround > minZ + tol && atZFromGround < maxZ - tol)
 		{
 			intersectedSpaces.push_back(i);
 			continue;
 		}
-		else if(spaceGeom.isInsideOrOn(checkVertex)) // only consider the spaces bellow the atZFromGround lever as a connected space
+		else if(onPlane(maxZ, atZFromGround)) // plane coincides with the top face of a space below the cut
 		{
-			if(center.z() < atZFromGround){connectedSpaces.push_back(i);} // store connected spaces bellow which is default setting
-			else{connectedSpacesTop.push_back(i);} // store connected spaces above
+			connectedSpacesBelow.push_back(i);
 		}
-		if(center.z() > atZFromGround)
+		else if(onPlane(minZ, atZFromGround)) // plane coincides with the bottom face of a space above the cut
+		{
+			connectedSpacesTop.push_back(i);
+		}
+		if(minZ >= atZFromGround - tol)
 		{
 			toShiftSpaces.push_back(i);
 		}
 	}
 
 	// switch connectedSpaces content since this is used for duplication depending on if the space above or bellow the Z line needs to be duplicated.
+	std::vector<int> connectedSpaces = connectedSpacesBelow;
 	if(!duplicateBelowZLevel){connectedSpaces = connectedSpacesTop;}
-	else if(connectedSpaces.size() == 0 && connectedSpacesTop.size() > 0){connectedSpaces = connectedSpacesTop;} // this ensure that at least one of the two is used if the default setting was not sufficient to avoid the error message
+	else if(connectedSpaces.size() == 0 && connectedSpacesTop.size() > 0){connectedSpaces = connectedSpacesTop;} // this ensure that at least one of the two is used if the default setting was not sufficient to avoid the following error message
 
 	// Error message if the inserted atZFromGround is invalid
 	if(intersectedSpaces.size() == 0 && connectedSpaces.size() == 0)
@@ -932,6 +1015,9 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 	// Shift the to shift spaces
 	for(const int i: toShiftSpaces)
 	{
+		// Highlight the spaces which are shifted in the visualization
+		mSpaces[i]->highlightInVisualization = true;
+		
 		// Define the new pVertex vector of considered space
 		std::vector <utilities::geometry::vertex> pVert;
 		utilities::geometry::vertex temp;
@@ -1034,21 +1120,32 @@ void ms_N_building::duplicateElevation(double atZFromGround, double elevationHei
 	}
 } //duplicateElevation()
 
-void ms_N_building::shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHeadingDirection /*= false*/, int amountOfHeadingCatagories /* = 6 */, bool verbose /*=false*/, const double& tol /*= 1e-3*/)
+void ms_N_building::shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHeadingDirection /*= false*/, int amountOfAzimuthCategories /* = 6 */, bool verbose /*=false*/, const double& tol /*= 1e-3*/,
+	shift_fill_plane_centre_debug_data* debugData /*= nullptr*/)
 {
 	bso::utilities::geometry::vertex location = this->getCentreBuilding();
-	bso::utilities::geometry::vector mostHeading;
-	bso::utilities::geometry::vector secondMostHeading;
-	this->getMostHeadingDirection(mostHeading, secondMostHeading, amountOfHeadingCatagories);
+	bso::utilities::geometry::vector mostAzimuth;
+	bso::utilities::geometry::vector secondMostAzimuth;
+	this->getMostAzimuthDirection(mostAzimuth, secondMostAzimuth, amountOfAzimuthCategories);
 	if(verbose) 
 	{
-		std::cout << "\tmostHeading is: " << mostHeading << std::endl;
-		std::cout << "\tsecondMostHeading is: " << secondMostHeading << std::endl;
+		std::cout << "\tmostAzimuth is: " << mostAzimuth << std::endl;
+		std::cout << "\tsecondMostAzimuth is: " << secondMostAzimuth << std::endl;
 	}
 	
 	bso::utilities::geometry::vector shiftDirection;
-	if(shiftInMostHeadingDirection == false){shiftDirection = {mostHeading.y(),-mostHeading.x(),0};}
-	else{shiftDirection = {mostHeading.x(),mostHeading.y(),0};}
+	if(shiftInMostHeadingDirection == false){shiftDirection = {mostAzimuth.y(),-mostAzimuth.x(),0};}
+	else{shiftDirection = {mostAzimuth.x(),mostAzimuth.y(),0};}
+
+	if (debugData)
+	{
+		*debugData = shift_fill_plane_centre_debug_data();
+		debugData->location = location;
+		debugData->mostAzimuth = mostAzimuth;
+		debugData->secondMostAzimuth = secondMostAzimuth;
+		debugData->shiftDirection = shiftDirection;
+		debugData->appliedDirection = shiftDirection;
+	}
 
 	if(verbose) 
 	{
@@ -1061,6 +1158,12 @@ void ms_N_building::shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHea
 	std::vector<ms_space*> partialSpaces;
 	std::vector<bool> shiftIssueSpaces;
 	auto selection = this->selectSpacesGeometrically(location, shiftDirection, notSelectedSpaces, partialSpaces,true,true);
+	if (debugData)
+	{
+		for (const auto* s : selection) debugData->selectedSpaces.push_back(s->getGeometry());
+		for (const auto* s : notSelectedSpaces) debugData->notSelectedSpaces.push_back(s->getGeometry());
+		for (const auto* s : partialSpaces) debugData->partialSpaces.push_back(s->getGeometry());
+	}
 	if(selection.size() == 0 && notSelectedSpaces.size() == 0)
 	{
 		std::stringstream errorMessage;
@@ -1075,7 +1178,45 @@ void ms_N_building::shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHea
 	if(selection.size() != 0 && notSelectedSpaces.size() != 0)
 	{
 		if(verbose) {std::cout << "\tFound spaces on both sides of the plane so shiftFillPlane() is used." << std::endl;}
-		std::vector<bso::spatial_design::ms_space*> newSpaces = this->shiftFillPlane(location, shiftDirection, shiftAmount, tol, verbose);
+		std::vector<bso::spatial_design::ms_space*> newSpaces;
+		try
+		{
+			newSpaces = this->shiftFillPlane(location, shiftDirection, shiftAmount, true, 20.0, tol, verbose,
+				(debugData ? &debugData->selectedSideShiftDebug : nullptr));
+			if (debugData)
+			{
+				debugData->usedShiftSelectedSide = true;
+				debugData->appliedDirection = shiftDirection;
+			}
+		}
+		catch (const std::invalid_argument& e)
+		{
+			if (debugData) debugData->selectedSideShiftError = e.what();
+			if(verbose)
+			{
+				std::cout << "\tNo overlap-based infill spaces from selected side; retrying non-selected side." << std::endl;
+				std::cout << "\tThe following error was found: \n" << e.what();
+			}
+			try
+			{
+				newSpaces = this->shiftFillPlane(location, shiftDirection, shiftAmount, false, 20.0, tol, verbose,
+					(debugData ? &debugData->nonSelectedSideShiftDebug : nullptr));
+				if (debugData)
+				{
+					debugData->usedShiftNonSelectedSide = true;
+					debugData->appliedDirection = shiftDirection;
+				}
+			}
+			catch (const std::invalid_argument& e)
+			{
+				if (debugData) debugData->nonSelectedSideShiftError = e.what();
+				std::stringstream errorMessage;
+				errorMessage << "No new spaces are found to be added after the shiftFillPlaneCentre()" << std::endl
+										<< "the following error occured: \n" << e.what() << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+			}
+		}
 		if(newSpaces.size() == 0)
 		{
 			std::stringstream errorMessage;
@@ -1087,13 +1228,27 @@ void ms_N_building::shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHea
 	else if(selection.size() == 0 && partialSpaces.size() != 0)
 	{
 		if(verbose) {std::cout << "\tFound spaces on one side of the plane so extrude() is used." << std::endl;}
-		this->extrude(partialSpaces, location, shiftDirection, shiftAmount, tol);
+		if (debugData)
+		{
+			debugData->usedExtrude = true;
+			debugData->flippedExtrudeDirection = false;
+			debugData->appliedDirection = shiftDirection;
+		}
+		this->extrude(partialSpaces, location, shiftDirection, shiftAmount, tol,
+			(debugData ? &debugData->extrudeDebug : nullptr));
 	}
 	else if(notSelectedSpaces.size() == 0 && partialSpaces.size() != 0)
 	{
 		if(verbose) {std::cout << "\tFound spaces on one side of the plane so extrude() is used." << std::endl;}
 		shiftDirection*=-1;
-		this->extrude(partialSpaces, location, shiftDirection, shiftAmount, tol);
+		if (debugData)
+		{
+			debugData->usedExtrude = true;
+			debugData->flippedExtrudeDirection = true;
+			debugData->appliedDirection = shiftDirection;
+		}
+		this->extrude(partialSpaces, location, shiftDirection, shiftAmount, tol,
+			(debugData ? &debugData->extrudeDebug : nullptr));
 	}
 	else
 	{
@@ -1108,7 +1263,572 @@ void ms_N_building::shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHea
 } // shiftFillPlaneCentre()
 
 std::vector<bso::spatial_design::ms_space*> ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& location,
-		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol /*= 1e-3*/, bool verbose /*= false*/)
+		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const bool extrudeFromSelectedSide, double minimalSpaceAngle /*= 20.0*/, const double& tol /*= 1e-3*/, bool verbose /*= false*/,
+		shift_fill_plane_debug_data* debugData /*= nullptr*/) // # shiftFillPlane2
+{	
+	if(shiftDirection.z() > 0 || (shiftDirection.x() <= tol && shiftDirection.x() >= -tol && shiftDirection.y() <= tol && shiftDirection.y() >= -tol))
+	{
+		std::stringstream errorMessage;
+				errorMessage << "There is no valid shift Direction defined." << std::endl
+										<< "The inserted shift Direction is: " << shiftDirection << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+	}
+	if(shiftAmount <= 1000)
+	{
+		std::stringstream errorMessage;
+				errorMessage << "The shift amount should be larger then zero." << std::endl
+										<< "The inserted shift amount is: " << shiftAmount << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+	}
+	if(!shiftDirection.isHorizontal())
+	{
+		std::stringstream errorMessage;
+				errorMessage << "The defined shift direction is not horizontal as it should be." << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+	}
+	if(shiftDirection.isZero(tol))
+	{
+		std::stringstream errorMessage;
+				errorMessage << "The defined shift direction is of zero length." << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+	}
+	
+	// Normalize the shiftDirection for convenience of later use
+	auto n = shiftDirection.normalized();
+	bso::utilities::geometry::vector perpendicularToN = {n.y(),-n.x(),0};
+	bso::utilities::geometry::vector locationZ0 = {location.x(),location.y(),0};
+	bso::utilities::geometry::line_segment planeZ0line = {locationZ0, locationZ0+perpendicularToN};
+	
+	// Find spaces to shift
+	std::vector<ms_space*> notSelectedSpaces;
+	std::vector<ms_space*> partialSpaces;
+	std::vector<bool> shiftIssueSpaces;
+	auto selection = this->selectSpacesGeometrically(location, shiftDirection, notSelectedSpaces, partialSpaces,true,true);
+
+	if (debugData)
+	{
+		debugData->selectedSpaces.clear();
+		debugData->notSelectedSpaces.clear();
+		debugData->partialSpaces.clear();
+		debugData->toughingSQuadsPreDedup.clear();
+		debugData->toughingNSQuadsPreDedup.clear();
+		debugData->toughingSQuadsPostDedup.clear();
+		debugData->toughingNSQuadsPostDedup.clear();
+		debugData->linesAtFloorFlattened.clear();
+		debugData->linesAtFloorReferenceSpaces.clear();
+		debugData->shiftedSpaces.clear();
+
+		for (const auto* s : selection) debugData->selectedSpaces.push_back(s->getGeometry());
+		for (const auto* s : notSelectedSpaces) debugData->notSelectedSpaces.push_back(s->getGeometry());
+		for (const auto* s : partialSpaces) debugData->partialSpaces.push_back(s->getGeometry());
+	}
+	
+	std::vector<ms_space*> selectionShiftIssue;
+	if(selection.size() == 0 || notSelectedSpaces.size() == 0)
+	{
+		std::stringstream errorMessage;
+				errorMessage << "There are no spaces found to be shifted or no spaces found to not be shifted. " << std::endl
+										<< "the nr of spaces to be shifted are: " << selection.size() << " and the nr of spaces not be be shifted" << notSelectedSpaces.size() << std::endl
+										<< "the nr of partial spaces found are: " << partialSpaces.size() << std::endl
+										<< "Inserted a different plane, not of location: " << location << "and shiftDirection" << shiftDirection << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+	}
+	
+	// Identify toughing & coplanar quads between selected and non-selected spaces and store the levels of the floor for later use:
+	std::vector<bso::utilities::geometry::quadrilateral> toughingSQuads; // toughing and coplanar quads between selected and non-selected spaces which are not horizontal planes
+	std::vector<bso::utilities::geometry::quadrilateral> toughingNSQuads; // toughing and coplanar quads between selected and non-selected spaces which are vertical planes
+	std::vector<bso::utilities::geometry::quadrilateral> toughingSHQuads; // toughing and coplanar quads between selected and non-selected spaces which are horizontal planes
+	std::vector<bso::utilities::geometry::quadrilateral> toughingNSHQuads; // toughing and coplanar quads between selected and non-selected spaces which are horizontal planes
+
+	auto deduplicateQuads = [tol](std::vector<bso::utilities::geometry::quadrilateral>& quads)
+	{
+		std::vector<bso::utilities::geometry::quadrilateral> unique;
+		unique.reserve(quads.size());
+		for (const auto& q : quads)
+		{
+			bool duplicate = false;
+			for (const auto& u : unique)
+			{
+				if (q.isSameAs(u, tol))
+				{
+					duplicate = true;
+					break;
+				}
+			}
+			if (!duplicate) unique.push_back(q);
+		}
+		quads.swap(unique);
+	};
+
+	auto computeQuadBounds = [](const bso::utilities::geometry::quadrilateral& quad)
+	{
+		std::array<double, 6> b = {
+			(*quad.begin()).x(), (*quad.begin()).x(),
+			(*quad.begin()).y(), (*quad.begin()).y(),
+			(*quad.begin()).z(), (*quad.begin()).z()};
+		for (const auto& v : quad)
+		{
+			if (v.x() < b[0]) b[0] = v.x();
+			if (v.x() > b[1]) b[1] = v.x();
+			if (v.y() < b[2]) b[2] = v.y();
+			if (v.y() > b[3]) b[3] = v.y();
+			if (v.z() < b[4]) b[4] = v.z();
+			if (v.z() > b[5]) b[5] = v.z();
+		}
+		return b;
+	};
+
+	auto coplanarRectanglesOverlap = [tol, &computeQuadBounds](
+		const bso::utilities::geometry::quadrilateral& q1,
+		const bso::utilities::geometry::quadrilateral& q2)
+	{
+		const auto b1 = computeQuadBounds(q1);
+		const auto b2 = computeQuadBounds(q2);
+
+		bool overlaps = true;
+		if (b1[0]-tol < b1[1] && b1[0]+tol > b1[1] && b2[0]-tol < b2[1] && b2[0]+tol > b2[1])
+		{
+			if (b1[2]+tol > b2[3] || b2[2]+tol > b1[3] || b1[4]+tol > b2[5] || b2[4]+tol > b1[5]) overlaps = false;
+		}
+		else if (b1[2]-tol < b1[3] && b1[2]+tol > b1[3] && b2[2]-tol < b2[3] && b2[2]+tol > b2[3])
+		{
+			if (b1[0]+tol > b2[1] || b2[0]+tol > b1[1] || b1[4]+tol > b2[5] || b2[4]+tol > b1[5]) overlaps = false;
+		}
+		else if (b1[4]-tol < b1[5] && b1[4]+tol > b1[5] && b2[4]-tol < b2[5] && b2[4]+tol > b2[5])
+		{
+			if (b1[0]+tol > b2[1] || b2[0]+tol > b1[1] || b1[2]+tol > b2[3] || b2[2]+tol > b1[3]) overlaps = false;
+		}
+		else
+		{
+			if (b1[0]+tol > b2[1] || b2[0]+tol > b1[1] ||
+				b1[2]+tol > b2[3] || b2[2]+tol > b1[3] ||
+				b1[4]+tol > b2[5] || b2[4]+tol > b1[5]) overlaps = false;
+		}
+		return overlaps;
+	};
+
+	for (long unsigned int i=0; i<selection.size(); i++)
+	{	
+		bool spaceBreak = false;
+		bso::utilities::geometry::quad_hexahedron spaceGeomS = selection[i]->getGeometry();
+		std::vector<bso::utilities::geometry::quadrilateral> QuadS = spaceGeomS.getQuadrilateral();
+
+		for (auto& j : notSelectedSpaces)
+		{
+			if(j == selection [i]){continue;}
+			bso::utilities::geometry::quad_hexahedron spaceGeomNS = j->getGeometry();
+			std::vector<bso::utilities::geometry::quadrilateral> QuadNS = spaceGeomNS.getQuadrilateral();
+
+			for(const auto& k: QuadS)
+			{
+				bool QuadSisVertical = k.getNormal().isVertical(); // if true then a horizontal plane is considered
+				
+				std::vector<bso::utilities::geometry::line_segment> linesk = k.getLines();
+				for(const auto& t: QuadNS)
+				{
+					if(QuadSisVertical && t.getNormal().isVertical()) // both are horizontal planes
+					{
+						// Now not used, but a methodology could be defined in the future.
+						// if(!k.isCoplanar(t[0], tol) || !k.isCoplanar(t[2], tol)) continue; // the ID 0 and 2 vertices are opposing vertices therefore if hold then quads are coPlanar
+						// bool anyIsInside = false;
+						// for(const auto& v: t)
+						// {
+						// 	if(k.isInside(v, tol))
+						// 	{
+						// 		anyIsInside = true;
+						// 		break;
+						// 	}
+						// }
+						// if(!anyIsInside)
+						// {
+						// 	for(const auto& v: k)
+						// 	{
+						// 		if(t.isInside(v, tol))
+						// 		{
+						// 			anyIsInside = true;
+						// 			break;
+						// 		}
+						// 	}
+						// }
+						// if(anyIsInside)
+						// {					
+						// 	toughingSHQuads.push_back(k);
+						// 	toughingNSHQuads.push_back(t);
+						// 	break;
+						// }
+					}
+					else
+					{					
+						if(QuadSisVertical) {continue;} // only consider two vertical planes in the following
+						if(!k.isCoplanar(t[0], tol) || !k.isCoplanar(t[2], tol)) continue; // the ID 0 and 2 vertices are opposing vertices therefore if hold then quads are coPlanar						
+
+						// Check if co-planar rectangles overlap.
+						bool addQuadif = coplanarRectanglesOverlap(k, t);
+
+						// If quads overlap, then perform adding quad checks:
+						if(addQuadif)
+						{
+							toughingSQuads.push_back(k);
+							toughingNSQuads.push_back(t);
+						}
+					}
+				}
+				if(spaceBreak) break;
+			}
+			if(spaceBreak) break;
+		}
+	}
+	if(selection.size() == 0 || notSelectedSpaces.size() == 0)
+	{
+		std::stringstream errorMessage;
+				errorMessage << "There are no spaces found to be shifted after searching for Quads. " << std::endl
+										<< "Meaning that spaces where removed from being shifted because they would run into non-moving spaces " << std::endl
+										<< "the nr of spaces to be shifted are: " << selection.size() << "and the nr of spaces not be be shifted" << notSelectedSpaces.size() << std::endl
+										<< "Inserted a different plane, not of location: " << location << "and shiftDirection" << shiftDirection << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+	}
+	if(toughingSQuads.size() == 0 || toughingNSQuads.size() == 0)
+	{
+		std::stringstream errorMessage;
+				errorMessage << "There are no toughing surfaces found so no new spaces between shifted and non shifted spaces can be defined. " << std::endl
+										<< "the nr of spaces to be shifted are: " << selection.size() << " and the nr of spaces not be be shifted: " << notSelectedSpaces.size() << std::endl
+										<< "Inserted a different plane, not of location: " << location << "and shiftDirection" << shiftDirection << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp). #shiftFillPlane2" << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+	}
+
+	if (debugData)
+	{
+		debugData->toughingSQuadsPreDedup = toughingSQuads;
+		debugData->toughingNSQuadsPreDedup = toughingNSQuads;
+	}
+
+	// Remove duplicates after the main matching loop to keep downstream logic clean.
+	deduplicateQuads(toughingSQuads);
+	deduplicateQuads(toughingNSQuads);
+	deduplicateQuads(toughingSHQuads);
+	deduplicateQuads(toughingNSHQuads);
+
+	if (debugData)
+	{
+		debugData->toughingSQuadsPostDedup = toughingSQuads;
+		debugData->toughingNSQuadsPostDedup = toughingNSQuads;
+	}
+
+	// Specify which quadrilaterals will be extruded.
+	std::vector<bso::utilities::geometry::quadrilateral> extrudeQuads = extrudeFromSelectedSide ? toughingSQuads : toughingNSQuads;
+	std::vector<bso::utilities::geometry::quadrilateral> nonExtrudeQuads = extrudeFromSelectedSide ? toughingNSQuads : toughingSQuads;
+
+	// Split extrude quadrilaterals in case these intersect.
+	//
+	//					selected space
+	//		         ____________
+	//      	   	 	  |
+	// non-selected space | selected space
+	//
+	// The example above shows a top view of a situation where a quadrilateral
+	// would intersect with another quadrilateral as may result 
+	// from a Quad which extends past the non-selected space as in the example. 
+	// In this case, the quadrilateral are split at the intersection point to create
+	// two separate quadrilaterals, so that the quadrilateral not between the non-selected
+	// and selected space can be removed in the subsequent loop.
+	// This avoids the generation of a space which intersect with another space. 
+
+	// Helper split Quad vertically function:
+	auto splitVerticalQuad = [tol](const bso::utilities::geometry::quadrilateral& q,
+                               const bso::utilities::geometry::vertex& splitPoint)
+		-> std::vector<bso::utilities::geometry::quadrilateral>
+	{
+		auto sameXY = [tol](const bso::utilities::geometry::vertex& a,
+							const bso::utilities::geometry::vertex& b)
+		{
+			return std::abs(a.x() - b.x()) <= tol && std::abs(a.y() - b.y()) <= tol;
+		};
+
+		const auto& lines = q.getLines();
+		std::vector<bso::utilities::geometry::line_segment> horizontalEdges;
+		for (const auto& edge : lines)
+		{
+			if (!edge.getVector().isVertical())
+			{
+				horizontalEdges.push_back(edge);
+			}
+		}
+
+		if (horizontalEdges.size() != 2)
+		{
+			throw std::invalid_argument("Expected exactly two horizontal edges.");
+		}
+
+		const bso::utilities::geometry::line_segment* lowerEdge = &horizontalEdges[0];
+		const bso::utilities::geometry::line_segment* upperEdge = &horizontalEdges[1];
+		if (lowerEdge->getCenter().z() > upperEdge->getCenter().z())
+		{
+			std::swap(lowerEdge, upperEdge);
+		}
+
+		bso::utilities::geometry::vertex lower0 = (*lowerEdge)[0];
+		bso::utilities::geometry::vertex lower1 = (*lowerEdge)[1];
+		bso::utilities::geometry::vertex upper0 = (*upperEdge)[0];
+		bso::utilities::geometry::vertex upper1 = (*upperEdge)[1];
+
+		bso::utilities::geometry::vertex lowerLeft;
+		bso::utilities::geometry::vertex lowerRight;
+		bso::utilities::geometry::vertex upperLeft;
+		bso::utilities::geometry::vertex upperRight;
+
+		if (sameXY(lower0, upper0))
+		{
+			lowerLeft = lower0;
+			lowerRight = lower1;
+			upperLeft = upper0;
+			upperRight = upper1;
+		}
+		else if (sameXY(lower0, upper1))
+		{
+			lowerLeft = lower0;
+			lowerRight = lower1;
+			upperLeft = upper1;
+			upperRight = upper0;
+		}
+		else
+		{
+			throw std::invalid_argument("Could not match vertical edges while splitting quad.");
+		}
+
+		bso::utilities::geometry::vertex splitBottom = {
+			splitPoint.x(), splitPoint.y(), lowerEdge->getCenter().z()
+		};
+		bso::utilities::geometry::vertex splitTop = {
+			splitPoint.x(), splitPoint.y(), upperEdge->getCenter().z()
+		};
+
+		std::vector<bso::utilities::geometry::quadrilateral> results;
+		results.emplace_back(std::initializer_list<bso::utilities::geometry::vertex>{
+			lowerLeft, splitBottom, splitTop, upperLeft
+		}, tol);
+		results.emplace_back(std::initializer_list<bso::utilities::geometry::vertex>{
+			splitBottom, lowerRight, upperRight, splitTop
+		}, tol);
+		return results;
+	};
+
+	// Actual loop splitting the quads if needed.
+	bool changed = true;
+	while (changed)
+	{
+		changed = false;
+
+		for (std::size_t i = 0; i < extrudeQuads.size() && !changed; ++i)
+		{
+			for (std::size_t j = 0; j < extrudeQuads.size(); ++j)
+			{
+				if (i == j) continue;
+
+				bool intersects = false;
+				bso::utilities::geometry::vertex splitPoint;
+
+				bool onHorizontalEdge1 = false;
+				for (const auto& v : extrudeQuads[i])
+				{
+					if(extrudeQuads[j].isInside(v, tol))
+					{
+						intersects = true;
+						splitPoint = v;
+						break;
+					}
+					for(const auto& line : extrudeQuads[j].getLines())
+					{
+						if(line.getVector().isVertical()) continue; // only consider horizontal lines
+						if(line.isOnLine(v, tol) && onHorizontalEdge1 == false && !line[0].isSameAs(v, tol) && !line[1].isSameAs(v, tol))
+						{
+							onHorizontalEdge1 = true;
+						}
+						else if(line.isOnLine(v, tol) && onHorizontalEdge1 == true && !line[0].isSameAs(v, tol) && !line[1].isSameAs(v, tol))
+						{
+							// Then both the top and bottom edge of the quad is intersected, thus quad needs to be split in two.
+							intersects = true;
+							splitPoint = v;
+							break;
+						}
+					}
+				}
+
+				if (!intersects) continue;
+
+				auto splitQuads = splitVerticalQuad(extrudeQuads[j], splitPoint);
+				extrudeQuads.erase(extrudeQuads.begin() + j);
+				extrudeQuads.insert(extrudeQuads.end(), splitQuads.begin(), splitQuads.end());
+
+				changed = true;
+				break;
+			}
+		}
+	}
+
+	// Check if any of the extrudeQuads now do not (at least partly) overlap with the non-extrudeQuads. 
+	// If so, remove these from the extrudeQuads as these would generate spaces which intersect other spaces.
+	for(std::size_t i = 0; i < extrudeQuads.size();)
+	{
+		bool overlapsNonExtrudeQuad = false;
+		for(std::size_t j = 0; j < nonExtrudeQuads.size(); ++j)
+		{
+			if(!extrudeQuads[i].isCoplanar(nonExtrudeQuads[j][0], tol) || !extrudeQuads[i].isCoplanar(nonExtrudeQuads[j][2], tol)) continue; // the ID 0 and 2 vertices are opposing vertices therefore if hold then quads are coPlanar						
+
+			// Check if co-planar rectangles overlap.
+			overlapsNonExtrudeQuad = coplanarRectanglesOverlap(extrudeQuads[i], nonExtrudeQuads[j]);
+			if(overlapsNonExtrudeQuad){break;}
+		}
+		if(!overlapsNonExtrudeQuad)
+		{ // remove from extrude quad if it does not overlap
+			extrudeQuads.erase(extrudeQuads.begin() + i);
+		}
+		else{++i;}
+	}
+	
+	if (debugData)
+	{
+		debugData->extrudingQuadsPostSplit = extrudeQuads;
+	}
+
+	// Define new spaces by extruding the extrudeQuads.
+	std::vector<std::vector<bso::utilities::geometry::vertex>> testSpaceVertices;
+	for(long unsigned int i=0; i<extrudeQuads.size(); i++)
+	{
+		std::vector<utilities::geometry::vertex> vertexes;
+		
+		// Check if Quad generates a viable new space
+		bso::utilities::geometry::vector extrudeVector = n * shiftAmount;
+		bso::utilities::geometry::vector quadNormal = extrudeQuads[i].getNormal();
+		double normalAngle;
+		if(!quadNormal.getSmallestAngle(extrudeVector, normalAngle, tol))
+		{
+			if(verbose){std::cout << "Error: Skipping quad due to undefined angle between quad normal and shift direction." << std::endl;}
+			continue; 
+		}
+
+		// The angle between the extrusion direction and the quadrilateral plane should be
+		// sufficiently large. If it is too small, the resulting space becomes too narrow;
+		// if it is zero, the translated quad remains coplanar with the original.
+		double outOfPlaneAngle = 90.0 - normalAngle;
+		if(abs(outOfPlaneAngle) <= minimalSpaceAngle - tol)
+		{
+			continue; // as the new space is to narrow or could be coplanar with the extrude direction.
+		}
+
+		// Add original Quads vertices
+		for(const auto& v: extrudeQuads[i])
+		{
+			vertexes.push_back(v);
+		}
+		// Add transposed Quad vertices
+		for(const auto& v: extrudeQuads[i])
+		{
+			vertexes.push_back(v + n * shiftAmount);
+		}
+
+		testSpaceVertices.push_back(vertexes);
+	}
+
+	// Define the shifted selected spaces, but not add yet, so it can be used to check the testSpaceGeoms.
+	std::vector<std::vector<bso::utilities::geometry::vertex>> shiftedSelectedSpaceVertices; // index corresponds with index of selection, so shiftedSelectedSpaceGeoms[i] are the shifted vertexes of selection[i]
+	for (auto& i : selection)
+	{
+		i->highlightInVisualization = true;
+		bso::utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
+		std::vector<utilities::geometry::vertex> pVert;
+		utilities::geometry::vertex temp;
+		for(const auto& j: spaceGeom.getVertices())
+		{
+			temp = j + n * shiftAmount;
+			pVert.push_back(temp);
+		}
+		shiftedSelectedSpaceVertices.push_back(pVert);
+	}
+
+	// Check testSpaceGeom for new spaces which may interfere with existing spaces
+	for(std::size_t i = 0; i < testSpaceVertices.size();)
+	{
+		bool interferesWithExistingSpace = false;
+		bso::utilities::geometry::quad_hexahedron testSpaceGeom(testSpaceVertices[i], tol);
+		for(const auto& s: shiftedSelectedSpaceVertices)
+		{
+			bso::utilities::geometry::quad_hexahedron shiftedSpaceGeom(shiftedSelectedSpaceVertices[i], tol);
+			if(shiftedSpaceGeom.hexahedraOverlapStrict(testSpaceGeom, tol))
+			{
+				interferesWithExistingSpace = true;
+				break;
+			}
+		}
+		if(!interferesWithExistingSpace)
+		{
+			for(const auto& s: notSelectedSpaces)
+			{
+				if(s->getGeometry().hexahedraOverlapStrict(testSpaceGeom, tol))
+				{
+					interferesWithExistingSpace = true;
+					break;
+				}
+			}
+		}
+		if(interferesWithExistingSpace)
+		{
+			testSpaceVertices.erase(testSpaceVertices.begin() + i);
+		}
+		else{i++;}
+	}
+
+	// Add the valid testSpaceGeoms as the new spaces to the building
+	std::vector<bso::spatial_design::ms_space*> newSpaces;
+	for(const auto& vertexes: testSpaceVertices)
+	{
+		int newID = mSpaces.back()->getID();
+		newID++;
+		mSpaces.push_back(new ms_space());
+		mSpaces.back()->setID(newID);
+		mSpaces.back()->setPVertex(vertexes);
+		mSpaces.back()->highlightInVisualization1 = true;
+		newSpaces.push_back(mSpaces.back());
+	}
+
+	if(newSpaces.size() == 0)
+	{
+		std::stringstream errorMessage;
+		errorMessage << "No overlap-based infill spaces could be generated in shiftFillPlane2()." << std::endl
+						 << "The amount of extruded quadrilaterals which were found to be extrudable is: " << extrudeQuads.size() << std::endl
+						 << "The number of spaces which were found to be shifted is: " << selection.size() << std::endl
+						 << "and the number of spaces found to not be shifted is: " << notSelectedSpaces.size() << std::endl
+						 << "Maybe try another plane location and shift direction." << std::endl
+						 << "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+		throw std::invalid_argument(errorMessage.str());
+	}
+
+	// Shift selected spaces to create the gap.
+	for (std::size_t i = 0; i < shiftedSelectedSpaceVertices.size(); i++)
+	{
+		selection[i]->highlightInVisualization = true;
+		selection[i]->setPVertex(shiftedSelectedSpaceVertices[i]);
+		if (debugData) debugData->shiftedSpaces.push_back(selection[i]->getGeometry());
+	}
+
+	if(verbose)
+	{
+		std::cout << "shiftFillPlane2() created " << newSpaces.size() << " overlap-based infill spaces using "
+				  << (extrudeFromSelectedSide ? "selected" : "non-selected") << " side as source." << std::endl;
+	}
+
+	return newSpaces;
+} // shiftFillPlane2
+
+std::vector<bso::spatial_design::ms_space*> ms_N_building::shiftFillPlane(const bso::utilities::geometry::vertex& location,
+		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol /*= 1e-3*/, bool verbose /*= false*/,
+		shift_fill_plane_debug_data* debugData /*= nullptr*/)
 {	
 	if(shiftDirection.z() > 0 || (shiftDirection.x() <= tol && shiftDirection.x() >= -tol && shiftDirection.y() <= tol && shiftDirection.y() >= -tol))
 	{
@@ -1150,8 +1870,25 @@ std::vector<bso::spatial_design::ms_space*> ms_N_building::shiftFillPlane(const 
 	// Find spaces to shift
 	std::vector<ms_space*> notSelectedSpaces;
 	std::vector<ms_space*> partialSpaces;
-	std::vector<bool> shiftIssueSpaces;
 	auto selection = this->selectSpacesGeometrically(location, shiftDirection, notSelectedSpaces, partialSpaces,true,true);
+
+	if (debugData)
+	{
+		debugData->selectedSpaces.clear();
+		debugData->notSelectedSpaces.clear();
+		debugData->partialSpaces.clear();
+		debugData->toughingSQuadsPreDedup.clear();
+		debugData->toughingNSQuadsPreDedup.clear();
+		debugData->toughingSQuadsPostDedup.clear();
+		debugData->toughingNSQuadsPostDedup.clear();
+		debugData->linesAtFloorFlattened.clear();
+		debugData->linesAtFloorReferenceSpaces.clear();
+		debugData->shiftedSpaces.clear();
+
+		for (const auto* s : selection) debugData->selectedSpaces.push_back(s->getGeometry());
+		for (const auto* s : notSelectedSpaces) debugData->notSelectedSpaces.push_back(s->getGeometry());
+		for (const auto* s : partialSpaces) debugData->partialSpaces.push_back(s->getGeometry());
+	}
 	
 	std::vector<ms_space*> selectionShiftIssue;
 	if(selection.size() == 0 || notSelectedSpaces.size() == 0)
@@ -1166,11 +1903,78 @@ std::vector<bso::spatial_design::ms_space*> ms_N_building::shiftFillPlane(const 
 	}
 	
 	// Identify toughing & coplanar quads between selected and non-selected spaces and store the levels of the floor for later use:
-	std::vector<bso::utilities::geometry::quadrilateral> toughingSQuads;
-	std::vector<bso::utilities::geometry::quadrilateral> toughingNSQuads;
-	std::vector<bso::utilities::geometry::quadrilateral> toughingSHQuads;
-	std::vector<bso::utilities::geometry::quadrilateral> toughingNSHQuads;
-	std::vector<double> allLevels;
+	std::vector<bso::utilities::geometry::quadrilateral> toughingSQuads; // toughing and coplanar quads between selected and non-selected spaces which are not horizontal planes
+	std::vector<bso::utilities::geometry::quadrilateral> toughingNSQuads; // toughing and coplanar quads between selected and non-selected spaces which are vertical planes
+	std::vector<bso::utilities::geometry::quadrilateral> toughingSHQuads; // toughing and coplanar quads between selected and non-selected spaces which are horizontal planes
+	std::vector<bso::utilities::geometry::quadrilateral> toughingNSHQuads; // toughing and coplanar quads between selected and non-selected spaces which are horizontal planes
+
+	auto deduplicateQuads = [tol](std::vector<bso::utilities::geometry::quadrilateral>& quads)
+	{
+		std::vector<bso::utilities::geometry::quadrilateral> unique;
+		unique.reserve(quads.size());
+		for (const auto& q : quads)
+		{
+			bool duplicate = false;
+			for (const auto& u : unique)
+			{
+				if (q.isSameAs(u, tol))
+				{
+					duplicate = true;
+					break;
+				}
+			}
+			if (!duplicate) unique.push_back(q);
+		}
+		quads.swap(unique);
+	};
+
+	auto computeQuadBounds = [](const bso::utilities::geometry::quadrilateral& quad)
+	{
+		std::array<double, 6> b = {
+			(*quad.begin()).x(), (*quad.begin()).x(),
+			(*quad.begin()).y(), (*quad.begin()).y(),
+			(*quad.begin()).z(), (*quad.begin()).z()};
+		for (const auto& v : quad)
+		{
+			if (v.x() < b[0]) b[0] = v.x();
+			if (v.x() > b[1]) b[1] = v.x();
+			if (v.y() < b[2]) b[2] = v.y();
+			if (v.y() > b[3]) b[3] = v.y();
+			if (v.z() < b[4]) b[4] = v.z();
+			if (v.z() > b[5]) b[5] = v.z();
+		}
+		return b;
+	};
+
+	auto coplanarRectanglesOverlap = [tol, &computeQuadBounds](
+		const bso::utilities::geometry::quadrilateral& q1,
+		const bso::utilities::geometry::quadrilateral& q2)
+	{
+		const auto b1 = computeQuadBounds(q1);
+		const auto b2 = computeQuadBounds(q2);
+
+		bool overlaps = true;
+		if (b1[0]-tol < b1[1] && b1[0]+tol > b1[1] && b2[0]-tol < b2[1] && b2[0]+tol > b2[1])
+		{
+			if (b1[2]+tol > b2[3] || b2[2]+tol > b1[3] || b1[4]+tol > b2[5] || b2[4]+tol > b1[5]) overlaps = false;
+		}
+		else if (b1[2]-tol < b1[3] && b1[2]+tol > b1[3] && b2[2]-tol < b2[3] && b2[2]+tol > b2[3])
+		{
+			if (b1[0]+tol > b2[1] || b2[0]+tol > b1[1] || b1[4]+tol > b2[5] || b2[4]+tol > b1[5]) overlaps = false;
+		}
+		else if (b1[4]-tol < b1[5] && b1[4]+tol > b1[5] && b2[4]-tol < b2[5] && b2[4]+tol > b2[5])
+		{
+			if (b1[0]+tol > b2[1] || b2[0]+tol > b1[1] || b1[2]+tol > b2[3] || b2[2]+tol > b1[3]) overlaps = false;
+		}
+		else
+		{
+			if (b1[0]+tol > b2[1] || b2[0]+tol > b1[1] ||
+				b1[2]+tol > b2[3] || b2[2]+tol > b1[3] ||
+				b1[4]+tol > b2[5] || b2[4]+tol > b1[5]) overlaps = false;
+		}
+		return overlaps;
+	};
+
 	bool shiftIssueStartOver = false;
 	for (long unsigned int i=0; i<selection.size(); i++)
 	{
@@ -1181,7 +1985,6 @@ std::vector<bso::spatial_design::ms_space*> ms_N_building::shiftFillPlane(const 
 			toughingNSQuads.clear();
 			toughingSHQuads.clear();
 			toughingNSHQuads.clear();
-			allLevels.clear();
 			shiftIssueStartOver = false;
 		}
 		
@@ -1226,41 +2029,10 @@ std::vector<bso::spatial_design::ms_space*> ms_N_building::shiftFillPlane(const 
 							}
 						}
 						if(anyIsInside)
-						{
-							bool alreadyAdd = false;
-							bool doubleInsertQ1 = false;
-							for (const auto& m : toughingSQuads)
-							{// check if quad k or t already exist in toughingSQuads
-								if (k.isSameAs(m, tol))
-								{
-									doubleInsertQ1 = true;
-								}
-							}
-							if(!doubleInsertQ1)
-							{//if agree, then add to toughingSQuads
-								toughingSHQuads.push_back(k);
-								allLevels.push_back(k[0].z());
-								allLevels.push_back(k[2].z());
-
-								alreadyAdd =  true;
-							}
-							bool doubleInsertQ2 = false;
-							for (const auto& m : toughingNSQuads)
-							{// check if quad k or t already exist in toughingNSQuads
-								if (t.isSameAs(m, tol))
-								{
-									doubleInsertQ2 = true;
-								}
-							}
-							if(!doubleInsertQ2)
-							{//if agree, then add to toughingNSQuads
-								toughingNSHQuads.push_back(t);
-								allLevels.push_back(t[0].z());
-								allLevels.push_back(t[2].z());
-
-								alreadyAdd =  true;
-							}
-							if(alreadyAdd) break;
+						{					
+							toughingSHQuads.push_back(k);
+							toughingNSHQuads.push_back(t);
+							break;
 						}
 					}
 					else
@@ -1268,89 +2040,13 @@ std::vector<bso::spatial_design::ms_space*> ms_N_building::shiftFillPlane(const 
 						if(QuadSisVertical) {continue;} // only consider two vertical planes in the following
 						if(!k.isCoplanar(t[0], tol) || !k.isCoplanar(t[2], tol)) continue; // the ID 0 and 2 vertices are opposing vertices therefore if hold then quads are coPlanar						
 
-						// Check if quads overlap:
-						// check for identical quads since the line intersection check in the else statement would not notice this case.
-						bool addQuadif = false;
-
-						// This definition only hold for rectangles which are already coPlanar!
-						// reference: https://www.geeksforgeeks.org/find-two-rectangles-overlap/
-						double lowerXBoundk = (*k.begin()).x();
-						double lowerYBoundk = (*k.begin()).y();
-						double lowerZBoundk = (*k.begin()).z();
-						double upperXBoundk = (*k.begin()).x();
-						double upperYBoundk = (*k.begin()).y();
-						double upperZBoundk = (*k.begin()).z();
-						for(const auto& vk: k)
-						{
-							if(vk.x()<lowerXBoundk){lowerXBoundk = vk.x();}
-							if(vk.y()<lowerYBoundk){lowerYBoundk = vk.y();}
-							if(vk.z()<lowerZBoundk){lowerZBoundk = vk.z();}
-							if(vk.x()>upperXBoundk){upperXBoundk = vk.x();}
-							if(vk.y()>upperYBoundk){upperYBoundk = vk.y();}
-							if(vk.z()>upperZBoundk){upperZBoundk = vk.z();}
-						}
-						double lowerXBoundt = (*t.begin()).x();
-						double lowerYBoundt = (*t.begin()).y();
-						double lowerZBoundt = (*t.begin()).z();
-						double upperXBoundt = (*t.begin()).x();
-						double upperYBoundt = (*t.begin()).y();
-						double upperZBoundt = (*t.begin()).z();
-						for(const auto& vt: t)
-						{
-							if(vt.x()<lowerXBoundt){lowerXBoundt = vt.x();}
-							if(vt.y()<lowerYBoundt){lowerYBoundt = vt.y();}
-							if(vt.z()<lowerZBoundt){lowerZBoundt = vt.z();}
-							if(vt.x()>upperXBoundt){upperXBoundt = vt.x();}
-							if(vt.y()>upperYBoundt){upperYBoundt = vt.y();}
-							if(vt.z()>upperZBoundt){upperZBoundt = vt.z();}
-						}
-
-						addQuadif = true;
-						if(lowerXBoundk-tol < upperXBoundk && lowerXBoundk+tol > upperXBoundk && lowerXBoundt-tol < upperXBoundt && lowerXBoundt+tol > upperXBoundt)
-						{
-							if(lowerYBoundk+tol > upperYBoundt || lowerYBoundt+tol > upperYBoundk ||
-								lowerZBoundk+tol > upperZBoundt || lowerZBoundt+tol > upperZBoundk){addQuadif = false;}
-						}
-						else if(lowerYBoundk-tol < upperYBoundk && lowerYBoundk+tol > upperYBoundk && lowerYBoundt-tol < upperYBoundt && lowerYBoundt+tol > upperYBoundt)
-						{
-							if(lowerXBoundk+tol > upperXBoundt || lowerXBoundt+tol > upperXBoundk ||
-								lowerZBoundk+tol > upperZBoundt || lowerZBoundt+tol > upperZBoundk){addQuadif = false;}
-						}
-						else if(lowerZBoundk-tol < upperZBoundk && lowerZBoundk+tol > upperZBoundk && lowerZBoundt-tol < upperZBoundt && lowerZBoundt+tol > upperZBoundt)
-						{
-							if(lowerXBoundk+tol > upperXBoundt || lowerXBoundt+tol > upperXBoundk ||
-								lowerYBoundk+tol > upperYBoundt || lowerYBoundt+tol > upperYBoundk){addQuadif = false;}
-						}
-						else
-						{
-							if(lowerXBoundk+tol > upperXBoundt || lowerXBoundt+tol > upperXBoundk ||
-								lowerYBoundk+tol > upperYBoundt || lowerYBoundt+tol > upperYBoundk ||
-								lowerZBoundk+tol > upperZBoundt || lowerZBoundt+tol > upperZBoundk){addQuadif = false;}
-						}
+						// Check if co-planar rectangles overlap.
+						bool addQuadif = coplanarRectanglesOverlap(k, t);
 
 						// If quads overlap, then perform adding quad checks:
 						if(addQuadif)
 						{
-							// Check for double insert:
-							bool doubleInsertQ1 = false;
-							for (const auto& m : toughingSQuads)
-							{// check if quad k already exist in toughingSQuads
-								if (k.isSameAs(m, tol))
-								{
-									doubleInsertQ1 = true;
-								}
-							}
-							bool doubleInsertQ2 = false;
-							for (const auto& m : toughingNSQuads)
-							{// check if t already exist in toughingNSQuads
-								if (t.isSameAs(m, tol))
-								{
-									doubleInsertQ2 = true;
-								}
-							}
-
 							// Check for sweep interference:
-							if(!doubleInsertQ1 || !doubleInsertQ2)
 							{
 								bool sweepIntersectSpace = false;
 
@@ -1401,18 +2097,8 @@ std::vector<bso::spatial_design::ms_space*> ms_N_building::shiftFillPlane(const 
 									shiftIssueStartOver = true;
 									break;
 								}
-								if(!doubleInsertQ1)
-								{
-									toughingSQuads.push_back(k);
-									allLevels.push_back(k[0].z());
-									allLevels.push_back(k[2].z());
-								} 
-								if(!doubleInsertQ2)
-								{
-									toughingNSQuads.push_back(t);
-									allLevels.push_back(t[0].z());
-									allLevels.push_back(t[2].z());
-								} 
+								toughingSQuads.push_back(k);
+								toughingNSQuads.push_back(t);
 							}
 						}
 					}
@@ -1449,6 +2135,44 @@ std::vector<bso::spatial_design::ms_space*> ms_N_building::shiftFillPlane(const 
 										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 	}
+
+	if (debugData)
+	{
+		debugData->toughingSQuadsPreDedup = toughingSQuads;
+		debugData->toughingNSQuadsPreDedup = toughingNSQuads;
+	}
+
+	// Remove duplicates after the main matching loop to keep downstream logic clean.
+	deduplicateQuads(toughingSQuads);
+	deduplicateQuads(toughingNSQuads);
+	deduplicateQuads(toughingSHQuads);
+	deduplicateQuads(toughingNSHQuads);
+
+	if (debugData)
+	{
+		debugData->toughingSQuadsPostDedup = toughingSQuads;
+		debugData->toughingNSQuadsPostDedup = toughingNSQuads;
+	}
+
+	// Define allLevels
+	std::vector<double> allLevels;
+	for (const auto& q : toughingSQuads)
+	{
+		allLevels.push_back(q[0].z());
+		allLevels.push_back(q[2].z());
+	}
+	for (const auto& q : toughingNSQuads)
+	{
+		allLevels.push_back(q[0].z());
+		allLevels.push_back(q[2].z());
+	}
+	
+	// Sort vector, bring all duplicates to end of vector plus get cut off point, 
+	// then erase duplicates from the end of vector for allLevels:
+	sort(allLevels.begin(), allLevels.end()); 
+	auto itAllLevels = unique(allLevels.begin(), allLevels.end()); 
+	allLevels.erase(itAllLevels, allLevels.end()); 
+
 	if(allLevels.size() == 0)
 	{
 		std::stringstream errorMessage;
@@ -1458,22 +2182,17 @@ std::vector<bso::spatial_design::ms_space*> ms_N_building::shiftFillPlane(const 
 										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 	}
-	// Sort vector, bring all duplicates to end of vector plus get cut off point, then erase duplicates from the end of vector allLevels:
-	sort(allLevels.begin(), allLevels.end()); 
-	auto it = unique(allLevels.begin(), allLevels.end()); 
-	allLevels.erase(it, allLevels.end()); 
 
 	// Determine the bottom lines of each toughing quad and add to linesAtFloor:
 	std::vector<std::vector<bso::utilities::geometry::line_segment>> linesAtFloor;
 	linesAtFloor.resize(allLevels.size()-1);
-	
 	for(long unsigned int i=0; i< toughingSQuads.size(); i++)
 	{
 		std::vector<bso::utilities::geometry::line_segment> lines = toughingSQuads[i].getLines();
+		
 		// Generally, vertex toughingSQuads[i][2] represent/connect to horizontal line top level quad.
 		// and vertex toughingSQuads[i][0] represent/connect to horizontal line bottom level quad.
 		// However, on some occasions, this has not been observed. Therefore, the following code checks this:
-		
 		int lineNr1 = 0, lineNr2 = 2;
 		if(lines[lineNr1].getVector().isVertical()) 
 		{
@@ -1524,6 +2243,15 @@ std::vector<bso::spatial_design::ms_space*> ms_N_building::shiftFillPlane(const 
 		}
 	}
 
+	if (debugData)
+	{
+		for (const auto* s : mSpaces) debugData->linesAtFloorReferenceSpaces.push_back(s->getGeometry());
+		for (const auto& floorLines : linesAtFloor)
+		{
+			for (const auto& l : floorLines) debugData->linesAtFloorFlattened.push_back(l);
+		}
+	}
+
 	// Shift spaces
 	for (auto& i : selection)
 	{
@@ -1539,10 +2267,13 @@ std::vector<bso::spatial_design::ms_space*> ms_N_building::shiftFillPlane(const 
 		}
 		// Replace the pVertex of the considered space
 		i->setPVertex(pVert);
+		if (debugData) debugData->shiftedSpaces.push_back(i->getGeometry());
 	}
 	
-	// first split lines at all the vertices then remove lines which have no duplicate at the other (either selected or nonSelected) side 
-	// to remove the non toughing sections of the found quads
+	// first split lines at all the vertices then remove lines 
+	// which have no duplicate at the other (either selected or nonSelected) side 
+	// to remove the non toughing sections of the found quads.
+	// Also note, the lines are split at the vertices as the interface between the two sides can be on non-strain nature,
 	std::vector<std::vector<bso::utilities::geometry::line_segment>> lines;
 	lines.resize(allLevels.size()-1);
 	
@@ -1662,16 +2393,69 @@ std::vector<bso::spatial_design::ms_space*> ms_N_building::shiftFillPlane(const 
 	return newSpaces;
 } // shiftFillCutPlane
 
-void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utilities::geometry::vertex& location, const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol /*= 1e-3*/)
+void ms_N_building::extrude(const bso::utilities::geometry::vertex& location, const bso::utilities::geometry::vector& extrudeDirection, double extrudeAmount, const double& tol /*= 1e-3*/, extrude_debug_data* debugData)
 {
-	if(!shiftDirection.isHorizontal())
+	std::vector<ms_space*> notSelectedSpaces;
+	std::vector<ms_space*> partialSpaces;
+	auto selection = this->selectSpacesGeometrically(location, extrudeDirection, notSelectedSpaces, partialSpaces,true,true);
+	if (debugData)
+	{
+		debugData->selectedSpaces.clear();
+		debugData->notSelectedSpaces.clear();
+		debugData->partialSpaces.clear();
+		for (const auto* s : selection) debugData->selectedSpaces.push_back(s->getGeometry());
+		for (const auto* s : notSelectedSpaces) debugData->notSelectedSpaces.push_back(s->getGeometry());
+		for (const auto* s : partialSpaces) debugData->partialSpaces.push_back(s->getGeometry());
+	}
+	if(selection.size() == 0 && notSelectedSpaces.size() == 0)
+	{
+		std::stringstream errorMessage;
+				errorMessage << "There is not valid variables found in extrude()" << std::endl
+										<< "the nr of spaces to selected are: " << selection.size() << " and the nr of spaces not be be shifted" << notSelectedSpaces.size() << std::endl
+										<< "the nr of partial spaces to partial are: " << partialSpaces.size() << std::endl
+										<< "Inserted a different plane, not of location: " << location << "and extrudeDirection" << extrudeDirection << std::endl
+										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+	}
+
+	extrude(selection, location, extrudeDirection, extrudeAmount, tol, debugData);
+}
+
+void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utilities::geometry::vertex& location, const bso::utilities::geometry::vector& extrudeDirection, double extrudeAmount, const double& tol /*= 1e-3*/, extrude_debug_data* debugData)
+{
+	if (debugData)
+	{
+		if (debugData->selectedSpaces.empty() && debugData->notSelectedSpaces.empty() && debugData->partialSpaces.empty())
+		{
+			debugData->selectedSpaces.clear();
+			debugData->notSelectedSpaces.clear();
+			debugData->partialSpaces.clear();
+
+			for (const auto* s : spacePtrs) debugData->selectedSpaces.push_back(s->getGeometry());
+			for (const auto* s : mSpaces)
+			{
+				if (std::find(spacePtrs.begin(), spacePtrs.end(), s) == spacePtrs.end())
+				{
+					debugData->notSelectedSpaces.push_back(s->getGeometry());
+				}
+			}
+		}
+		debugData->fullyOnExtrusionSideQuads.clear();
+		debugData->partiallyOnExtrusionSideQuads.clear();
+		debugData->notOnExtrusionSideQuads.clear();
+		debugData->testSpaces.clear();
+		debugData->validTestSpaces.clear();
+		debugData->rejectedTestSpaces.clear();
+	}
+
+	if(!extrudeDirection.isHorizontal())
 	{
 		std::stringstream errorMessage;
 				errorMessage << "The defined shift direction is not horizontal as it should be." << std::endl
 										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 	}
-	if(shiftDirection.isZero(tol))
+	if(extrudeDirection.isZero(tol))
 	{
 		std::stringstream errorMessage;
 				errorMessage << "The defined shift direction is of zero length." << std::endl
@@ -1682,8 +2466,8 @@ void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utiliti
 	// Extrude vertical quads which do not intersect the space itself
 	// if multiple are found, then only extrude the quad which generates the space which is closes to a rectangle
 	
-	// normalize the shiftDirection for convenience of later use
-	auto n = shiftDirection.normalized();
+	// normalize the extrudeDirection for convenience of later use
+	auto n = extrudeDirection.normalized();
 
 	std::vector<bso::utilities::geometry::quad_hexahedron> testSpaces;
 
@@ -1704,42 +2488,32 @@ void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utiliti
 			bool oneOrMoreVerticesSelected = false;
 			for (const auto& j : i)
 			{
-				double checkValue = shiftDirection.dot(j - location);
+				double checkValue = extrudeDirection.dot(j - location);
 				if (checkValue >= -1e-3)
 				{ // check if point j lies behind the plane defined by the location and the direction
-					if (checkValue >= 1e-3) oneOrMoreVerticesSelected = true;
+					oneOrMoreVerticesSelected = true;
 				}
 				else {allVerticesSelected = false;}
 			}
-			if (allVerticesSelected) fullyOnExtrusionSideQuad.push_back(i);
+			if (allVerticesSelected)
+			{
+				fullyOnExtrusionSideQuad.push_back(i);
+				if (debugData) debugData->fullyOnExtrusionSideQuads.push_back(i);
+			}
 			else if (oneOrMoreVerticesSelected)
 			{
 				partiallyOnExtrusionSideQuad.push_back(i);
+				if (debugData) debugData->partiallyOnExtrusionSideQuads.push_back(i);
 			}
-			else notOnExtrusionSideQuad.push_back(i);			
+			else
+			{
+				notOnExtrusionSideQuad.push_back(i);
+				if (debugData) debugData->notOnExtrusionSideQuads.push_back(i);
+			}
 		}
 
 		// Define the most promising quad for extrusion as a space:
-		if(fullyOnExtrusionSideQuad.size() == 1)
-		{
-			//std::cout << "quad fully on extruded side\n";
-			std::vector<bso::utilities::geometry::vertex> spaceVertexes;
-			for(auto v: fullyOnExtrusionSideQuad[0])
-			{
-				spaceVertexes.push_back(v);
-				bso::utilities::geometry::vertex temp = v + n*shiftAmount;
-				spaceVertexes.push_back(temp);
-			}
-			try
-			{
-				bso::utilities::geometry::quad_hexahedron test = bso::utilities::geometry::quad_hexahedron(spaceVertexes);
-				testSpaces.push_back(test);
-				//std::cout << "space extruded\n";
-
-			}
-			catch(const std::exception& e){/*No valid quad-hexahedron, so do not add the quad_hexahedron for adding as a space*/}
-		}
-		else if(fullyOnExtrusionSideQuad.size() > 1)
+		if(fullyOnExtrusionSideQuad.size() > 0)
 		{
 			for(auto k: fullyOnExtrusionSideQuad)
 			{
@@ -1748,13 +2522,14 @@ void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utiliti
 				for(auto v: k)
 				{
 					spaceVertexes.push_back(v);
-					bso::utilities::geometry::vertex temp = v + n*shiftAmount;
+					bso::utilities::geometry::vertex temp = v + n*extrudeAmount;
 					spaceVertexes.push_back(temp);
 				}
 				try
 				{
 					bso::utilities::geometry::quad_hexahedron test = bso::utilities::geometry::quad_hexahedron(spaceVertexes);
 					testSpaces.push_back(test);
+					if (debugData) debugData->testSpaces.push_back(test);
 					//std::cout << "space extruded\n";
 
 				}
@@ -1770,13 +2545,14 @@ void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utiliti
 				for(auto v: k)
 				{
 					spaceVertexes.push_back(v);
-					bso::utilities::geometry::vertex temp = v + n*shiftAmount;
+					bso::utilities::geometry::vertex temp = v + n*extrudeAmount;
 					spaceVertexes.push_back(temp);
 				}
 				try
 				{
 					bso::utilities::geometry::quad_hexahedron test = bso::utilities::geometry::quad_hexahedron(spaceVertexes);
 					testSpaces.push_back(test);
+					if (debugData) debugData->testSpaces.push_back(test);
 					//std::cout << "space extruded\n";
 
 				}
@@ -1789,9 +2565,73 @@ void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utiliti
 		}
 	}
 
-	// Before adding, check if the new quad_hexahedrons would intersect any other defined space
+	// Before adding, check if the new quad_hexahedrons would intersect any other already defined space in mSpaces.
+	// if yes, then do not add that particular quad_hexahedron as a new space, as intersecting spaces are not allowed in the current definition of ms_N_building.
+	std::vector<bso::utilities::geometry::quad_hexahedron> validTestSpaces;
+	std::cout << "There are " << testSpaces.size() << " potential spaces to be extruded, checking for intersections with existing spaces..." << std::endl;
+	for(const auto& i: testSpaces)
+	{
+		bool intersectOtherSpace = false;
 
-	if(testSpaces.size() == 0)
+		//std::vector<bso::utilities::geometry::line_segment> linesTestSpace = i.getLines();
+		//std::vector<bso::utilities::geometry::quadrilateral> quadsTestSpace = i.getQuadrilateral();
+		for(const auto& j: mSpaces)
+		{
+			const auto otherGeom = j->getGeometry();
+			if (i.isSameAs(otherGeom, tol) || i.hexahedraOverlapStrict(otherGeom, tol))
+			{
+				intersectOtherSpace = true;
+				break;
+			}
+
+		// 	utilities::geometry::vertex pIntersection;
+		// 	std::vector<bso::utilities::geometry::line_segment> linesOtherSpace = otherGeom.getLines();
+		// 	std::vector<bso::utilities::geometry::quadrilateral> quadsOtherSpace = otherGeom.getQuadrilateral();
+			
+		// 	// check for line - line intersections
+		// 	for (unsigned int i = 0; i < linesTestSpace.size(); ++i)
+		// 	{
+		// 		for (unsigned int j = 0; j < linesOtherSpace.size(); ++j)
+		// 		{
+		// 			if (linesTestSpace[i].intersectsWith(linesOtherSpace[j], pIntersection, tol))
+		// 			{
+		// 				intersectOtherSpace = true;
+		// 				break;
+		// 			}
+		// 		}
+		// 		if(intersectOtherSpace) break;
+		// 	}
+
+		// 	if(!intersectOtherSpace)
+		// 	{
+		// 		// check for line - rectangle intersections
+		// 		for (unsigned int i = 0; i < quadsTestSpace.size(); ++i)
+		// 		{
+		// 			for (unsigned int j = 0; j < linesOtherSpace.size(); ++j)
+		// 			{
+		// 				if (quadsTestSpace[i].intersectsWith(linesOtherSpace[j], pIntersection, tol))
+		// 				{
+		// 					intersectOtherSpace = true;
+		// 					break;
+		// 				}
+		// 			}
+		// 			if(intersectOtherSpace) break;
+		// 		}
+		// 	}
+		}
+		if(!intersectOtherSpace)
+		{
+			validTestSpaces.push_back(i);
+			if (debugData) debugData->validTestSpaces.push_back(i);
+		}
+		else if (debugData)
+		{
+			debugData->rejectedTestSpaces.push_back(i);
+		}
+	}
+	std::cout << "there are " << validTestSpaces.size() << " valid spaces to be extruded after intersection checks." << std::endl;
+
+	if(validTestSpaces.size() == 0)
 	{
 		std::stringstream errorMessage;
 				errorMessage << "No extrusion could have be performed" << std::endl
@@ -1799,8 +2639,8 @@ void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utiliti
 				throw std::invalid_argument(errorMessage.str());
 	}
 
-	// Define vertices of new space
-	for(auto i: testSpaces)
+	// Add the valid new space
+	for(auto i: validTestSpaces)
 	{
 		std::vector <utilities::geometry::vertex> vertexes;
 
@@ -1935,6 +2775,7 @@ std::vector<ms_space*> ms_N_building::selectSpacesGeometrically(
 		bool allVerticesSelected = true;
 		bool oneOrMoreVerticesSelected = false;
 		bool partialSelection = false;
+		bool addedToPartialSpaces = false;
 		for (const auto& j : i->getGeometry())
 		{
 			double checkValue = normal.dot(j - location);
@@ -1950,9 +2791,10 @@ std::vector<ms_space*> ms_N_building::selectSpacesGeometrically(
 		{
 			if(includePartialSpaces) spaceSelection.push_back(i);
 			partialSpaces.push_back(i);
+			addedToPartialSpaces = true;
 		}
 		else notSelectedSpaces.push_back(i);
-		if(partialSelection) partialSpaces.push_back(i);
+		if(partialSelection && !addedToPartialSpaces) partialSpaces.push_back(i);
 	}
 	return spaceSelection;
 } // selectSpacesGeometrically
@@ -2397,108 +3239,106 @@ bso::utilities::geometry::vertex ms_N_building::getCentreBuilding()
 	return centreOfBuilding;
 } //getCentreBuilding()
 
-void ms_N_building::getMostHeadingDirection(bso::utilities::geometry::vector& mostHeading, bso::utilities::geometry::vector& secondMostHeading, int amountOfHeadingCatagories /*= 6*/)
+void ms_N_building::getMostAzimuthDirection(bso::utilities::geometry::vector& mostAzimuth, bso::utilities::geometry::vector& secondMostAzimuth, int amountOfAzimuthCategories /*= 6*/)
 {
-	// The amountOfHeadingCatagories needs to be an even number to have two matching opposing sides, 
+	// The amountOfAzimuthCategories needs to be an even number to have two matching opposing sides, 
 	// and a minimum of 4 to have two categories that are not directly opposite to each other, 
 	// otherwise the second most found category would always be the opposite of the most found category.
-	if(amountOfHeadingCatagories % 2 != 0 || amountOfHeadingCatagories < 4)
+	if(amountOfAzimuthCategories % 2 != 0 || amountOfAzimuthCategories < 4)
 	{
 		std::stringstream errorMessage;
-				errorMessage << "The amount of heading categories must be an even number and at least 4." << std::endl
-										<< "however, the provided amount of heading categories is: " << amountOfHeadingCatagories << std::endl
+				errorMessage << "The amount of azimuth categories must be an even number and at least 4." << std::endl
+										<< "however, the provided amount of azimuth categories is: " << amountOfAzimuthCategories << std::endl
 										<< "(bso/spatial_design/ms_N_building.cpp)." << std::endl;
 				throw std::invalid_argument(errorMessage.str());
 	}
 	
 	bso::utilities::geometry::vector shiftDirection;
 
-	// Get headings heading from all horizontal lines in the building	
-	std::vector <double> horizontalHeadings;
+	// Get azimuths from all horizontal lines in the building	
+	std::vector <double> horizontalAzimuths;
 	for (const auto i : mSpaces)
 	{
 		//Get original space geometry
 		utilities::geometry::quad_hexahedron spaceGeom = i->getGeometry();
 		
-		// Add lines if horizontal to linesAtZ
+		// Add azimuth of lines if horizontal
 		for (const auto& k : spaceGeom.getLines())
 		{
 			bso::utilities::geometry::vector lineV = k.getVector();
 			if(!lineV.isVertical()) 
 			{				
-				horizontalHeadings.push_back(lineV.getHeading().first);
+				horizontalAzimuths.push_back(lineV.getHeading().first);
 			}
 		}
 	}
 
-	// There are x amount of heading catagories considered and dispatched all horizontal lines in these
-	// this figures out which heading direction is most frequent and which are second most frequent
+	// There are x amount of azimuth categories considered and dispatched all horizontal lines in these
+	// this figures out which azimuth direction is most frequent and which are second most frequent
 	
-	// Generate headingCategories:
-	std::vector<std::pair<double,double>> headingCategories;
-	double sectionSize = 180/(amountOfHeadingCatagories);
+	// Generate azimuthCategories:
+	std::vector<std::pair<double,double>> azimuthCategories;
+	double sectionSize = 180/(amountOfAzimuthCategories);
 	std::pair<double,double> temp (360-sectionSize/2,0+sectionSize/2);
-	headingCategories.push_back(temp);
-	for(int i=0; i<amountOfHeadingCatagories; i++)
+	azimuthCategories.push_back(temp);
+	for(int i=0; i<amountOfAzimuthCategories; i++)
 	{
 		temp = std::make_pair(temp.first,temp.first+sectionSize);
-		headingCategories.push_back(temp);
+		azimuthCategories.push_back(temp);
 	}
 	
-	// Dispatch buildings found horizontal line headings into Categories:
-	std::vector<std::vector<double>> headingInCategories; 
-	headingInCategories.resize(amountOfHeadingCatagories);
-	for(double i: horizontalHeadings)
+	// Dispatch buildings found horizontal line azimuths into Categories:
+	std::vector<std::vector<double>> azimuthInCategories; // azimuthInCategories[i] contains all azimuths of horizontal lines that are in the category of azimuthCategories[i]
+	azimuthInCategories.resize(amountOfAzimuthCategories);
+	for(double i: horizontalAzimuths)
 	{
-		for(int j=0; j<amountOfHeadingCatagories; j++)
+		for(int j=0; j<amountOfAzimuthCategories; j++)
 		{
-			if(headingCategories[j].first <= i && headingCategories[j].second > i)
+			if(azimuthCategories[j].first <= i && azimuthCategories[j].second > i)
 			{
-				headingInCategories[j].push_back(i);
+				azimuthInCategories[j].push_back(i);
 				break;
 			}
-			double oppositeFirst = headingCategories[j].first+180;
-			double oppositeSecond = headingCategories[j].second+180;
+			double oppositeFirst = azimuthCategories[j].first+180;
+			double oppositeSecond = azimuthCategories[j].second+180;
 			if(oppositeFirst > 360) {oppositeFirst = oppositeFirst -360;}
 			if(oppositeSecond > 360) {oppositeSecond = oppositeSecond -360;}
 			if(oppositeFirst <= i && oppositeSecond > i)
 			{
 				double flipHeading = i-180;
 				if(flipHeading < 0){flipHeading = 360+i-180;}
-				headingInCategories[j].push_back(flipHeading);
+				azimuthInCategories[j].push_back(flipHeading);
 				break;
 			}
 		}
 	}
 	
-	// Find most and second most frequent heading category in building
+	// Find most and second most frequent azimuth category in building
 	int biggestCategory = 0;
 	int secondBiggestCategory = 0;
 	long unsigned int categorySize = 0;
 	long unsigned int secondCategorySize = 0;
-	for(int i=0; i<amountOfHeadingCatagories; i++)
+	for(int i=0; i<amountOfAzimuthCategories; i++)
 	{
-		if(headingInCategories[i].size() > categorySize)
+		if(azimuthInCategories[i].size() > categorySize)
 		{
 			biggestCategory = i;
-			categorySize = headingInCategories[i].size();
+			categorySize = azimuthInCategories[i].size();
 		}
-		else if(headingInCategories[i].size() > secondCategorySize)
+		else if(azimuthInCategories[i].size() > secondCategorySize)
 		{
 			secondBiggestCategory = i;
-			secondCategorySize = headingInCategories[i].size();
+			secondCategorySize = azimuthInCategories[i].size();
 		}
 	}
-	//std::cout << "biggestCategory: " << biggestCategory << std::endl;
-	//std::cout << "secondBiggestCategory: " << secondBiggestCategory << std::endl;
 
-	// Determine the heading of the most found category
-	// Are there headings found more often then take that heading, otherwise use the middle of the heading category
-	std::vector<std::pair<double,int>> headingFrequency;
-	for(const auto i: headingInCategories[biggestCategory])
+	// Determine the azimuth of the most found category
+	// Are there azimuths found more often then take that azimuth, otherwise use the middle of the azimuth category
+	std::vector<std::pair<double,int>> azimuthFrequency;
+	for(const auto i: azimuthInCategories[biggestCategory])
 	{
 		bool found = false;
-		for(auto j: headingFrequency)
+		for(auto j: azimuthFrequency)
 		{
 			if(j.first == i)
 			{
@@ -2510,92 +3350,66 @@ void ms_N_building::getMostHeadingDirection(bso::utilities::geometry::vector& mo
 		if(!found)
 		{
 			std::pair<double,int> temp (i,1);
-			headingFrequency.push_back(temp);
+			azimuthFrequency.push_back(temp);
 		}
 	}
 
-	int IDMost = headingFrequency.size() + 1;
+	int IDMost = azimuthFrequency.size() + 1;
 	int most = 1;
-	for(long unsigned int i=0; i<headingFrequency.size(); i++)
+	for(long unsigned int i=0; i<azimuthFrequency.size(); i++)
 	{
-		if((headingFrequency[i]).second > most)
+		if((azimuthFrequency[i]).second > most)
 		{
-			most = (headingFrequency[i]).second;
+			most = (azimuthFrequency[i]).second;
 			IDMost = i;
 		}
 	}
-	double ShiftDirectionPerpendicularHeading;
-	if(most == 1) // use default middle heading from category if no more then one time a heading is observed
-	{
-		ShiftDirectionPerpendicularHeading = biggestCategory * categorySize + 0;
-	}
-	else // use the heading most frequent
-	{
-		ShiftDirectionPerpendicularHeading = (headingFrequency[IDMost]).first;
-	}
-
-	// define the mostHeading from ShiftDirectionPerpendicularHeading
-	std::pair<double,double> headingV (ShiftDirectionPerpendicularHeading, 0);
-	bso::utilities::geometry::vector perpendicularV;
-	perpendicularV.setHeading(headingV);
-
-	mostHeading = {perpendicularV.x(),perpendicularV.y(),0};
-
-	// Now, determine the heading of the second most found category
-	// Are there headings found more often then take that heading, otherwise use the middle of the heading category
-	std::vector<std::pair<double,int>> secondHeadingFrequency;
-	for(const auto i: headingInCategories[secondBiggestCategory])
-	{
-		bool found = false;
-		for(auto j: secondHeadingFrequency)
-		{
-			if(j.first == i)
-			{
-				(j.second)++;
-				found = true;
-				break;
-			}
-		}
-		if(!found)
-		{
-			std::pair<double,int> temp (i,1);
-			secondHeadingFrequency.push_back(temp);
-		}
-	}
-
-	int IDSecondMost = secondHeadingFrequency.size() + 1;
+	int IDSecondMost = azimuthFrequency.size() + 1;
 	int secondMost = 1;
-	for(long unsigned int i=0; i<secondHeadingFrequency.size(); i++)
+	for(long unsigned int i=0; i<azimuthFrequency.size(); i++)
 	{
-		if((secondHeadingFrequency[i]).second > secondMost)
+		if((azimuthFrequency[i]).second > secondMost && IDMost != i)
 		{
-			secondMost = (secondHeadingFrequency[i]).second;
+			secondMost = (azimuthFrequency[i]).second;
 			IDSecondMost = i;
 		}
 	}
+
+	double ShiftDirectionPerpendicularHeading;
+	if(most == 1) // use default middle azimuth from category if no more then one time an azimuth is observed
+	{
+		double azimuthCategoryMiddle = azimuthCategories[biggestCategory].second - sectionSize/2;
+		ShiftDirectionPerpendicularHeading = azimuthCategoryMiddle;
+	}
+	else // use the azimuth most frequent
+	{
+		ShiftDirectionPerpendicularHeading = (azimuthFrequency[IDMost]).first;
+	}
+
+	// define the mostHeading from ShiftDirectionPerpendicularHeading
+	std::pair<double,double> azimuthV (ShiftDirectionPerpendicularHeading, 0);
+	bso::utilities::geometry::vector perpendicularV;
+	perpendicularV.setHeading(azimuthV);
+
+	mostAzimuth = {perpendicularV.x(),perpendicularV.y(),0};
+
 	double SecondShiftDirectionPerpendicularHeading;
-	if(secondMost == 1) // use default middle heading from category if no more then one time a heading is observed
+	if(secondMost == 1) // use default middle azimuth from category if no more then one time an azimuth is observed
 	{
-		SecondShiftDirectionPerpendicularHeading = secondBiggestCategory * secondCategorySize + 0;
+		double azimuthSecondCategoryMiddle = azimuthCategories[secondBiggestCategory].second - sectionSize/2;
+		SecondShiftDirectionPerpendicularHeading = azimuthSecondCategoryMiddle;		
 	}
-	else // use the heading secondMost frequent
+	else // use the azimuth secondMost frequent
 	{
-		SecondShiftDirectionPerpendicularHeading = (secondHeadingFrequency[IDSecondMost]).first;
+		SecondShiftDirectionPerpendicularHeading = (azimuthCategories[IDSecondMost]).first;
 	}
 
-	// define the secondMostHeading from ShiftDirectionPerpendicularHeading
-	std::pair<double,double> secondHeadingV (SecondShiftDirectionPerpendicularHeading, 0);
+	// define the secondMostAzimuth from SecondShiftDirectionPerpendicularHeading
+	std::pair<double,double> secondAzimuthV (SecondShiftDirectionPerpendicularHeading, 0);
 	bso::utilities::geometry::vector secondPerpendicularV;
-	secondPerpendicularV.setHeading(secondHeadingV);
+	secondPerpendicularV.setHeading(secondAzimuthV);
 
-	secondMostHeading = {secondPerpendicularV.x(),secondPerpendicularV.y(),0};
-
-
-	//std::cout << "the found location/centre of the building is: " << location << std::endl;
-	//std::cout << "the heading found is with ID: " << IDMost << " and is found : " << most << " amount of times. " << std::endl;
-	//std::cout << "the most found frequent Heading is: " << ShiftDirectionPerpendicularHeading << std::endl;
-	//std::cout << "this heading defined in a vector is: " << perpendicularV << std::endl;
-	//std::cout << "the found shiftDirection is: " << shiftDirection << std::endl;
+	secondMostAzimuth = {secondPerpendicularV.x(),secondPerpendicularV.y(),0};
 }
 
 void ms_N_building::getDelaunayVariables(std::vector <utilities::geometry::vertex>& delaunayPoints, std::vector <utilities::geometry::line_segment>& delaunayLines, std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, const double mTol)
@@ -3120,6 +3934,34 @@ std::ostream& operator <<(std::ostream& stream, const ms_N_building& building)
 		if (!first) stream << std::endl;
 		else first = false;
 		stream << *i;
+	}
+
+	std::vector<ms_space*> highlightedSpaces;
+	for (auto i : building.getSpacePtrs())
+	{
+		if (i->highlightInVisualization || i->highlightInVisualization1 ||
+			i->highlightInVisualization2 || i->highlightInVisualization3 ||
+			i->highlightInVisualization4)
+		{
+			highlightedSpaces.push_back(i);
+		}
+	}
+
+	if (!highlightedSpaces.empty())
+	{
+		stream << std::endl << "#HIGHLIGHT_FLAGS_BEGIN";
+		for (auto i : highlightedSpaces)
+		{
+			stream << std::endl
+			       << "H,"
+			       << i->getID() << ","
+			       << (i->highlightInVisualization ? 1 : 0) << ","
+			       << (i->highlightInVisualization1 ? 1 : 0) << ","
+			       << (i->highlightInVisualization2 ? 1 : 0) << ","
+			       << (i->highlightInVisualization3 ? 1 : 0) << ","
+			       << (i->highlightInVisualization4 ? 1 : 0);
+		}
+		stream << std::endl << "#HIGHLIGHT_FLAGS_END";
 	}
 	
 	return stream;

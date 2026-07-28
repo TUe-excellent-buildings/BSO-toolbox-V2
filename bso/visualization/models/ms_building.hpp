@@ -2,15 +2,18 @@
 #define VIS_MS_BUILDING_HPP
 
 #include <bso/visualization/models/model_base.hpp>
+#include <bso/visualization/utilities/add_geometry.hpp>
 #include <bso/visualization/bsp/bsp.hpp>
 #include <bso/spatial_design/ms_building.hpp>
 #include <bso/spatial_design/ms_N_building.hpp>
+#include <bso/utilities/geometry/quadrilateral.hpp>
 #include <bso/utilities/data_point.hpp>
 #include <bso/utilities/clustering.hpp>
 
 #include <boost/algorithm/string.hpp>
 #include <utility>
 #include <fstream>
+#include <limits>
 
 #ifdef SD_MODEL_HPP
 #include <bso/structural_design/sd_model.hpp>
@@ -28,6 +31,38 @@
 
 namespace bso { namespace visualization
 {
+
+inline bool& showMSModelLabels()
+{
+	static bool enabled = true;
+	return enabled;
+}
+
+inline bool& showMSModelLegend()
+{
+	return showModelLegend();
+}
+
+// Helper functions for creating overlay planes for MS models in any of the visualization contexts (e.g., MS building, MS N building, etc.)
+inline bool& showMSModelOverlayPlanes() { return showModelOverlayPlanes(); }
+inline std::vector<bso::utilities::geometry::quadrilateral>& msModelOverlayPlanes() { return modelOverlayPlanes(); }
+inline void setMSModelOverlayPlanes(const std::vector<bso::utilities::geometry::quadrilateral>& planes) { setModelOverlayPlanes(planes); }
+inline void clearMSModelOverlayPlanes() { clearModelOverlayPlanes(); }
+
+inline bso::utilities::geometry::quadrilateral makeMSModelOverlayPlane(
+	const bso::utilities::geometry::vertex& location,
+	bso::utilities::geometry::vector normal,
+	const double halfSize = 30000.0)
+{
+	return makeModelOverlayPlane(location, normal, halfSize);
+}
+inline void setMSModelOverlayPlane(
+	const bso::utilities::geometry::vertex& location,
+	bso::utilities::geometry::vector normal,
+	const double halfSize = 30000.0)
+{
+	setModelOverlayPlane(location, normal, halfSize);
+}
 
 class MS_Model : public model_base
 {
@@ -51,6 +86,9 @@ private:
 	line_props     lprops;
 	label_props    lbprops;
 	random_bsp     *pbsp;
+	bool mLegendHasUnchanged = false;
+	bool mLegendHasNew = false;
+	bool mLegendHasShifted = false;
 public:
 	MS_Model(const spatial_design::ms_building& ms, const std::string& type = "spaces",
 					 const std::string& title = "ms_building", const double& linewidth = 1.0);
@@ -80,6 +118,7 @@ public:
 	~MS_Model();
 	
 	void render(const camera &cam) const;
+	bool key_pressed(int key) override;
 	const std::string get_description();
 }; // MS_Model
 
@@ -88,6 +127,7 @@ MS_Model::MS_Model(const spatial_design::ms_building& ms,
 						const double& linewidth /*= 1.0*/)
 {
 	lprops.width = linewidth;
+	lbprops.textcolor = rgba(0.0f, 0.0f, 0.0f, 1.0f);
 	mTitle = title;
 	pprops.ambient = rgba(0.1f, 0.5f, 0.1f, 0.3f);
 	pprops.diffuse = rgba(0.2f, 1.0f, 0.2f, 0.3f);
@@ -156,6 +196,13 @@ MS_Model::MS_Model(const spatial_design::ms_building& ms,
 		namespace geom = bso::utilities::geometry;
 	
 		geom::quad_hexahedron spaceGeometry = i->getGeometry();
+		const bool isShifted = i->highlightInVisualization3;
+		const bool isNew = (!isShifted && i->highlightInVisualization1);
+		const bool isUnchanged = !(i->highlightInVisualization || i->highlightInVisualization1 ||
+			i->highlightInVisualization2 || i->highlightInVisualization3 || i->highlightInVisualization4);
+		if (isShifted) mLegendHasShifted = true;
+		if (isNew) mLegendHasNew = true;
+		if (isUnchanged) mLegendHasUnchanged = true;
 		std::stringstream centerLabel;
 		centerLabel << i->getID();
 		
@@ -259,6 +306,7 @@ MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 						const double& linewidth /*= 1.0*/)
 {
 	lprops.width = linewidth;
+	lbprops.textcolor = rgba(0.0f, 0.0f, 0.0f, 1.0f);
 	mTitle = title;
 
 	// Clear green highlight with transparency, default color of spaces
@@ -328,6 +376,13 @@ MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 	{
 		namespace geom = bso::utilities::geometry;
 		geom::quad_hexahedron spaceGeometry = i->getGeometry();
+		const bool isShifted = i->highlightInVisualization3;
+		const bool isNew = (!isShifted && i->highlightInVisualization1);
+		const bool isUnchanged = !(i->highlightInVisualization || i->highlightInVisualization1 ||
+			i->highlightInVisualization2 || i->highlightInVisualization3 || i->highlightInVisualization4);
+		if (isShifted) mLegendHasShifted = true;
+		if (isNew) mLegendHasNew = true;
+		if (isUnchanged) mLegendHasUnchanged = true;
 		std::stringstream centerLabel;
 		centerLabel << i->getID();
 		
@@ -428,6 +483,7 @@ MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 MS_Model::MS_Model(const utilities::clustering& clus, const std::string& title /*= "ms_N_building"*/, const double& linewidth /*= 1.0*/)
 {
 	// Get and check initial data for validity for this function
+	lbprops.textcolor = rgba(0.0f, 0.0f, 0.0f, 1.0f);
 	const auto clusters = clus.getClusters();
 	double clusterSize = clusters.size(); // defined as double for later calculations
 	if(clusterSize == 0)
@@ -523,6 +579,7 @@ MS_Model::MS_Model(const utilities::clustering& clus, const std::string& title /
 MS_Model::MS_Model(const std::vector<utilities::data_point>& spaceData, const std::vector<double>& resultWeightFactor, float transparency /*=1.0*/, const std::string& title /*= "ms_N_building"*/, const double& linewidth /*= 1.0*/)
 {
 	// Check prerequicatate:
+	lbprops.textcolor = rgba(0.0f, 0.0f, 0.0f, 1.0f);
 	int spaceDataSize = spaceData.size();
 	if(spaceDataSize == 0)
 	{
@@ -867,6 +924,7 @@ MS_Model::MS_Model(const std::string& fileName, const spatial_design::ms_N_build
 	
 	
 	lprops.width = linewidth;
+		lbprops.textcolor = rgba(0.0f, 0.0f, 0.0f, 1.0f);
 	mTitle = title;
 	pprops.ambient = rgba(0.1f, 0.5f, 0.1f, 0.3f);
 	pprops.diffuse = rgba(0.2f, 1.0f, 0.2f, 0.3f);
@@ -961,9 +1019,151 @@ void MS_Model::render(const camera &cam) const
 	glDisable(GL_DEPTH_TEST);
 	pbsp->render_btf(cam);
 
-	for (auto lbit = labels.begin(); lbit != labels.end(); lbit++) (*lbit)->render();
+	if (showMSModelLabels())
+	{
+		for (auto lbit = labels.begin(); lbit != labels.end(); lbit++) (*lbit)->render();
+	}
+
+	if (showMSModelOverlayPlanes() && !msModelOverlayPlanes().empty())
+	{
+		glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT | GL_LIGHTING_BIT);
+		glDisable(GL_LIGHTING);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glColor4f(1.0f, 0.15f, 0.15f, 0.45f);
+		for (const auto& quad : msModelOverlayPlanes())
+		{
+			double minX = std::numeric_limits<double>::infinity();
+			double minY = std::numeric_limits<double>::infinity();
+			double maxX = -std::numeric_limits<double>::infinity();
+			double maxY = -std::numeric_limits<double>::infinity();
+			double zAccum = 0.0;
+			int count = 0;
+			for (const auto& v : quad)
+			{
+				if (v.x() < minX) minX = v.x();
+				if (v.y() < minY) minY = v.y();
+				if (v.x() > maxX) maxX = v.x();
+				if (v.y() > maxY) maxY = v.y();
+				zAccum += v.z();
+				++count;
+			}
+			if (count == 0) continue;
+			double zPlane = zAccum / count;
+
+			glBegin(GL_QUADS);
+			glVertex3d(minX, minY, zPlane);
+			glVertex3d(maxX, minY, zPlane);
+			glVertex3d(maxX, maxY, zPlane);
+			glVertex3d(minX, maxY, zPlane);
+			glEnd();
+		}
+		glPopAttrib();
+	}
+
+	if (showMSModelLegend())
+	{
+		int vp[4];
+		glGetIntegerv(GL_VIEWPORT, vp);
+		const int viewportWidth = vp[2];
+		const int viewportHeight = vp[3];
+
+		const int pad = 10;
+		const int boxW = 16;
+		const int boxH = 10;
+		const int rowGap = 5;
+		const int titleHeight = 14;
+		const int textXOffset = boxW + 8;
+		const int panelW = 260;
+		struct LegendItem
+		{
+			float r, g, b, a;
+			std::string text;
+		};
+		std::vector<LegendItem> items;
+		if (mLegendHasShifted) items.push_back({1.0f, 1.0f, 0.2f, 0.3f, "Shifted space"});
+		if (mLegendHasNew) items.push_back({0.2f, 0.2f, 1.0f, 0.3f, "New space"});
+		if (mLegendHasUnchanged) items.push_back({0.2f, 1.0f, 0.2f, 0.3f, "unchanged space"});
+		if (items.empty()) items.push_back({0.2f, 1.0f, 0.2f, 0.3f, "unchanged space"});
+
+		const int panelH = titleHeight + 12 + static_cast<int>(items.size()) * (boxH + rowGap) + pad;
+		const int panelX = pad;
+		const int panelY = viewportHeight - panelH - pad;
+
+		auto drawText = [](int x, int y, const std::string& text)
+		{
+			glRasterPos3i(x, y, 0);
+			for (char c : text) glutBitmapCharacter(GLUT_BITMAP_8_BY_13, c);
+		};
+
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glLoadIdentity();
+		glOrtho(0.0, (GLdouble)viewportWidth, 0.0, (GLdouble)viewportHeight, 0.0, 1.0);
+
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
+		glLoadIdentity();
+
+		glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_CURRENT_BIT);
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_LIGHTING);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glColor4f(0.0f, 0.0f, 0.0f, 0.55f);
+		glBegin(GL_QUADS);
+		glVertex3i(panelX, panelY, 0);
+		glVertex3i(panelX + panelW, panelY, 0);
+		glVertex3i(panelX + panelW, panelY + panelH, 0);
+		glVertex3i(panelX, panelY + panelH, 0);
+		glEnd();
+
+		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		drawText(panelX + pad, panelY + panelH - titleHeight, "Space color legend");
+
+		for (int idx = 0; idx < static_cast<int>(items.size()); ++idx)
+		{
+			int rowY = panelY + panelH - titleHeight - 10 - (idx + 1) * (boxH + rowGap);
+			glColor4f(items[idx].r, items[idx].g, items[idx].b, items[idx].a);
+			glBegin(GL_QUADS);
+			glVertex3i(panelX + pad, rowY, 0);
+			glVertex3i(panelX + pad + boxW, rowY, 0);
+			glVertex3i(panelX + pad + boxW, rowY + boxH, 0);
+			glVertex3i(panelX + pad, rowY + boxH, 0);
+			glEnd();
+
+			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+			drawText(panelX + pad + textXOffset, rowY + 1, items[idx].text);
+		}
+
+		glPopAttrib();
+		glPopMatrix();
+		glMatrixMode(GL_PROJECTION);
+		glPopMatrix();
+		glMatrixMode(GL_MODELVIEW);
+	}
 
 	glPopAttrib();
+}
+
+bool MS_Model::key_pressed(int key)
+{
+	switch (key)
+	{
+	case 'g':
+	case 'G':
+		showMSModelLegend() = !showMSModelLegend();
+		return true;
+	case 'i':
+	case 'I':
+	case 'l':
+	case 'L':
+		showMSModelLabels() = !showMSModelLabels();
+		return true;
+	}
+
+	return false;
 }
 
 } // namespace visualization

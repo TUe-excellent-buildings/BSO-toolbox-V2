@@ -109,8 +109,8 @@ private:
 	*/
 	
 	// dl parameters from settings file
-	std::vector<std::string> mReflectanceValues;
-	std::vector<std::string> mWindowProperties;
+	std::vector<std::string> mReflectanceValues; //
+	std::vector<std::string> mWindowProperties; // [0] transmissivity, [1] transmittance
 	std::vector<double> mWindowDimensions;
 	std::vector<double> mDF_Settings; // [0] = horizontal_outdoor_illuminance[lx], [1] = reference height [mm], [2] = space margin [mm], [3] = max grid size [m]
 	std::vector<double> mDF_Evaluation;

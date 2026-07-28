@@ -83,6 +83,63 @@ namespace bso { namespace utilities { namespace geometry {
 		if (dist > tol && dist < 1 - tol) return true;
 		else return false;
 	} // conincidesWith()
+
+	// bool line_segment::overlapsWith(const line_segment& rhs, const double& tol /*= 1e-3*/) const
+	// {
+	// 	vector vThis = mVertices[1] - mVertices[0];
+	// 	vector vRhs = rhs[1] - rhs[0];
+
+	// 	// A zero-length segment cannot share a non-zero overlap length.
+	// 	if (vThis.norm() <= tol || vRhs.norm() <= tol) return false;
+
+	// 	// Overlap is only possible for collinear segments.
+	// 	vector testColinearVector = rhs[0] - mVertices[0];
+	// 	if (!vThis.isParallel(vRhs, tol)) return false;
+	// 	if (!(rhs[0].isSameAs(mVertices[0], tol) ||
+	// 		testColinearVector.isParallel(vThis, tol))) return false;
+
+	// 	// Project both segments on the dominant axis and test interval overlap length.
+	// 	double ax = std::abs(vThis.x());
+	// 	double ay = std::abs(vThis.y());
+	// 	double az = std::abs(vThis.z());
+
+	// 	double a0;
+	// 	double a1;
+	// 	double b0;
+	// 	double b1;
+
+	// 	if (ax >= ay && ax >= az)
+	// 	{
+	// 		a0 = mVertices[0].x();
+	// 		a1 = mVertices[1].x();
+	// 		b0 = rhs[0].x();
+	// 		b1 = rhs[1].x();
+	// 	}
+	// 	else if (ay >= ax && ay >= az)
+	// 	{
+	// 		a0 = mVertices[0].y();
+	// 		a1 = mVertices[1].y();
+	// 		b0 = rhs[0].y();
+	// 		b1 = rhs[1].y();
+	// 	}
+	// 	else
+	// 	{
+	// 		a0 = mVertices[0].z();
+	// 		a1 = mVertices[1].z();
+	// 		b0 = rhs[0].z();
+	// 		b1 = rhs[1].z();
+	// 	}
+
+	// 	double minA = std::min(a0, a1);
+	// 	double maxA = std::max(a0, a1);
+	// 	double minB = std::min(b0, b1);
+	// 	double maxB = std::max(b0, b1);
+
+	// 	double overlapLength = std::min(maxA, maxB) - std::max(minA, minB);
+
+	// 	// Endpoint-only touching gives zero overlap length and is excluded.
+	// 	return (overlapLength > tol);
+	// }
 	
 	bool line_segment::intersectsWith(const line_segment& rhs, vertex& pInt, const double& tol /*= 1e-3*/) const
 	{

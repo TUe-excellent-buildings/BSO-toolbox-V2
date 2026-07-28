@@ -249,7 +249,7 @@ void bp_model::addState(state::state* s)
 		mStates.insert(mStates.begin(),s); // insert it at the beginning, so that these are updated before independent states are
 		mDependentStates.push_back(dynamic_cast<state::dependent_state*>(s));
 		
-		if 			(s->isSpace())  mSpaces.push_back( dynamic_cast<state::space* >(s));
+		if 		(s->isSpace())  mSpaces.push_back( dynamic_cast<state::space* >(s));
 		else if (s->isWall())   mWalls.push_back(  dynamic_cast<state::wall*  >(s));
 		else if (s->isFloor())  mFloors.push_back( dynamic_cast<state::floor* >(s));
 		else if (s->isWindow()) mWindows.push_back(dynamic_cast<state::window*>(s));

@@ -263,6 +263,36 @@ void visualize(const std::vector<bso::utilities::geometry::quad_hexahedron> QHs,
 	vpmanager.addviewport(new viewport(new GEOMETRY_Model(QHs,triPrisms,quads,triangles,lines,title,linewidth)));
 }
 
+template <typename GeometryT>
+void visualize(const std::vector<std::pair<rgba, std::vector<GeometryT>>>& layers,
+	const std::string& title = "geometry_model",
+	const double& linewidth = 1.0)
+{
+	vpmanager.addviewport(new viewport(new GEOMETRY_Model(layers,title,linewidth)));
+}
+
+template <typename GeometryT>
+void visualize(const std::vector<std::pair<polygon_props, std::vector<GeometryT>>>& layers,
+	const std::string& title = "geometry_model",
+	const double& linewidth = 1.0)
+{
+	vpmanager.addviewport(new viewport(new GEOMETRY_Model(layers,title,linewidth)));
+}
+
+void visualize(const std::vector<GEOMETRY_RgbaLayer>& layers,
+	const std::string& title = "geometry_model",
+	const double& linewidth = 1.0)
+{
+	vpmanager.addviewport(new viewport(new GEOMETRY_Model(layers,title,linewidth)));
+}
+
+void visualize(const std::vector<GEOMETRY_PolygonPropsLayer>& layers,
+	const std::string& title = "geometry_model",
+	const double& linewidth = 1.0)
+{
+	vpmanager.addviewport(new viewport(new GEOMETRY_Model(layers,title,linewidth)));
+}
+
 void visualize(const std::vector<bso::utilities::geometry::triangular_prism> triPrisms, 
 	const std::string& title = "geometry_model",
 	const double& linewidth = 1.0)

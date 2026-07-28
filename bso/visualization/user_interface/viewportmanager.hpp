@@ -289,9 +289,12 @@ namespace bso { namespace visualization
     bool viewportmanager::key_event(int key, int time)
     {
         (void)time; // does nothing
-        //keypresses are passed to the viewport with the focus
-        if(focus)
+        // keypresses are passed to the viewport with the focus
+        if (focus)
             return focus->pmodel->key_pressed(key);
+
+        if (!viewports.empty())
+            return viewports.front()->pmodel->key_pressed(key);
 
         return false;
     }

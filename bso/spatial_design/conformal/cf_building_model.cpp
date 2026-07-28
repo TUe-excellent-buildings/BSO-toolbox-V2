@@ -224,7 +224,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 			errorMessage << "When initializing multiple quad-hexahedron cells in a space in the addSpaceD() function.\n"
 									 << "The space was not fully filled with the inserted cells. \n"
 									 << "Meaning that there are cells missing. \n"
-									 << "The difference between the space volume and the sum of all the cells is: " << (spaceVolume-cellVolume) << "\n"
+									 << "The difference between the space volume and the sum of all the cells volume is: " << (spaceVolume-cellVolume) << "\n"
 									 << "the amount of triPrism in the space is: " << quadHexa.size() << " and consist of the following: " << std::endl;
 										for(const auto& i: quadHexa)
 										{
@@ -833,8 +833,42 @@ namespace bso { namespace spatial_design { namespace conformal {
 			}
 			
 			// Send triPrismPtr to the AddSpace function to add the cells and spaces to the conformal model
-			this->addSpaceD(*t, triPrism);
-			i++;
+			try
+			{
+				this->addSpaceD(*t, triPrism);
+				i++;
+			}
+			catch(const std::exception& e)
+			{
+				std::stringstream errorMessage;
+				errorMessage << "When generating a delaunay conformal model.\n"
+										<< "The space could not be added to the conformal model with the right triangular cels.\n"
+										<< "The following error message was received: \n\n" << e.what() << "\n\n"
+										<< "the considered space is: " << *(mCFSpaces.back()) << "\n"
+										<< "The spaces in the building are:" << std::endl;
+										for(const auto& i: mMSModel.getSpacePtrs())
+										{
+											errorMessage << "space ID: " << i->getID() << " --> " << *i << std::endl;
+										}
+										errorMessage << "All delaunay tri found are:" << "\n";
+										for(const auto& i: delaunayTri)
+										{
+											errorMessage << i << std::endl;
+										}
+										errorMessage << "The considered space interted when error occured: space ID = " << t->getID() << " --> " << *t << "\n";
+										errorMessage << "All triangular prims generated for this considered space are:" << "\n";
+										for(const auto& i: triPrism)
+										{
+											errorMessage << i << std::endl;
+										}
+										errorMessage << "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+				
+				
+				std::cerr << e.what() << '\n';
+			}
+			
+			
 		}		
 	} //makeConformalND()
 	

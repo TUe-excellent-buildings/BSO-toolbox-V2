@@ -9,6 +9,65 @@
 
 namespace bso { namespace spatial_design {
 
+struct shift_fill_plane_debug_data
+{
+	std::vector<utilities::geometry::quad_hexahedron> selectedSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> notSelectedSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> partialSpaces;
+
+	std::vector<utilities::geometry::quadrilateral> toughingSQuadsPreDedup;
+	std::vector<utilities::geometry::quadrilateral> toughingNSQuadsPreDedup;
+	std::vector<utilities::geometry::quadrilateral> toughingSQuadsPostDedup;
+	std::vector<utilities::geometry::quadrilateral> toughingNSQuadsPostDedup;
+	std::vector<utilities::geometry::quadrilateral> extrudingQuadsPostSplit;
+
+	std::vector<utilities::geometry::line_segment> linesAtFloorFlattened;
+	std::vector<utilities::geometry::quad_hexahedron> linesAtFloorReferenceSpaces;
+
+	std::vector<utilities::geometry::quad_hexahedron> shiftedSpaces;
+};
+
+struct extrude_debug_data
+{
+	std::vector<utilities::geometry::quad_hexahedron> selectedSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> notSelectedSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> partialSpaces;
+
+	std::vector<utilities::geometry::quadrilateral> fullyOnExtrusionSideQuads;
+	std::vector<utilities::geometry::quadrilateral> partiallyOnExtrusionSideQuads;
+	std::vector<utilities::geometry::quadrilateral> notOnExtrusionSideQuads;
+
+	std::vector<utilities::geometry::quad_hexahedron> testSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> validTestSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> rejectedTestSpaces;
+};
+
+struct shift_fill_plane_centre_debug_data
+{
+	bso::utilities::geometry::vertex location;
+	bso::utilities::geometry::vector mostAzimuth;
+	bso::utilities::geometry::vector secondMostAzimuth;
+	bso::utilities::geometry::vector shiftDirection;
+
+	std::vector<utilities::geometry::quad_hexahedron> selectedSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> notSelectedSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> partialSpaces;
+
+	bool usedShiftSelectedSide = false;
+	bool usedShiftNonSelectedSide = false;
+	bool usedExtrude = false;
+	bool flippedExtrudeDirection = false;
+
+	bso::utilities::geometry::vector appliedDirection;
+
+	std::string selectedSideShiftError;
+	std::string nonSelectedSideShiftError;
+
+	shift_fill_plane_debug_data selectedSideShiftDebug;
+	shift_fill_plane_debug_data nonSelectedSideShiftDebug;
+	extrude_debug_data extrudeDebug;
+};
+
 class ms_N_building
 {
 private:
@@ -58,7 +117,7 @@ public:
 	std::vector <bso::utilities::geometry::quadrilateral> getQuadAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol = 1e-3);
 	std::vector <bso::utilities::geometry::line_segment> getLinesAtZ0(std::vector<bso::spatial_design::ms_space*> spaces, const double mTol = 1e-3);
 	bso::utilities::geometry::vertex getCentreBuilding();
-	void getMostHeadingDirection(bso::utilities::geometry::vector& mostHeading, bso::utilities::geometry::vector& secondMostHeading, int amountOfHeadingCatagories = 6);
+	void getMostAzimuthDirection(bso::utilities::geometry::vector& mostAzimuth, bso::utilities::geometry::vector& secondMostAzimuth, int amountOfAzimuthCategories = 6);
 
 	// Representation adjustment functions:
 	void setZZero(); 
@@ -71,12 +130,18 @@ public:
 	void splitSpace(ms_space& space, const std::vector<std::pair<unsigned int, unsigned int> >& splits = {{0,2},{1,2}}); // split perpendicular to inserted axis; x-axis=0, y-axis=1, and z-axis=2
 	void splitSpace(ms_space* spacePtr, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit); //split perpendicular to inserted line of space
 	void splitSpace(ms_space& space, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit); //split perpendicular to inserted line of space
-	void duplicateElevation(double atZFromGround = 0, double elevationHeight = 3000, bool duplicateBelowZLevel = true); // duplicate either all spaces above or below a certain z-level by a certain elevation height in z-direction and moves the above spaces up to create a new elevation.
-	void shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHeadingDirection = false, int amountOfHeadingCatagories = 6, bool verbose = false, const double& tol = 1e-3);
+	void duplicateElevation(double atZFromGround = 0, double elevationHeight = 3000, bool duplicateBelowZLevel = true, const double& tol = 1e-3); // duplicate either all spaces above or below a certain z-level by a certain elevation height in z-direction and moves the above spaces up to create a new elevation.
+	void shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHeadingDirection = false, int amountOfHeadingCatagories = 6, bool verbose = false,
+		const double& tol = 1e-3, shift_fill_plane_centre_debug_data* debugData = nullptr);
 	std::vector<bso::spatial_design::ms_space*> shiftFillPlane(const bso::utilities::geometry::vertex& location,
-		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3, bool verbose = false);
+		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3, bool verbose = false,
+		shift_fill_plane_debug_data* debugData = nullptr);
+	std::vector<bso::spatial_design::ms_space*> shiftFillPlane(const bso::utilities::geometry::vertex& location,
+		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const bool extrudeFromSelectedSide, double minimalSpaceAngle = 20.0,
+		const double& tol = 1e-3, bool verbose = false, shift_fill_plane_debug_data* debugData = nullptr);
+	void extrude(const bso::utilities::geometry::vertex& location, const bso::utilities::geometry::vector& extrudeDirection, double extrudeAmount, const double& tol /*= 1e-3*/, extrude_debug_data* debugData = nullptr);
 	void extrude(std::vector<ms_space*> spacePtrs, const bso::utilities::geometry::vertex& location, 
-		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3);
+		const bso::utilities::geometry::vector& extrudeDirection, double extrudeAmount, const double& tol = 1e-3, extrude_debug_data* debugData = nullptr);
 	void enforceAverageSpaceSize(double minElevationHeight = 3000, const double& tol = 1e-3, bool verbose = false);
 
 	// Space selection functions:

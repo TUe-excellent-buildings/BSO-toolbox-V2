@@ -135,7 +135,7 @@ void scdp_config::parseArguments(int argc, char* argv[])
 								<<   "\t" << "\'worstAdapt\' for using either add elevation or shiftfillplane method \n"
 								<<   "\t" << "depending on where the worst performing spaces are located. \n"
 								<<   "\t" << "this is determined by finding the centre of to worst spaces\n"
-								<<   "\t" << "and the centre of the building. The vector centre worst spaces -> centre building\n"
+								<<   "\t" << "and the centre of the building. The vector centre centre building -> worst spaces\n"
 								<<   "\t" << "has an inclination. If inclination is bellow x then addElevation is applied otherwise shiftFillPlane\n"
 								<<   "\t" << "The value x needs to be set behind the statement \'worstAdapt\'. \n"
 			             "-o\t" << "or --output, to specify the different outputs:\n"

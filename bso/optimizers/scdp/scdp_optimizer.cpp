@@ -1033,32 +1033,32 @@ void scdp_optimizer::splitSpaces(spatial_design::ms_N_building& ms, const std::v
             double longestLength = 0;
 
             for (const auto& j : ms.getSpacePtrs())
+            {
+                std::vector<bso::utilities::geometry::line_segment> lines = j->getGeometry().getLines();
+                for(const auto& k: lines)
+                {
+                    if(k.getVector().isVertical())
                     {
-                        std::vector<bso::utilities::geometry::line_segment> lines = j->getGeometry().getLines();
-                        for(const auto& k: lines)
-                        {
-                            if(k.getVector().isVertical())
-                            {
-                                if(k.getLength() < 6000) continue; // only consider horizontal lines which are long enough for elevation height purposes
-                            } 
-                            if(longestLength < k.getLength() && k.getLength() > 2000) // only split spaces wherefrom the longestLength is at least 2000 to avoid to narrow spaces
-                            {
-                                longestLength = k.getLength();
-                                LongestAxis = k;
-                                spaceWithLargestDimension = j;
-                            }
-                        }
-                    }
-                    int splitamount = 2;
-                    if(LongestAxis.getVector().isVertical())
+                        if(k.getLength() < 6000) continue; // only consider horizontal lines which are long enough for elevation height purposes
+                    } 
+                    if(longestLength < k.getLength() && k.getLength() > 2000) // only split spaces wherefrom the longestLength is at least 2000 to avoid to narrow spaces
                     {
-                        std::vector<std::pair<unsigned int, unsigned int> > splits = {{2,splitamount}};
-                        ms.splitSpace(spaceWithLargestDimension, splits);
+                        longestLength = k.getLength();
+                        LongestAxis = k;
+                        spaceWithLargestDimension = j;
                     }
-                    else
-                    {
-                        ms.splitSpace(spaceWithLargestDimension, splitamount , LongestAxis);
-                    }
+                }
+            }
+            int splitamount = 2;
+            if(LongestAxis.getVector().isVertical())
+            {
+                std::vector<std::pair<unsigned int, unsigned int> > splits = {{2,splitamount}};
+                ms.splitSpace(spaceWithLargestDimension, splits);
+            }
+            else
+            {
+                ms.splitSpace(spaceWithLargestDimension, splitamount , LongestAxis);
+            }
         }		
         mOutputManager.out("Split spaces with largest dimension to restore number of spaces",true,true,mConfig.getVerbose());
     }

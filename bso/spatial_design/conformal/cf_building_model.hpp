@@ -31,7 +31,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		std::vector<utilities::geometry::quad_hexahedron> mQuadHexaInput;
 		std::vector<bso::utilities::geometry::vertex> mConstrainVertexes;
 		std::vector<bso::utilities::geometry::vertex> mAddDelaunayConstrains; // vertices which should be added as constrain points for the delaunay triangulation, for example to make sure that the partitioning is conformal to the window openings.
-		std::string mfileNameDLSettings = ""; 
+		std::string mfileNameDLSettings = ""; 		
 		std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>> mWindowConstrainsPerSpaceQH;
 		std::map<unsigned int, std::vector<bso::utilities::geometry::vertex>> mWindowConstrainsPerSpaceTP;
 

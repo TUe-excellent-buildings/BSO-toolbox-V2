@@ -6,6 +6,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <utility>
+#include <type_traits>
 
 #ifdef SD_MODEL_HPP
 #include <bso/structural_design/sd_model.hpp>
@@ -20,6 +21,35 @@
 namespace bso { namespace visualization
 {
 
+// GEOMETRY_MixedLayer groups geometry primitives that should be rendered as one visual layer.
+// The layer style is generic:
+// - StyleT = rgba          -> simple color-driven styling
+// - StyleT = polygon_props -> full material/shading styling
+// Either style can be used with its appropriate alias: GEOMETRY_RgbaLayer or GEOMETRY_PolygonPropsLayer defined below.
+//
+// lineWidth controls rendering width for line primitives in this layer.
+// If lineWidth <= 0, the model/default linewidth is used.
+//
+// Geometry is split by primitive type, so one layer can mix volumes, surfaces, and edges.
+template <typename StyleT>
+struct GEOMETRY_MixedLayer
+{
+	StyleT style;
+	double lineWidth = -1.0;
+	std::vector<bso::utilities::geometry::quad_hexahedron> QHs;
+	std::vector<bso::utilities::geometry::triangular_prism> triPrisms;
+	std::vector<bso::utilities::geometry::quadrilateral> quads;
+	std::vector<bso::utilities::geometry::triangle> triangles;
+	std::vector<bso::utilities::geometry::line_segment> lines;
+};
+
+// Convenience aliases for the two supported style modes.
+using GEOMETRY_RgbaLayer = GEOMETRY_MixedLayer<rgba>;
+using GEOMETRY_PolygonPropsLayer = GEOMETRY_MixedLayer<polygon_props>;
+
+// A utility class to visualize any geometry objects when required,
+// with any style (color, transparency, etc.) and line width. 
+//The geometry objects are organized in layers, each layer can have its own style and line width. The layers are rendered in the order they are provided to the constructor.
 class GEOMETRY_Model : public model_base
 {
 private:
@@ -33,9 +63,13 @@ private:
 	line_props     lprops;
 	line_props	   lprops_boundary;
 	label_props    lbprops;
+
+	std::list<polygon_props> mLayerPolygonProps;
+	std::list<line_props> mLayerLineProps;
 	random_bsp     *pbsp;
 public:
-	GEOMETRY_Model(const std::vector<bso::utilities::geometry::quad_hexahedron> QHs,
+// Basic constructors for visualization of geometry without choice of color or line width, i.e., using default values.	
+GEOMETRY_Model(const std::vector<bso::utilities::geometry::quad_hexahedron> QHs,
 						const std::vector<bso::utilities::geometry::triangular_prism> triPrisms, 
 						const std::vector<bso::utilities::geometry::quadrilateral> quads, 
 						const std::vector<bso::utilities::geometry::triangle> triangles,
@@ -43,9 +77,27 @@ public:
 						const std::string& title = "geometry_model",
 						const double& linewidth = 1.0);
 
-    GEOMETRY_Model(const std::vector<bso::utilities::geometry::triangular_prism> triPrisms, 
+	GEOMETRY_Model(const std::vector<bso::utilities::geometry::triangular_prism> triPrisms, 
                         const std::string& title = "geometry_model",
                         const double& linewidth = 1.0);
+
+	// Constructors utilizing the GEOMETRY_MixedLayer struct to provide a more flexible way to specify geometry layers with different styles and line widths for visualizations.
+	template <typename GeometryT>
+	GEOMETRY_Model(const std::vector<std::pair<rgba, std::vector<GeometryT>>>& layers,
+						const std::string& title = "geometry_model",
+						const double& linewidth = 1.0);
+
+	template <typename StyleT>
+	GEOMETRY_Model(const std::vector<GEOMETRY_MixedLayer<StyleT>>& layers,
+						const std::string& title = "geometry_model",
+						const double& linewidth = 1.0);
+
+	template <typename GeometryT>
+	GEOMETRY_Model(const std::vector<std::pair<polygon_props, std::vector<GeometryT>>>& layers,
+						const std::string& title = "geometry_model",
+						const double& linewidth = 1.0);
+
+
 
 	~GEOMETRY_Model();
 	
@@ -136,6 +188,153 @@ GEOMETRY_Model::GEOMETRY_Model(const std::vector<bso::utilities::geometry::trian
 
     pbsp = new random_bsp(polygons);
 } //
+
+template <typename GeometryT>
+GEOMETRY_Model::GEOMETRY_Model(const std::vector<std::pair<rgba, std::vector<GeometryT>>>& layers,
+						const std::string& title /*= "geometry_model"*/,
+						const double& linewidth /*= 1.0*/)
+	: GEOMETRY_Model([&layers]()
+	{
+		std::vector<GEOMETRY_RgbaLayer> mixedLayers;
+		mixedLayers.reserve(layers.size());
+		for (const auto& layer : layers)
+		{
+			GEOMETRY_RgbaLayer mixedLayer;
+			mixedLayer.style = layer.first;
+			if constexpr (std::is_same<GeometryT, bso::utilities::geometry::quad_hexahedron>::value)
+			{
+				mixedLayer.QHs = layer.second;
+			}
+			else if constexpr (std::is_same<GeometryT, bso::utilities::geometry::triangular_prism>::value)
+			{
+				mixedLayer.triPrisms = layer.second;
+			}
+			else if constexpr (std::is_same<GeometryT, bso::utilities::geometry::quadrilateral>::value)
+			{
+				mixedLayer.quads = layer.second;
+			}
+			else if constexpr (std::is_same<GeometryT, bso::utilities::geometry::triangle>::value)
+			{
+				mixedLayer.triangles = layer.second;
+			}
+			else if constexpr (std::is_same<GeometryT, bso::utilities::geometry::line_segment>::value)
+			{
+				mixedLayer.lines = layer.second;
+			}
+			else
+			{
+				static_assert(std::is_same<GeometryT, void>::value,
+					"GEOMETRY_Model template constructor received unsupported geometry type.");
+			}
+			mixedLayers.push_back(std::move(mixedLayer));
+		}
+		return mixedLayers;
+	}(), title, linewidth)
+{
+}
+
+template <typename StyleT>
+GEOMETRY_Model::GEOMETRY_Model(const std::vector<GEOMETRY_MixedLayer<StyleT>>& layers,
+						const std::string& title /*= "geometry_model"*/,
+						const double& linewidth /*= 1.0*/)
+{
+	lprops.width = linewidth;
+	lprops_boundary.color = rgba(1.0f, 0.0f, 0.0f, 1.0f);
+	lprops_boundary.width = 2.0f;
+	mTitle = title;
+
+	for (const auto& layer : layers)
+	{
+		if constexpr (std::is_same<StyleT, rgba>::value)
+		{
+			polygon_props p;
+			p.ambient = layer.style;
+			p.diffuse = layer.style;
+			p.specular = layer.style;
+			p.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+			p.shininess = 60.0f;
+			p.translucent = (layer.style.a < 1.0f);
+			p.twosided = true;
+			mLayerPolygonProps.push_back(p);
+		}
+		else if constexpr (std::is_same<StyleT, polygon_props>::value)
+		{
+			mLayerPolygonProps.push_back(layer.style);
+		}
+		else
+		{
+			static_assert(std::is_same<StyleT, void>::value,
+				"GEOMETRY_Model mixed-layer constructor supports only rgba or polygon_props styles.");
+		}
+
+		polygon_props* p = &mLayerPolygonProps.back();
+
+		for (const auto& g : layer.QHs) this->addPolyhedron(polygons, &g, p, &lprops);
+		for (const auto& g : layer.triPrisms) this->addPolyhedron(polygons, &g, p, &lprops);
+		for (const auto& g : layer.quads) this->addPolygon(polygons, &g, p, &lprops, 0.0);
+		for (const auto& g : layer.triangles) this->addPolygon(polygons, &g, p, &lprops, 0.0);
+
+		if (!layer.lines.empty())
+		{
+			mLayerLineProps.push_back(lprops_boundary);
+			line_props* lp = &mLayerLineProps.back();
+			if constexpr (std::is_same<StyleT, rgba>::value)
+			{
+				lp->color = layer.style;
+			}
+			else
+			{
+				lp->color = p->diffuse;
+			}
+			lp->width = (layer.lineWidth > 0.0 ? layer.lineWidth : linewidth);
+			for (const auto& g : layer.lines) this->addLineSegment(polygons, &g, p, lp);
+		}
+	}
+
+	pbsp = new random_bsp(polygons);
+}
+
+template <typename GeometryT>
+GEOMETRY_Model::GEOMETRY_Model(const std::vector<std::pair<polygon_props, std::vector<GeometryT>>>& layers,
+						const std::string& title /*= "geometry_model"*/,
+						const double& linewidth /*= 1.0*/)
+{
+	lprops.width = linewidth;
+	lprops_boundary.color = rgba(1.0f, 0.0f, 0.0f, 1.0f);
+	lprops_boundary.width = 2.0f;
+	mTitle = title;
+
+	for (const auto& layer : layers)
+	{
+		mLayerPolygonProps.push_back(layer.first);
+		polygon_props* p = &mLayerPolygonProps.back();
+		if constexpr (std::is_same<GeometryT, bso::utilities::geometry::quad_hexahedron>::value ||
+						  std::is_same<GeometryT, bso::utilities::geometry::triangular_prism>::value)
+		{
+			for (const auto& g : layer.second) this->addPolyhedron(polygons, &g, p, &lprops);
+		}
+		else if constexpr (std::is_same<GeometryT, bso::utilities::geometry::quadrilateral>::value ||
+							   std::is_same<GeometryT, bso::utilities::geometry::triangle>::value)
+		{
+			for (const auto& g : layer.second) this->addPolygon(polygons, &g, p, &lprops, 0.0);
+		}
+		else if constexpr (std::is_same<GeometryT, bso::utilities::geometry::line_segment>::value)
+		{
+			mLayerLineProps.push_back(lprops_boundary);
+			line_props* lp = &mLayerLineProps.back();
+			lp->color = p->diffuse;
+			lp->width = linewidth;
+			for (const auto& g : layer.second) this->addLineSegment(polygons, &g, p, lp);
+		}
+		else
+		{
+			static_assert(std::is_same<GeometryT, void>::value,
+				"GEOMETRY_Model template constructor received unsupported geometry type.");
+		}
+	}
+
+	pbsp = new random_bsp(polygons);
+}
 
 GEOMETRY_Model::~GEOMETRY_Model()
 {
