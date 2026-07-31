@@ -36,7 +36,7 @@ public:
         output_manager& outputMgr,
         bool verbose);
 
-    static void sortDataPointsHighestToLowest(
+    static void sortDataPointsLowestToHighest(
         std::vector<utilities::data_point>& performances,
         const std::string& modificationType,
         const std::vector<std::string>& modificationSequence,

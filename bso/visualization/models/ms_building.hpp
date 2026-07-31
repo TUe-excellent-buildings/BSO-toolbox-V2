@@ -643,7 +643,9 @@ MS_Model::MS_Model(const std::vector<utilities::data_point>& spaceData, const st
 		double performance = 0;
 		for(unsigned int j = 0; j < dataWeighted.size(); ++j) performance = performance + dataWeighted(j);
 
-		// Define rgb color value's according to performance
+		// Define rgb color value's according to performance,
+		// with 0.5 as the threshold between red and green, 
+		//and 1.0 as the maximum value for red and marker of the worst performance.
 		double factor;
 		if(performance > 0.5 && performance <= (1.0+0.0001)) // red till yellow
 		{

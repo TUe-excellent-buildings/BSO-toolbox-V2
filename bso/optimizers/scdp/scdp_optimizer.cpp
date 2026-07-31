@@ -256,8 +256,8 @@ void scdp_optimizer::getDesignResults()
             if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("pre DL analysis");}
             mDLModelLast.back().analyze();
             if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("post SD analysis");}
-            mOutputManager.out("Evaluated daylight model, ADFbuildingInverse: ",false,false,mConfig.getVerbose());
-            dlResult1 = mDLModelLast.back().getTotalResults().mADFBuildingInverse; // optimization runs on inverse ADF, but we have the regular ADF as well for reference
+            mOutputManager.out("Evaluated daylight model, ADFbuilding: ",false,false,mConfig.getVerbose());
+            dlResult1 = mDLModelLast.back().getTotalResults().mADFBuilding; 
             mOutputManager.out(dlResult1,false,false,mConfig.getVerbose());
             mOutputManager.out(", mBS-EN score: ",true,true,mConfig.getVerbose(), true);
             dlResult2 = mDLModelLast.back().getTotalResults().mTotalScore;
@@ -374,7 +374,6 @@ void scdp_optimizer::getDesignResults()
             if (visOption == "dlD" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "DF");
             if (visOption == "dlI" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "Horizontal_Illuminance");
             if (visOption == "dlADF" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "ADF");
-            if (visOption == "dlADF_inverse" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "ADF_inverse");
             if (visOption == "dlNEN" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "NEN");
 
             if (visOption == "msw" && mCurrentIteration == mConfig.getIterations()) mswVisualized = true; // set a flag to indicate that the final MSW visualization has been done, so that it is not generated again in the outputResults() function after the optimization process is finished.
@@ -492,7 +491,7 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
                 // step 4, evaluate DL and store results
                 dl.analyze();
                 mOutputManager.out("Evaluated intermediate daylight model, ADFbuilding: ",false,false,mConfig.getVerbose());
-                dlResult = dl.getTotalResults().mADFBuildingInverse;
+                dlResult = dl.getTotalResults().mADFBuilding;
                 mOutputManager.out(dlResult,true,true,mConfig.getVerbose());
                 performance_evaluator::getPerformancePerSpace(intermediateSpaceResults, ms, dummySD, dummyBP, dl, objective, mConfig.getPerformanceDivision(), mOutputManager, mConfig.getVerbose(), sdAvailable, bpAvailable, dlAvailable);
             }
@@ -539,7 +538,7 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
                 // step 4, evaluate DL and store results
                 dl.analyze();
                 mOutputManager.out("Evaluated intermediate daylight model, ADFbuilding: ",false,false,mConfig.getVerbose());
-                dlResult = dl.getTotalResults().mADFBuildingInverse;
+                dlResult = dl.getTotalResults().mADFBuilding;
                 mOutputManager.out(dlResult,true,true,mConfig.getVerbose());
             }
             if(sdAvailable)
@@ -606,7 +605,7 @@ void scdp_optimizer::runSplitDeleteIteration(const std::string& modificationType
         bso::daylight::dl_model& dlRef = mConfig.getRunDLSimulation() ? mDLModelLast.back() : dummyDL;
         performance_evaluator::getPerformancePerSpace(performances, newMS, sdRef, bpRef, dlRef, modificationType, mConfig.getPerformanceDivision(), mOutputManager, mConfig.getVerbose(), mConfig.getRunSDSimulation(), mConfig.getRunBPSimulation(), mConfig.getRunDLSimulation());
 
-        // step 3, normalize the data points
+        // step 3, normalize the data points, and in doing so ensure that all objectives are oriented in the same direction (i.e. lower is better)
         utilities::data_point utopianPoint;
         utilities::data_point distopianPoint;
         performance_evaluator::normalizeData(performances, utopianPoint, distopianPoint, mOutputManager, mConfig.getVerbose());
@@ -672,7 +671,12 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
         bso::daylight::dl_model& dlRef2 = mConfig.getRunDLSimulation() ? mDLModelLast.back() : dummyDL2;
         performance_evaluator::getPerformancePerSpace(performances, newMS, sdRef, bpRef, dlRef2, modificationType, mConfig.getPerformanceDivision(), mOutputManager, mConfig.getVerbose(), mConfig.getRunSDSimulation(), mConfig.getRunBPSimulation(), mConfig.getRunDLSimulation());
 
-        // step 3, get data for 'worstAdapt' method if selected, 
+        // step 4, normalize the data points, and in doing so ensure that all objectives are oriented in the same direction (i.e. lower is better)
+        utilities::data_point utopianPoint;
+        utilities::data_point distopianPoint;
+        performance_evaluator::normalizeData(performances, utopianPoint, distopianPoint, mOutputManager, mConfig.getVerbose());
+
+        // step 5, get data for 'worstAdapt' method if selected, 
         // which determines the add method based on the location of the worst performing spaces.
         bso::utilities::geometry::vector worstSpacesDirection = {0,0,0};
         bso::utilities::geometry::vertex centreBuilding = {0,0,0};
@@ -680,7 +684,7 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
         if(mConfig.getAddMethod() == "worstAdapt")
         {
             // step 3a, sort performance data points from highest to lowest to determine where the worst is located for space removal later
-            performance_evaluator::sortDataPointsHighestToLowest(performances, modificationType,
+            performance_evaluator::sortDataPointsLowestToHighest(performances, modificationType,
                     mConfig.getModificationSequence(), mCurrentIteration, mConfig.getObjectiveWeights(),
                     mConfig.getWeightedModification(), mOutputManager, mConfig.getVerbose());
 
@@ -704,21 +708,16 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
             worstSpacesDirection = worstSpaceCentre - centreBuilding;
         }
 
-        // step 4, normalize the data points
-        utilities::data_point utopianPoint;
-        utilities::data_point distopianPoint;
-        performance_evaluator::normalizeData(performances, utopianPoint, distopianPoint, mOutputManager, mConfig.getVerbose());
-
-        // step 5, visualize the performance of spaces
+        // step 6, visualize the performance of spaces
         visualizeMsw(newMS, performances, mCurrentIteration, mConfig.getObjectiveWeights(), "_bases_Del_Mod_decision");
 
-        // Step 6, delete spaces
+        // Step 7, delete spaces
         deleteSpaces(newMS, performances, modificationType, distopianPoint);
 
-        // step 7, Enforce constrains on BSD
+        // step 8, Enforce constrains on BSD
         enforceConstraints(newMS);
 
-        // step 8, perform the specified modification methods
+        // step 9, perform the specified modification methods
         if(mConfig.getAddMethod() == "worstAdapt")
         {
             // step 8a, execute either addElevation or shiftFillPlaneCentre depending on the worst spaces direction,
@@ -866,6 +865,8 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
 	}
 } // runModificationIteration()
 
+// Delete spaces from the building spatial design based on the specified delete method.
+// Note: the space data needs to be normalized before calling this function.
 void scdp_optimizer::deleteSpaces(spatial_design::ms_N_building& ms,
 								  std::vector<utilities::data_point>& performances, 
                                   const std::string& modificationType,
@@ -933,22 +934,29 @@ void scdp_optimizer::deleteSpaces(spatial_design::ms_N_building& ms,
     }
     else if (mConfig.getDeleteMethod() == "worst")
     {
-        // step 4, sort data and determine space removal amount
+        // step 4, sort data
         performancesRemoveSpace = performances;
-        performance_evaluator::sortDataPointsHighestToLowest(performancesRemoveSpace, mConfig.getModification(),
+        performance_evaluator::sortDataPointsLowestToHighest(performancesRemoveSpace, mConfig.getModification(),
             mConfig.getModificationSequence(), mCurrentIteration, mConfig.getObjectiveWeights(),
             mConfig.getWeightedModification(), mOutputManager, mConfig.getVerbose());
+        std::cout << "Distopian point: " << distopianPoint << std::endl;
+        std::cout << "sorted performancesRemoveSpace size: " << performancesRemoveSpace.size() << std::endl;
+        for(const auto& dp : performancesRemoveSpace)
+        {
+            std::cout << "performance: " << dp << std::endl;
+        }
         mOutputManager.out("Sort data points for space removal",true,true,mConfig.getVerbose());
 
+        // step 5, determine space removal amount
         std::size_t spaceAmountRemoval;
-        if(mConfig.getAmountOfSpaceRemoval() > 0){spaceAmountRemoval = mConfig.getAmountOfSpaceRemoval();} // getAmountOfSpaceRemoval() value cannot be below 1 as checked at input, so no need to check for that here.
+        if(mConfig.getAmountOfSpaceRemoval() > 0){spaceAmountRemoval = mConfig.getAmountOfSpaceRemoval();} 
         else 
         {
             spaceAmountRemoval = std::floor(performancesRemoveSpace.size()*mConfig.getSpaceRemoveRatio());
             if(spaceAmountRemoval < 1){spaceAmountRemoval = 1;}
         }
 
-        // step 5, select worst performing spaces and remove these spaces
+        // step 6, select worst performing spaces and remove these spaces
         const std::size_t safeDeleteGuard = std::min(spaceAmountRemoval, performancesRemoveSpace.size());
         const std::size_t startIdx = performancesRemoveSpace.size() - safeDeleteGuard;
         for (std::size_t idx = startIdx; idx < performancesRemoveSpace.size(); ++idx)
@@ -1005,7 +1013,7 @@ void scdp_optimizer::recoverNrSpaces(spatial_design::ms_N_building& ms,
 
         // Recovery deletion intentionally always uses the worst-performance strategy,
         // independent of the configured delete method.
-        performance_evaluator::sortDataPointsHighestToLowest(intermediateResults, modificationType,
+        performance_evaluator::sortDataPointsLowestToHighest(intermediateResults, modificationType,
             mConfig.getModificationSequence(), iteration, objectiveWeights,
             mConfig.getWeightedModification(), mOutputManager, mConfig.getVerbose());
 
@@ -1130,7 +1138,7 @@ void scdp_optimizer::splitSpaces(spatial_design::ms_N_building& ms, const std::v
     else if(mConfig.getSplitMethod() == "performance")
     {
         std::vector<utilities::data_point> performancesRemoveSpace = performances;
-        performance_evaluator::sortDataPointsHighestToLowest(performancesRemoveSpace, modification,
+        performance_evaluator::sortDataPointsLowestToHighest(performancesRemoveSpace, modification,
             mConfig.getModificationSequence(), i, objectiveWeights, mConfig.getWeightedModification(),
             mOutputManager, mConfig.getVerbose());
         

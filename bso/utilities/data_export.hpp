@@ -18,11 +18,11 @@ class data_export
 private:
 	// Data descriptions
 	std::vector<std::shared_ptr<data_point> > mData;
-	std::vector<std::string> mAxisDataTypes; // as stored from input.
+	std::vector<std::string> mAxisDataTypes; // as stored from input and ID placement should correspond to the data in mData, e.g. "sd", "bp", "dl_ADFbuilding".
 	std::string mDataName = "";
 
 	// Axis descriptions tranformed from mAxisDataType input.
-	std::map<std::string, std::string> mAxisLabels = {{"sd", "Total strain energy [Nmm]"}, {"bp", "Heating and cooling energy [kWh]"}, {"dl_ADFbuilding_inverse", "Average daylight factor [1/%]"}, {"dl_score", "BS EN 17037-2018 score [-]"}, {"iteration", "Iteration"}};
+	std::map<std::string, std::string> mAxisLabels = {{"sd", "Total strain energy [Nmm]"}, {"bp", "Heating and cooling energy [kWh]"}, {"dl_ADFbuilding", "Average daylight factor [%]"}, {"dl_score", "BS EN 17037-2018 score [-]"}, {"iteration", "Iteration"}};
 
 	// Utility functions to output data to indicated output stream; 
 	void dataPointToStream(const utilities::data_point& data, std::ostringstream& oss);

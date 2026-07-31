@@ -67,7 +67,6 @@ the daylight calculation will perform.
 	{
 		unsigned int mSpaceID      = 0;
 		double       mADF          = 0.0;
-		double 		 mADFInverse  = 0.0; // 1/mADF, used for optimization performance as it can be minimized.
 		double       mDtPercentage = 0.0;
 		double       mDtmPercentage= 0.0;
 		double       mScore        = 0.0;
@@ -92,8 +91,7 @@ the daylight calculation will perform.
 		double mDtBuilding = 0.0;  
 		double mDtmBuilding = 0.0;  
 		double mTotalScore = 0.0; 
-		double mADFBuilding = 0.0; // true value
-		double mADFBuildingInverse = 0.0; // 1/mADFbuilding, used for optimization performance as it can be minimized.
+		double mADFBuilding = 0.0; 
 	};
 
 	class dl_model

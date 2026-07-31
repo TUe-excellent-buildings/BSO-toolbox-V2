@@ -192,7 +192,6 @@ void scdp_config::parseArguments(int argc, char* argv[])
                                 <<   "\t" << "\'dlD\' for the \'Daylight model with daylight factor visualization\'.\n"
                                 <<   "\t" << "\'dlI\' for the \'Daylight model with illuminance visualization\'.\n"
 								<<   "\t" << "\'dlADF\' for the \'Daylight model with average daylight factor per-space visualization\'.\n"
-								<<   "\t" << "\'dlADF_inverse\' for the \'Daylight model with inverse average daylight factor per-space visualization\'.\n"
 								<<   "\t" << "\'dlNEN\' for the \'Daylight model with NEN score per-space visualization\'.\n"
     							<<   "\t" << "More than one can be specified.\n"
 			         << "-is\t" << "or --iterationStrategy, to specify which iteration strategy to use: \n"

@@ -35,7 +35,7 @@ private:
     // Store the performance data for analysis and for export, 
     // this is updated after each iteration and used for the next iteration.
     std::vector<utilities::data_point> mDesignPerformances; // Four dimensions are used always in the same order: sd, bp, dl (ADFbuilding), dl (score)
-    std::vector<std::string> mAxisDesignPerformances = {"sd","bp","dl_ADFbuilding_inverse", "dl_score"};
+    std::vector<std::string> mAxisDesignPerformances = {"sd","bp","dl_ADFbuilding", "dl_score"};
     std::vector<bool> mActiveObjectives = {false, false, false, false}; // Track which of the four performance dimensions are actually activefor this specific scdp_config setting, corresponding to: [0]=sd, [1]=bp, [2]=dl_ADFbuilding, [3]=dl_score.
 
     // Additional data to store for export and analysis, these are updated after each iteration.

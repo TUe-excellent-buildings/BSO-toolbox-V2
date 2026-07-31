@@ -65,7 +65,7 @@ void performance_evaluator::getPerformancePerSpace(
         }
         if (dlAvailable && usesDL) {
             auto t0 = clock::now();
-            tempDataPoint(2) = dl.getPartialResults(spaceID).mADFBuildingInverse; // run optimization on inverse ADF
+            tempDataPoint(2) = dl.getPartialResults(spaceID).mADFBuilding; 
             auto t1 = clock::now();
             totalDL += std::chrono::duration<double>(t1 - t0).count();
             ++countDL;
@@ -87,6 +87,10 @@ void performance_evaluator::getPerformancePerSpace(
 } // getPerformancePerSpace
 
 // Function to normalize the performance data points based on the utopian and distopian points.
+// Note: sd is a minimization objective and bp is a maximization objective,
+// However, by swapping the utopian and distopian points for sd, we can ensure 
+// that the normalized values are in the range [0,1]
+// where 0 is the worst performance and 1 is the best performance for both objectives.
 void performance_evaluator::normalizeData(
     std::vector<bso::utilities::data_point>& performances, 
     bso::utilities::data_point& utopianPoint, 
@@ -94,15 +98,24 @@ void performance_evaluator::normalizeData(
     output_manager& outputMgr,
 	bool verbose)
 {
-	utopianPoint.setToUtopia(performances);
-	distopianPoint.setToDistopia(performances);
-	std::swap(utopianPoint(1),distopianPoint(1));
+	utopianPoint.setToUtopia(performances); // contains all minimum values for each objective across all spaces
+	distopianPoint.setToDistopia(performances); // contains all maximum values for each objective across all spaces
+
+	// For both sd and dl a low performance is bad, 
+	// so swap the utopian and distopian point
+	// to make sure that the dispopian value is the lowest and
+	// consequently normalization is done correctly.
+	std::swap(utopianPoint(1),distopianPoint(1)); // sd
+	std::swap(utopianPoint(2),distopianPoint(2)); // dl
+
+	// Normalize each performance data point based on the utopian and distopian points.
 	for (auto& j : performances)
 	{
 		j.normalize(utopianPoint,distopianPoint,{1});
 	}
-	utopianPoint.setToUtopia(performances);
-	distopianPoint.setToDistopia(performances);
+
+	utopianPoint.setToUtopia(performances); // minimum values which are now all 0 after normalization
+	distopianPoint.setToDistopia(performances); // maximum values which are now all 1 after normalization
     outputMgr.out("Normalized space performances",true,true,verbose);
 }
 
@@ -120,10 +133,10 @@ static int tokenToIndex(const std::string& token)
 
 } // unnamed namespace
 
-// Function to sort the performance data points according to highest to lowest for example space removal later.
+// Function to sort the performance data points from lowest to highest, for example for space removal later.
 // The sorting is based on the modification type (any concatenation of sd, bp, dl)
 // and can optionally use weighted objectives when weightedModification is true.
-void performance_evaluator::sortDataPointsHighestToLowest(
+void performance_evaluator::sortDataPointsLowestToHighest(
 	std::vector<bso::utilities::data_point>& performances, 
 	const std::string& modificationType, 
 	const std::vector<std::string>& modificationSequence,

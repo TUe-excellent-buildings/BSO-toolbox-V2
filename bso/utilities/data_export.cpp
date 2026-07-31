@@ -467,7 +467,7 @@ void data_export::writeObjective3DFile(const std::string& fileName) const
     if(mAxisDataTypes.size() < 3)
     {
         std::stringstream errorMessage;
-        errorMessage << "\nError, expected at least three axis types (sd, bp, mADFbuilding_inverse) to write a 3D objective file.\n"
+        errorMessage << "\nError, expected at least three axis types (sd, bp, mADFbuilding) to write a 3D objective file.\n"
                      << "Current axis types (" << mAxisDataTypes.size() << "): ";
         for(const auto& name : mAxisDataTypes) errorMessage << name << "; ";
         errorMessage << "\n(bso/utilities/data_export.cpp). " << std::endl;
@@ -476,20 +476,20 @@ void data_export::writeObjective3DFile(const std::string& fileName) const
 
     int sdIndex  = -1;
     int bpIndex  = -1;
-    int dlIndex  = -1; // dl_ADFbuilding_inverse
+    int dlIndex  = -1; // dl_ADFbuilding
     int dlScoreIndex = -1; // optional: dl_score (BS EN 17037-2018)
     for(std::size_t i = 0; i < mAxisDataTypes.size(); ++i)
     {
         const std::string& name = mAxisDataTypes[i];
         if(name == "sd") sdIndex = static_cast<int>(i);
         else if(name == "bp") bpIndex = static_cast<int>(i);
-        else if(name == "dl_ADFbuilding_inverse") dlIndex = static_cast<int>(i);
+        else if(name == "dl_ADFbuilding") dlIndex = static_cast<int>(i);
         else if(name == "dl_score") dlScoreIndex = static_cast<int>(i);
     }
     if(sdIndex < 0 || bpIndex < 0 || dlIndex < 0)
     {
         std::stringstream errorMessage;
-        errorMessage << "\nError, could not find required objective names 'sd', 'bp' and 'dl_ADFbuilding_inverse' in mAxisDataTypes.\n"
+        errorMessage << "\nError, could not find required objective names 'sd', 'bp' and 'dl_ADFbuilding' in mAxisDataTypes.\n"
                      << "Current axis types: ";
         for(const auto& name : mAxisDataTypes) errorMessage << name << "; ";
         errorMessage << "\n(bso/utilities/data_export.cpp). " << std::endl;
@@ -511,7 +511,7 @@ void data_export::writeObjective3DFile(const std::string& fileName) const
     CombinedStats stats = computeCombinedStats(static_cast<unsigned int>(mData.size() - 1), mDataNormalized);
 
     // Header: names and then knee point metadata.
-    output << "# iteration\tsd\tbp\tdl_ADFbuilding_inverse" << std::endl;
+    output << "# iteration\tsd\tbp\tdl_ADFbuilding" << std::endl;
 
     // Second header: knee-point iteration and axis labels from mAxisLabels.
     output << "# kneePointIteration " << stats.kneePointIteration;
@@ -555,7 +555,7 @@ void data_export::writeImprovementCurvesFile(const std::string& fileName) const
     if(mAxisDataTypes.size() < 3)
     {
         std::stringstream errorMessage;
-        errorMessage << "\nError, expected at least three axis types (sd, bp, mADFbuilding_inverse) to write an improvement-curves file.\n"
+        errorMessage << "\nError, expected at least three axis types (sd, bp, mADFbuilding) to write an improvement-curves file.\n"
                      << "Current axis types (" << mAxisDataTypes.size() << "): ";
         for(const auto& name : mAxisDataTypes) errorMessage << name << "; ";
         errorMessage << "\n(bso/utilities/data_export.cpp). " << std::endl;
@@ -564,20 +564,20 @@ void data_export::writeImprovementCurvesFile(const std::string& fileName) const
 
     int sdIndex  = -1;
     int bpIndex  = -1;
-    int dlIndex  = -1; // dl_ADFbuilding_inverse
+    int dlIndex  = -1; // dl_ADFbuilding
     int dlScoreIndex = -1; // optional: dl_score (BS EN 17037-2018)
     for(std::size_t i = 0; i < mAxisDataTypes.size(); ++i)
     {
         const std::string& name = mAxisDataTypes[i];
         if(name == "sd") sdIndex = static_cast<int>(i);
         else if(name == "bp") bpIndex = static_cast<int>(i);
-        else if(name == "dl_ADFbuilding_inverse") dlIndex = static_cast<int>(i);
+        else if(name == "dl_ADFbuilding") dlIndex = static_cast<int>(i);
         else if(name == "dl_score") dlScoreIndex = static_cast<int>(i);
     }
     if(sdIndex < 0 || bpIndex < 0 || dlIndex < 0)
     {
         std::stringstream errorMessage;
-        errorMessage << "\nError, could not find required objective names 'sd', 'bp' and 'dl_ADFbuilding_inverse' in mAxisDataTypes for improvement curves.\n"
+        errorMessage << "\nError, could not find required objective names 'sd', 'bp' and 'dl_ADFbuilding' in mAxisDataTypes for improvement curves.\n"
                      << "Current axis types: ";
         for(const auto& name : mAxisDataTypes) errorMessage << name << "; ";
         errorMessage << "\n(bso/utilities/data_export.cpp). " << std::endl;
@@ -606,7 +606,7 @@ void data_export::writeImprovementCurvesFile(const std::string& fileName) const
     const bool hasDlScore = (dlScoreIndex >= 0);
     const double dlScore0 = hasDlScore ? first(dlScoreIndex) : 0.0;
 
-    output << "# iteration\tsd_improvement_percent\tbp_improvement_percent\tdl_ADFbuilding_inverse_improvement_percent";
+    output << "# iteration\tsd_improvement_percent\tbp_improvement_percent\tdl_ADFbuilding_improvement_percent";
     if(hasDlScore)
     {
         output << "\tdl_score_improvement_percent";
@@ -614,7 +614,7 @@ void data_export::writeImprovementCurvesFile(const std::string& fileName) const
     output << std::endl;
 
     // Second header: knee-point iteration and axis labels from mAxisLabels
-    // for the underlying objectives (sd, bp, dl_ADFbuilding_inverse, iteration).
+    // for the underlying objectives (sd, bp, dl_ADFbuilding, iteration).
     output << "# kneePointIteration " << stats.kneePointIteration;
     output << " axis_labels ";
     bool firstLabelImp = true;
@@ -715,21 +715,32 @@ data_export::CombinedStats data_export::computeCombinedStats(const unsigned int 
         return stats;
     }
 
-    // Make a normalized copy for space iterations:
-    for(const auto& i: mData)
-    {
-        mDataNormalized.push_back(*i);
-    }
-    utilities::data_point utopianPoint;
+    // Make a normalized copy:
+    for(const auto& i: mData){mDataNormalized.push_back(*i);}
+    utilities::data_point utopianPoint; // minimal values
     utopianPoint.setToUtopia(mDataNormalized);
-    utilities::data_point distopianPoint;
+    utilities::data_point distopianPoint; // maximal values
     distopianPoint.setToDistopia(mDataNormalized);
+
+    // Check if any of the objectives are to be maximized instead of minimized, 
+    // and swap the utopian and distopian points so after normalization the 0 
+    // value corospont to the maximum value thus all objectives can be minimized.
+    for(int idAxisName = 0; idAxisName < mAxisDataTypes.size(); ++idAxisName)
+    {
+        const auto& axisName = mAxisDataTypes[idAxisName];
+        if(axisName == "dl_ADFbuilding")
+        {
+	        std::swap(utopianPoint(idAxisName),distopianPoint(idAxisName)); // Swap the objective to be maximized instead of minimized.
+        }
+    }
+
+    // Normalize the data points, so all objectives can be minimized.
     for (auto& j : mDataNormalized)
     {
         j.normalize(utopianPoint,distopianPoint,{1});
     }
     utopianPoint.setToUtopia(mDataNormalized);
-    distopianPoint.setToDistopia(mDataNormalized);
+    distopianPoint.setToDistopia(mDataNormalized); 
 
     // Determine the Best of each dataPoint and the KneePoint design
     stats.kneePointIteration = 0;
@@ -1882,7 +1893,7 @@ void data_export::plotObjectiveSpace3D(std::string fileNameObjective3D /*= "obje
         throw std::invalid_argument(errorMessage.str());
     }
 
-    // Generate the 3D objective data file (sd, bp, mADFbuilding_inverse + knee metadata)
+    // Generate the 3D objective data file (sd, bp, mADFbuilding + knee metadata)
     this->writeObjective3DFile(fileNameObjective3D);
 
     std::string scriptPath = "/home/tessa/BSO-toolbox-V2/bso/utilities/plot/plot_objective_space_3d.py";

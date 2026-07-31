@@ -110,19 +110,20 @@ double data_point::calcSquaredDistanceTo(const data_point& p2) const
 	return squaredDistance;
 }
 
-void data_point::normalize(const data_point& pStart, const data_point& pEnd, 
+// This function normalized the 
+void data_point::normalize(const data_point& pUtopianData, const data_point& pDistopianDate, 
 	const std::vector<unsigned int>& logScales /*= {}*/)
 {
 	try
 	{
-		this->mCheckValidDimensions(pStart);
-		this->mCheckValidDimensions(pEnd);
+		this->mCheckValidDimensions(pUtopianData);
+		this->mCheckValidDimensions(pDistopianDate);
 		double totalDifference;
 		double relativeDifference;
 		for (unsigned int i = 0; i < mData.size(); ++i)
 		{
-			double a = pStart(i);
-			double b = pEnd(i);
+			double a = pUtopianData(i);
+			double b = pDistopianDate(i);
 			double x = mData(i);
 			if (std::find(logScales.begin(),logScales.end(),i) != logScales.end())
 			{
@@ -146,9 +147,9 @@ void data_point::normalize(const data_point& pStart, const data_point& pEnd,
 		errorMessage << "\nError, while normalizing a data point:\n"
 								 << mData.transpose()
 								 << "\nwith data points:\n"
-								 << pStart.mData.transpose()
+								 << pUtopianData.mData.transpose()
 								 << "\nand\n"
-								 << pEnd.mData.transpose()
+								 << pDistopianDate.mData.transpose()
 								 << "\nreceived the following error:"
 								 << e.what()
 								 << "(bso/utilities/data_point.hpp)" << std::endl;
@@ -156,10 +157,10 @@ void data_point::normalize(const data_point& pStart, const data_point& pEnd,
 	}
 } // normalize()
 
-data_point data_point::normalized(const data_point& pStart, const data_point& pEnd) const
+data_point data_point::normalized(const data_point& pUtopianData, const data_point& pDistopianDate) const
 {
 	data_point copy = *this;
-	copy.normalize(pStart,pEnd);
+	copy.normalize(pUtopianData,pDistopianDate);
 	return copy;
 } // normalized()
 

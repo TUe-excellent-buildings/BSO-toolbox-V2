@@ -326,7 +326,6 @@ namespace bso { namespace daylight {
 			dl_space_result res;
 			res.mSpaceID       = SpaceID;
 			res.mADF           = ADF;
-			res.mADFInverse   = (ADF == 0.0) ? 1000000.0 : (1.0 / ADF); // store inverse for optimization performance
 			res.mDtPercentage  = DtPercentage;
 			res.mDtmPercentage = DtmPercentage;
 			res.mScore         = score;
@@ -354,7 +353,6 @@ namespace bso { namespace daylight {
 			if (s.mPassDtm) { ++scoreDtm; }
 			TotalScore += s.mScore;	
 			ADFbuilding += s.mADF;
-			ADFbuilding_inverse += s.mADFInverse;
 		}
 		
 		const double n = static_cast<double>(mSpaceResults.size());
@@ -366,7 +364,6 @@ namespace bso { namespace daylight {
 		}
 		mBuildingResults.mTotalScore      = TotalScore;
 		mBuildingResults.mADFBuilding     = ADFbuilding;
-		mBuildingResults.mADFBuildingInverse = ADFbuilding_inverse;
 
 		mResultsGenerated = true;
 	} // generateResults()
@@ -397,7 +394,6 @@ namespace bso { namespace daylight {
 				resultsDL.mDtmBuilding        = s.mDtmPercentage;
 				resultsDL.mTotalScore         = s.mScore;
 				resultsDL.mADFBuilding        = s.mADF;
-				resultsDL.mADFBuildingInverse = s.mADFInverse;
 				break;
 			}
 		}
