@@ -29,7 +29,7 @@ private:
     std::vector<double> mObjectiveWeights; // default: equal weights for all three objectives (sd, bp, dl); Note, DL objective runs with only the ADFbuilding metric, not the score, so the weight applies to the ADFbuilding metric and no fourth weight is needed for the dl_score dimension.
 
     // Modification options for changing the building spatial design
-    std::string performanceDivision = "floorArea"; 
+    std::map<std::string, std::string> performanceDivision = {{"sd", "floorArea"}, {"bp", "floorArea"}, {"dl", "nothing"}}; // default: floorArea, see kPerOptions for options
     std::string deleteMethod = "worst";
     std::string splitMethod = "longest";
     std::string addMethod = "worstAdapt";
@@ -127,7 +127,7 @@ public:
     const std::string getObjectiveWeightsString() const { return objectiveWeightsToString(mObjectiveWeights); }
     const std::string& getAddMethod() const { return addMethod; }
     const std::string& getIterationStrategy() const { return iterationStrategy; }
-    const std::string& getPerformanceDivision() const { return performanceDivision; }
+    const std::map<std::string, std::string>& getPerformanceDivision() const { return performanceDivision; }
     bool getRemoveSmallerFragments() const { return removeSmallerFragments; }
     double getInclinationSwitch() const { return inclinationSwitch; }
     double getSpaceRemoveRatio() const { return spaceRemoveRatio; }

@@ -125,9 +125,12 @@ void scdp_config::parseArguments(int argc, char* argv[])
 			             "-f\t" << "or --deleteFragments, to specify what to do with spaces which are not connected\n"
 								<<	 "\t" << "as a full building. Option are \'true\' or \'false\'.\n"
                                 <<   "\t" << "If \'true\' these smaller fragments will be removed. The default is \'false\'.\n"
-			             "-p\t" << "or --performanceDivision, to specify by which the performances \n"
+			             "-p\t" << "or --performanceDivision, to specify per objective by which the performances \n"
 								<<	 "\t" << "of the spaces should be divided. Option are \'floorArea\', \'surfaceArea\',\n"
-								<<   "\t" << "\'volumeArea\' or \'nothing\'. The default is \'floorArea\'.\n"
+								<<   "\t" << "\'volumeArea\' or \'nothing\'. To specify, use -p,\n"
+                                <<   "\t" << "followed by a specifier: 'sd', 'bp', or 'dl', with directly\n"
+                                <<   "\t" << "behind the specifier the division value. Example: '-p sd floorArea bp surfaceArea'.\n"
+                                <<   "\t" << "The default is sd = \'floorArea\', bp = \'floorArea\', dl = \'nothing\'.\n"
 			            "-ad\t" << "or --addMethod, to specify an adding spaces method, the choices are: \n"
 								<<   "\t" << "\'elevation\' for adding an elevation to the building\n"
 								<<   "\t" << "\'shiftfill\' for shifting a section of the \n"
@@ -494,32 +497,53 @@ void scdp_config::parseArguments(int argc, char* argv[])
         }
         else if (*arg == "-p" || *arg == "--performanceDivision")
         {
-            if (++arg == args.end() || arg->operator[](0) == '-')
+            unsigned int argumentCount = 0;
+            while (++arg != args.end() && arg->operator[](0) != '-')
             {
-                std::stringstream errorMessage;
-                errorMessage << "\nError, expected a space performance division argument to be\n"
-                             << "specified after -p or --performanceDivision. Use -h or\n"
-                             << "--help for help\n"
-                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
-                throw std::invalid_argument(errorMessage.str());
+                std::string type = *arg;
+                if(type != "sd" && type != "bp" && type != "dl")
+                {
+                    std::stringstream errorMessage;
+                    errorMessage << "\nError, did not recognize: \"" << type << "\"\n"
+                                << "as an specifier for -p or --performanceDivision.\n"
+                                << "use -h or --help for help\n"
+                                << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                    throw std::invalid_argument(errorMessage.str());
+                }
+                if (++arg != args.end() || arg->operator[](0) == '-')
+                {
+                    std::string performanceDivisionKey = *arg;
+                    if (std::find(kPerOptions.begin(), kPerOptions.end(), performanceDivisionKey) == kPerOptions.end())
+                    {
+                        std::stringstream errorMessage;
+                        errorMessage << "\nError, did not recognize: " << performanceDivisionKey << " as an\n"
+                                    << "argument for -p or --performanceDivision. Use -h or\n"
+                                    << "--help for help\n"
+                                    << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                        throw std::invalid_argument(errorMessage.str());
+                    }
+                    performanceDivision[type] = performanceDivisionKey;
+                }
+                else
+                {
+                    std::stringstream errorMessage;
+                    errorMessage << "\nError, expected a value behind the specifier sd, bp, or dl but got nothing or \n"
+                                    << "there where not multiple arguments as was expected as an"
+                                    << "argument for -p or --performanceDivision. Use -h or\n"
+                                    << "--help for help\n"
+                                    << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                    throw std::invalid_argument(errorMessage.str());
+                }
+                argumentCount++;
             }
-            performanceDivision = *arg;
-            boost::trim(performanceDivision);
-            if (std::find(kPerOptions.begin(), kPerOptions.end(), performanceDivision) == kPerOptions.end())
+            if(argumentCount > 0)
             {
                 std::stringstream errorMessage;
-                errorMessage << "\nError, did not recognize: \"" << performanceDivision << "\"\n"
-                             << "as an option for -p or --performanceDivision.\n"
-                             << "use -h or --help for help\n"
-                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
-                throw std::invalid_argument(errorMessage.str());
-            }
-            if (++arg != args.end() && arg->operator[](0) != '-')
-            {
-                std::stringstream errorMessage;
-                errorMessage << "\nError, only one argument can be specified after\n"
-                             << "-p or --performanceDivision. Use -h or -- help for help\n"
-                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                errorMessage << "\nError, expected a specifier sd, bp, or dl but got nothing or \n"
+                                << "there where not multiple arguments as was expected as an"
+                                << "argument for -p or --performanceDivision. Use -h or\n"
+                                << "--help for help\n"
+                                << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
                 throw std::invalid_argument(errorMessage.str());
             }
         }

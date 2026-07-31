@@ -22,7 +22,7 @@ public:
         building_physics::bp_model& bp, 
         daylight::dl_model& dl,
         const std::string& modificationType, 
-        const std::string& performanceDivisionType,
+        const std::map<std::string, std::string>& performanceDivisionType,
         output_manager& outputMgr,
         bool verbose,
         bool sdAvailable = true,

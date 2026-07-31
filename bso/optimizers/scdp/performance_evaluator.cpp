@@ -17,7 +17,7 @@ void performance_evaluator::getPerformancePerSpace(
 	bso::building_physics::bp_model& bp, 
 	bso::daylight::dl_model& dl,
     const std::string& modificationType, 
-    const std::string& performanceDivisionType,
+    const std::map<std::string, std::string>& performanceDivisionType,
     output_manager& outputMgr,
 	bool verbose,
 	bool sdAvailable,
@@ -51,29 +51,42 @@ void performance_evaluator::getPerformancePerSpace(
         // both available and requested by the modificationType.
         if (sdAvailable && usesSD) {
             auto t0 = clock::now();
-            tempDataPoint(1) = sd.getPartialResults(&spaceGeom).mTotalStrainEnergy;
+            tempDataPoint(1) = sd.getPartialResults(&spaceGeom).mTotalStrainEnergy; // Get data:
+			// Apply performance division type, specified in the config file.
+			if(performanceDivisionType.at("sd") == "floorArea"){tempDataPoint(1) /= j->getFloorArea();}
+        	else if(performanceDivisionType.at("sd") == "surfaceArea"){tempDataPoint(1) /= j->getSurfaceArea();}	
+        	else if(performanceDivisionType.at("sd") == "volumeArea"){tempDataPoint(1) /= j->getVolume();}
             auto t1 = clock::now();
             totalSD += std::chrono::duration<double>(t1 - t0).count();
             ++countSD;
         }
         if (bpAvailable && usesBP) {
             auto t0 = clock::now();
-            tempDataPoint(0) = bp.getPartialResults(&spaceGeom).mTotalEnergy;
+            tempDataPoint(0) = bp.getPartialResults(&spaceGeom).mTotalEnergy; // Get data:
+			// Apply performance division type, specified in the config file.
+			if(performanceDivisionType.at("bp") == "floorArea"){tempDataPoint(0) /= j->getFloorArea();}
+        	else if(performanceDivisionType.at("bp") == "surfaceArea"){tempDataPoint(0) /= j->getSurfaceArea();}	
+        	else if(performanceDivisionType.at("bp") == "volumeArea"){tempDataPoint(0) /= j->getVolume();}
             auto t1 = clock::now();
             totalBP += std::chrono::duration<double>(t1 - t0).count();
             ++countBP;
         }
         if (dlAvailable && usesDL) {
             auto t0 = clock::now();
-            tempDataPoint(2) = dl.getPartialResults(spaceID).mADFBuilding; 
+            tempDataPoint(2) = dl.getPartialResults(spaceID).mADFBuilding; // Get data:
+			// Apply performance division type, specified in the config file.
+			if(performanceDivisionType.at("dl") == "floorArea"){tempDataPoint(2) /= j->getFloorArea();}
+        	else if(performanceDivisionType.at("dl") == "surfaceArea"){tempDataPoint(2) /= j->getSurfaceArea();}	
+        	else if(performanceDivisionType.at("dl") == "volumeArea"){tempDataPoint(2) /= j->getVolume();}
             auto t1 = clock::now();
             totalDL += std::chrono::duration<double>(t1 - t0).count();
             ++countDL;
         }
 
-        if(performanceDivisionType == "floorArea"){tempDataPoint /= j->getFloorArea();}
-        else if(performanceDivisionType == "surfaceArea"){tempDataPoint /= j->getSurfaceArea();}	
-        else if(performanceDivisionType == "volumeArea"){tempDataPoint /= j->getVolume();}
+		
+        if(performanceDivisionType.at("sd") == "floorArea"){tempDataPoint /= j->getFloorArea();}
+        else if(performanceDivisionType.at("sd") == "surfaceArea"){tempDataPoint /= j->getSurfaceArea();}	
+        else if(performanceDivisionType.at("sd") == "volumeArea"){tempDataPoint /= j->getVolume();}
 
         performances.push_back(tempDataPoint);
     }
