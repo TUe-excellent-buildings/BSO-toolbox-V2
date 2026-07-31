@@ -20,8 +20,8 @@ else
 endif
 
 #compiler settings
-CPP   = g++ -std=c++17 -fmax-errors=5
-FLAGS  = -O3 -march=native -lglut -lGL -lGLU -lpthread $(DELAUNAY_FLAGS)
+CPP   = g++ -g -std=c++17 -fmax-errors=5
+FLAGS  = -march=native -lglut -lGL -lGLU -lpthread $(DELAUNAY_FLAGS)
 
 #test suites
 MAINFILE = main.cpp

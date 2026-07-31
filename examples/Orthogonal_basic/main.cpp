@@ -73,6 +73,8 @@ std::cout << "Total cooling energy: " << BP.getTotalResults().mTotalCoolingEnerg
  bso::visualization::visualize(BP);
  bso::visualization::visualize(DL, "");
  bso::visualization::visualize(DL, "grid");
+ bso::visualization::visualize(DL, "DF");
+ bso::visualization::visualize(DL, "NEN");
  bso::visualization::endVisualization();
 
  return 0;

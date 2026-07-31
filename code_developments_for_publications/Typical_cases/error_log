@@ -1,0 +1,13 @@
+inputFile:design_t14
+The following error message was obtained using the iterationStrategy: split_delete,
+and modification: dl, with max iterations: 0,
+error occurred in iteration: 0
+
+Either input variables: WindowHeightRatio[%], WindowWidthRatio[%], or StartLocationWindow[%] 
+is out of valid range. The valid range for these variables is
+ between 0 and 100, and the sum of WindowHeightRatio and StartLocationWindow should not exceed 100.
+The input values are: WindowHeightRatio = 100%, WindowWidthRatio = 100%, StartLocationWindow = 10%.
+the dl_settings file should be checked for the correct input of these variables, see: settings/dl_settings.txt
+(bso/spatial_design/conformal/cf_building_model.cpp)
+
+

@@ -1,5 +1,1 @@
--i design_327 -m sd 		-n 10 -ad worstAdapt 0.2 -is modification -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
--i design_327 -m bp 		-n 10 -ad worstAdapt 0.2 -is modification -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
--i design_327 -m dl 		-n 10 -ad worstAdapt 0.2 -is modification -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
--i design_327 -m sdbpdl		-n 10 -ad worstAdapt 0.2 -is modification -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
--i design_327 -m sdbpdl 	-n 10 -ad worstAdapt 0.2 -is modification -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_3 -m sdbpdl    	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl  -w

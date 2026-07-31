@@ -1,0 +1,115 @@
+-i design_301 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_301 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_301 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_301 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_301 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_302 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_302 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_302 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_302 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_302 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_303 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_303 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_303 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_303 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_303 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_304 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_304 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_304 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_304 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_304 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_305 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_305 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_305 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_305 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_305 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_308 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_308 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_308 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_308 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_308 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_309 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_309 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_309 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_309 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_309 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_311 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_311 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_311 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_311 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_311 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_314 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_314 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_314 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_314 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_314 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_316 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_316 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_316 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_316 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_316 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_317 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_317 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_317 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_317 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_317 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_325 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_325 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_325 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_325 -m sdbpdl		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_325 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_326 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_326 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_326 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_326 -m sdbpdl		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_326 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_327 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_327 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_327 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_327 -m sdbpdl		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_327 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_328 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_328 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_328 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_328 -m sdbpdl		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_328 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_329 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_329 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_329 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_329 -m sdbpdl		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_329 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_337 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_337 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_337 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_337 -m sdbpdl		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_337 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_343 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_343 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_343 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_343 -m sdbpdl		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_343 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_344 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_344 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_344 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_344 -m sdbpdl		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_344 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_350 -m sd 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_350 -m bp 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_350 -m dl 		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_350 -m sdbpdl		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_350 -m sdbpdl 	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_1 -m sd 			-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_1 -m bp 			-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_1 -m dl 			-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_1 -m sdbpdl		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_1 -m sdbpdl 	    -n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_2 -m sd 			-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_2 -m bp 			-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_2 -m dl 			-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_2 -m sdbpdl		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_2 -m sdbpdl    	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w
+-i design_3 -m sd 			-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_3 -m bp 			-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_3 -m dl 			-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_3 -m sdbpdl		-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl
+-i design_3 -m sdbpdl    	-n 10 -d worst -r 0.2 -o verbose plot ms_files msw_file all combine_data 10 -pl -w

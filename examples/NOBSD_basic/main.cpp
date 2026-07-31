@@ -71,6 +71,11 @@ int main(int argc, char* argv[])
  bso::visualization::visualize(BP);
  bso::visualization::visualize(DL, "");
  bso::visualization::visualize(DL, "grid");
+ bso::visualization::visualize(DL, "DF");
+ bso::visualization::visualize(DL, "Horizontal_Illuminance");
+ bso::visualization::visualize(DL, "NEN");
+ bso::visualization::visualize(DL, "ADF");
+ bso::visualization::visualize(DL, "ADF_inverse");
  bso::visualization::endVisualization();
 
  return 0;

@@ -4,7 +4,7 @@ echo "Running bash script"
 echo "for ./main with the following input arguments:"
 
 # Set this nohup ./run_design_sequence.sh > terminalLog 2>&1 &
-# last PID: 407064
+# last PID: 483024
 
 # Define the executable
 EXECUTABLE="./main"

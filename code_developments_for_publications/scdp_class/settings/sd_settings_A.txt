@@ -74,9 +74,9 @@ E,	15,		0.0008,		157.5,		0,		wind_suction
 E,	16,		0.001,		247.5,		0,		wind_pressure
 E,	16,		0.0004,		247.5,		0,		wind_shear
 E,	16,		0.0008,		247.5,		0,		wind_suction
-E,	17,		0.001,		337,5,		0,		wind_pressure
-E,	17,		0.0004,		337,5,		0,		wind_shear
-E,	17,		0.0008,		337,5,		0,		wind_suction
+E,	17,		0.001,		337.5,		0,		wind_pressure
+E,	17,		0.0004,		337.5,		0,		wind_shear
+E,	17,		0.0008,		337.5,		0,		wind_suction
 
 #truss_properties, ID, A [mm²], E [N/mm²],	
 F, 1, 2250, 30000

@@ -12,7 +12,7 @@
 # can be merged into a single combined_data.csv file for analysis and plotting.
 
 # How to run the script in the background without keeping the terminal open:
-    # 1) The command: nohup bash /home/tessa/BSO-toolbox-V2/code_developments_for_publications/scdp_class_RUN/run_design_sequence_parallel.sh > output.log 2>&1 & 
+    # 1) The command: nohup bash run_design_sequence_parallel.sh > output.log 2>&1 & 
     # (alerted for your directory structure) can be used to run this script in the
     # background, with all output logged to output.log. This allows you to start
     # the parallel runs and then disconnect from the terminal without stopping the 
@@ -26,6 +26,8 @@
     # 3) tail -f output.log to follow the log output in real time. 
     # 4) Use 'ps aux | grep run_design_sequence_parallel.sh' to retrieve the PID number if you do not know anymore.
     # You can kill the process with 'kill 2168535' (replace 2168535 with the actual PID number) if you need to stop it.
+
+# latest PID: 1650022
 
 echo "Running parallel bash script" 
 echo "for ./main with the following input arguments (parallel):"
@@ -58,7 +60,7 @@ mkdir -p "$RESULTS_DIR"
 
 # Optional: limit of concurrent jobs (0 or empty means no limit)
 # Example usage: MAX_JOBS=4 ./run_design_sequence_parallel.sh
-MAX_JOBS=${MAX_JOBS:-2}  # Default to 4 if not set externally
+MAX_JOBS=${MAX_JOBS:-2}  # Default to 2 if not set externally
 
 # Show the lines that will be executed
 echo "The $INPUT_FILE arguments will be run in parallel as follows:"

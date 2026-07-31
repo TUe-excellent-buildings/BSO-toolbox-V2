@@ -1,0 +1,21 @@
+-i design_t1 -m sd   	-n 0 -d worst -r 0.2 -o verbose -v msw fe       -sim dl sd
+-i design_t1 -m dl    	-n 0 -d worst -r 0.2 -o verbose -v msw dl dlD dlADF dlADF_inverse   -sim dl
+-i design_t1 -m bp    	-n 0 -d worst -r 0.2 -o verbose -v msw bp       -sim dl bp
+-i design_t2 -m sd    	-n 0 -d worst -r 0.2 -o verbose -v msw fe       -sim dl sd
+-i design_t2 -m dl    	-n 0 -d worst -r 0.2 -o verbose -v msw dl dlD dlADF dlADF_inverse  -sim dl
+-i design_t2 -m bp    	-n 0 -d worst -r 0.2 -o verbose -v msw bp       -sim dl bp
+-i design_t7 -m sd    	-n 0 -d worst -r 0.2 -o verbose -v msw fe       -sim dl sd
+-i design_t7 -m dl    	-n 0 -d worst -r 0.2 -o verbose -v msw dl dlD dlADF dlADF_inverse   -sim dl
+-i design_t7 -m bp    	-n 0 -d worst -r 0.2 -o verbose -v msw bp       -sim dl bp
+-i design_t10 -m sd    	-n 0 -d worst -r 0.2 -o verbose -v msw fe       -sim dl sd
+-i design_t10 -m dl    	-n 0 -d worst -r 0.2 -o verbose -v msw dl dlD dlADF dlADF_inverse  -sim dl
+-i design_t10 -m bp    	-n 0 -d worst -r 0.2 -o verbose -v msw bp       -sim dl bp
+-i design_t11 -m sd    	-n 0 -d worst -r 0.2 -o verbose -v msw fe       -sim dl sd
+-i design_t11 -m dl    	-n 0 -d worst -r 0.2 -o verbose -v msw dl dlD dlADF dlADF_inverse   -sim dl
+-i design_t11 -m bp    	-n 0 -d worst -r 0.2 -o verbose -v msw bp       -sim dl bp
+-i design_t13 -m sd    	-n 0 -d worst -r 0.2 -o verbose -v msw fe       -sim dl sd
+-i design_t13 -m dl    	-n 0 -d worst -r 0.2 -o verbose -v msw dl dlD dlADF dlADF_inverse   -sim dl
+-i design_t13 -m bp    	-n 0 -d worst -r 0.2 -o verbose -v msw bp       -sim dl bp
+-i design_t14 -m sd    	-n 0 -d worst -r 0.2 -o verbose -v msw fe       -sim dl sd
+-i design_t14 -m dl    	-n 0 -d worst -r 0.2 -o verbose -v msw dl dlD dlADF dlADF_inverse   -sim dl
+-i design_t14 -m bp    	-n 0 -d worst -r 0.2 -o verbose -v msw bp       -sim dl bp
