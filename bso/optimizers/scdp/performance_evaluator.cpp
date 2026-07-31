@@ -83,11 +83,6 @@ void performance_evaluator::getPerformancePerSpace(
             ++countDL;
         }
 
-		
-        if(performanceDivisionType.at("sd") == "floorArea"){tempDataPoint /= j->getFloorArea();}
-        else if(performanceDivisionType.at("sd") == "surfaceArea"){tempDataPoint /= j->getSurfaceArea();}	
-        else if(performanceDivisionType.at("sd") == "volumeArea"){tempDataPoint /= j->getVolume();}
-
         performances.push_back(tempDataPoint);
     }
 	if(verbose)
