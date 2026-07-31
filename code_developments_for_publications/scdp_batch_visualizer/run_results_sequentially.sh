@@ -22,6 +22,9 @@ Forwarded visualizer options:
 Runner options:
   --ask-continue              Ask after each subdirectory whether to continue
   --stop-after <N>            Stop after visualizing N subdirectories
+  --parallel                  Run visualizations in parallel batches (default)
+  --no-parallel               Disable parallel batches (run one by one)
+  --batch-size <N>            Number of parallel visualizations per batch (default: 5)
 
 Examples:
   ./run_results_sequentially.sh /home/tessa/BSO-toolbox-V2/code_developments_for_publications/scdp_class_RUN/results_sequential_run_31_03
@@ -29,9 +32,12 @@ Examples:
   ./run_results_sequentially.sh /home/tessa/BSO-toolbox-V2/code_developments_for_publications/scdp_class_RUN/results_sequential_run_31_03 --mode=plain --space-id=off
   ./run_results_sequentially.sh /home/tessa/BSO-toolbox-V2/code_developments_for_publications/scdp_class_RUN/results_sequential_run_31_03 --ask-continue
   ./run_results_sequentially.sh /home/tessa/BSO-toolbox-V2/code_developments_for_publications/scdp_class_RUN/results_sequential_run_31_03 --stop-after 5 --mode=colored
+  ./run_results_sequentially.sh /home/tessa/BSO-toolbox-V2/code_developments_for_publications/scdp_class_RUN/results_sequential_run_31_03 --batch-size 5 --mode=colored
+  ./run_results_sequentially.sh /home/tessa/BSO-toolbox-V2/code_developments_for_publications/scdp_class_RUN/results_sequential_run_31_03 --no-parallel --mode=colored
 
 Notes:
-  - Close each visualization window before the next subdirectory starts.
+  - In parallel mode, up to --batch-size windows can be open at once.
+  - In non-parallel mode, close each visualization window before the next starts.
   - Press q in the visualization window to close it.
 EOF
 }
@@ -52,6 +58,8 @@ RESULTS_ROOT="$1"
 shift
 ASK_CONTINUE=0
 STOP_AFTER=0
+PARALLEL=1
+BATCH_SIZE=5
 VISUALIZER_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -70,6 +78,26 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       STOP_AFTER="$2"
+      shift 2
+      ;;
+    --parallel)
+      PARALLEL=1
+      shift
+      ;;
+    --no-parallel)
+      PARALLEL=0
+      shift
+      ;;
+    --batch-size)
+      if [[ $# -lt 2 ]]; then
+        echo "Missing value after --batch-size" >&2
+        exit 1
+      fi
+      if [[ ! "$2" =~ ^[0-9]+$ || "$2" -lt 1 ]]; then
+        echo "Invalid --batch-size value: $2 (must be an integer >= 1)" >&2
+        exit 1
+      fi
+      BATCH_SIZE="$2"
       shift 2
       ;;
     *)
@@ -98,24 +126,67 @@ fi
 
 echo "Found ${#SUBDIRECTORIES[@]} subdirectories to visualize."
 
+if [[ -z "${DISPLAY:-}" ]]; then
+  echo "Warning: DISPLAY is not set. GUI windows may not appear. Start your X server and set DISPLAY (for example: export DISPLAY=localhost:10.0)." >&2
+elif command -v xdpyinfo >/dev/null 2>&1; then
+  if ! xdpyinfo >/dev/null 2>&1; then
+    echo "Warning: Cannot connect to X server via DISPLAY=$DISPLAY. Ensure X server (for example VcXsrv) is running and X11 forwarding is enabled." >&2
+  fi
+else
+  echo "Warning: xdpyinfo is not installed, so X11 connectivity could not be verified." >&2
+fi
+
+if [[ "$PARALLEL" -eq 0 ]]; then
+  BATCH_SIZE=1
+fi
+
+echo "Mode: $([[ "$PARALLEL" -eq 1 ]] && echo "parallel" || echo "sequential") (batch size: $BATCH_SIZE)"
+
 INDEX=0
 FAILURES=0
-for subdir in "${SUBDIRECTORIES[@]}"; do
-    INDEX=$((INDEX + 1))
-    echo "[$INDEX/${#SUBDIRECTORIES[@]}] Visualizing: $subdir"
+TOTAL_TO_RUN=${#SUBDIRECTORIES[@]}
+if [[ "$STOP_AFTER" -gt 0 && "$STOP_AFTER" -lt "$TOTAL_TO_RUN" ]]; then
+  TOTAL_TO_RUN="$STOP_AFTER"
+fi
 
-  if ! "$VISUALIZER" "${VISUALIZER_ARGS[@]}" "$subdir"; then
-    echo "[$INDEX/${#SUBDIRECTORIES[@]}] Skipping after visualizer failure: $subdir" >&2
-    FAILURES=$((FAILURES + 1))
+while [[ "$INDEX" -lt "$TOTAL_TO_RUN" ]]; do
+  batch_start=$((INDEX + 1))
+  batch_end=$((INDEX + BATCH_SIZE))
+  if [[ "$batch_end" -gt "$TOTAL_TO_RUN" ]]; then
+    batch_end="$TOTAL_TO_RUN"
   fi
 
-  if [[ "$STOP_AFTER" -gt 0 && "$INDEX" -ge "$STOP_AFTER" ]]; then
-    echo "Stopping early after $INDEX subdirectories due to --stop-after $STOP_AFTER."
+  echo "Launching batch [$batch_start-$batch_end/$TOTAL_TO_RUN]"
+
+  PIDS=()
+  LABELS=()
+  for ((i = INDEX; i < batch_end; i++)); do
+    subdir="${SUBDIRECTORIES[$i]}"
+    current=$((i + 1))
+    echo "[$current/$TOTAL_TO_RUN] Visualizing: $subdir"
+    "$VISUALIZER" "${VISUALIZER_ARGS[@]}" "$subdir" &
+    PIDS+=("$!")
+    LABELS+=("[$current/$TOTAL_TO_RUN] $subdir")
+  done
+
+  for ((j = 0; j < ${#PIDS[@]}; j++)); do
+    if ! wait "${PIDS[$j]}"; then
+      echo "${LABELS[$j]} failed." >&2
+      FAILURES=$((FAILURES + 1))
+    fi
+  done
+
+  INDEX="$batch_end"
+
+  if [[ "$INDEX" -ge "$TOTAL_TO_RUN" ]]; then
+    if [[ "$STOP_AFTER" -gt 0 && "$STOP_AFTER" -eq "$TOTAL_TO_RUN" ]]; then
+      echo "Stopping early after $INDEX subdirectories due to --stop-after $STOP_AFTER."
+    fi
     break
   fi
 
   if [[ "$ASK_CONTINUE" -eq 1 ]]; then
-    read -r -p "Continue to next subdirectory? [Y/n] " answer
+    read -r -p "Continue to next batch? [Y/n] " answer
     case "$answer" in
       [Nn]|[Nn][Oo])
         echo "Stopping early by user request (--ask-continue)."
