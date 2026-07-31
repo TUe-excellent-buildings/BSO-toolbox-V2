@@ -60,7 +60,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		if(quadHexa.size() < 1)
 		{
 			std::stringstream errorMessage;
-			errorMessage << "The amount of quadHexa inserted in the addSpaceD() function is to little to fill a space with quadHexa cells.\n"
+			errorMessage << "The amount of quadHexa inserted in the addSpace() function is to little to fill a space with quadHexa cells.\n"
 									 << "The minumum required amount of quadHexa is 2 and the inserted amount is: " << quadHexa.size() << "\n"
 									 << "Meaning that there are quadHexa(s) missing. \n"
 									 << "The inserted quadHexa consist of the following: " << std::endl;
@@ -221,8 +221,8 @@ namespace bso { namespace spatial_design { namespace conformal {
 		if((spaceVolume-cellVolume) < (0-10) || (spaceVolume-cellVolume) > (0+10)) // The standard tolerance is too small and trickers the error unrightfully fast
 		{
 			std::stringstream errorMessage;
-			errorMessage << "When initializing multiple quad-hexahedron cells in a space in the addSpaceD() function.\n"
-									 << "The space was not fully filled with the inserted cells. \n"
+			errorMessage << "When initializing multiple quad-hexahedron cells in a space in the addSpace() function.\n"
+									 << "The space : " << *(mCFSpaces.back()) << " \nwas not fully filled with the inserted cells. \n"
 									 << "Meaning that there are cells missing. \n"
 									 << "The difference between the space volume and the sum of all the cells volume is: " << (spaceVolume-cellVolume) << "\n"
 									 << "the amount of triPrism in the space is: " << quadHexa.size() << " and consist of the following: " << std::endl;
@@ -417,7 +417,7 @@ namespace bso { namespace spatial_design { namespace conformal {
 		{
 			std::stringstream errorMessage;
 			errorMessage << "When initializing multiple triangular prism cells in a space in the addSpaceD() function.\n"
-									 << "The space was not fully filled with the inserted cells. \n"
+									 << "The space :" << *(mCFSpaces.back()) << "\nwas not fully filled with the inserted cells. \n"
 									 << "Meaning that there are cells missing. \n"
 									 << "The difference between the space volume and the sum of all the cells is: " << (spaceVolume-cellVolume) << "\n"
 									 << "the amount of triPrism in the space is: " << triPrismPtr.size() << " and consist of the following: " << std::endl;
@@ -863,9 +863,6 @@ namespace bso { namespace spatial_design { namespace conformal {
 										}
 										errorMessage << "(bso/utilities/geometry/cf_building_model.cpp)" << std::endl;
 				throw std::invalid_argument(errorMessage.str());
-				
-				
-				std::cerr << e.what() << '\n';
 			}
 			
 			

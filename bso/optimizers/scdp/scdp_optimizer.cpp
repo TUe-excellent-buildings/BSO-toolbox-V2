@@ -372,7 +372,11 @@ void scdp_optimizer::getDesignResults()
                 if (mConfig.getDlVisualWriteFile()) dlVisualAlreadyWritten = true;
             }
             if (visOption == "dlD" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "DF");
-            // if (visOption == "dlI" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "illuminance");
+            if (visOption == "dlI" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "Horizontal_Illuminance");
+            if (visOption == "dlADF" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "ADF");
+            if (visOption == "dlADF_inverse" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "ADF_inverse");
+            if (visOption == "dlNEN" && mConfig.getRunDLSimulation()) visualization::visualize(mDLModelLast.back(), "NEN");
+
             if (visOption == "msw" && mCurrentIteration == mConfig.getIterations()) mswVisualized = true; // set a flag to indicate that the final MSW visualization has been done, so that it is not generated again in the outputResults() function after the optimization process is finished.
         }
         if(mCurrentIteration == mConfig.getIterations())
@@ -681,13 +685,15 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
                     mConfig.getWeightedModification(), mOutputManager, mConfig.getVerbose());
 
             // step 3b, determine the amount of worst spaces on which the add-method will be determined
-            int spaceAmountRemoval= round(mNrSpaces*mConfig.getSpaceModifyWorstRatio()); 
+            std::size_t spaceAmountRemoval= round(mNrSpaces*mConfig.getSpaceModifyWorstRatio()); 
             if(spaceAmountRemoval < 1){spaceAmountRemoval = 1;}
 
             // step 3c, determine the centre of to worst spaces:
-            for(long unsigned int k=performances.size()-1; k>=performances.size()-spaceAmountRemoval; k--)
+            const std::size_t safeDeleteGuard = std::min(spaceAmountRemoval, performances.size());
+            const std::size_t startIdx = performances.size() - safeDeleteGuard;
+            for (std::size_t idx = startIdx; idx < performances.size(); ++idx)
             {
-                worstSpaceCentre += performances[k].getMSpacePtrs().back()->getGeometry().getCenter(); 
+                worstSpaceCentre += performances[idx].getMSpacePtrs().back()->getGeometry().getCenter(); 
             }
             worstSpaceCentre = worstSpaceCentre/spaceAmountRemoval;
             centreBuilding = newMS.getCentreBuilding();
@@ -825,48 +831,8 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
             newMS.writeToFile(fileName);
         }
 
-        // step 14, recover the number of spaces if needed.
-        // if the amount of spaces is higher than split spaces to recover initial number.
-        // if lower, delete spaces to recover initial number.
-        if(newMS.getSpacePtrs().size() > mNrSpaces)
-        {
-    			// Determine for which objective to get intermediate results
-    			std::string activeObjective = getActiveObjective();
-
-            // Get intermediate results for the new design to determine which spaces to delete to recover initial number of spaces.
-            std::vector<utilities::data_point> intermediateResults = getIntermediateResults(newMS, activeObjective);
-            
-            // Normalize the data points
-            performance_evaluator::normalizeData(intermediateResults, utopianPoint, distopianPoint, mOutputManager, mConfig.getVerbose());
-            
-            // Visualize the performance of spaces
-            visualizeMsw(newMS, intermediateResults, mCurrentIteration, mConfig.getObjectiveWeights(), "_retrieve_nr_space_delete");
-            
-            // Delete spaces to recover initial number of spaces.
-            deleteSpaces(newMS, intermediateResults, modificationType, distopianPoint);
-        }
-        if(newMS.getSpacePtrs().size() < mNrSpaces) // when using cluster delete method, it can happen that more spaces are deleted than intended, so we need to check if we need to split spaces to recover the initial number of spaces.
-        {
-            if(mConfig.getSplitMethod() == "performance")
-            {
-				// Determine for which objective to get intermediate results
-				std::string activeObjective = getActiveObjective();
-                
-                // Get intermediate results for the new design to determine which spaces to delete to recover initial number of spaces.
-                std::vector<utilities::data_point> intermediateResults = getIntermediateResults(newMS, activeObjective);
-                
-                // Normalize the data points
-                performance_evaluator::normalizeData(intermediateResults, utopianPoint, distopianPoint, mOutputManager, mConfig.getVerbose());
-                
-                // Visualize the performance of spaces
-                visualizeMsw(newMS,intermediateResults, mCurrentIteration, mConfig.getObjectiveWeights(), "_retrieve_nr_spaces_split");
-                splitSpaces(newMS, intermediateResults, modificationType, mCurrentIteration, mConfig.getObjectiveWeights());
-            }
-            else // if split method is not performance, we can split spaces without getting intermediate results, as the performance of spaces will not be used for the split decision.
-            {
-               splitSpaces(newMS, performances, modificationType, mCurrentIteration, mConfig.getObjectiveWeights());
-            }
-        }
+        // step 14, recover number of spaces to match the initial design.
+        recoverNrSpaces(newMS, performances, mCurrentIteration, mConfig.getObjectiveWeights(), modificationType);
 
         // step 14, Enforce constrains on BSD
         enforceConstraints(newMS);
@@ -974,7 +940,7 @@ void scdp_optimizer::deleteSpaces(spatial_design::ms_N_building& ms,
             mConfig.getWeightedModification(), mOutputManager, mConfig.getVerbose());
         mOutputManager.out("Sort data points for space removal",true,true,mConfig.getVerbose());
 
-        unsigned int spaceAmountRemoval;
+        std::size_t spaceAmountRemoval;
         if(mConfig.getAmountOfSpaceRemoval() > 0){spaceAmountRemoval = mConfig.getAmountOfSpaceRemoval();} // getAmountOfSpaceRemoval() value cannot be below 1 as checked at input, so no need to check for that here.
         else 
         {
@@ -983,15 +949,11 @@ void scdp_optimizer::deleteSpaces(spatial_design::ms_N_building& ms,
         }
 
         // step 5, select worst performing spaces and remove these spaces
-        bool removeMaxValue = false;
-        if(removeMaxValue)
+        const std::size_t safeDeleteGuard = std::min(spaceAmountRemoval, performancesRemoveSpace.size());
+        const std::size_t startIdx = performancesRemoveSpace.size() - safeDeleteGuard;
+        for (std::size_t idx = startIdx; idx < performancesRemoveSpace.size(); ++idx)
         {
-            std::reverse(performancesRemoveSpace.begin(), performancesRemoveSpace.end());
-            for(long unsigned int k=performancesRemoveSpace.size()-1; k>=performancesRemoveSpace.size()-spaceAmountRemoval; k--) ms.deleteSpace(performancesRemoveSpace[k].getMSpacePtrs().back());
-        }
-        else
-        {
-            for(long unsigned int k=performancesRemoveSpace.size()-1; k>=performancesRemoveSpace.size()-spaceAmountRemoval; k--) ms.deleteSpace(performancesRemoveSpace[k].getMSpacePtrs().back());
+            ms.deleteSpace(performancesRemoveSpace[idx].getMSpacePtrs().back());
         }
         mOutputManager.out("Removed worst performing spaces in building spatial design",true,true,mConfig.getVerbose());
     }
@@ -1006,6 +968,109 @@ void scdp_optimizer::deleteSpaces(spatial_design::ms_N_building& ms,
         throw std::invalid_argument(errorMessage.str());
     }
 } // deleteSpaces
+
+void scdp_optimizer::recoverNrSpaces(spatial_design::ms_N_building& ms, 
+                      std::vector<utilities::data_point>& performances, 
+                      const int iteration, 
+                      const std::vector<double>& objectiveWeights,
+                      const std::string& modificationType)
+{
+    // If already at target size there is nothing to recover.
+    if(ms.getSpacePtrs().size() == mNrSpaces) return;
+
+    // If more spaces are present than target, remove exactly the required amount.
+    // Intermediate results are computed only once because this is an expensive call.
+    if(ms.getSpacePtrs().size() > mNrSpaces)
+    {
+        const std::size_t sizeBeforeDelete = ms.getSpacePtrs().size();
+        const std::size_t spacesToRemove = sizeBeforeDelete - mNrSpaces;
+
+        // Only generate intermediate results for the objective guiding the deletion, 
+        // as this is the only relevant objective for the deletion and simulation are expensive to run.
+        std::string activeObjective = getActiveObjective();
+        std::vector<utilities::data_point> intermediateResults = getIntermediateResults(ms, activeObjective);
+
+        if (intermediateResults.empty())
+        {
+            std::stringstream errorMessage;
+            errorMessage << "Error, recoverNrSpaces could not compute intermediate space performances while deleting to target.\n"
+                         << "(bso/optimizers/scdp/scdp_optimizer.cpp)." << std::endl;
+            throw std::runtime_error(errorMessage.str());
+        }
+
+        utilities::data_point utopianPoint;
+        utilities::data_point distopianPointIntermediate;
+        performance_evaluator::normalizeData(intermediateResults, utopianPoint, distopianPointIntermediate, mOutputManager, mConfig.getVerbose());
+        visualizeMsw(ms, intermediateResults, iteration, objectiveWeights, "_retrieve_nr_space_delete");
+
+        // Recovery deletion intentionally always uses the worst-performance strategy,
+        // independent of the configured delete method.
+        performance_evaluator::sortDataPointsHighestToLowest(intermediateResults, modificationType,
+            mConfig.getModificationSequence(), iteration, objectiveWeights,
+            mConfig.getWeightedModification(), mOutputManager, mConfig.getVerbose());
+
+        const std::size_t removable = std::min(spacesToRemove, intermediateResults.size());
+        const std::size_t startIdx = intermediateResults.size() - removable;
+        for (std::size_t idx = startIdx; idx < intermediateResults.size(); ++idx)
+        {
+            ms.deleteSpace(intermediateResults[idx].getMSpacePtrs().back());
+        }
+        mOutputManager.out("Removed worst performing spaces in building spatial design",true,true,mConfig.getVerbose());
+
+        if(ms.getSpacePtrs().size() > mNrSpaces)
+        {
+            std::stringstream errorMessage;
+            errorMessage << "Error, recoverNrSpaces could not reduce number of spaces from " << sizeBeforeDelete
+                         << " to target " << mNrSpaces << " in a single recovery pass.\n"
+                         << "Please adjust delete settings (e.g. delete method/ratio/amount).\n"
+                         << "(bso/optimizers/scdp/scdp_optimizer.cpp)." << std::endl;
+            throw std::runtime_error(errorMessage.str());
+        }
+
+        if(ms.getSpacePtrs().size() < mNrSpaces)
+        {
+            std::stringstream errorMessage;
+            errorMessage << "Error, recoverNrSpaces deleted too many spaces while recovering from " << sizeBeforeDelete
+                         << " to target " << mNrSpaces << ".\n"
+                         << "(bso/optimizers/scdp/scdp_optimizer.cpp)." << std::endl;
+            throw std::runtime_error(errorMessage.str());
+        }
+    }
+
+    // If fewer spaces are present than target, split until we reach target.
+    if(ms.getSpacePtrs().size() < mNrSpaces)
+    {
+        const std::size_t sizeBeforeSplit = ms.getSpacePtrs().size();
+
+        if(mConfig.getSplitMethod() == "performance")
+        {
+            std::string activeObjective = getActiveObjective();
+            std::vector<utilities::data_point> intermediateResults = getIntermediateResults(ms, activeObjective);
+
+            utilities::data_point utopianPoint;
+            utilities::data_point distopianPointIntermediate;
+            performance_evaluator::normalizeData(intermediateResults, utopianPoint, distopianPointIntermediate, mOutputManager, mConfig.getVerbose());
+
+            visualizeMsw(ms, intermediateResults, iteration, objectiveWeights, "_retrieve_nr_spaces_split");
+            splitSpaces(ms, intermediateResults, modificationType, iteration, objectiveWeights);
+        }
+        else
+        {
+            // If split method is not performance, use already available performances, as these value's will not be used in the split method anyway.
+            splitSpaces(ms, performances, modificationType, iteration, objectiveWeights);
+        }
+
+        if(ms.getSpacePtrs().size() <= sizeBeforeSplit && ms.getSpacePtrs().size() < mNrSpaces)
+        {
+            std::stringstream errorMessage;
+            errorMessage << "Error, recoverNrSpaces could not increase number of spaces from " << sizeBeforeSplit
+                         << " while target is " << mNrSpaces << ".\n"
+                         << "Please adjust split settings (e.g. split method).\n"
+                         << "(bso/optimizers/scdp/scdp_optimizer.cpp)." << std::endl;
+            throw std::runtime_error(errorMessage.str());
+        }
+    }
+} // recoverNrSpaces
 
 void scdp_optimizer::scaleDesign(spatial_design::ms_N_building& ms)
 {

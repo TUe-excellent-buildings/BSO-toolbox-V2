@@ -50,6 +50,11 @@ private:
                       std::vector<utilities::data_point>& performances, 
                       const std::string& modificationType,
                       const utilities::data_point& distopianPoint);
+    void recoverNrSpaces(spatial_design::ms_N_building& ms, 
+                      std::vector<utilities::data_point>& performances, 
+                      const int iteration, 
+                      const std::vector<double>& objectiveWeights,
+                      const std::string& modificationType);                      
     void scaleDesign(spatial_design::ms_N_building& ms);
     void splitSpaces(spatial_design::ms_N_building& ms, 
                       const std::vector<utilities::data_point>& performances,

@@ -159,6 +159,7 @@ the daylight calculation will perform.
     	void setSpaceID_AmountGridPoints(const std::vector<std::tuple<unsigned int, int>>& points) {SpaceID_AmountGridPoints = points;}
 		const std::vector<std::tuple<unsigned int, int>>& getSpaceID_AmountGridPoints() const {return SpaceID_AmountGridPoints;}
 		void setDF_Settings(const std::vector<double>& settings) {DF_Settings = settings;}
+		const std::vector<double>& getDF_Settings() const {return DF_Settings;}
 		void setDF_Evaluation(const std::vector<double>& evaluation) {DF_Evaluation = evaluation;}
 
 		void setRoomInfo(std::vector<std::vector<double>>& a) {roomInfo = a;}

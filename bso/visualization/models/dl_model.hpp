@@ -53,6 +53,7 @@ private:
 	bool mDrawOverlayLegend = false;
 	std::string mLegendTitle;
 	std::vector<legend_bin> mLegendBins;
+	std::vector<std::string> mLegendNotes;
 
     polygon_props pprops_window;
     polygon_props pprops_wall;
@@ -377,6 +378,7 @@ DL_Model::DL_Model(const bso::daylight::dl_model& dl,
 		mDrawOverlayLegend = true;
 		mLegendTitle = "Daylight factor legend [%]";
 		mLegendBins.clear();
+		mLegendNotes.clear();
 
 		// Provide a translucent vieuw of the building for reference
 		for (const auto& map : dl.getWindowProperties()) //std::vector<std::map<bso::spatial_design::conformal::cf_rectangle*, bool>> mRectangleWindowYN;
@@ -415,17 +417,6 @@ DL_Model::DL_Model(const bso::daylight::dl_model& dl,
 
 			this->addPolygon(polygons, &triangleGeometry, &pprops_wall_translucent, &lprops_rectangles, 0.0, "pprops_wall_translucent", "lprops_rectangles");
 		} //getTriangles()
-
-		// //boundary lines per space
-		// pprops_Space.ambient = rgba(1.0f, 1.0f, 0.04f, 0.0f);
-		// pprops_Space.diffuse = rgba(1.0f, 1.0f, 0.04f, 0.0f);
-		// pprops_Space.specular = rgba(0.04f, 0.04f, 0.04f, 0.0f);
-		// pprops_Space.emission = rgba(0.04f, 0.04f, 0.04f, 0.0f);
-		// for (const auto& i : dl.getSpacePropertiesQH())
-		// {
-		// 	this->addLabel(labels,&lbprops,std::to_string(i->getSpaceID()),i->getCenter()); // space numbers
-		// 	this->addBoundaryLinesForSpace(i); //lines
-		// }
 
 		// Ad the DF results as colored cubes at the grid points
 		const auto& gridPointResults = dl.getGridPointResults();
@@ -508,15 +499,596 @@ DL_Model::DL_Model(const bso::daylight::dl_model& dl,
 				mLegendBins.push_back(bin);
 			}
 		}
-
-	}
-	else if(type == "NEN")
-	{
-
 	}
 	else if(type == "Horizontal_Illuminance")
 	{
+		mDrawOverlayLegend = true;
+		mLegendTitle = "Horizontal illuminance legend [lx]";
+		mLegendBins.clear();
+		mLegendNotes.clear();
 
+		// Provide a translucent view of the building for reference
+		for (const auto& map : dl.getWindowProperties())
+		{
+			for (const auto& [cfRec,isWindow] : map)
+			{
+				std::vector<geom::vertex> rectangleVertices;
+				for (const auto& vertex : *cfRec)
+				{
+					rectangleVertices.push_back(cfRec->getCenter() + vertex - cfRec->getCenter());
+				}
+
+				geom::quadrilateral rectangleGeometry(rectangleVertices);
+
+				if (isWindow==true)
+				{
+					this->addPolygon(polygons, &rectangleGeometry, &pprops_window, &lprops_rectangles, 0.0, "pprops_window", "lprops_rectangles");
+				}
+				else if (isWindow==false)
+				{
+					this->addPolygon(polygons, &rectangleGeometry, &pprops_wall_translucent, &lprops_rectangles, 0.0, "pprops_wall_translucent", "lprops_rectangles");
+				}
+			}
+		}
+		for (const auto& i : dl.getTriangles())
+		{
+			std::vector<geom::vertex> triangleVertices;
+			for (const auto& vertex : *i)
+			{
+				triangleVertices.push_back(i->getCenter() + vertex - i->getCenter());
+			}
+
+			geom::triangle triangleGeometry(triangleVertices);
+			this->addPolygon(polygons, &triangleGeometry, &pprops_wall_translucent, &lprops_rectangles, 0.0, "pprops_wall_translucent", "lprops_rectangles");
+		}
+
+		// Add the horizontal illuminance results as colored cubes at the grid points
+		const auto& gridPointResults = dl.getGridPointResults();
+		pprops_color_gradient.clear();
+		pprops_color_gradient.reserve(gridPointResults.size());
+
+		double minEh = 0.0;
+		double maxEh = 0.0;
+		if (!gridPointResults.empty())
+		{
+			minEh = gridPointResults.front().horizontal_illuminance;
+			maxEh = gridPointResults.front().horizontal_illuminance;
+			for (const auto& gridPointResult : gridPointResults)
+			{
+				minEh = std::min(minEh, gridPointResult.horizontal_illuminance);
+				maxEh = std::max(maxEh, gridPointResult.horizontal_illuminance);
+			}
+		}
+
+		// helper function to map normalized values to colors (blue -> green -> yellow)
+		auto illuminanceColor = [](double t) -> rgba
+		{
+			t = std::clamp(t, 0.0, 1.0);
+			if (t <= (1.0 / 3.0))
+			{
+				double u = t / (1.0 / 3.0);
+				return rgba(0.0f, static_cast<float>(u), 1.0f, 1.0f);
+			}
+			if (t <= (2.0 / 3.0))
+			{
+				double u = (t - (1.0 / 3.0)) / (1.0 / 3.0);
+				return rgba(0.0f, 1.0f, static_cast<float>(1.0 - u), 1.0f);
+			}
+			double u = (t - (2.0 / 3.0)) / (1.0 / 3.0);
+			return rgba(static_cast<float>(u), 1.0f, 0.0f, 1.0f);
+		};
+
+		for (const auto& gridPointResult : gridPointResults)
+		{
+			double normalizedEh = 0.0;
+			if (maxEh > minEh)
+			{
+				normalizedEh = (gridPointResult.horizontal_illuminance - minEh) / (maxEh - minEh);
+			}
+
+			polygon_props illumProps = pprops_gridpoint;
+			illumProps.ambient = illuminanceColor(normalizedEh);
+			illumProps.diffuse = illumProps.ambient;
+			illumProps.specular = rgba(0.1f, 0.1f, 0.1f, 1.0f);
+			illumProps.emission = rgba(0.0f, 0.0f, 0.0f, 1.0f);
+			illumProps.shininess = 20.0f;
+			illumProps.translucent = false;
+			illumProps.twosided = false;
+			pprops_color_gradient.push_back(illumProps);
+
+			this->addPoint(polygons, gridPointResult.mGridPointLocation, &(pprops_color_gradient.back()), &lprops_rectangles, 100.0, "", "lprops_rectangles");
+		}
+
+		// Build overlay legend with 12 categories using horizontal illuminance bins.
+		const unsigned int nLegendBins = 12;
+		if (!gridPointResults.empty())
+		{
+			double span = maxEh - minEh;
+			for (unsigned int i = 0; i < nLegendBins; ++i)
+			{
+				double lower = minEh;
+				double upper = maxEh;
+				if (span > 0.0)
+				{
+					lower = minEh + (static_cast<double>(i) / static_cast<double>(nLegendBins)) * span;
+					upper = minEh + (static_cast<double>(i + 1) / static_cast<double>(nLegendBins)) * span;
+				}
+
+				double tMid = (static_cast<double>(i) + 0.5) / static_cast<double>(nLegendBins);
+				legend_bin bin;
+				bin.color = illuminanceColor(tMid);
+				bin.lower = lower;
+				bin.upper = upper;
+				mLegendBins.push_back(bin);
+			}
+		}
+	}
+	else if(type == "NEN")
+	{
+		mDrawOverlayLegend = true;
+		mLegendTitle = "NEN score legend [-]";
+		mLegendBins.clear();
+		mLegendNotes.clear();
+		mLegendNotes.push_back("score = 0: both Ptarget and Pmintarget are met");
+		mLegendNotes.push_back("score = 0-5: only minTarget is met");
+		mLegendNotes.push_back("score = 5-10: neither targets are met");
+		pprops_color_gradient.clear();
+		pprops_color_gradient.reserve(dl.getSpacePropertiesQH().size());
+
+		// Provide a translucent view of the building for reference
+		for (const auto& map : dl.getWindowProperties())
+		{
+			for (const auto& [cfRec,isWindow] : map)
+			{
+				std::vector<geom::vertex> rectangleVertices;
+				for (const auto& vertex : *cfRec)
+				{
+					rectangleVertices.push_back(cfRec->getCenter() + vertex - cfRec->getCenter());
+				}
+
+				geom::quadrilateral rectangleGeometry(rectangleVertices);
+
+				if (isWindow==true)
+				{
+					this->addPolygon(polygons, &rectangleGeometry, &pprops_window, &lprops_rectangles, 0.0, "pprops_window", "lprops_rectangles");
+				}
+				else if (isWindow==false)
+				{
+					this->addPolygon(polygons, &rectangleGeometry, &pprops_wall_translucent, &lprops_rectangles, 0.0, "pprops_wall_translucent", "lprops_rectangles");
+				}
+			}
+		}
+		for (const auto& i : dl.getTriangles())
+		{
+			std::vector<geom::vertex> triangleVertices;
+			for (const auto& vertex : *i)
+			{
+				triangleVertices.push_back(i->getCenter() + vertex - i->getCenter());
+			}
+
+			geom::triangle triangleGeometry(triangleVertices);
+			this->addPolygon(polygons, &triangleGeometry, &pprops_wall_translucent, &lprops_rectangles, 0.0, "pprops_wall_translucent", "lprops_rectangles");
+		}
+
+		const auto& spaceResults = dl.getSpaceResults();
+		std::map<unsigned int, double> scoreBySpaceID;
+		if (!spaceResults.empty())
+		{
+			for (const auto& spaceResult : spaceResults)
+			{
+				scoreBySpaceID[spaceResult.mSpaceID] = spaceResult.mScore;
+			}
+		}
+
+		const auto& dfSettings = dl.getDF_Settings();
+		double referenceHeight = 0.0;
+		if (dfSettings.size() > 1)
+		{
+			referenceHeight = dfSettings[1];
+		}
+
+		// helper function to map normalized scores to colors (green pass -> red fail)
+		auto scoreColor = [](double t) -> rgba
+		{
+			t = std::clamp(t, 0.0, 1.0);
+			return rgba(static_cast<float>(t), static_cast<float>(1.0 - t), 0.0f, 1.0f);
+		};
+
+		// Draw one colored quadrilateral per space at the specified reference height.
+		for (const auto& spacePtr : dl.getSpacePropertiesQH())
+		{
+			auto scoreIter = scoreBySpaceID.find(spacePtr->getSpaceID());
+			if (scoreIter == scoreBySpaceID.end()) continue;
+
+			double normalizedScore = std::clamp(scoreIter->second / 10.0, 0.0, 1.0);
+
+			polygon_props planeProps = pprops_gridpoint;
+			planeProps.ambient = scoreColor(normalizedScore);
+			planeProps.diffuse = planeProps.ambient;
+			planeProps.specular = rgba(0.1f, 0.1f, 0.1f, 1.0f);
+			planeProps.emission = rgba(0.0f, 0.0f, 0.0f, 1.0f);
+			planeProps.shininess = 20.0f;
+			planeProps.translucent = true;
+			planeProps.twosided = true;
+			pprops_color_gradient.push_back(planeProps);
+
+			bool floorFound = false;
+			std::vector<geom::vertex> floorVertices;
+			double minFloorZ = 0.0;
+			for (const auto* poly : spacePtr->getPolygons())
+			{
+				auto normal = poly->getNormal();
+				normal.normalize();
+				if (std::fabs(normal[2]) < 0.999) continue;
+
+				double currentZ = poly->getCenter()[2];
+				if (!floorFound || currentZ < minFloorZ)
+				{
+					floorFound = true;
+					minFloorZ = currentZ;
+					floorVertices.clear();
+					for (const auto& v : *poly)
+					{
+						floorVertices.push_back(v);
+					}
+				}
+			}
+			if (!floorFound) continue;
+
+			std::vector<geom::vertex> refPlaneVertices;
+			for (const auto& v : floorVertices)
+			{
+				refPlaneVertices.push_back(v + geom::vertex{0.0, 0.0, referenceHeight});
+			}
+
+			geom::quadrilateral refPlane(refPlaneVertices);
+			this->addPolygon(polygons, &refPlane, &(pprops_color_gradient.back()), &lprops_rectangles, 20.0, "", "lprops_rectangles");
+		}
+
+		// Build overlay legend with 10 fixed categories for NEN score scale [0,10].
+		const unsigned int nLegendBins = 10;
+		if (!spaceResults.empty())
+		{
+			for (unsigned int i = 0; i < nLegendBins; ++i)
+			{
+				double lower = static_cast<double>(i);
+				double upper = static_cast<double>(i + 1);
+
+				double tMid = (static_cast<double>(i) + 0.5) / static_cast<double>(nLegendBins);
+				legend_bin bin;
+				bin.color = scoreColor(tMid);
+				bin.lower = lower;
+				bin.upper = upper;
+				mLegendBins.push_back(bin);
+			}
+		}
+	}
+	else if(type == "ADF")
+	{
+		mDrawOverlayLegend = true;
+		mLegendTitle = "Average daylight factor legend [%]";
+		mLegendBins.clear();
+		mLegendNotes.clear();
+		pprops_color_gradient.clear();
+		pprops_color_gradient.reserve(dl.getSpacePropertiesQH().size());
+
+		// Provide a translucent view of the building for reference
+		for (const auto& map : dl.getWindowProperties())
+		{
+			for (const auto& [cfRec,isWindow] : map)
+			{
+				std::vector<geom::vertex> rectangleVertices;
+				for (const auto& vertex : *cfRec)
+				{
+					rectangleVertices.push_back(cfRec->getCenter() + vertex - cfRec->getCenter());
+				}
+
+				geom::quadrilateral rectangleGeometry(rectangleVertices);
+
+				if (isWindow==true)
+				{
+					this->addPolygon(polygons, &rectangleGeometry, &pprops_window, &lprops_rectangles, 0.0, "pprops_window", "lprops_rectangles");
+				}
+				else if (isWindow==false)
+				{
+					this->addPolygon(polygons, &rectangleGeometry, &pprops_wall_translucent, &lprops_rectangles, 0.0, "pprops_wall_translucent", "lprops_rectangles");
+				}
+			}
+		}
+		for (const auto& i : dl.getTriangles())
+		{
+			std::vector<geom::vertex> triangleVertices;
+			for (const auto& vertex : *i)
+			{
+				triangleVertices.push_back(i->getCenter() + vertex - i->getCenter());
+			}
+
+			geom::triangle triangleGeometry(triangleVertices);
+			this->addPolygon(polygons, &triangleGeometry, &pprops_wall_translucent, &lprops_rectangles, 0.0, "pprops_wall_translucent", "lprops_rectangles");
+		}
+
+		const auto& spaceResults = dl.getSpaceResults();
+		std::map<unsigned int, double> adfBySpaceID;
+		double minADF = 0.0;
+		double maxADF = 0.0;
+		if (!spaceResults.empty())
+		{
+			minADF = spaceResults.front().mADF;
+			maxADF = spaceResults.front().mADF;
+			for (const auto& spaceResult : spaceResults)
+			{
+				adfBySpaceID[spaceResult.mSpaceID] = spaceResult.mADF;
+				minADF = std::min(minADF, spaceResult.mADF);
+				maxADF = std::max(maxADF, spaceResult.mADF);
+			}
+		}
+
+		const auto& dfSettings = dl.getDF_Settings();
+		double referenceHeight = 0.0;
+		if (dfSettings.size() > 1)
+		{
+			referenceHeight = dfSettings[1];
+		}
+
+		// helper function to map normalized values to colors (blue -> green -> yellow)
+		auto adfColor = [](double t) -> rgba
+		{
+			t = std::clamp(t, 0.0, 1.0);
+			if (t <= (1.0 / 3.0))
+			{
+				double u = t / (1.0 / 3.0);
+				return rgba(0.0f, static_cast<float>(u), 1.0f, 1.0f);
+			}
+			if (t <= (2.0 / 3.0))
+			{
+				double u = (t - (1.0 / 3.0)) / (1.0 / 3.0);
+				return rgba(0.0f, 1.0f, static_cast<float>(1.0 - u), 1.0f);
+			}
+			double u = (t - (2.0 / 3.0)) / (1.0 / 3.0);
+			return rgba(static_cast<float>(u), 1.0f, 0.0f, 1.0f);
+		};
+
+		// Draw one colored quadrilateral per space at the specified reference height.
+		for (const auto& spacePtr : dl.getSpacePropertiesQH())
+		{
+			auto adfIter = adfBySpaceID.find(spacePtr->getSpaceID());
+			if (adfIter == adfBySpaceID.end()) continue;
+
+			double normalizedADF = 0.0;
+			if (maxADF > minADF)
+			{
+				normalizedADF = (adfIter->second - minADF) / (maxADF - minADF);
+			}
+
+			polygon_props planeProps = pprops_gridpoint;
+			planeProps.ambient = adfColor(normalizedADF);
+			planeProps.diffuse = planeProps.ambient;
+			planeProps.specular = rgba(0.1f, 0.1f, 0.1f, 1.0f);
+			planeProps.emission = rgba(0.0f, 0.0f, 0.0f, 1.0f);
+			planeProps.shininess = 20.0f;
+			planeProps.translucent = true;
+			planeProps.twosided = true;
+			pprops_color_gradient.push_back(planeProps);
+
+			bool floorFound = false;
+			std::vector<geom::vertex> floorVertices;
+			double minFloorZ = 0.0;
+			for (const auto* poly : spacePtr->getPolygons())
+			{
+				auto normal = poly->getNormal();
+				normal.normalize();
+				if (std::fabs(normal[2]) < 0.999) continue;
+
+				double currentZ = poly->getCenter()[2];
+				if (!floorFound || currentZ < minFloorZ)
+				{
+					floorFound = true;
+					minFloorZ = currentZ;
+					floorVertices.clear();
+					for (const auto& v : *poly)
+					{
+						floorVertices.push_back(v);
+					}
+				}
+			}
+			if (!floorFound) continue;
+
+			std::vector<geom::vertex> refPlaneVertices;
+			for (const auto& v : floorVertices)
+			{
+				refPlaneVertices.push_back(v + geom::vertex{0.0, 0.0, referenceHeight});
+			}
+
+			geom::quadrilateral refPlane(refPlaneVertices);
+			this->addPolygon(polygons, &refPlane, &(pprops_color_gradient.back()), &lprops_rectangles, 20.0, "", "lprops_rectangles");
+		}
+
+		// Build overlay legend with 12 categories using ADF value bins.
+		const unsigned int nLegendBins = 12;
+		if (!spaceResults.empty())
+		{
+			double span = maxADF - minADF;
+			for (unsigned int i = 0; i < nLegendBins; ++i)
+			{
+				double lower = minADF;
+				double upper = maxADF;
+				if (span > 0.0)
+				{
+					lower = minADF + (static_cast<double>(i) / static_cast<double>(nLegendBins)) * span;
+					upper = minADF + (static_cast<double>(i + 1) / static_cast<double>(nLegendBins)) * span;
+				}
+
+				double tMid = (static_cast<double>(i) + 0.5) / static_cast<double>(nLegendBins);
+				legend_bin bin;
+				bin.color = adfColor(tMid);
+				bin.lower = lower;
+				bin.upper = upper;
+				mLegendBins.push_back(bin);
+			}
+		}
+	}
+	else if(type == "ADF_inverse")
+	{
+		mDrawOverlayLegend = true;
+		mLegendTitle = "Average daylight factor inverse legend [1/%]";
+		mLegendBins.clear();
+		mLegendNotes.clear();
+		pprops_color_gradient.clear();
+		pprops_color_gradient.reserve(dl.getSpacePropertiesQH().size());
+
+		// Provide a translucent view of the building for reference
+		for (const auto& map : dl.getWindowProperties())
+		{
+			for (const auto& [cfRec,isWindow] : map)
+			{
+				std::vector<geom::vertex> rectangleVertices;
+				for (const auto& vertex : *cfRec)
+				{
+					rectangleVertices.push_back(cfRec->getCenter() + vertex - cfRec->getCenter());
+				}
+
+				geom::quadrilateral rectangleGeometry(rectangleVertices);
+
+				if (isWindow==true)
+				{
+					this->addPolygon(polygons, &rectangleGeometry, &pprops_window, &lprops_rectangles, 0.0, "pprops_window", "lprops_rectangles");
+				}
+				else if (isWindow==false)
+				{
+					this->addPolygon(polygons, &rectangleGeometry, &pprops_wall_translucent, &lprops_rectangles, 0.0, "pprops_wall_translucent", "lprops_rectangles");
+				}
+			}
+		}
+		for (const auto& i : dl.getTriangles())
+		{
+			std::vector<geom::vertex> triangleVertices;
+			for (const auto& vertex : *i)
+			{
+				triangleVertices.push_back(i->getCenter() + vertex - i->getCenter());
+			}
+
+			geom::triangle triangleGeometry(triangleVertices);
+			this->addPolygon(polygons, &triangleGeometry, &pprops_wall_translucent, &lprops_rectangles, 0.0, "pprops_wall_translucent", "lprops_rectangles");
+		}
+
+		const auto& spaceResults = dl.getSpaceResults();
+		std::map<unsigned int, double> adfInverseBySpaceID;
+		double minADFInverse = 0.0;
+		double maxADFInverse = 0.0;
+		if (!spaceResults.empty())
+		{
+			minADFInverse = spaceResults.front().mADFInverse;
+			maxADFInverse = spaceResults.front().mADFInverse;
+			for (const auto& spaceResult : spaceResults)
+			{
+				adfInverseBySpaceID[spaceResult.mSpaceID] = spaceResult.mADFInverse;
+				minADFInverse = std::min(minADFInverse, spaceResult.mADFInverse);
+				maxADFInverse = std::max(maxADFInverse, spaceResult.mADFInverse);
+			}
+		}
+
+		const auto& dfSettings = dl.getDF_Settings();
+		double referenceHeight = 0.0;
+		if (dfSettings.size() > 1)
+		{
+			referenceHeight = dfSettings[1];
+		}
+
+		// helper function to map normalized values to colors (blue -> green -> yellow)
+		auto adfInverseColor = [](double t) -> rgba
+		{
+			t = std::clamp(t, 0.0, 1.0);
+			if (t <= (1.0 / 3.0))
+			{
+				double u = t / (1.0 / 3.0);
+				return rgba(0.0f, static_cast<float>(u), 1.0f, 1.0f);
+			}
+			if (t <= (2.0 / 3.0))
+			{
+				double u = (t - (1.0 / 3.0)) / (1.0 / 3.0);
+				return rgba(0.0f, 1.0f, static_cast<float>(1.0 - u), 1.0f);
+			}
+			double u = (t - (2.0 / 3.0)) / (1.0 / 3.0);
+			return rgba(static_cast<float>(u), 1.0f, 0.0f, 1.0f);
+		};
+
+		// Draw one colored quadrilateral per space at the specified reference height.
+		for (const auto& spacePtr : dl.getSpacePropertiesQH())
+		{
+			auto adfInverseIter = adfInverseBySpaceID.find(spacePtr->getSpaceID());
+			if (adfInverseIter == adfInverseBySpaceID.end()) continue;
+
+			double normalizedADFInverse = 0.0;
+			if (maxADFInverse > minADFInverse)
+			{
+				normalizedADFInverse = (adfInverseIter->second - minADFInverse) / (maxADFInverse - minADFInverse);
+			}
+
+			polygon_props planeProps = pprops_gridpoint;
+			planeProps.ambient = adfInverseColor(normalizedADFInverse);
+			planeProps.diffuse = planeProps.ambient;
+			planeProps.specular = rgba(0.1f, 0.1f, 0.1f, 1.0f);
+			planeProps.emission = rgba(0.0f, 0.0f, 0.0f, 1.0f);
+			planeProps.shininess = 20.0f;
+			planeProps.translucent = true;
+			planeProps.twosided = true;
+			pprops_color_gradient.push_back(planeProps);
+
+			bool floorFound = false;
+			std::vector<geom::vertex> floorVertices;
+			double minFloorZ = 0.0;
+			for (const auto* poly : spacePtr->getPolygons())
+			{
+				auto normal = poly->getNormal();
+				normal.normalize();
+				if (std::fabs(normal[2]) < 0.999) continue;
+				double currentZ = poly->getCenter()[2];
+				if (!floorFound || currentZ < minFloorZ)
+				{
+					floorFound = true;
+					minFloorZ = currentZ;
+					floorVertices.clear();
+					for (const auto& v : *poly)
+					{
+						floorVertices.push_back(v);
+					}
+				}
+			}
+			if (!floorFound) continue;
+
+			std::vector<geom::vertex> refPlaneVertices;
+			for (const auto& v : floorVertices)
+			{
+				refPlaneVertices.push_back(v + geom::vertex{0.0, 0.0, referenceHeight});
+			}
+
+			geom::quadrilateral refPlane(refPlaneVertices);
+			this->addPolygon(polygons, &refPlane, &(pprops_color_gradient.back()), &lprops_rectangles, 20.0, "", "lprops_rectangles");
+		}
+
+		// Build overlay legend with 12 categories using ADF inverse value bins.
+		const unsigned int nLegendBins = 12;
+		if (!spaceResults.empty())
+		{
+			double span = maxADFInverse - minADFInverse;
+			for (unsigned int i = 0; i < nLegendBins; ++i)
+			{
+				double lower = minADFInverse;
+				double upper = maxADFInverse;
+				if (span > 0.0)
+				{
+					lower = minADFInverse + (static_cast<double>(i) / static_cast<double>(nLegendBins)) * span;
+					upper = minADFInverse + (static_cast<double>(i + 1) / static_cast<double>(nLegendBins)) * span;
+				}
+
+				double tMid = (static_cast<double>(i) + 0.5) / static_cast<double>(nLegendBins);
+				legend_bin bin;
+				bin.color = adfInverseColor(tMid);
+				bin.lower = lower;
+				bin.upper = upper;
+				mLegendBins.push_back(bin);
+			}
+		}
 	}
 	
 	pbsp = new random_bsp(polygons); 
@@ -684,7 +1256,10 @@ void DL_Model::render(const camera &cam) const
 		const int textXOffset = boxW + 10;
 		const int titleHeight = 16;
 		const int panelW = 340;
-		const int panelH = titleHeight + 14 + (int)mLegendBins.size() * (boxH + rowGap) + pad;
+		const int noteLineH = 14;
+		const int noteSectionGap = mLegendNotes.empty() ? 0 : 10;
+		const int notesH = (int)mLegendNotes.size() * noteLineH;
+		const int panelH = titleHeight + 14 + (int)mLegendBins.size() * (boxH + rowGap) + noteSectionGap + notesH + pad;
 		const int panelX = viewportWidth - panelW - pad;
 		const int panelY = viewportHeight - panelH - pad;
 
@@ -728,11 +1303,23 @@ void DL_Model::render(const camera &cam) const
 			glVertex3i(panelX + pad, rowY + boxH, 0);
 			glEnd();
 
-			std::string rangeText = "DF in [" + formatValue(it->lower) + ", " + formatValue(it->upper) + "]";
+			std::string rangeText = "[" + formatValue(it->lower) + ", " + formatValue(it->upper) + "]";
 
 			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 			glRasterPos3i(panelX + pad + textXOffset, rowY + 2, 0);
 			for (char c : rangeText) glutBitmapCharacter(GLUT_BITMAP_8_BY_13, c);
+		}
+
+		if (!mLegendNotes.empty())
+		{
+			int notesStartY = panelY + pad + (int)mLegendNotes.size() * noteLineH;
+			for (const auto& note : mLegendNotes)
+			{
+				glColor4f(1.0f, 1.0f, 1.0f, 0.95f);
+				glRasterPos3i(panelX + pad, notesStartY, 0);
+				for (char c : note) glutBitmapCharacter(GLUT_BITMAP_8_BY_13, c);
+				notesStartY -= noteLineH;
+			}
 		}
 
 		glPopAttrib();
