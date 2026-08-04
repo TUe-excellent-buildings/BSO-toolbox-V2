@@ -9,64 +9,9 @@
 
 namespace bso { namespace spatial_design {
 
-struct shift_fill_plane_debug_data
-{
-	std::vector<utilities::geometry::quad_hexahedron> selectedSpaces;
-	std::vector<utilities::geometry::quad_hexahedron> notSelectedSpaces;
-	std::vector<utilities::geometry::quad_hexahedron> partialSpaces;
-
-	std::vector<utilities::geometry::quadrilateral> toughingSQuadsPreDedup;
-	std::vector<utilities::geometry::quadrilateral> toughingNSQuadsPreDedup;
-	std::vector<utilities::geometry::quadrilateral> toughingSQuadsPostDedup;
-	std::vector<utilities::geometry::quadrilateral> toughingNSQuadsPostDedup;
-	std::vector<utilities::geometry::quadrilateral> extrudingQuadsPostSplit;
-
-	std::vector<utilities::geometry::line_segment> linesAtFloorFlattened;
-	std::vector<utilities::geometry::quad_hexahedron> linesAtFloorReferenceSpaces;
-
-	std::vector<utilities::geometry::quad_hexahedron> shiftedSpaces;
-};
-
-struct extrude_debug_data
-{
-	std::vector<utilities::geometry::quad_hexahedron> selectedSpaces;
-	std::vector<utilities::geometry::quad_hexahedron> notSelectedSpaces;
-	std::vector<utilities::geometry::quad_hexahedron> partialSpaces;
-
-	std::vector<utilities::geometry::quadrilateral> fullyOnExtrusionSideQuads;
-	std::vector<utilities::geometry::quadrilateral> partiallyOnExtrusionSideQuads;
-	std::vector<utilities::geometry::quadrilateral> notOnExtrusionSideQuads;
-
-	std::vector<utilities::geometry::quad_hexahedron> testSpaces;
-	std::vector<utilities::geometry::quad_hexahedron> validTestSpaces;
-	std::vector<utilities::geometry::quad_hexahedron> rejectedTestSpaces;
-};
-
-struct shift_fill_plane_centre_debug_data
-{
-	bso::utilities::geometry::vertex location;
-	bso::utilities::geometry::vector mostAzimuth;
-	bso::utilities::geometry::vector secondMostAzimuth;
-	bso::utilities::geometry::vector shiftDirection;
-
-	std::vector<utilities::geometry::quad_hexahedron> selectedSpaces;
-	std::vector<utilities::geometry::quad_hexahedron> notSelectedSpaces;
-	std::vector<utilities::geometry::quad_hexahedron> partialSpaces;
-
-	bool usedShiftSelectedSide = false;
-	bool usedShiftNonSelectedSide = false;
-	bool usedExtrude = false;
-	bool flippedExtrudeDirection = false;
-
-	bso::utilities::geometry::vector appliedDirection;
-
-	std::string selectedSideShiftError;
-	std::string nonSelectedSideShiftError;
-
-	shift_fill_plane_debug_data selectedSideShiftDebug;
-	shift_fill_plane_debug_data nonSelectedSideShiftDebug;
-	extrude_debug_data extrudeDebug;
-};
+struct shift_fill_plane_debug_data;
+struct extrude_debug_data;
+struct shift_fill_plane_centre_debug_data;
 
 class ms_N_building
 {
@@ -173,6 +118,65 @@ public:
 	//ms_N_building& operator=(ms_N_building&& rhs) noexcept; // Move assignment operator
 
 	friend std::ostream& operator<< (std::ostream& stream, const ms_N_building& building);
+};
+
+struct shift_fill_plane_debug_data
+{
+	std::vector<utilities::geometry::quad_hexahedron> selectedSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> notSelectedSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> partialSpaces;
+
+	std::vector<utilities::geometry::quadrilateral> toughingSQuadsPreDedup;
+	std::vector<utilities::geometry::quadrilateral> toughingNSQuadsPreDedup;
+	std::vector<utilities::geometry::quadrilateral> toughingSQuadsPostDedup;
+	std::vector<utilities::geometry::quadrilateral> toughingNSQuadsPostDedup;
+	std::vector<utilities::geometry::quadrilateral> extrudingQuadsPostSplit;
+
+	std::vector<utilities::geometry::line_segment> linesAtFloorFlattened;
+	std::vector<utilities::geometry::quad_hexahedron> linesAtFloorReferenceSpaces;
+
+	std::vector<utilities::geometry::quad_hexahedron> shiftedSpaces;
+};
+
+struct extrude_debug_data
+{
+	std::vector<utilities::geometry::quad_hexahedron> selectedSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> notSelectedSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> partialSpaces;
+
+	std::vector<utilities::geometry::quadrilateral> fullyOnExtrusionSideQuads;
+	std::vector<utilities::geometry::quadrilateral> partiallyOnExtrusionSideQuads;
+	std::vector<utilities::geometry::quadrilateral> notOnExtrusionSideQuads;
+
+	std::vector<utilities::geometry::quad_hexahedron> testSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> validTestSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> rejectedTestSpaces;
+};
+
+struct shift_fill_plane_centre_debug_data
+{
+	bso::utilities::geometry::vertex location;
+	bso::utilities::geometry::vector mostAzimuth;
+	bso::utilities::geometry::vector secondMostAzimuth;
+	bso::utilities::geometry::vector shiftDirection;
+
+	std::vector<utilities::geometry::quad_hexahedron> selectedSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> notSelectedSpaces;
+	std::vector<utilities::geometry::quad_hexahedron> partialSpaces;
+
+	bool usedShiftSelectedSide = false;
+	bool usedShiftNonSelectedSide = false;
+	bool usedExtrude = false;
+	bool flippedExtrudeDirection = false;
+
+	bso::utilities::geometry::vector appliedDirection;
+
+	std::string selectedSideShiftError;
+	std::string nonSelectedSideShiftError;
+
+	shift_fill_plane_debug_data selectedSideShiftDebug;
+	shift_fill_plane_debug_data nonSelectedSideShiftDebug;
+	extrude_debug_data extrudeDebug;
 };
 
 } // namespace spatial_design

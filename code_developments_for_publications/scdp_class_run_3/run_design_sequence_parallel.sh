@@ -60,7 +60,7 @@ mkdir -p "$RESULTS_DIR"
 
 # Optional: limit of concurrent jobs (0 or empty means no limit)
 # Example usage: MAX_JOBS=4 ./run_design_sequence_parallel.sh
-MAX_JOBS=${MAX_JOBS:-1}  # Default to 2 if not set externally
+MAX_JOBS=${MAX_JOBS:-3}  # Default to 3 if not set externally
 
 # Show the lines that will be executed
 echo "The $INPUT_FILE arguments will be run in parallel as follows:"
