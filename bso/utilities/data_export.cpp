@@ -715,6 +715,25 @@ data_export::CombinedStats data_export::computeCombinedStats(const unsigned int 
         return stats;
     }
 
+    // Map maximization or minimization for each objective
+    std::map<std::string, bool> isMinimizationMap;
+    for(const auto& axisName: mAxisDataTypes)
+    {
+        try
+        {
+            isMinimizationMap[axisName] = mIsMinimization.at(axisName);
+        }
+        catch(const std::out_of_range& e)
+        {
+            std::stringstream errorMessage;
+				errorMessage << "\nError, Axis name '" << axisName << "' is not found in mIsMinimization map.\n"
+                                         << "as such, it is unknown if the objective is to be minimized or maximized.\n"
+                                         << "Consequently, the data cannot be analysed.\n"
+                                         << "(bso/utilities/data_export.cpp). " << std::endl;
+				throw std::invalid_argument(errorMessage.str());
+        }
+    }
+
     // Make a normalized copy:
     for(const auto& i: mData){mDataNormalized.push_back(*i);}
     utilities::data_point utopianPoint; // minimal values
@@ -728,7 +747,8 @@ data_export::CombinedStats data_export::computeCombinedStats(const unsigned int 
     for(int idAxisName = 0; idAxisName < mAxisDataTypes.size(); ++idAxisName)
     {
         const auto& axisName = mAxisDataTypes[idAxisName];
-        if(axisName == "dl_ADFbuilding")
+        bool isMinimization = isMinimizationMap.at(axisName);
+        if(!isMinimization)
         {
 	        std::swap(utopianPoint(idAxisName),distopianPoint(idAxisName)); // Swap the objective to be maximized instead of minimized.
         }
@@ -756,7 +776,7 @@ data_export::CombinedStats data_export::computeCombinedStats(const unsigned int 
     // so the utopian point in normalized space is the zero vector.
     utilities::data_point kneePointObjective(nObjectives);
     kneePointVectorNor = kneePointObjective.findClosestIn(mDataNormalized);
-    for(long unsigned int i=0; i < mData.size(); i++)
+    for(long unsigned int i=0; i < mDataNormalized.size(); i++)
     {
         for(unsigned int obj = 0; obj < nObjectives; ++obj)
         {
@@ -785,8 +805,24 @@ data_export::CombinedStats data_export::computeCombinedStats(const unsigned int 
         {
             const double bestValue = (*(mData[stats.bestIterations[obj]]))(obj);
             const double lastValue = (*(mData[lastIndex]))(obj);
-            stats.bestImprovementPercentages[obj] = ((initialValue-bestValue)/initialValue)*100.0;
-            stats.lastImprovementPercentages[obj] = ((initialValue-lastValue)/initialValue)*100.0;
+            
+            // Normalization values may be scaled logarithmically, 
+            // so we utilize the original values for improvement percentage calculations.
+            // To do this correctly, we need to know if the objective is to be minimized or maximized.
+            // so for all objectives, positive improvement percentages indicate improvement, 
+            // and negative percentages indicate deterioration.
+            bool isMinimization = isMinimizationMap.at(mAxisDataTypes[obj]);
+            
+            if(isMinimization)
+            {
+                stats.bestImprovementPercentages[obj] = ((initialValue-bestValue)/initialValue)*100.0;
+                stats.lastImprovementPercentages[obj] = ((initialValue-lastValue)/initialValue)*100.0;
+            }
+            else
+            {
+                stats.bestImprovementPercentages[obj] = ((bestValue-initialValue)/initialValue)*100.0;
+                stats.lastImprovementPercentages[obj] = ((lastValue-initialValue)/initialValue)*100.0;
+            }
         }
         else
         {

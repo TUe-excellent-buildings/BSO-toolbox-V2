@@ -20,6 +20,7 @@ private:
 	std::vector<std::shared_ptr<data_point> > mData;
 	std::vector<std::string> mAxisDataTypes; // as stored from input and ID placement should correspond to the data in mData, e.g. "sd", "bp", "dl_ADFbuilding".
 	std::string mDataName = "";
+	std::map<std::string, bool> mIsMinimization = {{"sd", true}, {"bp", true}, {"dl_ADFbuilding", false}, {"dl_score", true}}; // whether the objective is a minimization or maximization objective, used for normalization and knee point detection.
 
 	// Axis descriptions tranformed from mAxisDataType input.
 	std::map<std::string, std::string> mAxisLabels = {{"sd", "Total strain energy [Nmm]"}, {"bp", "Heating and cooling energy [kWh]"}, {"dl_ADFbuilding", "Average daylight factor [%]"}, {"dl_score", "BS EN 17037-2018 score [-]"}, {"iteration", "Iteration"}};
