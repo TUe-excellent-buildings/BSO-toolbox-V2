@@ -77,7 +77,72 @@ echo "Start executing (parallel)"
 LOG_DIR="./logs_parallel_runs"
 mkdir -p "$LOG_DIR"
 
+# Collect per-run peak memory data here.
+MEMORY_LOG_DIR="./logs_parallel_runs_memory"
+mkdir -p "$MEMORY_LOG_DIR"
+
+get_descendant_pids() {
+    local root_pid="$1"
+
+    if ! kill -0 "$root_pid" 2>/dev/null; then
+        return 0
+    fi
+
+    if command -v pstree >/dev/null 2>&1; then
+        pstree -p "$root_pid" 2>/dev/null | grep -oE '\\([0-9]+\\)' | tr -d '()'
+    else
+        echo "$root_pid"
+    fi
+}
+
+monitor_peak_memory() {
+    local root_pid="$1"
+    local memory_log_file="$2"
+    local max_kb=0
+    local max_pid=""
+    local max_cmd=""
+
+    while kill -0 "$root_pid" 2>/dev/null; do
+        local pid_list
+        pid_list=$(get_descendant_pids "$root_pid")
+
+        for p in $pid_list; do
+            [ -r "/proc/$p/status" ] || continue
+
+            local hwm_kb
+            hwm_kb=$(awk '/VmHWM:/{print $2}' "/proc/$p/status" 2>/dev/null)
+            [ -n "$hwm_kb" ] || continue
+
+            if [ "$hwm_kb" -gt "$max_kb" ]; then
+                max_kb="$hwm_kb"
+                max_pid="$p"
+                max_cmd=$(tr '\\0' ' ' < "/proc/$p/cmdline" 2>/dev/null)
+            fi
+        done
+
+        sleep 1
+    done
+
+    {
+        echo "root_pid=$root_pid"
+        if [ "$max_kb" -gt 0 ]; then
+            echo "peak_vm_hwm_kb=$max_kb"
+            awk -v kb="$max_kb" 'BEGIN { printf("peak_vm_hwm_mib=%.2f\\n", kb/1024) }'
+            echo "peak_process_pid=$max_pid"
+            echo "peak_process_cmd=$max_cmd"
+        else
+            echo "peak_vm_hwm_kb=unknown"
+            echo "peak_process_pid=unknown"
+            echo "peak_process_cmd=unknown"
+        fi
+    } > "$memory_log_file"
+}
+
 pids=()
+monitor_pids=()
+memory_log_files=()
+run_designs=()
+run_args=()
 run_index=1
 
 # Read input arguments from the file and launch background jobs
@@ -100,7 +165,16 @@ while IFS= read -r ARG || [ -n "$ARG" ]; do
     echo "Running $EXECUTABLE with arguments $ARG (background), logging to $LOG_FILE"
     # Redirect stdout and stderr of this run to its own log file
     $EXECUTABLE $ARG >"$LOG_FILE" 2>&1 &
-    pids+=("$!")
+    child_pid="$!"
+    pids+=("$child_pid")
+
+    MEMORY_LOG_FILE="$MEMORY_LOG_DIR/${DESIGN}_$run_index.memory.log"
+    monitor_peak_memory "$child_pid" "$MEMORY_LOG_FILE" &
+    monitor_pids+=("$!")
+    memory_log_files+=("$MEMORY_LOG_FILE")
+    run_designs+=("$DESIGN")
+    run_args+=("$ARG")
+
     run_index=$((run_index+1))
 
     # Simple concurrency control if MAX_JOBS > 0
@@ -113,11 +187,48 @@ while IFS= read -r ARG || [ -n "$ARG" ]; do
 
 done < "$INPUT_FILE"
 
+SUMMARY_CSV="$MEMORY_LOG_DIR/summary_peak_memory.csv"
+echo "run_index,design,root_pid,peak_vm_hwm_kb,peak_vm_hwm_mib,peak_process_pid,peak_process_cmd,run_args" > "$SUMMARY_CSV"
+
 # Wait for all background runs to complete
 echo "Waiting for ${#pids[@]} runs to finish..."
-for pid in "${pids[@]}"; do
+for i in "${!pids[@]}"; do
+    pid="${pids[$i]}"
     wait "$pid" || echo "Warning: process $pid exited with non-zero status."
+
+    monitor_pid="${monitor_pids[$i]}"
+    wait "$monitor_pid" 2>/dev/null || true
+
+    memory_log_file="${memory_log_files[$i]}"
+    design="${run_designs[$i]}"
+    run_arg="${run_args[$i]}"
+
+    if [ -r "$memory_log_file" ]; then
+        root_pid=$(awk -F= '/^root_pid=/{print $2}' "$memory_log_file")
+        peak_kb=$(awk -F= '/^peak_vm_hwm_kb=/{print $2}' "$memory_log_file")
+        peak_mib=$(awk -F= '/^peak_vm_hwm_mib=/{print $2}' "$memory_log_file")
+        peak_process_pid=$(awk -F= '/^peak_process_pid=/{print $2}' "$memory_log_file")
+        peak_process_cmd=$(awk -F= '/^peak_process_cmd=/{print $2}' "$memory_log_file")
+    else
+        root_pid="$pid"
+        peak_kb="unknown"
+        peak_mib=""
+        peak_process_pid="unknown"
+        peak_process_cmd="unknown"
+    fi
+
+    safe_peak_process_cmd=$(printf '%s' "$peak_process_cmd" | sed 's/"/""/g')
+    safe_run_arg=$(printf '%s' "$run_arg" | sed 's/"/""/g')
+
+    csv_run_index=$((i+1))
+    echo "$csv_run_index,$design,$root_pid,$peak_kb,$peak_mib,$peak_process_pid,\"$safe_peak_process_cmd\",\"$safe_run_arg\"" >> "$SUMMARY_CSV"
+
+    echo "Peak memory log written to ${memory_log_files[$i]}"
 done
+
+echo "Peak-memory summary written to $SUMMARY_CSV"
+echo "Summary (run_index, design, peak_vm_hwm_kb, peak_vm_hwm_mib):"
+awk -F, 'NR==1 {next} {printf "%s, %s, %s, %s\\n", $1, $2, $4, $5}' "$SUMMARY_CSV"
 
 
 echo "Parallel bash script execution completed."

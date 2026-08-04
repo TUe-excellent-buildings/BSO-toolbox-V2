@@ -27,7 +27,7 @@
     # 4) Use 'ps aux | grep run_design_sequence_parallel.sh' to retrieve the PID number if you do not know anymore.
     # You can kill the process with 'kill 2168535' (replace 2168535 with the actual PID number) if you need to stop it.
 
-# latest PID: 4541
+# latest PID: 2274120
 
 echo "Running parallel bash script" 
 echo "for ./main with the following input arguments (parallel):"
@@ -60,7 +60,7 @@ mkdir -p "$RESULTS_DIR"
 
 # Optional: limit of concurrent jobs (0 or empty means no limit)
 # Example usage: MAX_JOBS=4 ./run_design_sequence_parallel.sh
-MAX_JOBS=${MAX_JOBS:-1}  # Default to 2 if not set externally
+MAX_JOBS=${MAX_JOBS:-3}  # Default to 3 if not set externally
 
 # Show the lines that will be executed
 echo "The $INPUT_FILE arguments will be run in parallel as follows:"
