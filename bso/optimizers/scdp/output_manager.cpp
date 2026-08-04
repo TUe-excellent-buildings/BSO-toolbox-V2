@@ -263,7 +263,7 @@ void output_manager::outputData(const OptimizationOutput& output, bool verbose /
 			try{dp.plotObjectiveSpace3D(fileObjective3D, plotObjective3D, mConfig.getVisualizePlot(), true);} 
 			catch(const std::exception& e){std::cout << "During the generation of the objective space 3D plots, the following error occurred:" << e.what() << '\n';}
 			// By default do not show the knee point in the improvement-curve plot.
-			try{dp.plotImprovementCurves(fileImprovementCurves, plotImprovementCurves, mConfig.getVisualizePlot(), true, false);} 
+			try{dp.plotImprovementCurves(fileImprovementCurves, plotImprovementCurves, mConfig.getVisualizePlot(), true, false, false);} 
 			catch(const std::exception& e){std::cout << "During the generation of the improvement curves plots, the following error occurred:" << e.what() << '\n';}
 		}
 		out("Made all plots",true,true,mConfig.getVerbose());

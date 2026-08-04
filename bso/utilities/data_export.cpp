@@ -1957,7 +1957,7 @@ void data_export::plotObjectiveSpace3D(std::string fileNameObjective3D /*= "obje
     }
 } // plotObjectiveSpace3D()
 
-void data_export::plotImprovementCurves(std::string fileNameImprovement /*= "improvementCurvesData"*/, std::string pngName /*= "plotImprovementCurves.png"*/, bool visualize /*= true*/, bool writeToPNG /*= true*/, bool showKnee /*= false*/)
+void data_export::plotImprovementCurves(std::string fileNameImprovement /*= "improvementCurvesData"*/, std::string pngName /*= "plotImprovementCurves.png"*/, bool visualize /*= true*/, bool writeToPNG /*= true*/, bool showKnee /*= false*/, bool includeFourthObjective /*= false*/)
 {
     if(fileNameImprovement == "")
     {
@@ -1991,7 +1991,8 @@ void data_export::plotImprovementCurves(std::string fileNameImprovement /*= "imp
         << fileNameImprovement << " \"" << mDataName << "\" "
         << (visualize ? "1" : "0") << " "
         << (writeToPNG ? "1" : "0") << " \"" << pngName << "\" "
-        << (showKnee ? "1" : "0");
+        << (showKnee ? "1" : "0")
+        << (includeFourthObjective ? "1" : "0");
 
     int systemRet = system(cmd.str().c_str());
     if(systemRet == -1)

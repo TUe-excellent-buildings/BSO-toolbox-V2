@@ -99,7 +99,7 @@ public:
 	void plotMultiAxis2D(std::string fileNameMultiAxis = "multiAxisData", std::string pngName = "plotMultiAxis.png", bool visualize = true, bool writeToPNG = true);
 	// New matplotlib-based plots for multi-objective runs
 	void plotObjectiveSpace3D(std::string fileNameObjective3D = "objective3DData", std::string pngName = "plotObjective3D.png", bool visualize = true, bool writeToPNG = true);
-	void plotImprovementCurves(std::string fileNameImprovement = "improvementCurvesData", std::string pngName = "plotImprovementCurves.png", bool visualize = true, bool writeToPNG = true, bool showKnee = false);
+	void plotImprovementCurves(std::string fileNameImprovement = "improvementCurvesData", std::string pngName = "plotImprovementCurves.png", bool visualize = true, bool writeToPNG = true, bool showKnee = false, bool includeFourthObjective = false);
 
 	// Get certain data
 	void getParetoFrontData(std::vector<std::shared_ptr<data_point> >& data, std::vector<std::shared_ptr<data_point> >& dataPareto, std::vector<std::shared_ptr<data_point> >& dataNonPareto);

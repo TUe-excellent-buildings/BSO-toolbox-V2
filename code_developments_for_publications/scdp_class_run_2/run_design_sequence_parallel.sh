@@ -89,12 +89,26 @@ get_descendant_pids() {
     fi
 
     if command -v pstree >/dev/null 2>&1; then
-        pstree -p "$root_pid" 2>/dev/null | grep -oE '\\([0-9]+\\)' | tr -d '()'
+        pstree -p "$root_pid" 2>/dev/null | grep -oE '\([0-9]+\)' | tr -d '()'
     else
         echo "$root_pid"
     fi
 }
 
+count_running_main_jobs() {
+    local running=0
+    local pid
+    for pid in "${pids[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            running=$((running+1))
+        fi
+    done
+    echo "$running"
+}
+
+# Monitor peak memory usage of a process and its descendants by
+# sampling every second until the root process exits. 
+# The peak memory usage is logged to a file.
 monitor_peak_memory() {
     local root_pid="$1"
     local memory_log_file="$2"
@@ -102,23 +116,33 @@ monitor_peak_memory() {
     local max_pid=""
     local max_cmd=""
 
-    while kill -0 "$root_pid" 2>/dev/null; do
-        local pid_list
-        pid_list=$(get_descendant_pids "$root_pid")
-
+    sample_memory() {
+        local pid_list="$1"
+        local p
         for p in $pid_list; do
             [ -r "/proc/$p/status" ] || continue
 
             local hwm_kb
             hwm_kb=$(awk '/VmHWM:/{print $2}' "/proc/$p/status" 2>/dev/null)
+            if [ -z "$hwm_kb" ]; then
+                # Fallback when VmHWM is unavailable for very short-lived processes.
+                hwm_kb=$(awk '/VmRSS:/{print $2}' "/proc/$p/status" 2>/dev/null)
+            fi
             [ -n "$hwm_kb" ] || continue
 
             if [ "$hwm_kb" -gt "$max_kb" ]; then
                 max_kb="$hwm_kb"
                 max_pid="$p"
-                max_cmd=$(tr '\\0' ' ' < "/proc/$p/cmdline" 2>/dev/null)
+                max_cmd=$(tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null)
             fi
         done
+    }
+
+    # Attempt one immediate sample before the process can exit.
+    sample_memory "$root_pid $(get_descendant_pids "$root_pid")"
+
+    while kill -0 "$root_pid" 2>/dev/null; do
+        sample_memory "$root_pid $(get_descendant_pids "$root_pid")"
 
         sleep 1
     done
@@ -127,7 +151,7 @@ monitor_peak_memory() {
         echo "root_pid=$root_pid"
         if [ "$max_kb" -gt 0 ]; then
             echo "peak_vm_hwm_kb=$max_kb"
-            awk -v kb="$max_kb" 'BEGIN { printf("peak_vm_hwm_mib=%.2f\\n", kb/1024) }'
+            awk -v kb="$max_kb" 'BEGIN { printf("peak_vm_hwm_mib=%.2f\n", kb/1024) }'
             echo "peak_process_pid=$max_pid"
             echo "peak_process_cmd=$max_cmd"
         else
@@ -155,20 +179,26 @@ while IFS= read -r ARG || [ -n "$ARG" ]; do
         continue
     fi
 
-    # Derive a simple label from the design id (if present)
+    # Derive the design number from the design id (should be present)
     DESIGN=$(echo "$ARG" | grep -oP '(?<=-i )design_[^ ]+' || true)
     if [ -z "$DESIGN" ]; then
         DESIGN="run"
     fi
 
-    LOG_FILE="$LOG_DIR/${DESIGN}_$run_index.log"
+    # Derive the kind of run from the input ARG (should be present)
+    RUNKIND=$(echo "$ARG" | grep -oP '(?<=-m )[^ ]+' || true)
+    if [ -z "$RUNKIND" ]; then
+        RUNKIND="unknown"
+    fi
+
+    LOG_FILE="$LOG_DIR/${DESIGN}_${RUNKIND}_$run_index.log"
     echo "Running $EXECUTABLE with arguments $ARG (background), logging to $LOG_FILE"
     # Redirect stdout and stderr of this run to its own log file
     $EXECUTABLE $ARG >"$LOG_FILE" 2>&1 &
     child_pid="$!"
     pids+=("$child_pid")
 
-    MEMORY_LOG_FILE="$MEMORY_LOG_DIR/${DESIGN}_$run_index.memory.log"
+    MEMORY_LOG_FILE="$MEMORY_LOG_DIR/${DESIGN}_${RUNKIND}_$run_index.memory.log"
     monitor_peak_memory "$child_pid" "$MEMORY_LOG_FILE" &
     monitor_pids+=("$!")
     memory_log_files+=("$MEMORY_LOG_FILE")
@@ -179,8 +209,9 @@ while IFS= read -r ARG || [ -n "$ARG" ]; do
 
     # Simple concurrency control if MAX_JOBS > 0
     if [ "$MAX_JOBS" -gt 0 ]; then
-        # Wait until the number of background jobs drops below MAX_JOBS
-        while [ "$(jobs -pr | wc -l)" -ge "$MAX_JOBS" ]; do
+        # Wait until the number of running main child jobs drops below MAX_JOBS.
+        # Monitor processes are excluded from this count.
+        while [ "$(count_running_main_jobs)" -ge "$MAX_JOBS" ]; do
             sleep 1
         done
     fi

@@ -817,12 +817,12 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
                 newMS.deleteSpace(space);
             }
             mOutputManager.out("\tDeleted overlapping spaces.",true,true,mConfig.getVerbose());
-        }
-        
+        }     
+   
         // Step 9, Enforce constrains on BSD
-        enforceConstraints(newMS);        
+        enforceConstraints(newMS);  
 
-        // Step 10,Export after_modification_ms visualizations
+        // Step 10, Export after_modification_ms visualizations
         if (!mConfig.getVisualizations().empty()) for (const auto& visOption : mConfig.getVisualizations())
         {
             if (visOption == "ms") visualization::visualize(newMS,"","After_del_Mod_ms",4.0);
@@ -842,12 +842,12 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
         // Step 16, scale spaces in x and y direction to recover initial conditions, i.e. floor area
         scaleDesign(newMS);
 
-        // Step 17, store the new design
+        // Step 12, store the new design
         mMSDesigns.push_back(newMS);
         mOutputManager.out("Modified building spatial design into a new one",true,true,mConfig.getVerbose());
         mCurrentIteration++;
         
-        // Step 18, get results for the new design
+        // Step 13, get results for the new design
         getDesignResults();
     }
     catch(const std::exception& e)
@@ -983,6 +983,7 @@ void scdp_optimizer::recoverNrSpaces(spatial_design::ms_N_building& ms,
     // If already at target size there is nothing to recover.
     if(ms.getSpacePtrs().size() == mNrSpaces) return;
 
+    mOutputManager.out("Start recovering number of spaces",true,true,mConfig.getVerbose());
     // If more spaces are present than target, remove exactly the required amount.
     // Intermediate results are computed only once because this is an expensive call.
     if(ms.getSpacePtrs().size() > mNrSpaces)
@@ -1040,6 +1041,11 @@ void scdp_optimizer::recoverNrSpaces(spatial_design::ms_N_building& ms,
                          << "(bso/optimizers/scdp/scdp_optimizer.cpp)." << std::endl;
             throw std::runtime_error(errorMessage.str());
         }
+
+        // If the number of spaces is now correct, then we still need to enforce constraints, as the deletion may have violated them.
+        enforceConstraints(ms);
+        // NOTE: As a result of 'enforceConstraints(ms);', more spaces, may have been deleted in the enforceConstraints method
+        // But this will be picked up by the following if statement, which will then recover the number of spaces again, until the target is reached.
     }
 
     // If fewer spaces are present than target, split until we reach target.
@@ -1047,23 +1053,8 @@ void scdp_optimizer::recoverNrSpaces(spatial_design::ms_N_building& ms,
     {
         const std::size_t sizeBeforeSplit = ms.getSpacePtrs().size();
 
-        if(mConfig.getSplitMethod() == "performance")
-        {
-            std::string activeObjective = getActiveObjective();
-            std::vector<utilities::data_point> intermediateResults = getIntermediateResults(ms, activeObjective);
-
-            utilities::data_point utopianPoint;
-            utilities::data_point distopianPointIntermediate;
-            performance_evaluator::normalizeData(intermediateResults, utopianPoint, distopianPointIntermediate, mOutputManager, mConfig.getVerbose());
-
-            visualizeMsw(ms, intermediateResults, iteration, objectiveWeights, "_retrieve_nr_spaces_split");
-            splitSpaces(ms, intermediateResults, modificationType, iteration, objectiveWeights);
-        }
-        else
-        {
-            // If split method is not performance, use already available performances, as these value's will not be used in the split method anyway.
-            splitSpaces(ms, performances, modificationType, iteration, objectiveWeights);
-        }
+        // If split method is not performance, use already available performances, as these value's will not be used in the split method anyway.
+        splitSpaces(ms, performances, modificationType, iteration, objectiveWeights);
 
         if(ms.getSpacePtrs().size() <= sizeBeforeSplit && ms.getSpacePtrs().size() < mNrSpaces)
         {
@@ -1075,6 +1066,7 @@ void scdp_optimizer::recoverNrSpaces(spatial_design::ms_N_building& ms,
             throw std::runtime_error(errorMessage.str());
         }
     }
+    mOutputManager.out("Finish recovering number of spaces",true,true,mConfig.getVerbose());
 } // recoverNrSpaces
 
 void scdp_optimizer::scaleDesign(spatial_design::ms_N_building& ms)

@@ -96,7 +96,13 @@ while IFS= read -r ARG || [ -n "$ARG" ]; do
         DESIGN="run"
     fi
 
-    LOG_FILE="$LOG_DIR/${DESIGN}_$run_index.log"
+    # Derive the kind of run from the input ARG (should be present)
+    RUNKIND=$(echo "$ARG" | grep -oP '(?<=-m )[^ ]+' || true)
+    if [ -z "$RUNKIND" ]; then
+        RUNKIND="unknown"
+    fi
+
+    LOG_FILE="$LOG_DIR/${DESIGN}_${RUNKIND}_$run_index.log"
     echo "Running $EXECUTABLE with arguments $ARG (background), logging to $LOG_FILE"
     # Redirect stdout and stderr of this run to its own log file
     $EXECUTABLE $ARG >"$LOG_FILE" 2>&1 &

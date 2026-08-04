@@ -118,8 +118,15 @@ def plot_improvement_curves(
     show: bool = True,
     save_path: str = None,
     show_knee: bool = False,
+    include_fourth_objective: bool = False
 ) -> None:
     it, curves, names, knee_iter, axis_labels = load_improvement_data(path)
+
+    # The default view is the original three-objective plot. When the
+    # optional fourth objective is enabled, plot every loaded series.
+    if not include_fourth_objective:
+        curves = curves[:3]
+        names = names[:4]  # keep 'iteration' + first three objectives
 
     # Use the original figure size that keeps the plot balanced.
     fig, ax = plt.subplots(figsize=(8.0, 4.8))
@@ -176,6 +183,7 @@ def main(argv=None) -> None:
     #   3: save flag   ("1" = save PNG,   "0" = do not save)
     #   4: png path    (optional explicit PNG output path)
     #   5: knee flag   ("1" = show knee,  "0" = hide knee; default 0)
+    #   6: include fourth objective (i.e., dl_score) flag ("1" = include, "0" = exclude; default 0)
 
     if len(argv) == 0:
         data_file = "improvementCurvesData.txt"
@@ -190,7 +198,7 @@ def main(argv=None) -> None:
     save = True
     png_path = None
     show_knee = False
-
+    include_fourth_objective = False
     if len(argv) >= 3:
         show = (argv[2] == "1")
     if len(argv) >= 4:
@@ -199,6 +207,8 @@ def main(argv=None) -> None:
         png_path = argv[4]
     if len(argv) >= 6:
         show_knee = (argv[5] == "1")
+    if len(argv) >= 7:
+        include_fourth_objective = (argv[6] == "1")
 
     if not os.path.isfile(data_file):
         print(f"Error: data file '{data_file}' not found.")
@@ -213,6 +223,7 @@ def main(argv=None) -> None:
         show=show,
         save_path=png_path if save else None,
         show_knee=show_knee,
+        include_fourth_objective=include_fourth_objective,
     )
 
 
