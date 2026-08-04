@@ -1234,7 +1234,7 @@ void ms_N_building::shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHea
 			debugData->flippedExtrudeDirection = false;
 			debugData->appliedDirection = shiftDirection;
 		}
-		this->extrude(partialSpaces, location, shiftDirection, shiftAmount, tol,
+		this->extrude(partialSpaces, location, shiftDirection, shiftAmount, verbose, tol,
 			(debugData ? &debugData->extrudeDebug : nullptr));
 	}
 	else if(notSelectedSpaces.size() == 0 && partialSpaces.size() != 0)
@@ -1247,7 +1247,7 @@ void ms_N_building::shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHea
 			debugData->flippedExtrudeDirection = true;
 			debugData->appliedDirection = shiftDirection;
 		}
-		this->extrude(partialSpaces, location, shiftDirection, shiftAmount, tol,
+		this->extrude(partialSpaces, location, shiftDirection, shiftAmount, verbose, tol,
 			(debugData ? &debugData->extrudeDebug : nullptr));
 	}
 	else
@@ -2393,7 +2393,7 @@ std::vector<bso::spatial_design::ms_space*> ms_N_building::shiftFillPlane(const 
 	return newSpaces;
 } // shiftFillCutPlane
 
-void ms_N_building::extrude(const bso::utilities::geometry::vertex& location, const bso::utilities::geometry::vector& extrudeDirection, double extrudeAmount, const double& tol /*= 1e-3*/, extrude_debug_data* debugData)
+void ms_N_building::extrude(const bso::utilities::geometry::vertex& location, const bso::utilities::geometry::vector& extrudeDirection, double extrudeAmount, bool verbose /*=false*/, const double& tol /*= 1e-3*/, extrude_debug_data* debugData)
 {
 	std::vector<ms_space*> notSelectedSpaces;
 	std::vector<ms_space*> partialSpaces;
@@ -2418,10 +2418,12 @@ void ms_N_building::extrude(const bso::utilities::geometry::vertex& location, co
 				throw std::invalid_argument(errorMessage.str());
 	}
 
-	extrude(selection, location, extrudeDirection, extrudeAmount, tol, debugData);
+	extrude(selection, location, extrudeDirection, extrudeAmount, verbose, tol, debugData);
 }
 
-void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utilities::geometry::vertex& location, const bso::utilities::geometry::vector& extrudeDirection, double extrudeAmount, const double& tol /*= 1e-3*/, extrude_debug_data* debugData)
+void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utilities::geometry::vertex& location, 
+	const bso::utilities::geometry::vector& extrudeDirection, double extrudeAmount, bool verbose /*=false*/, 
+	const double& tol /*= 1e-3*/, extrude_debug_data* debugData)
 {
 	if (debugData)
 	{
@@ -2540,7 +2542,6 @@ void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utiliti
 		{
 			for(auto k: partiallyOnExtrusionSideQuad)
 			{
-				//std::cout << "quad fully on extruded side\n";
 				std::vector<bso::utilities::geometry::vertex> spaceVertexes;
 				for(auto v: k)
 				{
@@ -2553,7 +2554,6 @@ void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utiliti
 					bso::utilities::geometry::quad_hexahedron test = bso::utilities::geometry::quad_hexahedron(spaceVertexes);
 					testSpaces.push_back(test);
 					if (debugData) debugData->testSpaces.push_back(test);
-					//std::cout << "space extruded\n";
 
 				}
 				catch(const std::exception& e){/*No valid quad-hexahedron, so do not add the quad_hexahedron for adding as a space*/}
@@ -2568,13 +2568,11 @@ void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utiliti
 	// Before adding, check if the new quad_hexahedrons would intersect any other already defined space in mSpaces.
 	// if yes, then do not add that particular quad_hexahedron as a new space, as intersecting spaces are not allowed in the current definition of ms_N_building.
 	std::vector<bso::utilities::geometry::quad_hexahedron> validTestSpaces;
-	std::cout << "There are " << testSpaces.size() << " potential spaces to be extruded, checking for intersections with existing spaces..." << std::endl;
+	if(verbose){std::cout << "There are " << testSpaces.size() << " potential spaces to be extruded, checking for intersections with existing spaces..." << std::endl;}	
 	for(const auto& i: testSpaces)
 	{
 		bool intersectOtherSpace = false;
 
-		//std::vector<bso::utilities::geometry::line_segment> linesTestSpace = i.getLines();
-		//std::vector<bso::utilities::geometry::quadrilateral> quadsTestSpace = i.getQuadrilateral();
 		for(const auto& j: mSpaces)
 		{
 			const auto otherGeom = j->getGeometry();
@@ -2583,41 +2581,6 @@ void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utiliti
 				intersectOtherSpace = true;
 				break;
 			}
-
-		// 	utilities::geometry::vertex pIntersection;
-		// 	std::vector<bso::utilities::geometry::line_segment> linesOtherSpace = otherGeom.getLines();
-		// 	std::vector<bso::utilities::geometry::quadrilateral> quadsOtherSpace = otherGeom.getQuadrilateral();
-			
-		// 	// check for line - line intersections
-		// 	for (unsigned int i = 0; i < linesTestSpace.size(); ++i)
-		// 	{
-		// 		for (unsigned int j = 0; j < linesOtherSpace.size(); ++j)
-		// 		{
-		// 			if (linesTestSpace[i].intersectsWith(linesOtherSpace[j], pIntersection, tol))
-		// 			{
-		// 				intersectOtherSpace = true;
-		// 				break;
-		// 			}
-		// 		}
-		// 		if(intersectOtherSpace) break;
-		// 	}
-
-		// 	if(!intersectOtherSpace)
-		// 	{
-		// 		// check for line - rectangle intersections
-		// 		for (unsigned int i = 0; i < quadsTestSpace.size(); ++i)
-		// 		{
-		// 			for (unsigned int j = 0; j < linesOtherSpace.size(); ++j)
-		// 			{
-		// 				if (quadsTestSpace[i].intersectsWith(linesOtherSpace[j], pIntersection, tol))
-		// 				{
-		// 					intersectOtherSpace = true;
-		// 					break;
-		// 				}
-		// 			}
-		// 			if(intersectOtherSpace) break;
-		// 		}
-		// 	}
 		}
 		if(!intersectOtherSpace)
 		{
@@ -2629,7 +2592,7 @@ void ms_N_building::extrude(std::vector<ms_space*> spacePtrs, const bso::utiliti
 			debugData->rejectedTestSpaces.push_back(i);
 		}
 	}
-	std::cout << "there are " << validTestSpaces.size() << " valid spaces to be extruded after intersection checks." << std::endl;
+	if(verbose){std::cout << "there are " << validTestSpaces.size() << " valid spaces found via extrution after intersection checks." << std::endl;}
 
 	if(validTestSpaces.size() == 0)
 	{

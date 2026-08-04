@@ -204,7 +204,7 @@ void scdp_optimizer::getDesignResults()
     if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("start getDesignResults");}
     try
 	{
-        // step 1, add object to store the performance of the current design
+        // Step 1, add object to store the performance of the current design
         // Four dimensions are used: sd, bp, dl (ADFbuilding), dl (score).
         // Initialize all entries with NaN; only active simulations will
         // overwrite their respective dimensions.
@@ -214,17 +214,17 @@ void scdp_optimizer::getDesignResults()
             mDesignPerformances.back()(idx) = std::numeric_limits<double>::quiet_NaN();
         }
         
-        // step 2, generate SD and BP models and evaluate them.
+        // Step 2, generate SD and BP models and evaluate them.
         std::vector<spatial_design::cf_building> cf;
         if(mConfig.getRunDLSimulation()){cf.push_back(spatial_design::cf_building(mMSDesigns.back(), mConfig.getDLSettingsFile(), 1e-6));}
         else {cf.push_back(spatial_design::cf_building(mMSDesigns.back(),1e-6));}
         mOutputManager.out("Initialized conformal model",true,true,mConfig.getVerbose());
 
-        // step 3, generate grammar
+        // Step 3, generate grammar
         grammar::grammar grm(cf.back());
         mOutputManager.out("Initialized grammar",true,true,mConfig.getVerbose());
 
-        // step 4, get data for export and analysis
+        // Step 4, get data for export and analysis
         std::vector<bso::utilities::geometry::quadrilateral> exteriorSurfaces = grm.getExteriorQuadrilaterals();
         double sumExteriorSurfaceArea = 0.0;
         for(const auto& surface: exteriorSurfaces){sumExteriorSurfaceArea += surface.getArea();}
@@ -242,7 +242,7 @@ void scdp_optimizer::getDesignResults()
         // Which is utilized in the SD and BP grammar to determine whether a rectangle is a window.
         if(mConfig.getRunDLSimulation())
         {
-            // step 3, generate DL
+            // Step 3, generate DL
             // Build an explicit folder path for this daylight run so
             // that all Radiance files live inside the SCDP result
             // directory, grouped per iteration.
@@ -252,7 +252,7 @@ void scdp_optimizer::getDesignResults()
             mDLModelLast.push_back(bso::daylight::dl_model(grm.dl_grammar<grammar::DEFAULT_DL_GRAMMAR>(mConfig.getDLSettingsFile(), dlFolder)));
             mOutputManager.out("Generated daylight model",true,true,mConfig.getVerbose(), true);
             
-            // step 4, evaluate DL and store results
+            // Step 4, evaluate DL and store results
             if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("pre DL analysis");}
             mDLModelLast.back().analyze();
             if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("post SD analysis");}
@@ -275,12 +275,12 @@ void scdp_optimizer::getDesignResults()
         // CONDITIONAL: Only run SD simulation if needed
         if(mConfig.getRunSDSimulation())
         {
-            // step 3, generate SD
+            // Step 3, generate SD
             mSDModelLast.clear(); // Clear the vector to free memory from the previous iteration's model before generating a new one, since SD models can be quite large and we only need to keep the latest one for the next iteration's modifications.
             mSDModelLast.push_back(bso::structural_design::sd_model(grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(mConfig.getSDSettingsFile())));
             mOutputManager.out("Generated structural model",true,true,mConfig.getVerbose());
             
-            // step 4, evaluate SD and store results
+            // Step 4, evaluate SD and store results
             if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("pre SD analysis");}
             mSDModelLast.back().analyze();
             if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("post SD analysis");}
@@ -301,12 +301,12 @@ void scdp_optimizer::getDesignResults()
         // CONDITIONAL: Only run BP simulation if needed
         if(mConfig.getRunBPSimulation())
         {
-            // step 5, generate BP
+            // Step 5, generate BP
             mBPModelLast.clear(); // Clear the vector to free memory from the previous iteration's model before generating a new one, since BP models can be quite large and we only need to keep the latest one for the next iteration's modifications.
             mBPModelLast.push_back(bso::building_physics::bp_model(grm.bp_grammar<grammar::DEFAULT_BP_GRAMMAR>(mConfig.getBPSettingsFile())));
             mOutputManager.out("Generated building physics model",true,true,mConfig.getVerbose());
             
-            // step 6, evaluate BP and store results
+            // Step 6, evaluate BP and store results
             if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("pre BP analysis");}
             mBPModelLast.back().simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
             if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("post BP analysis");}
@@ -322,7 +322,7 @@ void scdp_optimizer::getDesignResults()
             mOutputManager.out("Skipped BP simulation (not in --sim list)",true,true,mConfig.getVerbose());
         }
         
-        // step 4, export visualizations and visualization text files if specified in config
+        // Step 4, export visualizations and visualization text files if specified in config
         bool mswVisualized = false;
         // flags to ensure visualization text file is only written once per iteration.
         bool dlVisualAlreadyWritten = false; 
@@ -392,7 +392,7 @@ void scdp_optimizer::getDesignResults()
                 bso::daylight::dl_model& dlRef = mConfig.getRunDLSimulation() ? mDLModelLast.back() : dummyDL;
                 performance_evaluator::getPerformancePerSpace(performances, mMSDesigns.back(), sdRef, bpRef, dlRef, mConfig.getModification(), mConfig.getPerformanceDivision(), mOutputManager, mConfig.getVerbose(), mConfig.getRunSDSimulation(), mConfig.getRunBPSimulation(), mConfig.getRunDLSimulation());
 
-                // step 3, normalize the data points
+                // Step 3, normalize the data points
                 utilities::data_point utopianPoint;
                 utilities::data_point distopianPoint;
                 performance_evaluator::normalizeData(performances, utopianPoint, distopianPoint, mOutputManager, mConfig.getVerbose());
@@ -450,7 +450,7 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
     std::vector<utilities::data_point> intermediateSpaceResults;
     try
     {
-        // step 1, generate SD and BP models and evaluate them.
+        // Step 1, generate SD and BP models and evaluate them.
         // Use the same setup as in getDesignResults: when DL simulation
         // is enabled, construct the conformal model with the DL settings
         // file so that window definitions are available; otherwise use
@@ -460,7 +460,7 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
         else{cf.push_back(spatial_design::cf_building(ms, 1e-6));}
         mOutputManager.out("Initialized conformal model",true,true,mConfig.getVerbose());
 
-        // step 2, generate grammar
+        // Step 2, generate grammar
         grammar::grammar grm(cf.back());
         mOutputManager.out("Initialized grammar",true,true,mConfig.getVerbose());
 
@@ -480,7 +480,7 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
 
         if(dlAvailable && objective != "weighted")
         {
-            // step 3, generate DL
+            // Step 3, generate DL
             const std::string& resultDir = mOutputManager.getResultDir();
             std::string dlFolder = resultDir + "/Iteration_" + std::to_string(mCurrentIteration);
             bso::daylight::dl_model dl = grm.dl_grammar<grammar::DEFAULT_DL_GRAMMAR>(mConfig.getDLSettingsFile(), dlFolder);
@@ -488,7 +488,7 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
             if(objective != "dl") mOutputManager.out("Note: this is to insert the window definition in sd or bp analysis",true,true,mConfig.getVerbose());
             if(objective == "dl")
             {
-                // step 4, evaluate DL and store results
+                // Step 4, evaluate DL and store results
                 dl.analyze();
                 mOutputManager.out("Evaluated intermediate daylight model, ADFbuilding: ",false,false,mConfig.getVerbose());
                 dlResult = dl.getTotalResults().mADFBuilding;
@@ -498,11 +498,11 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
         }
         if(objective == "sd" && sdAvailable)
         {
-            // step 3, generate SD
+            // Step 3, generate SD
             bso::structural_design::sd_model sd = grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(mConfig.getSDSettingsFile());
             mOutputManager.out("Generated intermediate structural model",true,true,mConfig.getVerbose());
             
-            // step 4, evaluate SD and store results
+            // Step 4, evaluate SD and store results
             sd.analyze();
             mOutputManager.out("Evaluated intermediate structural model: ",false,false,mConfig.getVerbose());
             sdResult = sd.getTotalResults().mTotalStrainEnergy;
@@ -511,11 +511,11 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
         }
         if(objective == "bp" && bpAvailable)
         {
-            // step 3, generate BP
+            // Step 3, generate BP
             bso::building_physics::bp_model bp = grm.bp_grammar<grammar::DEFAULT_BP_GRAMMAR>(mConfig.getBPSettingsFile());
             mOutputManager.out("Generated intermediate building physics model",true,true,mConfig.getVerbose());
             
-            // step 4, evaluate BP and store results
+            // Step 4, evaluate BP and store results
             bp.simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
             mOutputManager.out("Evaluated intermediate building physics model: ",false,false,mConfig.getVerbose());
             bpResult = bp.getTotalResults().mTotalEnergy;
@@ -524,7 +524,7 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
         }
         if(objective == "weighted")
         {
-            // step 3, generate DL
+            // Step 3, generate DL
             const std::string& resultDir = mOutputManager.getResultDir();
             std::string dlFolder = resultDir + "/Iteration_" + std::to_string(mCurrentIteration);
             bso::daylight::dl_model dl = grm.dl_grammar<grammar::DEFAULT_DL_GRAMMAR>(mConfig.getDLSettingsFile(), dlFolder);
@@ -535,7 +535,7 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
             mOutputManager.out("Generated intermediate building physics model",true,true,mConfig.getVerbose());
             if(dlAvailable)
             {
-                // step 4, evaluate DL and store results
+                // Step 4, evaluate DL and store results
                 dl.analyze();
                 mOutputManager.out("Evaluated intermediate daylight model, ADFbuilding: ",false,false,mConfig.getVerbose());
                 dlResult = dl.getTotalResults().mADFBuilding;
@@ -543,7 +543,7 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
             }
             if(sdAvailable)
             {
-                // step 4, evaluate SD and store results
+                // Step 4, evaluate SD and store results
                 sd.analyze();
                 mOutputManager.out("Evaluated intermediate structural model: ",false,false,mConfig.getVerbose());
                 sdResult = sd.getTotalResults().mTotalStrainEnergy;
@@ -551,7 +551,7 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
             }
             if(bpAvailable)
             {
-                // step 4, evaluate BP and store results
+                // Step 4, evaluate BP and store results
                 bp.simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
                 mOutputManager.out("Evaluated intermediate building physics model: ",false,false,mConfig.getVerbose());
                 bpResult = bp.getTotalResults().mTotalEnergy;
@@ -595,7 +595,7 @@ void scdp_optimizer::runSplitDeleteIteration(const std::string& modificationType
         // create a new MS model
         spatial_design::ms_N_building newMS = mMSDesigns.back();
 
-        // step 2, get performances per space
+        // Step 2, get performances per space
         std::vector<utilities::data_point> performances;
         structural_design::sd_model dummySD;
         building_physics::bp_model dummyBP;
@@ -605,7 +605,7 @@ void scdp_optimizer::runSplitDeleteIteration(const std::string& modificationType
         bso::daylight::dl_model& dlRef = mConfig.getRunDLSimulation() ? mDLModelLast.back() : dummyDL;
         performance_evaluator::getPerformancePerSpace(performances, newMS, sdRef, bpRef, dlRef, modificationType, mConfig.getPerformanceDivision(), mOutputManager, mConfig.getVerbose(), mConfig.getRunSDSimulation(), mConfig.getRunBPSimulation(), mConfig.getRunDLSimulation());
 
-        // step 3, normalize the data points, and in doing so ensure that all objectives are oriented in the same direction (i.e. lower is better)
+        // Step 3, normalize the data points, and in doing so ensure that all objectives are oriented in the same direction (i.e. lower is better)
         utilities::data_point utopianPoint;
         utilities::data_point distopianPoint;
         performance_evaluator::normalizeData(performances, utopianPoint, distopianPoint, mOutputManager, mConfig.getVerbose());
@@ -616,22 +616,24 @@ void scdp_optimizer::runSplitDeleteIteration(const std::string& modificationType
         // Step 4, delete spaces
         deleteSpaces(newMS, performances, modificationType, distopianPoint);
 
-        // step 6, Enforce constrains on BSD
-        enforceConstraints(newMS);
+        // Step 6, Enforce constrains on BSD
+        // Note: Can only reduce nr. of spaces, so recoverNrSpaces is not needed here,
+        // as splitSpaces will be called later to recover the initial number of spaces.
+        enforceConstraints(newMS); 
         
-        // step 7, scale spaces in x and y direction to recover initial conditions, i.e. floor area
+        // Step 7, scale spaces in x and y direction to recover initial conditions, i.e. floor area
         scaleDesign(newMS);
 
-        // step 8, split spaces to recover initial number of spaces conditions,
+        // Step 8, split spaces to recover initial number of spaces conditions,
         // (checking x first and only splitting in z-direction if the space is a minimum of 6000 in height)
         splitSpaces(newMS, performances, modificationType, mCurrentIteration, mConfig.getObjectiveWeights());
         
-        // step 9, store the new design
+        // Step 9, store the new design
         mMSDesigns.push_back(newMS);
         mOutputManager.out("Modified building spatial design into a new one",true,true,mConfig.getVerbose());
         mCurrentIteration++;
         
-        // step 10, get results for the new design
+        // Step 10, get results for the new design
         getDesignResults();
     }
     catch(const std::exception& e)
@@ -658,10 +660,10 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
 	{
         mOutputManager.out("\nmodification iteration: ",false,false,mConfig.getVerbose()); mOutputManager.out(mCurrentIteration,true,false,mConfig.getVerbose());
         
-        // step 1, create a new MS model
+        // Step 1, create a new MS model
         spatial_design::ms_N_building newMS = mMSDesigns.back();
 
-        // step 2, get performances per space
+        // Step 2, get performances per space
         std::vector<utilities::data_point> performances;
         structural_design::sd_model dummySD;
         building_physics::bp_model dummyBP;
@@ -671,28 +673,28 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
         bso::daylight::dl_model& dlRef2 = mConfig.getRunDLSimulation() ? mDLModelLast.back() : dummyDL2;
         performance_evaluator::getPerformancePerSpace(performances, newMS, sdRef, bpRef, dlRef2, modificationType, mConfig.getPerformanceDivision(), mOutputManager, mConfig.getVerbose(), mConfig.getRunSDSimulation(), mConfig.getRunBPSimulation(), mConfig.getRunDLSimulation());
 
-        // step 4, normalize the data points, and in doing so ensure that all objectives are oriented in the same direction (i.e. lower is better)
+        // Step 3, normalize the data points, and in doing so ensure that all objectives are oriented in the same direction (i.e. lower is better)
         utilities::data_point utopianPoint;
         utilities::data_point distopianPoint;
         performance_evaluator::normalizeData(performances, utopianPoint, distopianPoint, mOutputManager, mConfig.getVerbose());
 
-        // step 5, get data for 'worstAdapt' method if selected, 
+        // Step 4, get data for 'worstAdapt' method if selected, 
         // which determines the add method based on the location of the worst performing spaces.
         bso::utilities::geometry::vector worstSpacesDirection = {0,0,0};
         bso::utilities::geometry::vertex centreBuilding = {0,0,0};
         bso::utilities::geometry::vertex worstSpaceCentre = {0,0,0};
         if(mConfig.getAddMethod() == "worstAdapt")
         {
-            // step 3a, sort performance data points from highest to lowest to determine where the worst is located for space removal later
+            // Step 4a, sort performance data points from highest to lowest to determine where the worst is located for space removal later
             performance_evaluator::sortDataPointsLowestToHighest(performances, modificationType,
                     mConfig.getModificationSequence(), mCurrentIteration, mConfig.getObjectiveWeights(),
                     mConfig.getWeightedModification(), mOutputManager, mConfig.getVerbose());
 
-            // step 3b, determine the amount of worst spaces on which the add-method will be determined
+            // Step 4b, determine the amount of worst spaces on which the add-method will be determined
             std::size_t spaceAmountRemoval= round(mNrSpaces*mConfig.getSpaceModifyWorstRatio()); 
             if(spaceAmountRemoval < 1){spaceAmountRemoval = 1;}
 
-            // step 3c, determine the centre of to worst spaces:
+            // Step 4c, determine the centre of to worst spaces:
             const std::size_t safeDeleteGuard = std::min(spaceAmountRemoval, performances.size());
             const std::size_t startIdx = performances.size() - safeDeleteGuard;
             for (std::size_t idx = startIdx; idx < performances.size(); ++idx)
@@ -703,24 +705,24 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
             centreBuilding = newMS.getCentreBuilding();
             centreBuilding.z()=0; // centre of the building should always be defined on z=0
 
-            // step 3d, determine the worst spaces direction, i.e. where the worst spaces are located in relation 
+            // Step 4d, determine the worst spaces direction, i.e. where the worst spaces are located in relation 
             // to the centre of the building for later use.
             worstSpacesDirection = worstSpaceCentre - centreBuilding;
         }
 
-        // step 6, visualize the performance of spaces
+        // Step 5, visualize the performance of spaces
         visualizeMsw(newMS, performances, mCurrentIteration, mConfig.getObjectiveWeights(), "_bases_Del_Mod_decision");
-
-        // Step 7, delete spaces
+        
+        // Step 6, delete spaces
         deleteSpaces(newMS, performances, modificationType, distopianPoint);
-
-        // step 8, Enforce constrains on BSD
+        
+        // Step 7, Enforce constrains on BSD
         enforceConstraints(newMS);
 
-        // step 9, perform the specified modification methods
+        // Step 8, perform the specified modification methods
         if(mConfig.getAddMethod() == "worstAdapt")
         {
-            // step 8a, execute either addElevation or shiftFillPlaneCentre depending on the worst spaces direction,
+            // Step 8a, execute either addElevation or shiftFillPlaneCentre depending on the worst spaces direction,
             // i.e. if the worst spaces are located more in the horizontal direction, execute shift the fill plane centre,
             // and if they are located more in the vertical direction, execute add elevation.
             mOutputManager.out("Selected modification method in 'worstAdapt' Iteration, according to following parameters: ",false,false,mConfig.getVerbose());
@@ -728,12 +730,14 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
             mOutputManager.out("\n\tcentreBuilding is: ",false,false,mConfig.getVerbose());mOutputManager.out(centreBuilding,false,false,mConfig.getVerbose());
             mOutputManager.out("\n\tworstSpacesDirection.getHeading().second: ",false,false,mConfig.getVerbose());mOutputManager.out(worstSpacesDirection.getHeading().second,true,false,mConfig.getVerbose());
 
+            // Step 8b, execute addElevation
             if(worstSpacesDirection.getHeading().second < mConfig.getInclinationSwitch())
             {
                 mOutputManager.out("Selected addElevation in 'worstAdapt' Iteration: ",false,false,mConfig.getVerbose()); mOutputManager.out(mCurrentIteration,true,false,mConfig.getVerbose());
                 newMS.duplicateElevation();
                 mOutputManager.out("addElevation done",true,true,mConfig.getVerbose()); 
             }
+            // Step 8b, execute shiftFillPlaneCentre
             else if(worstSpacesDirection.getHeading().second > mConfig.getInclinationSwitch())
             {
                 mOutputManager.out("Selected shiftFillPlaneCentre in 'worstAdapt' iteration: ",false,false,mConfig.getVerbose()); mOutputManager.out(mCurrentIteration,true,false,mConfig.getVerbose());
@@ -761,6 +765,7 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
         }
         else if(mConfig.getAddMethod() == "shiftfill")
         {
+            // Step 8a, execute shiftFillPlaneCentre
             mOutputManager.out("Start shiftFillPlaneCentre in 'shiftfill' iteration: ",false,false,mConfig.getVerbose()); mOutputManager.out(mCurrentIteration,true,false,mConfig.getVerbose());
             bool shiftInMostHeadingDirection = false;
             if(mCurrentIteration == 0) {shiftInMostHeadingDirection = true;}
@@ -772,16 +777,17 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
         }
         else if(mConfig.getAddMethod() == "elevation")
         {
+            // Step 8a, execute addElevation
             mOutputManager.out("Start addElevation in 'elevation' Iteration: ",false,false,mConfig.getVerbose()); mOutputManager.out(mCurrentIteration,true,false,mConfig.getVerbose());
             newMS.duplicateElevation();
             mOutputManager.out("addElevation done ",true,true,mConfig.getVerbose());
         }
 
-        // step 13, delete the spaces which are defined inside another space, 
+        // Step 13, delete the spaces which are defined inside another space, 
             // as this is not allowed and may occur in the extrude or shiftfillplane
             // functions although carefully designed to not do this, but due to the
             // complexity of the geometry it can still occur. This is done at the end
-            // of the iteration to not interfere with the other modification steps, 
+            // of the iteration to not interfere with the other modification Steps, 
             // but it is enforced so that at the end of the iteration, there are no spaces inside other spaces.
         mOutputManager.out("Checking for spaces inside other spaces.",true,true,mConfig.getVerbose());
         std::vector<bso::spatial_design::ms_space*> overlappingSpaces;
@@ -813,10 +819,10 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
             mOutputManager.out("\tDeleted overlapping spaces.",true,true,mConfig.getVerbose());
         }
         
-        // step 12,
+        // Step 9, Enforce constrains on BSD
         enforceConstraints(newMS);        
 
-        // Export after_modification_ms visualizations
+        // Step 10,Export after_modification_ms visualizations
         if (!mConfig.getVisualizations().empty()) for (const auto& visOption : mConfig.getVisualizations())
         {
             if (visOption == "ms") visualization::visualize(newMS,"","After_del_Mod_ms",4.0);
@@ -830,21 +836,18 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
             newMS.writeToFile(fileName);
         }
 
-        // step 14, recover number of spaces to match the initial design.
+        // Step 11, recover number of spaces to match the initial design.
         recoverNrSpaces(newMS, performances, mCurrentIteration, mConfig.getObjectiveWeights(), modificationType);
 
-        // step 14, Enforce constrains on BSD
-        enforceConstraints(newMS);
-
-        // step 15, scale spaces in x and y direction to recover initial conditions, i.e. floor area
+        // Step 16, scale spaces in x and y direction to recover initial conditions, i.e. floor area
         scaleDesign(newMS);
 
-        // step 16, store the new design
+        // Step 17, store the new design
         mMSDesigns.push_back(newMS);
         mOutputManager.out("Modified building spatial design into a new one",true,true,mConfig.getVerbose());
         mCurrentIteration++;
         
-        // step 17, get results for the new design
+        // Step 18, get results for the new design
         getDesignResults();
     }
     catch(const std::exception& e)
@@ -883,7 +886,7 @@ void scdp_optimizer::deleteSpaces(spatial_design::ms_N_building& ms,
     }
     else if(mConfig.getDeleteMethod() == "cluster")
     {
-        // step 4, cluster the data
+        // Step 4, cluster the data
         utilities::clustering clus(mConfig.getRngSeed(),performances,mConfig.getKMin(),mConfig.getKMax(),250);
         mOutputManager.out("Clustered space performances",true,true,mConfig.getVerbose());
 
@@ -898,7 +901,7 @@ void scdp_optimizer::deleteSpaces(spatial_design::ms_N_building& ms,
             }
         }
         
-        // step 5, select worst performing cluster and remove these spaces
+        // Step 5, select worst performing cluster and remove these spaces
         unsigned int nRetainedSpaces;
         if(mConfig.getAmountOfSpaceRemoval() > 0){nRetainedSpaces = mNrSpaces - mConfig.getAmountOfSpaceRemoval();} // getAmountOfSpaceRemoval() value cannot be below 1 as checked at input, so no need to check for that here.
         else 
@@ -934,20 +937,14 @@ void scdp_optimizer::deleteSpaces(spatial_design::ms_N_building& ms,
     }
     else if (mConfig.getDeleteMethod() == "worst")
     {
-        // step 4, sort data
+        // Step 4, sort data
         performancesRemoveSpace = performances;
         performance_evaluator::sortDataPointsLowestToHighest(performancesRemoveSpace, mConfig.getModification(),
             mConfig.getModificationSequence(), mCurrentIteration, mConfig.getObjectiveWeights(),
             mConfig.getWeightedModification(), mOutputManager, mConfig.getVerbose());
-        std::cout << "Distopian point: " << distopianPoint << std::endl;
-        std::cout << "sorted performancesRemoveSpace size: " << performancesRemoveSpace.size() << std::endl;
-        for(const auto& dp : performancesRemoveSpace)
-        {
-            std::cout << "performance: " << dp << std::endl;
-        }
         mOutputManager.out("Sort data points for space removal",true,true,mConfig.getVerbose());
 
-        // step 5, determine space removal amount
+        // Step 5, determine space removal amount
         std::size_t spaceAmountRemoval;
         if(mConfig.getAmountOfSpaceRemoval() > 0){spaceAmountRemoval = mConfig.getAmountOfSpaceRemoval();} 
         else 
@@ -956,7 +953,7 @@ void scdp_optimizer::deleteSpaces(spatial_design::ms_N_building& ms,
             if(spaceAmountRemoval < 1){spaceAmountRemoval = 1;}
         }
 
-        // step 6, select worst performing spaces and remove these spaces
+        // Step 6, select worst performing spaces and remove these spaces
         const std::size_t safeDeleteGuard = std::min(spaceAmountRemoval, performancesRemoveSpace.size());
         const std::size_t startIdx = performancesRemoveSpace.size() - safeDeleteGuard;
         for (std::size_t idx = startIdx; idx < performancesRemoveSpace.size(); ++idx)

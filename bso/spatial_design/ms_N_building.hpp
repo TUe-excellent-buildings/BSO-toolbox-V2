@@ -139,9 +139,11 @@ public:
 	std::vector<bso::spatial_design::ms_space*> shiftFillPlane(const bso::utilities::geometry::vertex& location,
 		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const bool extrudeFromSelectedSide, double minimalSpaceAngle = 20.0,
 		const double& tol = 1e-3, bool verbose = false, shift_fill_plane_debug_data* debugData = nullptr);
-	void extrude(const bso::utilities::geometry::vertex& location, const bso::utilities::geometry::vector& extrudeDirection, double extrudeAmount, const double& tol /*= 1e-3*/, extrude_debug_data* debugData = nullptr);
+	void extrude(const bso::utilities::geometry::vertex& location, const bso::utilities::geometry::vector& extrudeDirection, 
+		double extrudeAmount, bool verbose = false, const double& tol = 1e-3, extrude_debug_data* debugData = nullptr);
 	void extrude(std::vector<ms_space*> spacePtrs, const bso::utilities::geometry::vertex& location, 
-		const bso::utilities::geometry::vector& extrudeDirection, double extrudeAmount, const double& tol = 1e-3, extrude_debug_data* debugData = nullptr);
+		const bso::utilities::geometry::vector& extrudeDirection, double extrudeAmount, bool verbose = false, 
+		const double& tol = 1e-3, extrude_debug_data* debugData = nullptr);
 	void enforceAverageSpaceSize(double minElevationHeight = 3000, const double& tol = 1e-3, bool verbose = false);
 
 	// Space selection functions:

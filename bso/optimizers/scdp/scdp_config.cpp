@@ -536,7 +536,7 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 }
                 argumentCount++;
             }
-            if(argumentCount > 0)
+            if(argumentCount <= 0)
             {
                 std::stringstream errorMessage;
                 errorMessage << "\nError, expected a specifier sd, bp, or dl but got nothing or \n"
