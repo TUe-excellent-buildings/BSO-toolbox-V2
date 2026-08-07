@@ -22,6 +22,7 @@ Forwarded visualizer options:
 Runner options:
   --ask-continue              Ask after each subdirectory whether to continue
   --stop-after <N>            Stop after visualizing N subdirectories
+  --run-type <TYPE>           Filter subdirectories by run type: all|sd|bp|dl|sdbpdl|sdbpdl_weighted (default: all)
   --parallel                  Run visualizations in parallel batches (default)
   --no-parallel               Disable parallel batches (run one by one)
   --batch-size <N>            Number of parallel visualizations per batch (default: 5)
@@ -34,6 +35,8 @@ Examples:
   ./run_results_sequentially.sh /home/tessa/BSO-toolbox-V2/code_developments_for_publications/scdp_class_RUN/results_sequential_run_31_03 --stop-after 5 --mode=colored
   ./run_results_sequentially.sh /home/tessa/BSO-toolbox-V2/code_developments_for_publications/scdp_class_RUN/results_sequential_run_31_03 --batch-size 5 --mode=colored
   ./run_results_sequentially.sh /home/tessa/BSO-toolbox-V2/code_developments_for_publications/scdp_class_RUN/results_sequential_run_31_03 --no-parallel --mode=colored
+  ./run_results_sequentially.sh /home/tessa/Data/Results_split_delete/results --run-type dl --mode=colored
+  ./run_results_sequentially.sh /home/tessa/Data/Results_split_delete/results --run-type sdbpdl_weighted
 
 Notes:
   - In parallel mode, up to --batch-size windows can be open at once.
@@ -60,7 +63,34 @@ ASK_CONTINUE=0
 STOP_AFTER=0
 PARALLEL=1
 BATCH_SIZE=5
+RUN_TYPE_FILTER="all"
 VISUALIZER_ARGS=()
+
+run_type_to_regex() {
+  case "$1" in
+    all)
+      echo ""
+      ;;
+    sd)
+      echo '_sd_'
+      ;;
+    bp)
+      echo '_bp_'
+      ;;
+    dl)
+      echo '_dl_'
+      ;;
+    sdbpdl)
+      echo '_sdbpdl_-n='
+      ;;
+    sdbpdl_weighted)
+      echo '_sdbpdl_[0-9]'
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -87,6 +117,22 @@ while [[ $# -gt 0 ]]; do
     --no-parallel)
       PARALLEL=0
       shift
+      ;;
+    --run-type)
+      if [[ $# -lt 2 ]]; then
+        echo "Missing value after --run-type" >&2
+        exit 1
+      fi
+      case "$2" in
+        all|sd|bp|dl|sdbpdl|sdbpdl_weighted)
+          RUN_TYPE_FILTER="$2"
+          ;;
+        *)
+          echo "Invalid --run-type value: $2 (expected one of: all, sd, bp, dl, sdbpdl, sdbpdl_weighted)" >&2
+          exit 1
+          ;;
+      esac
+      shift 2
       ;;
     --batch-size)
       if [[ $# -lt 2 ]]; then
@@ -117,14 +163,19 @@ if [[ ! -d "$RESULTS_ROOT" ]]; then
     exit 1
 fi
 
-mapfile -d '' SUBDIRECTORIES < <(find "$RESULTS_ROOT" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
+RUN_TYPE_REGEX="$(run_type_to_regex "$RUN_TYPE_FILTER")"
+if [[ "$RUN_TYPE_FILTER" == "all" ]]; then
+  mapfile -d '' SUBDIRECTORIES < <(find "$RESULTS_ROOT" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
+else
+  mapfile -d '' SUBDIRECTORIES < <(find "$RESULTS_ROOT" -mindepth 1 -maxdepth 1 -type d -print0 | grep -zE "$RUN_TYPE_REGEX" | sort -z)
+fi
 
 if [[ ${#SUBDIRECTORIES[@]} -eq 0 ]]; then
-    echo "No subdirectories found in: $RESULTS_ROOT" >&2
+    echo "No subdirectories found in: $RESULTS_ROOT for run type filter: $RUN_TYPE_FILTER" >&2
     exit 1
 fi
 
-echo "Found ${#SUBDIRECTORIES[@]} subdirectories to visualize."
+echo "Found ${#SUBDIRECTORIES[@]} subdirectories to visualize (run type: $RUN_TYPE_FILTER)."
 
 if [[ -z "${DISPLAY:-}" ]]; then
   echo "Warning: DISPLAY is not set. GUI windows may not appear. Start your X server and set DISPLAY (for example: export DISPLAY=localhost:10.0)." >&2

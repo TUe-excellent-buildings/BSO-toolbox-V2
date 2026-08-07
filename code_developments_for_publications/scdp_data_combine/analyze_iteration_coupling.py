@@ -47,7 +47,7 @@ import numpy as np
 import pandas as pd
 
 
-DEFAULT_METRICS = ["sd", "bp", "dl_ADFbuilding_inverse", "dl_score"]
+DEFAULT_METRICS = ["sd", "bp", "dl_ADFbuilding", "dl_score"]
 EPS = 1e-12
 
 

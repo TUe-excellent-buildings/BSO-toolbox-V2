@@ -6,7 +6,7 @@ excluding files named exactly combined_data.csv. For each CSV, it extracts
 summary rows like:
   - sdBest iteration
   - bpBest iteration
-  - dl_ADFbuilding_inverseBest iteration
+  - dl_ADFbuilding iteration
   - dl_scoreBest iteration
   - sd last iteration vs. first iteration
   - ...
@@ -34,7 +34,7 @@ import numpy as np
 import pandas as pd
 
 
-DEFAULT_METRICS = ["sd", "bp", "dl_ADFbuilding_inverse", "dl_score"]
+DEFAULT_METRICS = ["sd", "bp", "dl_ADFbuilding", "dl_score"]
 
 RUN_TYPE_ORDER = ["sd", "bp", "dl", "sdbpdl", "sdbpdl_weighted"]
 
@@ -59,7 +59,7 @@ def _extract_dl_score_first_and_last(rows: List[List[str]]) -> tuple[Optional[fl
     iteration_to_dl_score: Dict[int, float] = {}
 
     for r in rows:
-        # Header row for the main iteration table, e.g. ['', 'sd', 'bp', 'dl_ADFbuilding_inverse', 'dl_score', ...]
+        # Header row for the main iteration table, e.g. ['', 'sd', 'bp', 'dl_ADFbuilding', 'dl_score', ...]
         if dl_score_col is None and len(r) >= 2:
             normalized = [c.strip() for c in r]
             if "sd" in normalized and "dl_score" in normalized:
@@ -546,7 +546,7 @@ def main() -> None:
     last_vs_first_labels = select_labels_by_group(ordered_labels, "last_vs_first")
     best_vs_first_labels = select_labels_by_group(ordered_labels, "best_vs_first")
 
-    _display_names = ["Strain energy [Nmm]", "Heating and cooling energy [kWh]", "Inverse average daylight factor[1%]", "BS EN 17037-2018 section B.3.2 score [-]"]
+    _display_names = ["Strain energy [Nmm]", "Heating and cooling energy [kWh]", "Average daylight factor[%]", "BS EN 17037-2018 section B.3.2 score [-]"]
     y_label_overrides = {}
     for m, name in zip(metrics, _display_names):
         y_label_overrides[f"{m}Best iteration"] = name
