@@ -4,7 +4,7 @@
 # This script runs the two parallel run_design_sequence_parallel.sh scripts in sequence, one after the other.
 # to run this script in the background, use: nohup bash run_multiple_design_sequences.sh > output_both_runs.log 2>&1 & wrapper_pid=$!
 # store the latest PID in this file for easy reference and to be able to kill it if needed.
-# PID: 3395144
+# PID: 2056339
 
 # Kill instructions for the wrapper process and all its child processes:
 # 1) Check wrapper PID and its process group ID (PGID)

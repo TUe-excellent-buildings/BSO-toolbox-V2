@@ -76,16 +76,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--modify-root",
         type=Path,
-        default=DEFAULT_MODIFY_ROOT,
-        help=f"Root directory for modify runs (default: {DEFAULT_MODIFY_ROOT})",
+        nargs="+",
+        default=[DEFAULT_MODIFY_ROOT],
+        help=(
+            "One or more root directories for modify runs "
+            f"(default: {DEFAULT_MODIFY_ROOT}). Design keys are merged across "
+            "all given roots."
+        ),
     )
     parser.add_argument(
         "--split-delete-root",
         type=Path,
-        default=DEFAULT_SPLIT_DELETE_ROOT,
+        nargs="+",
+        default=[DEFAULT_SPLIT_DELETE_ROOT],
         help=(
-            "Root directory for split/delete runs "
-            f"(default: {DEFAULT_SPLIT_DELETE_ROOT})"
+            "One or more root directories for split/delete runs "
+            f"(default: {DEFAULT_SPLIT_DELETE_ROOT}). Design keys are merged "
+            "across all given roots."
         ),
     )
     parser.add_argument(
@@ -102,6 +109,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--design-filter",
+        "--base-filter",
+        dest="design_filter",
         type=str,
         default="",
         help=(
@@ -175,28 +184,30 @@ def design_key_from_run_dir_name(name: str) -> str:
     return name[:idx]
 
 
-def collect_latest_run_dirs(root: Path, csv_name: str) -> Dict[str, Path]:
-    """Map design_key -> latest run directory under root.
+def collect_latest_run_dirs(roots: Iterable[Path], csv_name: str) -> Dict[str, Path]:
+    """Map design_key -> latest run directory across one or more roots.
 
-    If multiple directories share the same design key, the lexicographically
-    largest directory name is used (works with YYYY-MM-DD_HH-MM-SS suffixes).
+    If multiple directories (within a root or across roots) share the same
+    design key, the lexicographically largest directory name is used (works
+    with YYYY-MM-DD_HH-MM-SS suffixes).
     """
     selected: Dict[str, Path] = {}
 
-    if not root.is_dir():
-        raise FileNotFoundError(f"Root directory not found: {root}")
+    for root in roots:
+        if not root.is_dir():
+            raise FileNotFoundError(f"Root directory not found: {root}")
 
-    for child in sorted(root.iterdir()):
-        if not child.is_dir():
-            continue
-        csv_path = child / csv_name
-        if not csv_path.is_file():
-            continue
+        for child in sorted(root.iterdir()):
+            if not child.is_dir():
+                continue
+            csv_path = child / csv_name
+            if not csv_path.is_file():
+                continue
 
-        key = design_key_from_run_dir_name(child.name)
-        prev = selected.get(key)
-        if prev is None or child.name > prev.name:
-            selected[key] = child
+            key = design_key_from_run_dir_name(child.name)
+            prev = selected.get(key)
+            if prev is None or child.name > prev.name:
+                selected[key] = child
 
     return selected
 

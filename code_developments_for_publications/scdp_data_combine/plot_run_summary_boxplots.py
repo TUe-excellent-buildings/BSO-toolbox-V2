@@ -612,11 +612,11 @@ def main() -> None:
         run_types_present,
         best_vs_first_labels,
         grouped_best_vs_first_plot_path,
-        "Improvement best vs. first iteration",
+        "Percentage of improvement best vs. first iteration",
         y_label="Objective improvement [%]",
         x_label_overrides=y_label_overrides,
-        y_min=-100.0,
-        y_max=200.0,
+        y_min=0.0,
+        y_max=100.0,
     )
     plot_boxplot_grouped_runtypes_three_in_one(
         long_df,

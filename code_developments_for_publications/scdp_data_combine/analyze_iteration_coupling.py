@@ -40,15 +40,83 @@ import argparse
 import csv
 from dataclasses import dataclass
 from pathlib import Path
+import textwrap
 from typing import Dict, Iterable, List, Optional
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
+from matplotlib.ticker import FormatStrFormatter
 import numpy as np
 import pandas as pd
 
 
 DEFAULT_METRICS = ["sd", "bp", "dl_ADFbuilding", "dl_score"]
 EPS = 1e-12
+
+METRIC_DISPLAY_NAMES = {
+    "sd": "structural (strain energy [Nmm])",
+    "bp": "thermal (heating and cooling energy [kWh])",
+    "dl_ADFbuilding": "daylight (average daylight factor [%])",
+    "dl_score": "daylight (BS EN 17037-2018 section B.3.2 score [-])",
+}
+
+METRIC_AXIS_LABELS = {
+    "sd": "strain energy [Nmm]",
+    "bp": "heating and cooling energy [kWh]",
+    "dl_ADFbuilding": "average daylight factor [%]",
+    "dl_score": "BS EN 17037-2018 section B.3.2 score [-]",
+}
+
+HEATMAP_METRIC_LABELS = {
+    "sd": "sd",
+    "bp": "bp",
+    "dl_ADFbuilding": "dl1",
+    "dl_score": "dl2",
+}
+
+HEATMAP_LEGEND_LABELS = {
+    "sd": "sd: strain energy [N/mm]",
+    "bp": "bp: heating and cooling energy [kWh]",
+    "dl_ADFbuilding": "dl1: average daylight factor [%]",
+    "dl_score": "dl2: BS EN 17037-2018 section B.3.2 score [-]",
+}
+
+METRIC_COLORS = {
+    "sd": "#2E7D32",
+    "bp": "#1565C0",
+    "dl_ADFbuilding": "#C62828",
+    "dl_score": "#6A1B9A",
+}
+
+
+def metric_legend_handles(
+    metrics: List[str],
+    label_wrap_width: Optional[int] = None,
+) -> List[Patch]:
+    return [
+        Patch(
+            facecolor=METRIC_COLORS.get(metric, "#666666"),
+            alpha=0.42,
+            label=(
+                textwrap.fill(METRIC_AXIS_LABELS.get(metric, metric), label_wrap_width)
+                if label_wrap_width is not None
+                else METRIC_AXIS_LABELS.get(metric, metric)
+            ),
+        )
+        for metric in metrics
+    ]
+
+
+def focus_axis_label(metric: str) -> str:
+    """Format a focus label as two similarly sized lines."""
+    words = f"focus: {METRIC_DISPLAY_NAMES.get(metric, metric)} relative delta".split()
+    split_index = min(
+        range(1, len(words)),
+        key=lambda index: abs(
+            len(" ".join(words[:index])) - len(" ".join(words[index:]))
+        ),
+    )
+    return " ".join(words[:split_index]) + "\n" + " ".join(words[split_index:])
 
 
 @dataclass
@@ -287,6 +355,15 @@ def plot_heatmap(
     output_path: Path,
     cmap: str = "coolwarm",
     value_fmt: str = ".2f",
+    figsize: tuple[float, float] = (8.5, 6.5),
+    metric_labels: Optional[Dict[str, str]] = None,
+    x_label_rotation: float = 30,
+    font_size: Optional[float] = None,
+    axes_bounds: Optional[tuple[float, float, float, float]] = None,
+    colorbar_bounds: Optional[tuple[float, float, float, float]] = None,
+    x_axis_label: str = "Affected metric",
+    y_axis_label: str = "Focus metric (conditioned on improvement)",
+    legend_labels: Optional[Dict[str, str]] = None,
 ) -> None:
     mat = np.full((len(metrics), len(metrics)), np.nan)
     for i, focus in enumerate(metrics):
@@ -298,16 +375,22 @@ def plot_heatmap(
             if mask.any():
                 mat[i, j] = float(matrix_df.loc[mask, "value"].iloc[0])
 
-    fig, ax = plt.subplots(figsize=(8.5, 6.5))
+    fig, ax = plt.subplots(figsize=figsize)
     im = ax.imshow(mat, cmap=cmap, aspect="auto")
 
+    display_labels = [metric_labels.get(metric, metric) for metric in metrics] if metric_labels else metrics
     ax.set_xticks(np.arange(len(metrics)))
     ax.set_yticks(np.arange(len(metrics)))
-    ax.set_xticklabels(metrics, rotation=30, ha="right")
-    ax.set_yticklabels(metrics)
-    ax.set_xlabel("Affected metric")
-    ax.set_ylabel("Focus metric (conditioned on improvement)")
-    ax.set_title(title)
+    ax.set_xticklabels(display_labels, rotation=x_label_rotation, ha="right" if x_label_rotation else "center")
+    ax.set_yticklabels([textwrap.fill(label, width=22) for label in display_labels])
+    ax.set_xlabel(x_axis_label)
+    ax.set_ylabel(y_axis_label)
+    if title:
+        ax.set_title(title)
+    if font_size is not None:
+        ax.tick_params(axis="both", labelsize=font_size)
+        ax.xaxis.label.set_size(font_size)
+        ax.yaxis.label.set_size(font_size)
 
     for i in range(len(metrics)):
         for j in range(len(metrics)):
@@ -316,12 +399,39 @@ def plot_heatmap(
                 text = "NA"
             else:
                 text = format(v, value_fmt)
-            ax.text(j, i, text, ha="center", va="center", fontsize=9)
+            ax.text(j, i, text, ha="center", va="center", fontsize=font_size or 9)
 
     cbar = fig.colorbar(im, ax=ax)
     cbar.set_label(colorbar_label)
+    if font_size is not None:
+        cbar.ax.tick_params(labelsize=font_size)
+        cbar.ax.yaxis.label.set_size(font_size)
 
-    fig.tight_layout()
+    if axes_bounds is None:
+        fig.tight_layout()
+    else:
+        ax.set_position(axes_bounds)
+        if colorbar_bounds is not None:
+            cbar.ax.set_position(colorbar_bounds)
+    if legend_labels is not None:
+        legend_handles = [
+            Patch(
+                facecolor="none",
+                edgecolor="none",
+                label=textwrap.fill(legend_labels.get(metric, metric), width=27),
+            )
+            for metric in metrics
+        ]
+        fig.legend(
+            handles=legend_handles,
+            loc="lower center",
+            bbox_to_anchor=(0.5, -0.02),
+            ncol=2,
+            frameon=False,
+            handlelength=0,
+            handletextpad=0,
+            prop={"size": font_size or 8},
+        )
     fig.savefig(output_path, dpi=220)
     plt.close(fig)
 
@@ -338,23 +448,29 @@ def plot_per_pair_boxplot_panel(
     - focus improved
     - focus not improved
     """
+    # Panel grid layout: width is 170 mm; change ncols or the height factor to alter panel arrangement and size.
     n = len(metrics)
-    fig, axes = plt.subplots(n, 1, figsize=(max(12, 2.9 * max(1, n - 1)), 5.0 * n), sharey=False)
-
-    if n == 1:
-        axes = np.array([axes])
+    ncols = min(2, n)
+    nrows = int(np.ceil(n / ncols))
+    fig, axes = plt.subplots(
+        nrows,
+        ncols,
+        figsize=(170 / 25.4, 2.5 * nrows),
+        sharey=False,
+        squeeze=False,
+    )
+    axes_flat = axes.ravel()
 
     for i, focus in enumerate(metrics):
-        ax = axes[i]
+        ax = axes_flat[i]
         sub = focus_df[focus_df["focus_metric"] == focus]
         affected_metrics = list(metrics)
 
-        groups = []
-        labels = []
-        positions = []
-        colors = []
-        pos = 1.0
-        gap_between_metrics = 0.2 # was origonally 1.0, but reduced to fit more metrics without excessive whitespace.
+        improved_groups = []
+        not_improved_groups = []
+        # Horizontal spacing within and between the two condition sections.
+        box_width = 0.7
+        group_gap = 1.2
 
         for affected in affected_metrics:
             col = f"affected_rel_delta_{affected}"
@@ -376,22 +492,31 @@ def plot_per_pair_boxplot_panel(
                 improved_vals = np.clip(improved_vals, lo, hi)
                 not_improved_vals = np.clip(not_improved_vals, lo, hi)
 
-            groups.extend([improved_vals, not_improved_vals])
-            labels.extend([
-                f"{affected}\n{focus} improved",
-                f"{affected}\n{focus} not improved",
-            ])
-            positions.extend([pos, pos + 0.8])
-            colors.extend(["#2F7D32", "#C62828"])
-            pos += 0.8 + gap_between_metrics
+            improved_groups.append(improved_vals)
+            not_improved_groups.append(not_improved_vals)
+
+        groups = improved_groups + not_improved_groups
+        positions = list(range(len(affected_metrics)))
+        positions.extend(
+            metric_idx + len(affected_metrics) + group_gap
+            for metric_idx in range(len(affected_metrics))
+        )
+        colors = [
+            METRIC_COLORS.get(metric, "#666666")
+            for metric in affected_metrics + affected_metrics
+        ]
 
         bp = ax.boxplot(
             groups,
             positions=positions,
-            labels=labels,
             patch_artist=True,
-            widths=0.62,
+            widths=box_width,
             showfliers=False,
+            boxprops=dict(linewidth=0.6),
+            whiskerprops=dict(linewidth=0.6),
+            capprops=dict(linewidth=0.6),
+            medianprops=dict(linewidth=0.6),
+            flierprops=dict(linewidth=0.6),
         )
 
         for patch, color in zip(bp["boxes"], colors):
@@ -400,20 +525,58 @@ def plot_per_pair_boxplot_panel(
 
         for median in bp["medians"]:
             median.set_color("#222222")
-            median.set_linewidth(1.8)
+            median.set_linewidth(0.6)
 
-        ax.axhline(0.0, color="#555555", linewidth=1.0, linestyle="--")
-        ax.set_ylabel(f"focus: {focus}\nrelative delta")
-        ax.tick_params(axis="x", labelrotation=22)
+        section_boundary = len(affected_metrics) - 0.5 + group_gap / 2
+        ax.axvspan(-0.5, section_boundary, facecolor="#2F7D32", alpha=0.08, zorder=0)
+        ax.axvspan(section_boundary, positions[-1] + 0.5, facecolor="#C62828", alpha=0.08, zorder=0)
+        ax.axvline(section_boundary, color="#888888", linewidth=0.6, linestyle=":", zorder=0)
+        ax.text(
+            section_boundary - 0.08,
+            0.98,
+            "Focus\nimproved",
+            transform=ax.get_xaxis_transform(),
+            ha="right",
+            va="top",
+            fontsize=8,
+            color="#1B5E20",
+        )
+        ax.text(
+            positions[-1] + 0.42,
+            0.98,
+            "Focus not\nimproved",
+            transform=ax.get_xaxis_transform(),
+            ha="right",
+            va="top",
+            fontsize=8,
+            color="#8E1B1B",
+        )
+        ax.axhline(0.0, color="#555555", linewidth=0.6, linestyle="--")
+        ax.set_ylabel(focus_axis_label(focus))
+        ax.yaxis.label.set_size(8)
+        ax.yaxis.set_major_formatter(FormatStrFormatter("%.0f"))
+        ax.set_xticks(positions)
+        ax.set_xticklabels([""] * len(positions))
+        ax.tick_params(axis="both", labelsize=8)
+        ax.tick_params(axis="both", width=0.6)
+        ax.tick_params(axis="x", length=0)
+        for spine in ax.spines.values():
+            spine.set_linewidth(0.6)
         ax.grid(axis="y", alpha=0.25)
-        
 
-    fig.suptitle(
-        "Relative Effect Distributions per Focus Metric\n(Non-focus Metrics in Each Subplot)",
-        fontsize=15,
-        y=0.995,
+    for ax in axes_flat[n:]:
+        ax.set_visible(False)
+
+    # Bottom legend layout: one row of wrapped labels fits the fixed 170 mm figure width.
+    fig.legend(
+        handles=metric_legend_handles(metrics, label_wrap_width=22.5),
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.00),
+        ncol=4,
+        frameon=False,
+        prop={"size": 8},
     )
-    fig.tight_layout(rect=[0, 0, 1, 0.988])
+    fig.tight_layout(rect=[0, 0.075, 1, 0.988]) # reserves the height at the bottom for legend
     fig.savefig(output_path, dpi=260)
     plt.close(fig)
 
@@ -430,21 +593,27 @@ def plot_condition_only_boxplot_panel(
     If focus_improved_value is False, only transitions where focus did not improve are shown.
     Each subplot contains boxplots for all metrics (focus + affected).
     """
+    # Panel grid layout: change ncols or the figsize factors to alter panel arrangement and size.
     n = len(metrics)
-    fig, axes = plt.subplots(n, 1, figsize=(max(12, 2.9 * max(1, n - 1)), 4.6 * n), sharey=False)
-
-    if n == 1:
-        axes = np.array([axes])
+    ncols = min(2, n)
+    nrows = int(np.ceil(n / ncols))
+    fig, axes = plt.subplots(
+        nrows,
+        ncols,
+        figsize=(max(12, 7.0 * ncols), 4.6 * nrows),
+        sharey=False,
+        squeeze=False,
+    )
+    axes_flat = axes.ravel()
 
     for i, focus in enumerate(metrics):
-        ax = axes[i]
+        ax = axes_flat[i]
         sub = focus_df[
             (focus_df["focus_metric"] == focus)
             & (focus_df["focus_improved"] == focus_improved_value)
         ]
 
         groups = []
-        labels = []
 
         for metric in metrics:
             col = f"affected_rel_delta_{metric}"
@@ -456,18 +625,16 @@ def plot_condition_only_boxplot_panel(
                 vals = np.clip(vals, lo, hi)
 
             groups.append(vals)
-            labels.append(metric)
 
         bp = ax.boxplot(
             groups,
-            labels=labels,
             patch_artist=True,
             widths=0.6,
             showfliers=False,
         )
 
-        for patch in bp["boxes"]:
-            patch.set_facecolor("#2F7D32" if focus_improved_value else "#C62828")
+        for patch, metric in zip(bp["boxes"], metrics):
+            patch.set_facecolor(METRIC_COLORS.get(metric, "#666666"))
             patch.set_alpha(0.45)
 
         for median in bp["medians"]:
@@ -475,10 +642,15 @@ def plot_condition_only_boxplot_panel(
             median.set_linewidth(1.8)
 
         ax.axhline(0.0, color="#555555", linewidth=1.0, linestyle="--")
-        ax.set_ylabel(f"focus: {focus}\nrelative delta")
-        ax.tick_params(axis="x", labelrotation=22)
+        ax.set_ylabel(focus_axis_label(focus))
+        ax.yaxis.set_major_formatter(FormatStrFormatter("%.0f"))
+        ax.set_xticks(range(1, len(metrics) + 1))
+        ax.set_xticklabels([""] * len(metrics))
+        ax.tick_params(axis="x", length=0)
         ax.grid(axis="y", alpha=0.25)
-        
+
+    for ax in axes_flat[n:]:
+        ax.set_visible(False)
 
     fig.suptitle(
         (
@@ -490,7 +662,15 @@ def plot_condition_only_boxplot_panel(
         fontsize=15,
         y=0.995,
     )
-    fig.tight_layout(rect=[0, 0, 1, 0.988])
+    # Bottom legend layout: bbox_to_anchor controls its vertical distance from the panels.
+    fig.legend(
+        handles=metric_legend_handles(metrics),
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.01),
+        ncol=len(metrics),
+        frameon=False,
+    )
+    fig.tight_layout(rect=[0, 0.07, 1, 0.988])
     fig.savefig(output_path, dpi=260)
     plt.close(fig)
 
@@ -513,11 +693,12 @@ def plot_single_focus_nonfocus_boxplot(
     sub = focus_df[focus_df["focus_metric"] == focus_metric].copy()
 
     groups = []
-    labels = []
     positions = []
-    colors = []
-    pos = 1.0
-    gap_between_metrics = 1.0
+    pos = 0.0
+    # Horizontal spacing between paired condition boxes and between affected metrics.
+    box_width = 0.7
+    condition_spacing = 1.0
+    group_gap = 1.2
 
     for metric in affected_metrics:
         col = f"affected_rel_delta_{metric}"
@@ -535,23 +716,20 @@ def plot_single_focus_nonfocus_boxplot(
             vals_not = np.clip(vals_not, lo, hi)
 
         groups.extend([vals_improved, vals_not])
-        labels.extend([f"{metric}\n{focus_metric} improved", f"{metric}\n{focus_metric} not improved"])
-        positions.extend([pos, pos + 0.8])
-        colors.extend(["#2F7D32", "#C62828"])
-        pos += 0.8 + gap_between_metrics
+        positions.extend([pos, pos + condition_spacing])
+        pos += condition_spacing + group_gap
 
     fig, ax = plt.subplots(figsize=(max(10, 2.9 * len(affected_metrics)), 6.5))
     bp = ax.boxplot(
         groups,
         positions=positions,
-        labels=labels,
         patch_artist=True,
-        widths=0.62,
+        widths=box_width,
         showfliers=False,
     )
 
-    for patch, color in zip(bp["boxes"], colors):
-        patch.set_facecolor(color)
+    for patch, metric in zip(bp["boxes"], [metric for metric in affected_metrics for _ in range(2)]):
+        patch.set_facecolor(METRIC_COLORS.get(metric, "#666666"))
         patch.set_alpha(0.45)
 
     for median in bp["medians"]:
@@ -560,26 +738,25 @@ def plot_single_focus_nonfocus_boxplot(
 
     ax.axhline(0.0, color="#555555", linewidth=1.0, linestyle="--")
     ax.set_ylabel("Relative delta (winsorized 2.5%-97.5%)")
+    ax.yaxis.set_major_formatter(FormatStrFormatter("%.0f"))
     ax.set_title(
         f"Effect on Non-focus Metrics When {focus_metric} Improves",
         fontsize=14,
     )
-    ax.tick_params(axis="x", labelrotation=22)
+    ax.set_xticks(positions)
+    ax.set_xticklabels([""] * len(positions))
+    ax.tick_params(axis="x", length=0)
     ax.grid(axis="y", alpha=0.25)
 
-    # Add a compact legend-like annotation for color meaning.
-    ax.text(
-        0.01,
-        0.98,
-        "Green: focus improved   |   Red: focus not improved",
-        transform=ax.transAxes,
-        va="top",
-        ha="left",
-        fontsize=10,
-        color="#333333",
+    # Bottom legend layout: bbox_to_anchor controls its vertical distance from the plot.
+    fig.legend(
+        handles=metric_legend_handles(affected_metrics),
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.01),
+        ncol=len(affected_metrics),
+        frameon=False,
     )
-
-    fig.tight_layout()
+    fig.tight_layout(rect=[0, 0.07, 1, 1])
     fig.savefig(output_path, dpi=260)
     plt.close(fig)
 
@@ -647,14 +824,24 @@ def main() -> None:
     co_improvement_df = summary[["focus_metric", "affected_metric", "p_affected_improved_if_focus_improved"]].rename(
         columns={"p_affected_improved_if_focus_improved": "value"}
     )
+    co_improvement_df["value"] *= 100.0
     plot_heatmap(
         matrix_df=co_improvement_df,
         metrics=metrics,
-        title="P(Affected Improves | Focus Improves)",
-        colorbar_label="Probability",
+        title="",
+        colorbar_label=r"$p_{\mathrm{focus\ improved}}$ [%]",
         output_path=output_dir / "heatmap_co_improvement.png",
         cmap="viridis",
-        value_fmt=".2f",
+        value_fmt=".0f",
+        figsize=(85 / 25.4, 85 / 40),
+        metric_labels=HEATMAP_METRIC_LABELS,
+        x_label_rotation=90,
+        font_size=8,
+        axes_bounds=(0.15, 0.49, 0.65, 0.50),
+        colorbar_bounds=(0.82, 0.57, 0.04, 0.31),
+        x_axis_label="Affected metric",
+        y_axis_label="Focus metric",
+        legend_labels=HEATMAP_LEGEND_LABELS,
     )
 
     relative_effect_df = summary[["focus_metric", "affected_metric", "median_rel_delta_if_focus_improved"]].rename(

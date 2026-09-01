@@ -1,0 +1,6 @@
+-i design_t1 -m sd   	-n 0 -d worst -r 0.2 -o verbose -v ms msw fe            -sim dl sd
+-i design_t2 -m sd    	-n 0 -d worst -r 0.2 -o verbose -v ms msw fe            -sim dl sd
+-i design_t7 -m sd    	-n 0 -d worst -r 0.2 -o verbose -v ms msw fe            -sim dl sd
+-i design_t10 -m sd    	-n 0 -d worst -r 0.2 -o verbose -v ms msw fe            -sim dl sd
+-i design_t13 -m sd    	-n 0 -d worst -r 0.2 -o verbose -v ms msw fe            -sim dl sd
+-i design_t14 -m sd    	-n 0 -d worst -r 0.2 -o verbose -v ms msw fe            -sim dl sd

@@ -10,7 +10,7 @@ echo "for ./main with the following input arguments:"
 EXECUTABLE="./main"
 
 # Define the input arguments file
-INPUT_FILE="input_args.txt"
+INPUT_FILE="input_args_dl.txt"
 
 # Output the content of the input arguments to the terminal
 CONTENT=$(<$INPUT_FILE)
