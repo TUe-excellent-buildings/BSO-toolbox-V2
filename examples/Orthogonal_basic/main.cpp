@@ -32,7 +32,6 @@ int main(int argc, char* argv[])
 
  // output result of the analysis
  std::cout << "ADF building score: " << DL.getTotalResults().mADFBuilding << std::endl;
- std::cout << "ADF building score inverse for use during optimization: " << DL.getTotalResults().mADFBuildingInverse << std::endl;
  std::cout << "NEN building score: " << DL.getTotalResults().mTotalScore << std::endl;
 
  // use the default structural design grammar to create a structural

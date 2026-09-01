@@ -25,9 +25,12 @@
 #include <bso/grammar/grammar.hpp>
 #include <bso/visualization/visualization.hpp>
 
+#include <bso/optimizers/utility/grammar_registry.hpp>
 #include <bso/optimizers/scdp/performance_evaluator.hpp>
 
 namespace bso { namespace optimizers { namespace scdp {
+
+using namespace bso::optimizers::utility;
 
 scdp_optimizer::scdp_optimizer(scdp_config config)
         : mConfig(std::move(config)),
@@ -214,15 +217,33 @@ void scdp_optimizer::getDesignResults()
             mDesignPerformances.back()(idx) = std::numeric_limits<double>::quiet_NaN();
         }
         
-        // Step 2, generate SD and BP models and evaluate them.
+        // Step 2, generate CF model with window geometry grammar if window handling is enabled.
         std::vector<spatial_design::cf_building> cf;
-        if(mConfig.getRunDLSimulation()){cf.push_back(spatial_design::cf_building(mMSDesigns.back(), mConfig.getDLSettingsFile(), 1e-6));}
-        else {cf.push_back(spatial_design::cf_building(mMSDesigns.back(),1e-6));}
+        if(mConfig.getIncludeWindow())
+        {
+            const auto& geomChoice = mConfig.getWindowGeomGrammarChoice();
+            cf.push_back(lookupGrammar(windowGeomGrammarRegistry(), geomChoice, "window geometry")(
+                mMSDesigns.back(), mConfig.getWindowGeomSettingsFile(), 1e-6));
+        }
+        else
+        {
+            cf.push_back(spatial_design::cf_building(mMSDesigns.back(), 1e-6));
+        }
         mOutputManager.out("Initialized conformal model",true,true,mConfig.getVerbose());
 
         // Step 3, generate grammar
         grammar::grammar grm(cf.back());
         mOutputManager.out("Initialized grammar",true,true,mConfig.getVerbose());
+
+        // Step 4, apply window grammar to identify which rectangles are windows.
+        // This must be done before running any disciplinary grammars (DL, SD, BP)
+        // so they all see the correct window flags in rectangle_properties.
+        if(mConfig.getIncludeWindow())
+        {
+            const std::string& gramChoice = mConfig.getWindowGrammarChoice();
+            lookupGrammar(windowGrammarRegistry(), gramChoice, "window")(grm);
+            mOutputManager.out("Applied window grammar: " + gramChoice, true, true, mConfig.getVerbose());
+        }
 
         // Step 4, get data for export and analysis
         std::vector<bso::utilities::geometry::quadrilateral> exteriorSurfaces = grm.getExteriorQuadrilaterals();
@@ -236,21 +257,17 @@ void scdp_optimizer::getDesignResults()
         double dlResult1 = 0.0;
         double dlResult2 = 0.0;
         
-        // CONDITIONAL: Only run DL simulation if needed
-        // This is ran first as the windows created in the DL grammar turns 
-        // the boolian of windows on or off in the rectangular_properties objects
-        // Which is utilized in the SD and BP grammar to determine whether a rectangle is a window.
+        // CONDITIONAL: Only run disciplinary simulations if needed
+        // All simulations (DL, SD, BP) now see the window flags pre-computed by the window grammar
         if(mConfig.getRunDLSimulation())
         {
-            // Step 3, generate DL
-            // Build an explicit folder path for this daylight run so
-            // that all Radiance files live inside the SCDP result
-            // directory, grouped per iteration.
+            // Step 3, generate DL using configured grammar choice
+            const std::string& dlGramChoice = mConfig.getDLGrammarChoice();
             const std::string& resultDir = mOutputManager.getResultDir();
             std::string dlFolder = resultDir + "/Iteration_" + std::to_string(mCurrentIteration);
-            mDLModelLast.clear(); // Clear the vector to free memory from the previous iteration's model before generating a new one, since DL models can be quite large and we only need to keep the latest one for the next iteration's modifications.
-            mDLModelLast.push_back(bso::daylight::dl_model(grm.dl_grammar<grammar::DEFAULT_DL_GRAMMAR>(mConfig.getDLSettingsFile(), dlFolder)));
-            mOutputManager.out("Generated daylight model",true,true,mConfig.getVerbose(), true);
+            mDLModelLast.clear();
+            mDLModelLast.push_back(lookupGrammar(dlGrammarRegistry(), dlGramChoice, "daylighting")(grm, mConfig.getDLSettingsFile(), dlFolder));
+            mOutputManager.out("Generated daylight model (grammar: " + dlGramChoice + ")",true,true,mConfig.getVerbose(), true);
             
             // Step 4, evaluate DL and store results
             if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("pre DL analysis");}
@@ -275,10 +292,11 @@ void scdp_optimizer::getDesignResults()
         // CONDITIONAL: Only run SD simulation if needed
         if(mConfig.getRunSDSimulation())
         {
-            // Step 3, generate SD
-            mSDModelLast.clear(); // Clear the vector to free memory from the previous iteration's model before generating a new one, since SD models can be quite large and we only need to keep the latest one for the next iteration's modifications.
-            mSDModelLast.push_back(bso::structural_design::sd_model(grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(mConfig.getSDSettingsFile())));
-            mOutputManager.out("Generated structural model",true,true,mConfig.getVerbose());
+            // Step 3, generate SD using configured grammar choice
+            const std::string& sdGramChoice = mConfig.getSDGrammarChoice();
+            mSDModelLast.clear();
+            mSDModelLast.push_back(lookupGrammar(sdGrammarRegistry(), sdGramChoice, "structural design")(grm, mConfig.getSDSettingsFile()));
+            mOutputManager.out("Generated structural model (grammar: " + sdGramChoice + ")",true,true,mConfig.getVerbose());
             
             // Step 4, evaluate SD and store results
             if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("pre SD analysis");}
@@ -301,10 +319,11 @@ void scdp_optimizer::getDesignResults()
         // CONDITIONAL: Only run BP simulation if needed
         if(mConfig.getRunBPSimulation())
         {
-            // Step 5, generate BP
-            mBPModelLast.clear(); // Clear the vector to free memory from the previous iteration's model before generating a new one, since BP models can be quite large and we only need to keep the latest one for the next iteration's modifications.
-            mBPModelLast.push_back(bso::building_physics::bp_model(grm.bp_grammar<grammar::DEFAULT_BP_GRAMMAR>(mConfig.getBPSettingsFile())));
-            mOutputManager.out("Generated building physics model",true,true,mConfig.getVerbose());
+            // Step 5, generate BP using configured grammar choice
+            const std::string& bpGramChoice = mConfig.getBPGrammarChoice();
+            mBPModelLast.clear();
+            mBPModelLast.push_back(lookupGrammar(bpGrammarRegistry(), bpGramChoice, "building physics")(grm, mConfig.getBPSettingsFile()));
+            mOutputManager.out("Generated building physics model (grammar: " + bpGramChoice + ")",true,true,mConfig.getVerbose());
             
             // Step 6, evaluate BP and store results
             if(mConfig.getLogMemoryUsage()){mOutputManager.log_memory_usage("pre BP analysis");}
@@ -455,19 +474,33 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
     std::vector<utilities::data_point> intermediateSpaceResults;
     try
     {
-        // Step 1, generate SD and BP models and evaluate them.
-        // Use the same setup as in getDesignResults: when DL simulation
-        // is enabled, construct the conformal model with the DL settings
-        // file so that window definitions are available; otherwise use
-        // the simpler constructor.
+        // Step 1, generate conformal model with window geometry grammar if window handling is enabled
+        // Use the same setup as in getDesignResults
         std::vector<spatial_design::cf_building> cf;
-        if (mConfig.getRunDLSimulation()){cf.push_back(spatial_design::cf_building(ms, mConfig.getDLSettingsFile(), 1e-6));}
-        else{cf.push_back(spatial_design::cf_building(ms, 1e-6));}
+        if(mConfig.getIncludeWindow())
+        {
+            const auto& geomChoice = mConfig.getWindowGeomGrammarChoice();
+            cf.push_back(lookupGrammar(windowGeomGrammarRegistry(), geomChoice, "window geometry")(
+                ms, mConfig.getWindowGeomSettingsFile(), 1e-6));
+        }
+        else
+        {
+            cf.push_back(spatial_design::cf_building(ms, 1e-6));
+        }
         mOutputManager.out("Initialized conformal model",true,true,mConfig.getVerbose());
 
         // Step 2, generate grammar
         grammar::grammar grm(cf.back());
         mOutputManager.out("Initialized grammar",true,true,mConfig.getVerbose());
+
+        // Apply window grammar to identify which rectangles are windows.
+        // This must be done before running any disciplinary grammars (DL, SD, BP)
+        if(mConfig.getIncludeWindow())
+        {
+            const std::string& gramChoice = mConfig.getWindowGrammarChoice();
+            lookupGrammar(windowGrammarRegistry(), gramChoice, "window")(grm);
+            mOutputManager.out("Applied window grammar: " + gramChoice, true, true, mConfig.getVerbose());
+        }
 
         // get data to retrun for intermediate result not stored in member variables.        
         double sdResult = 0.0;
@@ -485,11 +518,12 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
 
         if(dlAvailable && objective != "weighted")
         {
-            // Step 3, generate DL
+            // Step 3, generate DL using configured grammar choice
+            const std::string& dlGramChoice = mConfig.getDLGrammarChoice();
             const std::string& resultDir = mOutputManager.getResultDir();
             std::string dlFolder = resultDir + "/Iteration_" + std::to_string(mCurrentIteration);
-            bso::daylight::dl_model dl = grm.dl_grammar<grammar::DEFAULT_DL_GRAMMAR>(mConfig.getDLSettingsFile(), dlFolder);
-            mOutputManager.out("Generated intermediate daylight model",true,true,mConfig.getVerbose());
+            bso::daylight::dl_model dl = lookupGrammar(dlGrammarRegistry(), dlGramChoice, "daylighting")(grm, mConfig.getDLSettingsFile(), dlFolder);
+            mOutputManager.out("Generated intermediate daylight model (grammar: " + dlGramChoice + ")",true,true,mConfig.getVerbose());
             if(objective != "dl") mOutputManager.out("Note: this is to insert the window definition in sd or bp analysis",true,true,mConfig.getVerbose());
             if(objective == "dl")
             {
@@ -503,9 +537,10 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
         }
         if(objective == "sd" && sdAvailable)
         {
-            // Step 3, generate SD
-            bso::structural_design::sd_model sd = grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(mConfig.getSDSettingsFile());
-            mOutputManager.out("Generated intermediate structural model",true,true,mConfig.getVerbose());
+            // Step 3, generate SD using configured grammar choice
+            const std::string& sdGramChoice = mConfig.getSDGrammarChoice();
+            bso::structural_design::sd_model sd = lookupGrammar(sdGrammarRegistry(), sdGramChoice, "structural design")(grm, mConfig.getSDSettingsFile());
+            mOutputManager.out("Generated intermediate structural model (grammar: " + sdGramChoice + ")",true,true,mConfig.getVerbose());
             
             // Step 4, evaluate SD and store results
             sd.analyze();
@@ -516,9 +551,10 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
         }
         if(objective == "bp" && bpAvailable)
         {
-            // Step 3, generate BP
-            bso::building_physics::bp_model bp = grm.bp_grammar<grammar::DEFAULT_BP_GRAMMAR>(mConfig.getBPSettingsFile());
-            mOutputManager.out("Generated intermediate building physics model",true,true,mConfig.getVerbose());
+            // Step 3, generate BP using configured grammar choice
+            const std::string& bpGramChoice = mConfig.getBPGrammarChoice();
+            bso::building_physics::bp_model bp = lookupGrammar(bpGrammarRegistry(), bpGramChoice, "building physics")(grm, mConfig.getBPSettingsFile());
+            mOutputManager.out("Generated intermediate building physics model (grammar: " + bpGramChoice + ")",true,true,mConfig.getVerbose());
             
             // Step 4, evaluate BP and store results
             bp.simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
@@ -529,15 +565,21 @@ std::vector<utilities::data_point> scdp_optimizer::getIntermediateResults(spatia
         }
         if(objective == "weighted")
         {
-            // Step 3, generate DL
+            // Step 3, generate DL, SD, BP using configured grammar choices
+            const std::string& dlGramChoice = mConfig.getDLGrammarChoice();
+            const std::string& sdGramChoice = mConfig.getSDGrammarChoice();
+            const std::string& bpGramChoice = mConfig.getBPGrammarChoice();
+            
             const std::string& resultDir = mOutputManager.getResultDir();
             std::string dlFolder = resultDir + "/Iteration_" + std::to_string(mCurrentIteration);
-            bso::daylight::dl_model dl = grm.dl_grammar<grammar::DEFAULT_DL_GRAMMAR>(mConfig.getDLSettingsFile(), dlFolder);
-            mOutputManager.out("Generated intermediate daylight model",true,true,mConfig.getVerbose());
-            bso::structural_design::sd_model sd = grm.sd_grammar<grammar::DEFAULT_SD_GRAMMAR>(mConfig.getSDSettingsFile());
-            mOutputManager.out("Generated intermediate structural model",true,true,mConfig.getVerbose());
-            bso::building_physics::bp_model bp = grm.bp_grammar<grammar::DEFAULT_BP_GRAMMAR>(mConfig.getBPSettingsFile());
-            mOutputManager.out("Generated intermediate building physics model",true,true,mConfig.getVerbose());
+            bso::daylight::dl_model dl = lookupGrammar(dlGrammarRegistry(), dlGramChoice, "daylighting")(grm, mConfig.getDLSettingsFile(), dlFolder);
+            mOutputManager.out("Generated intermediate daylight model (grammar: " + dlGramChoice + ")",true,true,mConfig.getVerbose());
+            
+            bso::structural_design::sd_model sd = lookupGrammar(sdGrammarRegistry(), sdGramChoice, "structural design")(grm, mConfig.getSDSettingsFile());
+            mOutputManager.out("Generated intermediate structural model (grammar: " + sdGramChoice + ")",true,true,mConfig.getVerbose());
+            
+            bso::building_physics::bp_model bp = lookupGrammar(bpGrammarRegistry(), bpGramChoice, "building physics")(grm, mConfig.getBPSettingsFile());
+            mOutputManager.out("Generated intermediate building physics model (grammar: " + bpGramChoice + ")",true,true,mConfig.getVerbose());
             if(dlAvailable)
             {
                 // Step 4, evaluate DL and store results

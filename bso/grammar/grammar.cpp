@@ -59,6 +59,11 @@ grammar::grammar(const spatial_design::cf_building& cf)
 	{
 		mWindowsPerSpace = mCFBuilding.getWindowConstrainsPerSpaceTP();	
 	}
+
+	// NOTE: Window grammar is optional. Users can apply it explicitly via:
+	// grammar.applyWindowGrammar<DEFAULT_WINDOW_GRAMMAR>();
+	// Or apply any custom window grammar via:
+	// grammar.applyWindowGrammar<CUSTOM_GRAMMAR_TYPE>();
 } // ctor()
 
 grammar::~grammar()
@@ -74,6 +79,17 @@ grammar::~grammar()
 	for (auto& i : mSurfaceProperties) delete i.second;
 	for (auto& i : mSpaceProperties) delete i.second;
 } // dtor()
+
+// Template implementation of applyWindowGrammar<T>(), so users can select which window grammar to apply by type.
+// Selects which window grammar implementation to use from: /BSO-toolbox-V2/bso/grammar/window_grammars.
+// Called upon by, for example: grammar.applyWindowGrammar<DEFAULT_WINDOW_GRAMMAR>(), or any other custom grammar type.
+// To implement a new window grammar, put a new file in: ~/BSO-toolbox-V2/bso/grammar/window_grammars.
+// Then include it into grammar.hpp and call upon it via: grammar.applyWindowGrammar<YOUR_GRAMMAR_TYPE>();
+template <typename T>
+void grammar::applyWindowGrammar()
+{
+	this->window_grammar<T>();
+}
 
 std::vector<bso::utilities::geometry::quadrilateral> grammar::getExteriorWalls()
 {

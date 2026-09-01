@@ -7,6 +7,8 @@
 
 namespace bso { namespace grammar {
 
+// Forward declaration of default window grammar (recognizes which rectangles are windows)
+class DEFAULT_WINDOW_GRAMMAR;
 
 #ifdef SD_MODEL_HPP
 class DEFAULT_SD_GRAMMAR;
@@ -24,6 +26,10 @@ class grammar
 {
 private:
 	spatial_design::cf_building mCFBuilding;
+
+	// Internal window grammar implementation; called by applyWindowGrammar<T>()
+	template <typename T>
+	void window_grammar();
 
 	// rule sets
 	std::map<spatial_design::conformal::cf_vertex*, rule_set::vertex_property*> mVertexProperties;
@@ -147,6 +153,16 @@ public:
 	
 	#endif
 
+	// Optionally, apply a Window grammar which identifies which rectangles\triangles in mRectangleProperties 
+	// are windows and alters the mRectangleProperties accordingly. This should be done before any of 
+	// the disciplinary grammars are applied so each discipline can utilize the window information. 
+	// See example in BSO-toolbox-V2/examples/NOBSD_basic/main.cpp for usage.
+	// New window grammars can be added by creating a new file in /BSO-toolbox-V2/bso/grammar/window_grammars
+	// Forward declaring it in this grammar header and adding it to the include list below.
+	// Call upon a new grammar via: grammar.applyWindowGrammar<YOUR_GRAMMAR_TYPE>();
+	template <typename T = DEFAULT_WINDOW_GRAMMAR>
+	void applyWindowGrammar();
+
 	std::vector<bso::utilities::geometry::quadrilateral> getExteriorWalls();
 	std::vector<bso::utilities::geometry::quadrilateral> getExteriorQuadrilaterals();
 	std::vector<bso::spatial_design::conformal::cf_space*> getSpacesOnBoundary(bool spacesOnBottomIsAlsoBoundary = false);
@@ -155,6 +171,10 @@ public:
 } // namespace grammar
 } // namespace bso
 
+// Include window grammar specialization before grammar.cpp so template is defined before use
+#include <bso/grammar/window_grammars/default_window_grammar.cpp>
+
+// Include implementation after class definition and specializations are available
 #include <bso/grammar/grammar.cpp>
 
 #ifdef SD_MODEL_HPP

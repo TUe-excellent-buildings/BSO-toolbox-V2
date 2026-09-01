@@ -1,0 +1,2 @@
+# Window dimensions (WindowHeightRatio[%], WindowWidthRatio[%], StartLocationWindow[%])
+C, 60, 100, 10

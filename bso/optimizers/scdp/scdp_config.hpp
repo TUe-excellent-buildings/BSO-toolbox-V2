@@ -5,6 +5,12 @@
 #include <vector>
 #include <chrono>
 
+// Forward declarations for window geometry grammar selection
+namespace bso { namespace spatial_design { namespace conformal {
+    class DEFAULT_WINDOW_GEOMETRY_GRAMMAR;
+    template <typename T> struct window_geometry_grammar_tag;
+}}}
+
 namespace bso { namespace optimizers { namespace scdp {
 
 class scdp_config
@@ -19,9 +25,26 @@ private:
     std::string inputFile;
     std::string designName;
     unsigned int iterations = 0;
+
+    // Setting files for the different simulations and window geometry grammar
     std::string sd_settings_file = "settings/sd_settings.txt";
     std::string bp_settings_file = "settings/bp_settings.txt";
     std::string dl_settings_file = "settings/dl_settings.txt";
+    std::string window_geometry_settings_file = "settings/window_settings.txt";
+
+    // Simulation options - which simulations to run (boolean flags for performance)
+    bool runSDSimulation = true;  // default: run structural design
+    bool runBPSimulation = true;  // default: run building physics
+    bool runDLSimulation = true;  // default: run daylighting
+
+    // Grammar selections - stored as strings that can be assigned from command-line arguments
+    // Each grammar choice is applied at runtime in scdp_optimizer based on these strings
+    bool includeWindow = true;
+    std::string windowGeomGrammarChoice = "default_window_geometry";  // which conformal window partitioning grammar to use
+    std::string windowGrammarChoice = "default_window";              // which semantic window recognition grammar to use
+    std::string sdGrammarChoice = "default_sd";                      // which structural design grammar to use
+    std::string bpGrammarChoice = "default_bp";                      // which building physics grammar to use
+    std::string dlGrammarChoice = "default_dl";                      // which daylighting grammar to use
     
     // Modification according to which performance, see kModOptions for options
     std::string modification; // defines either the modification sequence (e.g. "sdbp" --> first iteration change design for sd, next for bp and repeat), only for a single objective perform the design modification (e.g. "sd", "bp", "dl") or which objectives are included in the weighted option.
@@ -34,11 +57,6 @@ private:
     std::string splitMethod = "longest";
     std::string addMethod = "worstAdapt";
     std::string iterationStrategy = "split_delete";
-
-    // Simulation options - which simulations to run (boolean flags for performance)
-    bool runSDSimulation = true;  // default: run structural design
-    bool runBPSimulation = true;  // default: run building physics
-    bool runDLSimulation = true;  // default: run daylighting
 
     // Parsed modification sequence (e.g. "sd", "sdbp", "bpdl" -> ["sd", "bp", "dl"]).
     // This is derived from the 'modification' string during argument parsing
@@ -99,6 +117,7 @@ private:
     const std::vector<std::string> kPerOptions = {"floorArea", "surfaceArea", "volumeArea", "nothing"};
     const std::vector<std::string> kIterationStrategyOptions = {"split_delete", "modification", "alternating"};
     const std::vector<std::string> kSimOptions = {"sd", "bp", "dl"};
+    const std::vector<std::string> kgramTypeOptions = {"window_geometry", "window", "structural", "building_physics", "daylight"};
 
     // Helper functions:
     std::string objectiveWeightsToString(const std::vector<double>& weights) const;
@@ -162,7 +181,18 @@ public:
     const std::string& getSDSettingsFile() const { return sd_settings_file; }
     const std::string& getBPSettingsFile() const { return bp_settings_file; }
     const std::string& getDLSettingsFile() const { return dl_settings_file; }
-};
+    const std::string& getWindowGeomSettingsFile() const { return window_geometry_settings_file; }
+
+    // Getter for grammar selection choices
+    // Returns strings specifying which grammars to apply at runtime in scdp_optimizer
+    bool getIncludeWindow() const { return includeWindow; }
+    const std::string& getWindowGeomGrammarChoice() const { return windowGeomGrammarChoice; }
+    const std::string& getWindowGrammarChoice() const { return windowGrammarChoice; }
+    const std::string& getSDGrammarChoice() const { return sdGrammarChoice; }
+    const std::string& getBPGrammarChoice() const { return bpGrammarChoice; }
+    const std::string& getDLGrammarChoice() const { return dlGrammarChoice; }
+
+}; // class scdp_config
 
 }}} // namespace bso::optimizers::scdp
 

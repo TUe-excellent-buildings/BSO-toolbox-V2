@@ -213,6 +213,10 @@ void scdp_config::parseArguments(int argc, char* argv[])
                                 <<   "\t" << "Example: -sim dl       (only daylighting)\n"
                                 <<   "\t" << "Example: -sim sd bp   (sd and bp)\n"
                                 <<   "\t" << "Example: -sim sd bp dl (all three)\n"
+                    << "-gram\t"<<   "\t" << "or --grammar, to specify which grammar to use for any of the steps:\n"
+                                <<   "\t" << "after type, such as 'window_geometry' type, insert string with grammar name:\n"
+                                <<   "\t" << "go to the grammar registry (bso/optimizers/utility/grammar_registry.hpp) for available options.\n"
+                                <<   "\t" << "Only one grammar per type can be specified.\n"
                     << "-sds\t" << "or --sdSettings, to specify the structural design settings file path.\n"
                                 <<   "\t" << "Expects a string path; default is settings/sd_settings.txt.\n"
                     << "-bps\t" << "or --bpSettings, to specify the building physics settings file path.\n"
@@ -898,6 +902,82 @@ void scdp_config::parseArguments(int argc, char* argv[])
                 throw std::invalid_argument(errorMessage.str());
             }
         }
+        else if (*arg == "-gram" || *arg == "--grammar")
+        {
+            bool foundGrammars = false;
+            while (++arg != args.end() && arg->operator[](0) != '-')
+            {
+                std::string gramType = *arg;
+                boost::trim(gramType);
+                if (std::find(kgramTypeOptions.begin(), kgramTypeOptions.end(), gramType) == kgramTypeOptions.end())
+                {
+                    std::stringstream errorMessage;
+                    errorMessage << "\nError, did not recognize: \"" << gramType << "\"\n"
+                                 << "as a type option for -gram or --grammar as a specification\n"
+                                 << "of a grammar type to use. Valid options are: \n";
+                                 for(const auto i: kgramTypeOptions)
+                                 {
+                                     errorMessage << i << ", ";
+                                 }
+                                 errorMessage << "\n";
+                    errorMessage << "Use -h or --help for help\n"
+                                 << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                    throw std::invalid_argument(errorMessage.str());
+                }
+                // If grammar type is found. Store the grammar choice string accordingly.
+                if (++arg != args.end() && arg->operator[](0) != '-')
+                {
+                    // Get the grammar type and choice specifier
+                    std::string gramType = *arg;  // e.g., "window_geometry", "window", etc.
+                    
+                    if (++arg != args.end() && arg->operator[](0) != '-')
+                    {
+                        std::string gramChoice = *arg;  // e.g., "default_window_geometry", "custom_window", etc.
+                        
+                        if (gramType == "window_geometry") windowGeomGrammarChoice = gramChoice;
+                        else if (gramType == "window") windowGrammarChoice = gramChoice;
+                        else if (gramType == "structural") sdGrammarChoice = gramChoice;
+                        else if (gramType == "building_physics") bpGrammarChoice = gramChoice;
+                        else if (gramType == "daylight") dlGrammarChoice = gramChoice;
+                    }
+                    else
+                    {
+                        std::stringstream errorMessage;
+                        errorMessage << "\nError, expected a grammar choice string after grammar type \n"
+                                        << gramType << " but got nothing "
+                                        << "for argument for -gram or --grammar. \n"
+                                        << "Use -h or --help for help\n"
+                                        << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                        throw std::invalid_argument(errorMessage.str());
+                    }
+                }
+                else
+                {
+                    std::stringstream errorMessage;
+                    errorMessage << "\nError, expected a grammar type identifier after \n"
+                                    << "-gram or --grammar but got nothing. \n"
+                                    << "Use -h or --help for help\n"
+                                    << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                    throw std::invalid_argument(errorMessage.str());
+                }
+                foundGrammars = true;
+            }
+            if (!foundGrammars)
+            {
+                std::stringstream errorMessage;
+                errorMessage << "\nError, expected at least one grammar type after\n"
+                             << "-gram or --grammar. Valid options are: \n";
+                                 for(const auto i: kgramTypeOptions)
+                                 {
+                                     errorMessage << i << ", ";
+                                 }
+                                 errorMessage << "\n";
+                errorMessage << "Use -h or --help for help\n"
+                             << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+                throw std::invalid_argument(errorMessage.str());
+            }
+            ++arg;
+        }
         else if (*arg == "-sds" || *arg == "--sdSettings")
         {
             if (++arg == args.end() || arg->operator[](0) == '-')
@@ -1100,6 +1180,24 @@ void scdp_config::validate() const
                      << "use -h or --help for help\n"
                      << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
         throw std::invalid_argument(errorMessage.str());    
+    }
+    if (includeWindow && windowGeomGrammarChoice.empty())
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\nError, cannot include window geometry when no window geometry grammar tag is specified.\n"
+                     << "Please provide a valid window geometry grammar tag.\n"
+                     << "use -h or --help for help\n"
+                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+        throw std::invalid_argument(errorMessage.str());    
+    }
+    if (includeWindow && windowGrammarChoice.empty())
+    {
+        std::stringstream errorMessage;
+        errorMessage << "\nError, cannot include window when no window grammar choice is specified.\n"
+                     << "Please provide a valid window grammar choice.\n"
+                     << "use -h or --help for help\n"
+                     << "(bso/optimizers/scdp/scdp_config.cpp)." << std::endl;
+        throw std::invalid_argument(errorMessage.str());
     }
 } // 
 
