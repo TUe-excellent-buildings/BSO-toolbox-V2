@@ -91,10 +91,10 @@ private:
 	bool mLegendHasShifted = false;
 public:
 	MS_Model(const spatial_design::ms_building& ms, const std::string& type = "spaces",
-					 const std::string& title = "ms_building", const double& linewidth = 1.0);
+					 const std::string& title = "ms_building", const double& linewidth = 1.0, const float& transparency = 0.3f);
 	MS_Model(const spatial_design::ms_N_building& msN, const std::string& type = "spaces",
-					 const std::string& title = "ms_N_building", const double& linewidth = 1.0);
-	MS_Model(const utilities::clustering& clus, const std::string& title = "ms_N_clustering", const double& linewidth = 1.0);
+					 const std::string& title = "ms_N_building", const double& linewidth = 1.0, const float& transparency = 0.3f);
+	MS_Model(const utilities::clustering& clus, const std::string& title = "ms_N_clustering", const double& linewidth = 1.0, const float& transparency = 0.3f);
 	MS_Model(const std::vector<utilities::data_point>& spaceData, const std::vector<double>& resultWeightFactor, float transparency =1.0, const std::string& title = "ms_N_performances", const double& linewidth = 1.0);
 
 	/*
@@ -124,59 +124,60 @@ public:
 
 MS_Model::MS_Model(const spatial_design::ms_building& ms,
 						const std::string& type /*= "spaces"*/, const std::string& title /*= "ms_building"*/,
-						const double& linewidth /*= 1.0*/)
+						const double& linewidth /*= 1.0*/, const float& transparency /*= 0.3f*/)
 {
+	// Default green color for spaces
 	lprops.width = linewidth;
 	lbprops.textcolor = rgba(0.0f, 0.0f, 0.0f, 1.0f);
 	mTitle = title;
-	pprops.ambient = rgba(0.1f, 0.5f, 0.1f, 0.3f);
-	pprops.diffuse = rgba(0.2f, 1.0f, 0.2f, 0.3f);
-	pprops.specular = rgba(0.2f, 1.0f, 0.2f, 0.3f);
+	pprops.ambient = rgba(0.1f, 0.5f, 0.1f, transparency);
+	pprops.diffuse = rgba(0.2f, 1.0f, 0.2f, transparency);
+	pprops.specular = rgba(0.2f, 1.0f, 0.2f, transparency);
 	pprops.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
 	pprops.shininess = 60.0f;
 	pprops.translucent = true;
 	pprops.twosided = true;
 
 	// orange/gold highlight with transparency, spaces with marker "highlightInVisualization" will be visualized with this color
-	ppropsHighlight.ambient = rgba(1.0f, 0.65f, 0.2f, 0.3f);
-	ppropsHighlight.diffuse = rgba(1.0f, 0.65f, 0.2f, 0.3f);
-	ppropsHighlight.specular = rgba(1.0f, 0.65f, 0.2f, 0.3f);
+	ppropsHighlight.ambient = rgba(1.0f, 0.65f, 0.2f, transparency);
+	ppropsHighlight.diffuse = rgba(1.0f, 0.65f, 0.2f, transparency);
+	ppropsHighlight.specular = rgba(1.0f, 0.65f, 0.2f, transparency);
 	ppropsHighlight.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
 	ppropsHighlight.shininess = 60.0f;
 	ppropsHighlight.translucent = true;
 	ppropsHighlight.twosided = true;
 
 	// Clear blue highlight with transparency, spaces with marker "highlightInVisualization1" will be visualized with this color
-	ppropsHighlight1.ambient = rgba(0.2f, 0.2f, 1.0f, 0.3f);
-	ppropsHighlight1.diffuse = rgba(0.2f, 0.2f, 1.0f, 0.3f);
-	ppropsHighlight1.specular = rgba(0.2f, 0.2f, 1.0f, 0.3f);
+	ppropsHighlight1.ambient = rgba(0.2f, 0.2f, 1.0f, transparency);
+	ppropsHighlight1.diffuse = rgba(0.2f, 0.2f, 1.0f, transparency);
+	ppropsHighlight1.specular = rgba(0.2f, 0.2f, 1.0f, transparency);
 	ppropsHighlight1.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
 	ppropsHighlight1.shininess = 60.0f;
 	ppropsHighlight1.translucent = true;
 	ppropsHighlight1.twosided = true;
 
 	// Magenta highlight with transparency, spaces with marker "highlightInVisualization2" will be visualized with this color
-	ppropsHighlight2.ambient = rgba(1.0f, 0.2f, 0.8f, 0.3f);
-	ppropsHighlight2.diffuse = rgba(1.0f, 0.2f, 0.8f, 0.3f);
-	ppropsHighlight2.specular = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.ambient = rgba(1.0f, 0.2f, 0.8f, transparency);
+	ppropsHighlight2.diffuse = rgba(1.0f, 0.2f, 0.8f, transparency);
+	ppropsHighlight2.specular = rgba(1.0f, 0.2f, 0.8f, transparency);
 	ppropsHighlight2.emission = rgba(1.0f, 0.2f, 0.8f, 0.3f);
 	ppropsHighlight2.shininess = 60.0f;
 	ppropsHighlight2.translucent = true;
 	ppropsHighlight2.twosided = true;
 
 	// yellow highlight with transparency, spaces with marker "highlightInVisualization3" will be visualized with this color
-	ppropsHighlight3.ambient = rgba(1.0f, 1.0f, 0.2f, 0.3f);
-	ppropsHighlight3.diffuse = rgba(1.0f, 1.0f, 0.2f, 0.3f);
-	ppropsHighlight3.specular = rgba(1.0f, 1.0f, 0.2f, 0.3f);
+	ppropsHighlight3.ambient = rgba(1.0f, 1.0f, 0.2f, transparency);
+	ppropsHighlight3.diffuse = rgba(1.0f, 1.0f, 0.2f, transparency);
+	ppropsHighlight3.specular = rgba(1.0f, 1.0f, 0.2f, transparency);
 	ppropsHighlight3.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
 	ppropsHighlight3.shininess = 60.0f;
 	ppropsHighlight3.translucent = true;
 	ppropsHighlight3.twosided = true;
 
 	// bright red highlight with transparency, spaces with marker "highlightInVisualization4" will be visualized with this color
-	ppropsHighlight4.ambient = rgba(1.0f, 0.2f, 0.2f, 0.3f);
-	ppropsHighlight4.diffuse = rgba(1.0f, 0.2f, 0.2f, 0.3f);
-	ppropsHighlight4.specular = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	ppropsHighlight4.ambient = rgba(1.0f, 0.2f, 0.2f, transparency);
+	ppropsHighlight4.diffuse = rgba(1.0f, 0.2f, 0.2f, transparency);
+	ppropsHighlight4.specular = rgba(1.0f, 0.2f, 0.2f, transparency);
 	ppropsHighlight4.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
 	ppropsHighlight4.shininess = 60.0f;
 	ppropsHighlight4.translucent = true;
@@ -303,61 +304,61 @@ MS_Model::MS_Model(const spatial_design::ms_building& ms,
 
 MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 						const std::string& type /*= "spaces"*/, const std::string& title /*= "ms_building"*/,
-						const double& linewidth /*= 1.0*/)
+						const double& linewidth /*= 1.0*/, const float& transparency /*= 0.3f*/)
 {
 	lprops.width = linewidth;
 	lbprops.textcolor = rgba(0.0f, 0.0f, 0.0f, 1.0f);
 	mTitle = title;
 
 	// Clear green highlight with transparency, default color of spaces
-	pprops.ambient = rgba(0.1f, 0.5f, 0.1f, 0.3f);
-	pprops.diffuse = rgba(0.2f, 1.0f, 0.2f, 0.3f);
-	pprops.specular = rgba(0.2f, 1.0f, 0.2f, 0.3f);
+	pprops.ambient = rgba(0.1f, 0.5f, 0.1f, transparency);
+	pprops.diffuse = rgba(0.2f, 1.0f, 0.2f, transparency);
+	pprops.specular = rgba(0.2f, 1.0f, 0.2f, transparency);
 	pprops.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
 	pprops.shininess = 60.0f;
 	pprops.translucent = true;
 	pprops.twosided = true;
 
 	// orange/gold highlight with transparency, spaces with marker "highlightInVisualization" will be visualized with this color
-	ppropsHighlight.ambient = rgba(1.0f, 0.65f, 0.2f, 0.3f);
-	ppropsHighlight.diffuse = rgba(1.0f, 0.65f, 0.2f, 0.3f);
-	ppropsHighlight.specular = rgba(1.0f, 0.65f, 0.2f, 0.3f);
+	ppropsHighlight.ambient = rgba(1.0f, 0.65f, 0.2f, transparency);
+	ppropsHighlight.diffuse = rgba(1.0f, 0.65f, 0.2f, transparency);
+	ppropsHighlight.specular = rgba(1.0f, 0.65f, 0.2f, transparency);
 	ppropsHighlight.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
 	ppropsHighlight.shininess = 60.0f;
 	ppropsHighlight.translucent = true;
 	ppropsHighlight.twosided = true;
 
 	// Clear blue highlight with transparency, spaces with marker "highlightInVisualization1" will be visualized with this color
-	ppropsHighlight1.ambient = rgba(0.2f, 0.2f, 1.0f, 0.3f);
-	ppropsHighlight1.diffuse = rgba(0.2f, 0.2f, 1.0f, 0.3f);
-	ppropsHighlight1.specular = rgba(0.2f, 0.2f, 1.0f, 0.3f);
+	ppropsHighlight1.ambient = rgba(0.2f, 0.2f, 1.0f, transparency);
+	ppropsHighlight1.diffuse = rgba(0.2f, 0.2f, 1.0f, transparency);
+	ppropsHighlight1.specular = rgba(0.2f, 0.2f, 1.0f, transparency);
 	ppropsHighlight1.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
 	ppropsHighlight1.shininess = 60.0f;
 	ppropsHighlight1.translucent = true;
 	ppropsHighlight1.twosided = true;
 
 	// Magenta highlight with transparency, spaces with marker "highlightInVisualization2" will be visualized with this color
-	ppropsHighlight2.ambient = rgba(1.0f, 0.2f, 0.8f, 0.3f);
-	ppropsHighlight2.diffuse = rgba(1.0f, 0.2f, 0.8f, 0.3f);
-	ppropsHighlight2.specular = rgba(1.0f, 0.2f, 0.8f, 0.3f);
-	ppropsHighlight2.emission = rgba(1.0f, 0.2f, 0.8f, 0.3f);
+	ppropsHighlight2.ambient = rgba(1.0f, 0.2f, 0.8f, transparency);
+	ppropsHighlight2.diffuse = rgba(1.0f, 0.2f, 0.8f, transparency);
+	ppropsHighlight2.specular = rgba(1.0f, 0.2f, 0.8f, transparency);
+	ppropsHighlight2.emission = rgba(1.0f, 0.2f, 0.8f, 0.0f);
 	ppropsHighlight2.shininess = 60.0f;
 	ppropsHighlight2.translucent = true;
 	ppropsHighlight2.twosided = true;
 
 	// yellow highlight with transparency, spaces with marker "highlightInVisualization3" will be visualized with this color
-	ppropsHighlight3.ambient = rgba(1.0f, 1.0f, 0.2f, 0.3f);
-	ppropsHighlight3.diffuse = rgba(1.0f, 1.0f, 0.2f, 0.3f);
-	ppropsHighlight3.specular = rgba(1.0f, 1.0f, 0.2f, 0.3f);
+	ppropsHighlight3.ambient = rgba(1.0f, 1.0f, 0.2f, transparency);
+	ppropsHighlight3.diffuse = rgba(1.0f, 1.0f, 0.2f, transparency);
+	ppropsHighlight3.specular = rgba(1.0f, 1.0f, 0.2f, transparency);
 	ppropsHighlight3.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
 	ppropsHighlight3.shininess = 60.0f;
 	ppropsHighlight3.translucent = true;
 	ppropsHighlight3.twosided = true;
 
 	// bright red highlight with transparency, spaces with marker "highlightInVisualization4" will be visualized with this color
-	ppropsHighlight4.ambient = rgba(1.0f, 0.2f, 0.2f, 0.3f);
-	ppropsHighlight4.diffuse = rgba(1.0f, 0.2f, 0.2f, 0.3f);
-	ppropsHighlight4.specular = rgba(1.0f, 0.2f, 0.2f, 0.3f);
+	ppropsHighlight4.ambient = rgba(1.0f, 0.2f, 0.2f, transparency);
+	ppropsHighlight4.diffuse = rgba(1.0f, 0.2f, 0.2f, transparency);
+	ppropsHighlight4.specular = rgba(1.0f, 0.2f, 0.2f, transparency);
 	ppropsHighlight4.emission = rgba(0.0f, 0.0f, 0.0f, 0.0f);
 	ppropsHighlight4.shininess = 60.0f;
 	ppropsHighlight4.translucent = true;
@@ -480,7 +481,7 @@ MS_Model::MS_Model(const spatial_design::ms_N_building& msN,
 	pbsp = new random_bsp(polygons);
 } //
 
-MS_Model::MS_Model(const utilities::clustering& clus, const std::string& title /*= "ms_N_building"*/, const double& linewidth /*= 1.0*/)
+MS_Model::MS_Model(const utilities::clustering& clus, const std::string& title /*= "ms_N_building"*/, const double& linewidth /*= 1.0*/, const float& transparency /*= 0.3f*/)
 {
 	// Get and check initial data for validity for this function
 	lbprops.textcolor = rgba(0.0f, 0.0f, 0.0f, 1.0f);
@@ -499,7 +500,7 @@ MS_Model::MS_Model(const utilities::clustering& clus, const std::string& title /
 	// Initiate variables
 	lprops.width = linewidth;
 	mTitle = title;
-	float f1, f2, f3, f4 = 0.3;
+	float f1, f2, f3, f4 = transparency;
 
 	// Define color for cluster and insert the spaces of that cluster in that color
 	polygon_props temp;

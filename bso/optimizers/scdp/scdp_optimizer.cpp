@@ -361,6 +361,11 @@ void scdp_optimizer::getDesignResults()
                 visualization::visualize(mBPModelLast.back());
                 if(mConfig.getBpVisualWriteFile()) bpVisualAlreadyWritten = true;
             }
+            if (visOption == "rc" && mConfig.getRunBPSimulation()) 
+            {
+                visualization::visualize(mBPModelLast.back(), "rc_model", "rc_model", false);
+                if(mConfig.getBpVisualWriteFile()) bpVisualAlreadyWritten = true;
+            }
             if (visOption == "dl" && mConfig.getRunDLSimulation())
             {
                 visualization::visualize(mDLModelLast.back(), "", "dl_model", mConfig.getDlVisualWriteFile(), mOutputManager.getVisualizationSubDir() + "/dl_iteration_" + std::to_string(mCurrentIteration) + ".txt");
@@ -715,9 +720,37 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
         
         // Step 6, delete spaces
         deleteSpaces(newMS, performances, modificationType, distopianPoint);
+
+        // Step 6a, Export after_modification_ms visualizations
+        if (!mConfig.getVisualizations().empty()) for (const auto& visOption : mConfig.getVisualizations())
+        {
+            if (visOption == "ms") visualization::visualize(newMS,"","After_del_ms",4.0);
+        }
+        if (mConfig.getMsFiles())
+        {
+            std::stringstream fileNameStream;
+            fileNameStream << mOutputManager.getVisualizationSubDir() << "ms_"
+                            << mCurrentIteration << "_After_deleteSpace";
+            std::string fileName = fileNameStream.str();
+            newMS.writeToFile(fileName);
+        }
         
         // Step 7, Enforce constrains on BSD
         enforceConstraints(newMS);
+
+        // Step 7b, Export after_modification_ms visualizations
+        if (!mConfig.getVisualizations().empty()) for (const auto& visOption : mConfig.getVisualizations())
+        {
+            if (visOption == "ms") visualization::visualize(newMS,"","After_FConstr_ms",4.0);
+        }
+        if (mConfig.getMsFiles())
+        {
+            std::stringstream fileNameStream;
+            fileNameStream << mOutputManager.getVisualizationSubDir() << "ms_"
+                            << mCurrentIteration << "_After_enforceConstraints_ms";
+            std::string fileName = fileNameStream.str();
+            newMS.writeToFile(fileName);
+        }
 
         // Step 8, perform the specified modification methods
         if(mConfig.getAddMethod() == "worstAdapt")
@@ -825,19 +858,33 @@ void scdp_optimizer::runModificationIteration(const std::string& modificationTyp
         // Step 10, Export after_modification_ms visualizations
         if (!mConfig.getVisualizations().empty()) for (const auto& visOption : mConfig.getVisualizations())
         {
-            if (visOption == "ms") visualization::visualize(newMS,"","After_del_Mod_ms",4.0);
+            if (visOption == "ms") visualization::visualize(newMS,"","After_Mod_ms",4.0);
         }
         if (mConfig.getMsFiles())
         {
             std::stringstream fileNameStream;
             fileNameStream << mOutputManager.getVisualizationSubDir() << "ms_"
-                            << mCurrentIteration << "_After_deleteSpace&addModification_ms";
+                            << mCurrentIteration << "_After_addModification_ms";
             std::string fileName = fileNameStream.str();
             newMS.writeToFile(fileName);
         }
 
         // Step 11, recover number of spaces to match the initial design.
         recoverNrSpaces(newMS, performances, mCurrentIteration, mConfig.getObjectiveWeights(), modificationType);
+
+        // Step 11a, Export after_modification_ms visualizations
+        if (!mConfig.getVisualizations().empty()) for (const auto& visOption : mConfig.getVisualizations())
+        {
+            if (visOption == "ms") visualization::visualize(newMS,"","After_recoverNrSpaces_ms",4.0);
+        }
+        if (mConfig.getMsFiles())
+        {
+            std::stringstream fileNameStream;
+            fileNameStream << mOutputManager.getVisualizationSubDir() << "ms_"
+                            << mCurrentIteration << "_After_recoverNrSpaces_ms";
+            std::string fileName = fileNameStream.str();
+            newMS.writeToFile(fileName);
+        }
 
         // Step 16, scale spaces in x and y direction to recover initial conditions, i.e. floor area
         scaleDesign(newMS);

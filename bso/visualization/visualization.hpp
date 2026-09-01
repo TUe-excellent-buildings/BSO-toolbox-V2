@@ -40,9 +40,36 @@ void forcePThreadLink() {pthread_t t1; pthread_create(&t1,NULL,&simpleFunc,NULL)
 #include <bso/visualization/models/pn_building.hpp>
 
 #include <stdlib.h>
+#include <signal.h>
 
 namespace bso { namespace visualization
 {
+
+#ifdef SIGTSTP
+namespace
+{
+volatile sig_atomic_t shutdownRequested = 0;
+
+void requestShutdown(int signalNumber)
+{
+	(void)signalNumber;
+	shutdownRequested = 1;
+}
+
+void processShutdownRequest()
+{
+	if (shutdownRequested == 0)
+		return;
+
+	glutIdleFunc(nullptr);
+#ifdef GLUT_ACTION_ON_WINDOW_CLOSE
+	glutLeaveMainLoop();
+#else
+	exit(0);
+#endif
+}
+}
+#endif
 
 viewportmanager vpmanager;
 orbitalcamera   cam;
@@ -147,6 +174,11 @@ void initVisualization(int argc, char *argv[])
 	#ifdef GLUT_ACTION_ON_WINDOW_CLOSE
 		glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 	#endif
+
+	#ifdef SIGTSTP
+		signal(SIGTSTP, requestShutdown);
+		glutIdleFunc(processShutdownRequest);
+	#endif
 	
 	//maximize window (not fullscreen)
 	int scrw = glutGet(GLUT_SCREEN_WIDTH)/1.5,
@@ -177,19 +209,19 @@ void endVisualization()
 	glutMainLoop();
 } // end_visualization()
 
-void visualize(const spatial_design::ms_building& ms, const std::string& type = "spaces", const std::string& title = "ms_building", const double& lineWidth = 1.0)
+void visualize(const spatial_design::ms_building& ms, const std::string& type = "spaces", const std::string& title = "ms_building", const double& lineWidth = 1.0, const float& transparency = 0.3f)
 {
-	vpmanager.addviewport(new viewport(new MS_Model(ms, type, title,lineWidth)));
+	vpmanager.addviewport(new viewport(new MS_Model(ms, type, title,lineWidth, transparency)));
 }
 
-void visualize(const spatial_design::ms_N_building& msN, const std::string& type = "spaces", const std::string& title = "ms_N_building", const double& lineWidth = 1.0)
+void visualize(const spatial_design::ms_N_building& msN, const std::string& type = "spaces", const std::string& title = "ms_N_building", const double& lineWidth = 1.0, const float& transparency = 0.3f)
 {
-	vpmanager.addviewport(new viewport(new MS_Model(msN, type, title,lineWidth)));
+	vpmanager.addviewport(new viewport(new MS_Model(msN, type, title,lineWidth, transparency)));
 }
 
-void visualize(const utilities::clustering& clus, const std::string& title = "ms_N_clustering", const double& linewidth = 1.0)
+void visualize(const utilities::clustering& clus, const std::string& title = "ms_N_clustering", const double& linewidth = 1.0, const float& transparency = 0.3f)
 {
-	vpmanager.addviewport(new viewport(new MS_Model(clus, title, linewidth)));
+	vpmanager.addviewport(new viewport(new MS_Model(clus, title, linewidth, transparency)));
 }
 
 void visualize(const std::vector<utilities::data_point>& spaceData, const std::vector<double>& resultWeightFactor, float transparency = 1.0, const std::string& title = "ms_N_performances", const double& linewidth = 1.0)
@@ -215,9 +247,10 @@ void visualize(const spatial_design::cf_building& cf, std::string type, std::str
 #endif // CF_BUILDING_HPP
 
 #ifdef BP_MODEL_HPP
-void visualize(const bso::building_physics::bp_model& bp_model, const std::string& title = "bp_model")
+void visualize(const bso::building_physics::bp_model& bp_model, const std::string& type = "bp_model",
+							 const std::string& title = "bp_model", const bool& showValues = false)
 {
-	vpmanager.addviewport(new viewport(new BP_Model(bp_model,title)));
+	vpmanager.addviewport(new viewport(new BP_Model(bp_model,type,title,showValues)));
 }
 #endif // BP_MODEL_HPP
 

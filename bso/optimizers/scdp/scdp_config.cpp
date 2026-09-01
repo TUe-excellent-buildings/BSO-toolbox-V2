@@ -190,6 +190,7 @@ void scdp_config::parseArguments(int argc, char* argv[])
 								<<   "\t" << "\'sd\' for'\'Structural Design\',\n"
 								<< 	 "\t" << "\'fe\' for \'Finite Elements of the structural design model\' and \n"
 								<<   "\t" << "\'bp\' for the \'Building Physics model\'.\n"
+                                <<   "\t" << "\'rc\' for the \'RC Model\'.\n"
                                 <<   "\t" << "\'dl\' for the \'Daylight model\'.\n"
                                 <<   "\t" << "\'dlG\' for the \'Daylight model with grid visualization\'.\n"
                                 <<   "\t" << "\'dlD\' for the \'Daylight model with daylight factor visualization\'.\n"

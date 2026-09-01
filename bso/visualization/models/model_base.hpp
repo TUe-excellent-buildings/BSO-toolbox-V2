@@ -76,6 +76,15 @@ protected:
 								polygon_props* pprops, line_props* lprops, const double& size = 1.0,
 								std::string pprops_name = "", std::string lprops_name = "");
 
+	void addCube(std::list<polygon*> &plist, const bso::utilities::geometry::vertex& point,
+								polygon_props* pprops, line_props* lprops, const double& size = 1.0,
+								std::string pprops_name = "", std::string lprops_name = "");
+
+	void addSquarePrism(std::list<polygon*> &plist, const bso::utilities::geometry::vertex& point,
+								polygon_props* pprops, line_props* lprops, const double& size1 /*= 1.0*/, 
+								const double& size2 = 1.0, const double& size3 = 1.0, const bso::utilities::geometry::vector& axis = {1,0,0},
+								std::string pprops_name = "", std::string lprops_name = "");
+
 public:
 	model_base(const std::vector<std::pair<bso::utilities::geometry::vertex, bso::utilities::geometry::vector>>& cuttingPlanes = {});
 	virtual ~model_base() {}
@@ -435,6 +444,7 @@ void model_base::addLabel(std::list<label*>& llist, label_props *lbprops, const 
 	llist.push_back(new label(lbprops, text, store.get_vertex(pos)));
 }
 
+// Should in the future be a sphere, but for now a cube is used to represent a point in 3D space
 void model_base::addPoint(std::list<polygon*> &plist, const bso::utilities::geometry::vertex& point,
 										polygon_props* pprops, line_props* lprops, const double& size /*= 1.0*/,
 										std::string pprops_name /*= ""*/, std::string lprops_name /*= ""*/)
@@ -450,6 +460,63 @@ void model_base::addPoint(std::list<polygon*> &plist, const bso::utilities::geom
 		point + bso::utilities::geometry::vertex{ halfSize, -halfSize,  halfSize},
 		point + bso::utilities::geometry::vertex{ halfSize,  halfSize,  halfSize},
 		point + bso::utilities::geometry::vertex{-halfSize,  halfSize,  halfSize}
+	};
+	
+	bso::utilities::geometry::quad_hexahedron cube(cubeVertices);
+	this->addPolyhedron(plist, &cube, pprops, lprops, pprops_name, lprops_name);
+}
+
+void model_base::addCube(std::list<polygon*> &plist, const bso::utilities::geometry::vertex& point,
+										polygon_props* pprops, line_props* lprops, const double& size /*= 1.0*/,
+										std::string pprops_name /*= ""*/, std::string lprops_name /*= ""*/)
+{
+	// Create a small cube centered at the point
+	double halfSize = size / 2.0;
+	std::vector<bso::utilities::geometry::vertex> cubeVertices = {
+		point + bso::utilities::geometry::vertex{-halfSize, -halfSize, -halfSize},
+		point + bso::utilities::geometry::vertex{ halfSize, -halfSize, -halfSize},
+		point + bso::utilities::geometry::vertex{ halfSize,  halfSize, -halfSize},
+		point + bso::utilities::geometry::vertex{-halfSize,  halfSize, -halfSize},
+		point + bso::utilities::geometry::vertex{-halfSize, -halfSize,  halfSize},
+		point + bso::utilities::geometry::vertex{ halfSize, -halfSize,  halfSize},
+		point + bso::utilities::geometry::vertex{ halfSize,  halfSize,  halfSize},
+		point + bso::utilities::geometry::vertex{-halfSize,  halfSize,  halfSize}
+	};
+	
+	bso::utilities::geometry::quad_hexahedron cube(cubeVertices);
+	this->addPolyhedron(plist, &cube, pprops, lprops, pprops_name, lprops_name);
+}
+
+void model_base::addSquarePrism(std::list<polygon*> &plist, const bso::utilities::geometry::vertex& point,
+										polygon_props* pprops, line_props* lprops, const double& size1 /*= 1.0*/, 
+										const double& size2 /*= 1.0*/, const double& size3 /*= 1.0*/, const bso::utilities::geometry::vector& axis /*= {1,0,0}*/,
+										std::string pprops_name /*= ""*/, std::string lprops_name /*= ""*/)
+{
+	// Create a SquarePrism centered at the point, 
+	// oriented along the specified axis with its dimensions defined by size1, size2, and size3
+	// and its
+	bso::utilities::geometry::vector axisNormalized = axis;
+	axisNormalized.normalize();
+	// pick a reference axis that is not (anti-)parallel to axisNormalized, otherwise the cross product degenerates to zero
+	bso::utilities::geometry::vector refAxis({1,0,0});
+	if (fabs(axisNormalized.dot(refAxis)) > 1.0 - 1e-6) refAxis = bso::utilities::geometry::vector({0,1,0});
+	bso::utilities::geometry::vector perpendicularAxis1 = axisNormalized.cross(refAxis);
+	bso::utilities::geometry::vector perpendicularAxis2 = axisNormalized.cross(perpendicularAxis1);
+	perpendicularAxis1.normalize();
+	perpendicularAxis2.normalize();
+	bso::utilities::geometry::vector translate1 = axisNormalized * (size1 / 2.0);
+	bso::utilities::geometry::vector translate2 = perpendicularAxis1 * (size2 / 2.0);
+	bso::utilities::geometry::vector translate3 = perpendicularAxis2 * (size3 / 2.0);
+
+	std::vector<bso::utilities::geometry::vertex> cubeVertices = {
+		point + -translate1 - translate2 - translate3,
+		point +  translate1 - translate2 - translate3,
+		point +  translate1 + translate2 - translate3,
+		point + -translate1 + translate2 - translate3,
+		point + -translate1 - translate2 + translate3,
+		point +  translate1 - translate2 + translate3,
+		point +  translate1 + translate2 + translate3,
+		point + -translate1 + translate2 + translate3
 	};
 	
 	bso::utilities::geometry::quad_hexahedron cube(cubeVertices);

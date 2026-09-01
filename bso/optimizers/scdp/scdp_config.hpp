@@ -91,7 +91,7 @@ private:
     std::string setSubDirName = "";
 
     // Define the options for the different parameters, these are used for validation and parsing of program arguments.
-    const std::vector<std::string> kVisOptions = {"ms", "msc", "msw", "tp", "tr", "de", "bo", "sd", "fe", "bp", "dl", "dlG", "dlD", "dlI", "dlADF", "dlNEN"};
+    const std::vector<std::string> kVisOptions = {"ms", "msc", "msw", "tp", "tr", "de", "bo", "sd", "fe", "bp", "rc", "dl", "dlG", "dlD", "dlI", "dlADF", "dlNEN"};
     const std::vector<std::string> kModBaseOptions = {"sd", "bp", "dl"}; // Base modification tokens; combinations (e.g. "sdbp", "bpsddl") are parsed dynamically.
     const std::vector<std::string> kDelOptions = {"worst", "cluster", "off"};
     const std::vector<std::string> kSplitOptions = {"longest", "performance", "off"};

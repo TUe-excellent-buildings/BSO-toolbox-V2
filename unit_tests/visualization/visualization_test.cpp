@@ -240,7 +240,7 @@ BOOST_AUTO_TEST_SUITE( visualize_ms_building )
 			}
 			counter++;
 		}
-		bso::visualization::visualize(bp,"test_model_building_physics_visualization");
+		bso::visualization::visualize(bp,"bp_model","test_model_building_physics_visualization");
 	}
 	
 	BOOST_AUTO_TEST_CASE( end_visualization )

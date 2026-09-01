@@ -325,8 +325,13 @@ void grammar::mReadBPSettings(const std::string& fileName)
 		{
 			tempVisProps = std::pair<std::string, Eigen::Vector4d>(visSearch->first, visSearch->second);
 		}
-		assembledGlazings.emplace(i.first.first,bso::building_physics::properties::glazing(
-			i.first.first,i.second.getU(), i.second.getCapacitancePerArea(), tempVisProps));
+		auto assembledGlazing = bso::building_physics::properties::glazing(
+			i.first.first, i.second.getU(), i.second.getCapacitancePerArea(), tempVisProps);
+		assembledGlazings.emplace(i.first.first, assembledGlazing);
+		if (i.first.first == "1")
+		{
+			mGlazingDefault = assembledGlazing;
+		}
 	}
 
 	for (const auto& i : wallTypeIDs)
