@@ -38,6 +38,8 @@ enum class SpaceIdMode
 	Off
 };
 
+float transparency = 0.3f;
+
 static void printUsage(const char* executableName)
 {
 	std::cerr << "Usage: " << executableName
@@ -535,6 +537,7 @@ int main(int argc, char* argv[])
 				return 1;
 			}
 
+			
 			SpaceIdMode parsedSpaceIdMode;
 			if (!parseSpaceIdValue(argv[++i], parsedSpaceIdMode))
 			{
@@ -543,6 +546,25 @@ int main(int argc, char* argv[])
 				return 1;
 			}
 			spaceIdMode = parsedSpaceIdMode;
+			continue;
+		}
+
+		if (argument == "--transparency" || argument == "--transparency=")
+		{
+			if (i + 1 >= argc)
+			{
+				std::cerr << "Missing value after " << argument << std::endl;
+				printUsage(argv[0]);
+				return 1;
+			}
+
+			transparency = std::stof(argv[++i]);
+			if (transparency < 0.0f || transparency > 1.0f)
+			{
+				std::cerr << "Invalid transparency value: " << argv[i] << ". Must be between 0.0 and 1.0." << std::endl;
+				printUsage(argv[0]);
+				return 1;
+			}
 			continue;
 		}
 
@@ -635,7 +657,7 @@ int main(int argc, char* argv[])
 					{
 						const std::string plainType =
 							(spaceIdMode == SpaceIdMode::On) ? "spaces" : "";
-						bso::visualization::visualize(msN, plainType, title, 1.0);
+						bso::visualization::visualize(msN, plainType, title, 1.0, transparency);
 					}
 					++addedViewports;
 				}
