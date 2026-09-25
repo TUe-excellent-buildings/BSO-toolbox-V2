@@ -64,7 +64,7 @@ public:
 	bso::utilities::geometry::vertex getCentreBuilding();
 	void getMostAzimuthDirection(bso::utilities::geometry::vector& mostAzimuth, bso::utilities::geometry::vector& secondMostAzimuth, int amountOfAzimuthCategories = 6);
 
-	// Representation adjustment functions:
+	// Representation modification functions:
 	void setZZero(); 
 	void resetOrigin(const std::vector<unsigned int>& indices = {0,1,2});
 	void addSpace(const ms_space& space); 
@@ -105,10 +105,11 @@ public:
 		const bool includePartialSpaces = false,
 		const bool returnNormalDefinedSide = false) const;
 
+	// Define begin and end function for for-loop iterations
 	const auto begin() const {return mSpaces.begin();}
 	const auto end() const {return mSpaces.end();}
 	
-	// Translational function to Leiden
+	// Translational function to Leiden representation
 	void addBoundary(); // Add a boundary line and uses the conformal making process for making a Prism-Net representation
 	std::vector<utilities::geometry::triangular_prism> convertMSToPN(std::string fileName, double mTol = 0.001); // Uses less triangles and more spread to make a prism-net (PN) representation from Leiden
 	

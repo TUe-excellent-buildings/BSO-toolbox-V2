@@ -22,7 +22,17 @@ namespace bso { namespace grammar {
 	namespace window_grammar_helpers {
 		void sortQuadVertex(std::vector<bso::utilities::geometry::vertex>& quadVertex) 
 		{
-			std::sort(quadVertex.begin(), quadVertex.end(), [](const bso::utilities::geometry::vertex& a, 
+			/*
+            desired format:
+            x1 y1 z1    || x1 y1 z1
+            x1 y2 z1    || x2 y1 z1
+            x1 y2 z2    || x2 y1 z2
+            x1 y1 z2    || x1 y1 z2
+            where: *1 = the smallest and *2=the largest
+            */
+            
+            //First sort on z
+            std::sort(quadVertex.begin(), quadVertex.end(), [](const bso::utilities::geometry::vertex& a, 
 			const bso::utilities::geometry::vertex& b) 
 			{
 				return a[2] < b[2];
@@ -34,10 +44,11 @@ namespace bso { namespace grammar {
 			bso::utilities::geometry::vertex p3 = quadVertex[3];
 			bso::utilities::geometry::vertex tempPoint;
 
+            
 			if (quadVertex[0][1] == quadVertex[1][1] && 
 			    quadVertex[1][1] == quadVertex[2][1] && 
 			    quadVertex[2][1] == quadVertex[3][1])
-			{
+			{ //if all y values are the same
 				if (p0[0]>p1[0]){
 					tempPoint = p0;
 					p0 = p1;
@@ -56,7 +67,7 @@ namespace bso { namespace grammar {
 			else if (quadVertex[0][0] == quadVertex[1][0] && 
 			         quadVertex[1][0] == quadVertex[2][0] && 
 			         quadVertex[2][0] == quadVertex[3][0])
-			{
+			{ //if all x values are the same
 				if (p0[1]>p1[1]){
 					tempPoint = p0;
 					p0 = p1;
@@ -72,6 +83,13 @@ namespace bso { namespace grammar {
 				quadVertex[2] = p2;
 				quadVertex[3] = p3;
 			}
+            else 
+            { //if it is a floor/ceiling. 
+            quadVertex[0] = p0;
+            quadVertex[1] = p1;
+            quadVertex[2] = p2;
+            quadVertex[3] = p3;
+            }
 		}
 
 		bool isQuadInWindowArea(std::vector<bso::utilities::geometry::vertex> quadVertex, 
@@ -149,40 +167,6 @@ namespace bso { namespace grammar {
 			}
 			return isWindow;      
 		}
-
-		bool isOpenInternal(bso::spatial_design::conformal::cf_rectangle* cfRec)
-		{
-			std::vector<std::string> SpaceTypeSurf;
-			for (const auto j: (cfRec->cfSurfaces()))
-			{
-				const auto SpaceType0 = ((j->cfSpaces())[0])->getSpaceType();
-				SpaceTypeSurf.push_back(SpaceType0);
-			}
-
-			if (SpaceTypeSurf[0] == "A" && SpaceTypeSurf[1] == "A")
-				return true;
-			else if (SpaceTypeSurf[0] == "B" || SpaceTypeSurf[1] == "B")                                
-				return false;
-			else if ((SpaceTypeSurf[0] != "A" && SpaceTypeSurf[0] != "B") ||
-			         (SpaceTypeSurf[1] != "A" && SpaceTypeSurf[1] != "B"))
-				return false;
-			return false;
-		}
-
-		bool isOpenExternal(bso::spatial_design::conformal::cf_rectangle* cfRec)
-		{
-			for (const auto j: (cfRec->cfSurfaces()))
-			{
-				const auto SpaceType0 = ((j->cfSpaces())[0])->getSpaceType();
-				if (SpaceType0 == "A")
-					return true;
-				else if (SpaceType0 == "B")
-					return false;
-				else if (SpaceType0 != "A" && SpaceType0 != "B")
-					return true;
-			}
-			return false;
-		}
 	} // namespace window_grammar_helpers
 
 	// Window grammar for DEFAULT_WINDOW_GRAMMAR: identifies rectangles that should be marked as windows.
@@ -215,7 +199,7 @@ namespace bso { namespace grammar {
 			if (!isInWindowArea)
 				continue;
 
-			// Check if rectangle is between/adjacent 'open' spaces (space type "A") or if it is adjacent toa closed space (space type "B")
+			// Check if rectangle is between/adjacent 'open' spaces (space type "A") or if it is adjacent to a closed space (space type "B")
             // if space type is not defined, it is automatically defined as 'open' for external walls, and closed for internal walls.
 			bool isWindow = false;
 			const auto& surfaces = cfRec->cfSurfaces();

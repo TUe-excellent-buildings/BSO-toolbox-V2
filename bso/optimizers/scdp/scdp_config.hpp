@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <map>
 
 // Forward declarations for window geometry grammar selection
 namespace bso { namespace spatial_design { namespace conformal {

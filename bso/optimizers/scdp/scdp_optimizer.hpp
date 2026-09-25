@@ -1,15 +1,20 @@
 #ifndef SCDP_OPTIMIZER_HPP
 #define SCDP_OPTIMIZER_HPP
 
+#include <string>
 #include <vector>
 
-#include <bso/optimizers/scdp/output_manager.hpp>
-#include <bso/optimizers/scdp/scdp_config.hpp>
-#include <bso/building_physics/bp_model.hpp>
+// Include BSO headers
 #include <bso/spatial_design/ms_N_building.hpp>
 #include <bso/structural_design/sd_model.hpp>
-#include <bso/utilities/data_point.hpp>
+#include <bso/building_physics/bp_model.hpp>
+#include <bso/daylight/dl_model.hpp>
+
+// Include SCDP optimizer headers
+#include <bso/optimizers/scdp/output_manager.hpp>
+#include <bso/optimizers/scdp/scdp_config.hpp>
 #include <bso/optimizers/scdp/performance_evaluator.hpp>
+#include <bso/utilities/data_point.hpp>
 
 namespace bso { namespace optimizers { namespace scdp {
 

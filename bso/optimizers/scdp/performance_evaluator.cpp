@@ -2,9 +2,11 @@
 #include <bso/optimizers/scdp/output_manager.hpp>
 
 #include <algorithm>
-#include <sstream>
-#include <utility>
 #include <chrono>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <utility>
 
 namespace bso { namespace optimizers { namespace scdp {
 

@@ -1,12 +1,15 @@
 #ifndef PERFORMANCE_EVALUATOR_HPP
 #define PERFORMANCE_EVALUATOR_HPP
 
+#include <map>
 #include <string>
 #include <vector>
+
 
 #include <bso/spatial_design/ms_N_building.hpp>
 #include <bso/structural_design/sd_model.hpp>
 #include <bso/building_physics/bp_model.hpp>
+#include <bso/daylight/dl_model.hpp>
 #include <bso/utilities/data_point.hpp>
 
 namespace bso { namespace optimizers { namespace scdp {

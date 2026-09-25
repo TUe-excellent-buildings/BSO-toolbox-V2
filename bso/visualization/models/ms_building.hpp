@@ -102,7 +102,7 @@ public:
 	(first input contains the file name for this input)
 	A description of how this file should look like is shown bellow:
 	
-	# space with ID zero is considered the standard color and will overrule the other standards defined.
+	# space with ID zero is considered the standard color.
 	# this standard color will be used for all spaces without a defined color.
 	# To define a color of a space insert the ID number of the space followed by four times the four rgba value's.
 	# See link: https://www.w3schools.com/css/css_colors_rgb.asp for explanation rgba value's.

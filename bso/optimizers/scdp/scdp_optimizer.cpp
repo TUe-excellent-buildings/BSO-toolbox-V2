@@ -13,18 +13,20 @@
 #include <vector>
 #include <unistd.h> // for getpid()
 
+// Include BSO headers
 #include <bso/spatial_design/ms_N_building.hpp>
 #include <bso/spatial_design/cf_building.hpp>
-#include <bso/utilities/geometry.hpp>
-#include <bso/utilities/geometry_functions.hpp>
-#include <bso/utilities/data_point.hpp>
-#include <bso/utilities/clustering.hpp>
-#include <bso/utilities/data_export.hpp>
 #include <bso/structural_design/sd_model.hpp>
 #include <bso/building_physics/bp_model.hpp>
+#include <bso/daylight/dl_model.hpp>
 #include <bso/grammar/grammar.hpp>
 #include <bso/visualization/visualization.hpp>
 
+// Include BSO utility headers
+#include <bso/utilities/geometry.hpp>
+#include <bso/utilities/data_point.hpp>
+
+// Include SCDP optimizer headers
 #include <bso/optimizers/utility/grammar_registry.hpp>
 #include <bso/optimizers/scdp/performance_evaluator.hpp>
 

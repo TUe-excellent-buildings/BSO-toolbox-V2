@@ -1,12 +1,12 @@
 #ifndef SCDP_OUTPUT_MANAGER_HPP
 #define SCDP_OUTPUT_MANAGER_HPP
 
+#include <chrono>
 #include <ctime>
 #include <iostream>
+#include <map>
 #include <string>
 #include <vector>
-#include <fstream>
-#include <unistd.h>
 
 #include <bso/optimizers/scdp/scdp_config.hpp>
 #include <bso/utilities/data_point.hpp>

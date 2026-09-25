@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <unistd.h>
 
 #include <bso/utilities/data_export.hpp>
 #include <bso/visualization/visualization.hpp>

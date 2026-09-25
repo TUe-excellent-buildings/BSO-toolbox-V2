@@ -100,20 +100,7 @@ private:
 	void mReadBPSettings(const std::string& fileName); // see file grammar_bp_specific.cpp for content of this function
 	#endif
 		
-	#ifdef DL_MODEL_HPP // variables and functions related to the daylight grammar
-	/*
-	Store here the variables defined in the 'setting file' for the daylight grammar variables.
-	These variables are obtained with the help of the function mReadDLSettings()
-	which is defined in file grammar_dl_specific.cpp in directory /bso/grammar 
-
-	Furthermore, store the object of the new class mDLRectangleRules here,
-	since it uses if-statements to determine the properties of the geometry, 
-	therefore is it a grammar and should the rules be places at the grammar class.
-	This might seam as a complex method to structure thing and ofcourse we can discus other option, however,
-	since the toolbox is already structured this way, it is also benificial to keep the current structure 
-	as a constent to fit the bso-toolbox current structuring
-	*/
-	
+	#ifdef DL_MODEL_HPP // variables and functions related to the daylight grammar	
 	// dl parameters from settings file
 	std::vector<std::string> mReflectanceValues; //
 	std::vector<std::string> mWindowProperties; // [0] transmissivity, [1] transmittance
@@ -122,7 +109,7 @@ private:
 	std::vector<double> mDF_Evaluation;
 	std::vector<std::map<bso::spatial_design::conformal::cf_rectangle* /*rectangle*/, bool /*window Y/N*/>> mRectangleWindowYNGram = {};
 
-	// rule sets/grammars to define the dl_model according to your rectangles
+	// Rule sets/grammars to define the dl_model according to your rectangles
 	std::map<spatial_design::conformal::cf_rectangle*, rule_set::dl_rectangle_rule*> mDLRectangleRules;
 
 	// see file grammar_dl_specific.cpp for implementation of these functions
@@ -133,6 +120,11 @@ public:
 	grammar(const spatial_design::cf_building& cf);
 	~grammar();
 
+	// Functions to apply the disciplinary grammars to this grammar model and 
+	// supply the needed information to the disciplinary models.
+	// The actual building of the simulation model is done in the disciplinary model classes itself.
+	// The options for the SD grammars can be found in /bso/grammar/sd_grammars, 
+	// for BP in /bso/grammar/bp_grammars and for DL in /bso/grammar/dl_grammars.
 	#ifdef SD_MODEL_HPP
 	template <typename T = DEFAULT_SD_GRAMMAR, typename...ARGS>
 	bso::structural_design::sd_model sd_grammar(const ARGS&...);
@@ -150,10 +142,9 @@ public:
 	#ifdef DL_MODEL_HPP 
 	template <typename T = DEFAULT_DL_GRAMMAR, typename...ARGS>
 	bso::daylight::dl_model dl_grammar(const ARGS&...);
-	
 	#endif
 
-	// Optionally, apply a Window grammar which identifies which rectangles\triangles in mRectangleProperties 
+	// Optionally, apply a Window grammar which identifies which rectangles\triangles in mRectangleProperties\mTriangleProperties 
 	// are windows and alters the mRectangleProperties accordingly. This should be done before any of 
 	// the disciplinary grammars are applied so each discipline can utilize the window information. 
 	// See example in BSO-toolbox-V2/examples/NOBSD_basic/main.cpp for usage.
@@ -163,6 +154,7 @@ public:
 	template <typename T = DEFAULT_WINDOW_GRAMMAR>
 	void applyWindowGrammar();
 
+	// Functions to retrieve the categories information (i.e, polygon is wall, etc.) stored in the grammar class.
 	std::vector<bso::utilities::geometry::quadrilateral> getExteriorWalls();
 	std::vector<bso::utilities::geometry::quadrilateral> getExteriorQuadrilaterals();
 	std::vector<bso::spatial_design::conformal::cf_space*> getSpacesOnBoundary(bool spacesOnBottomIsAlsoBoundary = false);

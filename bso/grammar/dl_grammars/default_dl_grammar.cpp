@@ -12,7 +12,7 @@ bso::daylight::dl_model grammar::dl_grammar<DEFAULT_DL_GRAMMAR>(const std::strin
 	// initialize a new DL model
 	bso::daylight::dl_model mDLModel;
 
-    // if no folder name is provided, use the default naming convention
+    // if no folder name is provided, use the default naming convention for the to be generated radiance files.
 	std::string folder;
 	if(folderName != ""){folder = mDLModel.createAndSetFolder(fileName, folderName);}
 	else{folder = mDLModel.createAndSetFolder(fileName);}

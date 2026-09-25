@@ -9,6 +9,8 @@
 #include <string>
 #include <chrono> //measure time to run
 
+#include <bso/spatial_design/cf_building.hpp>
+
 // #include <bso/daylight/properties/surface_properties.hpp>
 // #include <bso/daylight/geometry/floor.hpp>
 // #include <bso/daylight/geometry/ceiling.hpp>

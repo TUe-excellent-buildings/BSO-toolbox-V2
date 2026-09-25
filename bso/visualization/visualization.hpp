@@ -15,6 +15,7 @@ void forcePThreadLink() {pthread_t t1; pthread_create(&t1,NULL,&simpleFunc,NULL)
 #include <bso/visualization/utilities/camera.hpp>
 
 #ifdef CF_BUILDING_HPP
+#include <bso/spatial_design/cf_building.hpp>
 #include <bso/visualization/models/cf_building.hpp>
 #endif // CF_BUILDING_HPP
 
