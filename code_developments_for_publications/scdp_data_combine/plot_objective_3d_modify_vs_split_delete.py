@@ -168,6 +168,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip aggregated plots that combine sd/bp/dl/sdbpdl/sdbpdl_* per base design.",
     )
+    parser.add_argument(
+        "--skip-individual-designs",
+        action="store_true",
+        help="Skip individual design plots and only generate combined multiple designs plot.",
+    )
     return parser.parse_args()
 
 
@@ -756,15 +761,70 @@ def plot_combined_selected_designs(
     ax.set_zlabel(AXIS_LABELS["dl_ADFbuilding"])
     ax.set_title("Objective 3D comparison (combined selected designs)")
 
-    method_handles = [
-        Line2D([0], [0], marker="o", color="none", markerfacecolor="C0", markersize=7, label="modify"),
-        Line2D([0], [0], marker="o", color="none", markerfacecolor="C1", markersize=7, label="split/delete"),
-    ]
-    design_handles = [
-        Line2D([0], [0], marker=base_design_to_marker[b], color="black", linestyle="None", markerfacecolor="none", markersize=7, label=b)
-        for b in base_designs
-    ]
-    ax.legend(handles=method_handles + design_handles, loc="upper left", bbox_to_anchor=(0.0, 1.0), fontsize=8)
+    if color_mode == "method":
+
+        method_handles = [
+            Line2D(
+                [0], [0],
+                marker="o",
+                color="none",
+                markerfacecolor="C0",
+                markersize=7,
+                label="modify",
+            ),
+            Line2D(
+                [0], [0],
+                marker="o",
+                color="none",
+                markerfacecolor="C1",
+                markersize=7,
+                label="split/delete",
+            ),
+        ]
+
+        design_handles = [
+            Line2D(
+                [0], [0],
+                marker=base_design_to_marker[b],
+                color="black",
+                linestyle="None",
+                markerfacecolor="none",
+                markersize=7,
+                label=b,
+            )
+            for b in base_designs
+        ]
+
+        ax.legend(
+            handles=method_handles + design_handles,
+            loc="upper left",
+            bbox_to_anchor=(0.0, 1.0),
+            fontsize=8,
+        )
+
+    else:
+
+        # In iteration mode colors are explained by the colorbar,
+        # so only show what the markers mean.
+        design_handles = [
+            Line2D(
+                [0], [0],
+                marker=base_design_to_marker[b],
+                color="black",
+                linestyle="None",
+                markerfacecolor="none",
+                markersize=7,
+                label=b,
+            )
+            for b in base_designs
+        ]
+
+        ax.legend(
+            handles=design_handles,
+            loc="upper left",
+            bbox_to_anchor=(0.0, 1.0),
+            fontsize=8,
+        )
 
     if color_mode == "iteration":
         sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
@@ -803,68 +863,69 @@ def main() -> int:
     generated_combined = 0
     failed: List[Tuple[str, str]] = []
 
-    for key in common_keys:
-        try:
-            modify_data = load_run_data(modify_map[key], args.csv_name)
-            split_delete_data = load_run_data(split_delete_map[key], args.csv_name)
-
-            out_name = f"objective3DPlot_compare_{sanitize_filename(key)}.png"
-            out_path = args.output_dir / out_name
-
-            plot_design_comparison(
-                design_key=key,
-                modify_data=modify_data,
-                split_delete_data=split_delete_data,
-                output_file=out_path,
-                dpi=args.dpi,
-                color_mode=args.color_mode,
-                show_pareto_front=args.show_pareto_front,
-                interactive=args.interactive,
-            )
-            generated += 1
-            print(f"[OK] {key} -> {out_path}")
-        except Exception as exc:
-            failed.append((key, str(exc)))
-            print(f"[FAIL] {key}: {exc}")
-
-    if not args.skip_combined_objectives:
-        keys_by_base = group_keys_by_base_design(common_keys)
-        for base_design in sorted(keys_by_base.keys()):
-            key_group = keys_by_base[base_design]
-            modify_runs: Dict[str, RunData] = {}
-            split_runs: Dict[str, RunData] = {}
-
+    if not args.skip_individual_designs:
+        for key in common_keys:
             try:
-                for key in key_group:
-                    _, objective = split_design_key(key)
-                    if objective == "unknown":
-                        continue
-                    if objective not in modify_runs:
-                        modify_runs[objective] = load_run_data(modify_map[key], args.csv_name)
-                    if objective not in split_runs:
-                        split_runs[objective] = load_run_data(split_delete_map[key], args.csv_name)
+                modify_data = load_run_data(modify_map[key], args.csv_name)
+                split_delete_data = load_run_data(split_delete_map[key], args.csv_name)
 
-                if not modify_runs and not split_runs:
-                    raise ValueError("No recognized objective variants available.")
-
-                out_name = f"objective3DPlot_compare_combined_{sanitize_filename(base_design)}.png"
+                out_name = f"objective3DPlot_compare_{sanitize_filename(key)}.png"
                 out_path = args.output_dir / out_name
 
-                plot_combined_objectives_for_base_design(
-                    base_design=base_design,
-                    modify_runs=modify_runs,
-                    split_runs=split_runs,
+                plot_design_comparison(
+                    design_key=key,
+                    modify_data=modify_data,
+                    split_delete_data=split_delete_data,
                     output_file=out_path,
                     dpi=args.dpi,
                     color_mode=args.color_mode,
                     show_pareto_front=args.show_pareto_front,
                     interactive=args.interactive,
                 )
-                generated_combined += 1
-                print(f"[OK] {base_design} (combined) -> {out_path}")
+                generated += 1
+                print(f"[OK] {key} -> {out_path}")
             except Exception as exc:
-                failed.append((f"{base_design} (combined)", str(exc)))
-                print(f"[FAIL] {base_design} (combined): {exc}")
+                failed.append((key, str(exc)))
+                print(f"[FAIL] {key}: {exc}")
+
+        if not args.skip_combined_objectives:
+            keys_by_base = group_keys_by_base_design(common_keys)
+            for base_design in sorted(keys_by_base.keys()):
+                key_group = keys_by_base[base_design]
+                modify_runs: Dict[str, RunData] = {}
+                split_runs: Dict[str, RunData] = {}
+
+                try:
+                    for key in key_group:
+                        _, objective = split_design_key(key)
+                        if objective == "unknown":
+                            continue
+                        if objective not in modify_runs:
+                            modify_runs[objective] = load_run_data(modify_map[key], args.csv_name)
+                        if objective not in split_runs:
+                            split_runs[objective] = load_run_data(split_delete_map[key], args.csv_name)
+
+                    if not modify_runs and not split_runs:
+                        raise ValueError("No recognized objective variants available.")
+
+                    out_name = f"objective3DPlot_compare_combined_{sanitize_filename(base_design)}.png"
+                    out_path = args.output_dir / out_name
+
+                    plot_combined_objectives_for_base_design(
+                        base_design=base_design,
+                        modify_runs=modify_runs,
+                        split_runs=split_runs,
+                        output_file=out_path,
+                        dpi=args.dpi,
+                        color_mode=args.color_mode,
+                        show_pareto_front=args.show_pareto_front,
+                        interactive=args.interactive,
+                    )
+                    generated_combined += 1
+                    print(f"[OK] {base_design} (combined) -> {out_path}")
+                except Exception as exc:
+                    failed.append((f"{base_design} (combined)", str(exc)))
+                    print(f"[FAIL] {base_design} (combined): {exc}")
 
     if args.combine_selected_designs:
         try:

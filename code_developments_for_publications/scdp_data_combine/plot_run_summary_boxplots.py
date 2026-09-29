@@ -35,15 +35,21 @@ import pandas as pd
 
 
 DEFAULT_METRICS = ["sd", "bp", "dl_ADFbuilding", "dl_score"]
+DEFAULT_METRIC_DISPLAY_NAMES = {
+    "sd": "Total strain energy [Nmm]",
+    "bp": "Total heating and cooling energy [kWh]",
+    "dl_ADFbuilding": "Average daylight factor[%]",
+    "dl_score": "BS EN 17037-2018 section B.3.2 score [-]",
+}
 
 RUN_TYPE_ORDER = ["sd", "bp", "dl", "sdbpdl", "sdbpdl_weighted"]
 
 RUN_TYPE_DISPLAY = {
-    "sd": "Structural",
-    "bp": "Thermal",
-    "dl": "Daylight",
-    "sdbpdl": "Sequential",
-    "sdbpdl_weighted": "Weighted",
+    "sd": "Structural run",
+    "bp": "Thermal run",
+    "dl": "Daylight run",
+    "sdbpdl": "Sequential run",
+    "sdbpdl_weighted": "Weighted run",
 }
 
 
@@ -113,6 +119,32 @@ def select_labels_by_group(all_labels: List[str], group_key: str) -> List[str]:
     if group_key == "best_vs_first":
         return [lbl for lbl in all_labels if "best iteration vs. first iteration" in lbl]
     raise ValueError(f"Unknown group_key: {group_key}")
+
+
+def parse_label_overrides(values: List[str]) -> Dict[str, str]:
+    overrides: Dict[str, str] = {}
+    for value in values:
+        key, separator, label = value.partition("=")
+        if not separator or not key or not label:
+            raise argparse.ArgumentTypeError(
+                "Objective labels must use KEY=LABEL format."
+            )
+        overrides[key] = label
+    return overrides
+
+
+def build_display_label_overrides(
+    metrics: List[str], objective_labels: Dict[str, str]
+) -> Dict[str, str]:
+    summary_labels: Dict[str, str] = {}
+    for metric in metrics:
+        display_name = objective_labels.get(
+            metric, DEFAULT_METRIC_DISPLAY_NAMES.get(metric, metric)
+        )
+        summary_labels[f"{metric}Best iteration"] = display_name
+        summary_labels[f"{metric} last iteration vs. first iteration"] = display_name
+        summary_labels[f"{metric} best iteration vs. first iteration"] = display_name
+    return summary_labels
 
 
 def discover_csv_files(input_roots: Iterable[Path]) -> List[Path]:
@@ -514,12 +546,26 @@ def main() -> None:
         default=DEFAULT_METRICS,
         help="Metric prefixes used to build target summary variable names.",
     )
+    parser.add_argument(
+        "--objective-label",
+        action="append",
+        default=[],
+        metavar="KEY=LABEL",
+        help=(
+            "Override an objective title. Repeat for multiple objectives, for example: "
+            '--objective-label "sd=Total strain energy [Nmm]".'
+        ),
+    )
 
     args = parser.parse_args()
 
     input_roots: List[Path] = args.input_roots
     output_dir: Path = args.output_dir
     metrics: List[str] = args.metrics
+    try:
+        objective_labels = parse_label_overrides(args.objective_label)
+    except argparse.ArgumentTypeError as error:
+        parser.error(str(error))
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -546,12 +592,7 @@ def main() -> None:
     last_vs_first_labels = select_labels_by_group(ordered_labels, "last_vs_first")
     best_vs_first_labels = select_labels_by_group(ordered_labels, "best_vs_first")
 
-    _display_names = ["Strain energy [Nmm]", "Heating and cooling energy [kWh]", "Average daylight factor[%]", "BS EN 17037-2018 section B.3.2 score [-]"]
-    y_label_overrides = {}
-    for m, name in zip(metrics, _display_names):
-        y_label_overrides[f"{m}Best iteration"] = name
-        y_label_overrides[f"{m} last iteration vs. first iteration"] = name
-        y_label_overrides[f"{m} best iteration vs. first iteration"] = name
+    y_label_overrides = build_display_label_overrides(metrics, objective_labels)
 
     plot_boxplot_all_variables(
         long_df,

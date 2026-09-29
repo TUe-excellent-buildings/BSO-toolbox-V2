@@ -32,17 +32,16 @@ from bso.utilities.plot.plot_improvement_curves import load_improvement_data
 
 RUN_TYPES = ["sd", "bp", "dl", "sdbpdl", "sdbpdl_weighted"]
 RUN_TYPE_LABELS = {
-    "sd": "SD",
-    "bp": "BP",
-    "dl": "DL",
-    "sdbpdl": "SDBPDL",
-    "sdbpdl_weighted": "SDBPDL weighted (0.333333-0.333333-0.333333)",
+    "sd": "Structural run",
+    "bp": "Thermal run",
+    "dl": "Daylight run",
+    "sdbpdl": "Sequential run",
+    "sdbpdl_weighted": "Weighted run",
 }
-OBJECTIVE_COLORS = ["#1B6CA8", "#D97706", "#2F855A", "#B83280"]
+OBJECTIVE_COLORS = ["#2E7D32", "#1565C0", "#C62828", "#6A1B9A"]
 MAXIMIZATION_OBJECTIVES = {"dl_ADFbuilding"}
 COMPACT_RUN_TYPE_LABELS = {
     **RUN_TYPE_LABELS,
-    "sdbpdl_weighted": "SDBPDL weighted",
 }
 
 
@@ -102,9 +101,13 @@ def discover_runs(results_dir: Path) -> list[ImprovementRun]:
     return runs
 
 
-def _objective_label(raw_name: str, axis_labels: dict[str, str]) -> str:
+def _objective_label(
+    raw_name: str,
+    axis_labels: dict[str, str],
+    label_overrides: dict[str, str],
+) -> str:
     key = raw_name.removesuffix("_improvement_percent")
-    return axis_labels.get(key, key)
+    return label_overrides.get(key, axis_labels.get(key, key))
 
 
 def _correct_improvement_signs(curves: list[np.ndarray], names: list[str]) -> list[np.ndarray]:
@@ -129,7 +132,12 @@ def _aligned_values(runs: Iterable[ImprovementRun], objective_index: int) -> tup
     return np.asarray(all_iterations), values
 
 
-def plot_run_type(run_type: str, runs: list[ImprovementRun], output_path: Path) -> None:
+def plot_run_type(
+    run_type: str,
+    runs: list[ImprovementRun],
+    output_path: Path,
+    label_overrides: dict[str, str],
+) -> None:
     number_of_objectives = max(len(run.curves) for run in runs)
     columns = 2
     rows = int(np.ceil(number_of_objectives / columns))
@@ -148,7 +156,13 @@ def plot_run_type(run_type: str, runs: list[ImprovementRun], output_path: Path) 
         upper = np.nanpercentile(values, 75, axis=0)
         axis.fill_between(iterations, lower, upper, color=color, alpha=0.20, label="IQR")
         axis.plot(iterations, median, color=color, linewidth=2.5, label="Median")
-        axis.set_title(_objective_label(runs[0].names[objective_index + 1], runs[0].axis_labels))
+        axis.set_title(
+            _objective_label(
+                runs[0].names[objective_index + 1],
+                runs[0].axis_labels,
+                label_overrides,
+            )
+        )
         axis.set_xlabel("Iteration")
         axis.set_ylabel("Improvement vs initial design [%]")
         axis.set_xlim(0, 10)
@@ -171,6 +185,7 @@ def plot_run_type(run_type: str, runs: list[ImprovementRun], output_path: Path) 
 def write_combined_page(
     runs: list[ImprovementRun],
     output_path: Path,
+    label_overrides: dict[str, str],
     page_width_mm: float = 170.0,
     page_height_mm: float = 150.0,
 ) -> None:
@@ -225,7 +240,9 @@ def write_combined_page(
                 axis.set_title(
                     textwrap.fill(
                         _objective_label(
-                            group[0].names[objective_index + 1], group[0].axis_labels
+                            group[0].names[objective_index + 1],
+                            group[0].axis_labels,
+                            label_overrides,
                         ),
                         width=21,
                     ),
@@ -268,7 +285,7 @@ def write_combined_page(
     fig.legend(
         handles=legend_handles,
         loc="upper right",
-        bbox_to_anchor=(0.995, 1.0),  # Legend position: x, y in figure coordinates.
+        bbox_to_anchor=(0.995, 1.01),  # Legend position: x, y in figure coordinates.
         ncol=2,
         frameon=False,
         fontsize=8,
@@ -292,6 +309,18 @@ def write_manifest(runs: Iterable[ImprovementRun], output_path: Path) -> None:
             writer.writerow([run.run_type, run.run_id, run.path])
 
 
+def parse_label_overrides(values: list[str]) -> dict[str, str]:
+    overrides: dict[str, str] = {}
+    for value in values:
+        key, separator, label = value.partition("=")
+        if not separator or not key or not label:
+            raise argparse.ArgumentTypeError(
+                "Objective labels must use KEY=LABEL format."
+            )
+        overrides[key] = label
+    return overrides
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Combine improvement curve plots by SCDP run type."
@@ -300,8 +329,8 @@ def main() -> None:
         "results_dir",
         nargs="?",
         type=Path,
-        default=Path("/home/tessa/Data/Results_Modify_20/results"),
-        help="Results directory to scan (default: /home/tessa/Data/Results_Modify_20/results).",
+        default=None,
+        help="Results directory to scan, example: /home/tessa/Data/Results_Modify_20/results",
     )
     parser.add_argument(
         "--output-dir",
@@ -309,10 +338,26 @@ def main() -> None:
         default=None,
         help="Directory for combined plots (default: <results_dir>/combined_improvement_curves).",
     )
+    parser.add_argument(
+        "--objective-label",
+        action="append",
+        default=[],
+        metavar="KEY=LABEL",
+        help=(
+            "Override an objective title. Repeat for multiple objectives, for example: "
+            '--objective-label "sd=Total strain energy [Nmm]".'
+        ),
+    )
     args = parser.parse_args()
 
+    if args.results_dir is None:
+        parser.error(f"Results directory was not specified, see -h for help.")
     if not args.results_dir.is_dir():
         parser.error(f"Results directory does not exist: {args.results_dir}")
+    try:
+        label_overrides = parse_label_overrides(args.objective_label)
+    except argparse.ArgumentTypeError as error:
+        parser.error(str(error))
     output_dir = args.output_dir or args.results_dir / "combined_improvement_curves"
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -327,12 +372,12 @@ def main() -> None:
         if not group:
             continue
         output_path = output_dir / f"combined_improvement_curves_{run_type}.png"
-        plot_run_type(run_type, group, output_path)
+        plot_run_type(run_type, group, output_path, label_overrides)
         generated_paths.append(output_path)
         print(f"Wrote {output_path} ({len(group)} runs)")
 
     summary_page_path = output_dir / "combined_improvement_curves_summary_page.png"
-    write_combined_page(runs, summary_page_path)
+    write_combined_page(runs, summary_page_path, label_overrides)
     print(f"Wrote {summary_page_path}")
 
 
