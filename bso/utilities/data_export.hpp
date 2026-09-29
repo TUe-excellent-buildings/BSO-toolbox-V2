@@ -23,7 +23,7 @@ private:
 	std::map<std::string, bool> mIsMinimization = {{"sd", true}, {"bp", true}, {"dl_ADFbuilding", false}, {"dl_score", true}}; // whether the objective is a minimization or maximization objective, used for normalization and knee point detection.
 
 	// Axis descriptions tranformed from mAxisDataType input.
-	std::map<std::string, std::string> mAxisLabels = {{"sd", "Total strain energy [Nmm]"}, {"bp", "Heating and cooling energy [kWh]"}, {"dl_ADFbuilding", "Average daylight factor [%]"}, {"dl_score", "BS EN 17037-2018 score [-]"}, {"iteration", "Iteration"}};
+	std::map<std::string, std::string> mAxisLabels = {{"sd", "Strain energy [Nmm]"}, {"bp", "Heating and cooling energy [kWh]"}, {"dl_ADFbuilding", "Average daylight factor [%]"}, {"dl_score", "BS EN 17037-2018 score [-]"}, {"iteration", "Iteration"}};
 
 	// Utility functions to output data to indicated output stream; 
 	void dataPointToStream(const utilities::data_point& data, std::ostringstream& oss);
