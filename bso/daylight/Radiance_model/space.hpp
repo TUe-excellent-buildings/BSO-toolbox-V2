@@ -21,7 +21,7 @@ namespace bso { namespace daylight {
 		
 		bso::utilities::geometry::quadrilateral floorSurface; // for grid generation, we need the floor surface as one quadrilateral, so we can apply the NEN grid generation rules on it.
 		std::vector<> gridPoints; // Stores the generated grid points for this space, which are generated in the function generateGridNEN() and can be used for visualization and for the daylight calculation.
-		double p_meter = 0.0; // grid point density per mm during generateGridNEN()
+		double p_meter = 0.0; // grid point density per mm, calculated during generateGridNEN()
 
 	public:
 		space() = default;
