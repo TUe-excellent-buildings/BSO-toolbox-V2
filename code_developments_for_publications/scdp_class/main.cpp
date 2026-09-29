@@ -1,14 +1,7 @@
 #include <exception>
 #include <iostream>
 
-#include <bso/spatial_design/ms_N_building.hpp>
-#include <bso/spatial_design/cf_building.hpp>
-#include <bso/structural_design/sd_model.hpp>
-#include <bso/building_physics/bp_model.hpp>
-#include <bso/daylight/dl_model.hpp>
-#include <bso/grammar/grammar.hpp>
-#include <bso/visualization/visualization.hpp>
-
+#include <bso/optimizers/scdp/scdp_config.hpp>
 #include <bso/optimizers/scdp/scdp_optimizer.hpp>
 
 int main(int argc, char* argv[])
