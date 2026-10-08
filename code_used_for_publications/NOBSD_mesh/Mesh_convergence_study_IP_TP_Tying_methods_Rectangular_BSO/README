@@ -1,8 +1,0 @@
-This directory describes the Mesh convergence comparison study of the IP, TP, and Tying method used for the paper:
-
-Ezendam, T., van der, Hofmeyer, H., van der Wal, S., Perevendieva K.G., and Emmerich, M. T. M. "Three new methods to automatically generate a finite element mesh for complex building representations in conceptual design simulation and optimization". In: (Submitted to ) (2025), 
-
-This directory contains one executables, from which the TP method can be executed for design A, B, and C. Only the source code of the TP method is included in the BSO-toolbox-V2 directory since this one is included in the master version.
-The source code of the Tying method can be found in: https://github.com/TUe-excellent-buildings/MSc_2022_Van_der_Wal
-And the source code of the IP method can be found in:  
-For ease is both executables provided running the IP and Tying method.

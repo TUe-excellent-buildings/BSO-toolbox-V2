@@ -1,5 +1,14 @@
 ## Contributors to the toolbox
 
+###### ir. T. (Tessa) Ezendam
+Main contributor/developer of the repository.
+* Extending all relevant parts to allow for non-orthogonal building spatial designs and their design and simulations
+    * new representation
+    * The ability to make this new representation conformal
+    * Grammar accounting for this new conformal representation
+    * sd_model and bp_model accounting for this new conformal representation
+    * visualization of the new representation
+
 ###### ir. S. (Sjonnie) Boonstra
 Main contributor/developer of the repository.
 * utilities package: geometry, data_point, clustering, non-dominated sort, trim and cast

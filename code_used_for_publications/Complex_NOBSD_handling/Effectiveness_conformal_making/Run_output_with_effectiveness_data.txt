@@ -1,0 +1,298 @@
+------------------------------------------------------------------
+* This software uses the Fade2D library under a student license. 
+  Commercial use requires a valid commercial license, please visit 
+  http://www.geom.at/licensing 
+
+  Geom Software, Bernhard Kornberger
+  C++ Freelancer, bkorn@geom.at
+  http://www.geom.at
+
+  (Fade2D serial no: 5303992d f08786e8)
+
+ 
+start ../Non_orthogonal_designs/design_1
+Created an MS model (10 ms)
+Created an CF1 model (245 ms)
+Created an gram model (234 ms)
+Created an SD model (3 ms)
+Analyzed SD model: 445434308.22831047 (1 ms)
+Created an BP model (2 ms)
+Analyzed SD model: 445434308.22831047 (1 ms)
+Total heating energy: 17099.497332248564
+Total cooling energy: 2343.9509037131797
+Analysed an BP model (1068 ms)
+ 
+start ../Non_orthogonal_designs/design_2
+Created an MS model (0 ms)
+Created an CF1 model (39 ms)
+Created an gram model (40 ms)
+Created an SD model (1 ms)
+Analyzed SD model: 25417.933391766623 (0 ms)
+Created an BP model (1 ms)
+Analyzed SD model: 25417.933391766623 (0 ms)
+Total heating energy: 517.35844567332958
+Total cooling energy: 78.611803801489444
+Analysed an BP model (123 ms)
+ 
+start ../Non_orthogonal_designs/design_3
+Created an MS model (0 ms)
+Created an CF1 model (13 ms)
+Created an gram model (13 ms)
+Created an SD model (0 ms)
+Analyzed SD model: 1838845.7681579411 (0 ms)
+Created an BP model (0 ms)
+Analyzed SD model: 1838845.7681579411 (0 ms)
+Total heating energy: 643.62749826150173
+Total cooling energy: 98.67771714134031
+Analysed an BP model (17 ms)
+ 
+start ../Non_orthogonal_designs/design_4
+Created an MS model (1 ms)
+Created an CF1 model (507 ms)
+Created an gram model (509 ms)
+Created an SD model (10 ms)
+
+When analyzing an unmeshed structural design model,
+failed to mesh the model, received the following exception:
+Could not sort points when initializing quadrilateral from initializer list.
+Received the following error: 
+When sorting the vertices of a quadrilateral,
+the quadrilateral is not convex.
+the following vertices were provided: 
+{38713.8,13000,0}; {38522.5,11833.3,0}; {38549.4,12000,0}; {38659.3,12666.7,0}
+
+(bso/utilities/geometry/quadrilateral.cpp)
+
+(bso/utilities/geometry/quadrilateral.cpp)
+
+(bso/structural_design/sd_model.cpp)
+
+This error occured during the sd_model analysis of ../Non_orthogonal_designs/design_4
+ 
+start ../Non_orthogonal_designs/design_5
+Created an MS model (65 ms)
+Created an CF1 model (550 ms)
+Created an gram model (555 ms)
+Created an SD model (10 ms)
+Analyzed SD model: 393357670.84985566 (4 ms)
+Created an BP model (5 ms)
+Analyzed SD model: 393357670.84985566 (3 ms)
+Total heating energy: 25074.528898294811
+Total cooling energy: 4135.3402521120379
+Analysed an BP model (6388 ms)
+ 
+start ../Non_orthogonal_designs/design_6
+Created an MS model (0 ms)
+Created an CF1 model (25 ms)
+Created an gram model (26 ms)
+Created an SD model (0 ms)
+Analyzed SD model: 1123234.7162178275 (0 ms)
+Created an BP model (1 ms)
+Analyzed SD model: 1123234.7162178275 (0 ms)
+Total heating energy: 2284.2272245920731
+Total cooling energy: 373.12421728121672
+Analysed an BP model (21 ms)
+ 
+start ../Non_orthogonal_designs/design_7
+Created an MS model (0 ms)
+Created an CF1 model (19 ms)
+Created an gram model (20 ms)
+Created an SD model (0 ms)
+Analyzed SD model: 2445210.962350917 (0 ms)
+Created an BP model (1 ms)
+Analyzed SD model: 2445210.962350917 (0 ms)
+Total heating energy: 1972.539669857144
+Total cooling energy: 328.3714123503218
+Analysed an BP model (33 ms)
+ 
+start ../Non_orthogonal_designs/design_8
+Created an MS model (0 ms)
+Created an CF1 model (13 ms)
+Created an gram model (14 ms)
+Created an SD model (0 ms)
+Analyzed SD model: 3375862.7699879715 (0 ms)
+Created an BP model (0 ms)
+Analyzed SD model: 3375862.7699879715 (0 ms)
+Total heating energy: 1783.5462799814154
+Total cooling energy: 273.30436745297538
+Analysed an BP model (18 ms)
+ 
+start ../Non_orthogonal_designs/design_9
+Created an MS model (0 ms)
+Created an CF1 model (109 ms)
+Created an gram model (111 ms)
+Created an SD model (4 ms)
+Analyzed SD model: 22399712.609249953 (2 ms)
+Created an BP model (2 ms)
+Analyzed SD model: 22399712.609249953 (2 ms)
+Total heating energy: 2777.5157620827254
+Total cooling energy: 457.55031426932987
+Analysed an BP model (3185 ms)
+ 
+start ../Non_orthogonal_designs/design_10
+Created an MS model (0 ms)
+Created an CF1 model (108 ms)
+Created an gram model (109 ms)
+Created an SD model (2 ms)
+Analyzed SD model: 8164232.7349910894 (1 ms)
+Created an BP model (2 ms)
+Analyzed SD model: 8164232.7349910894 (1 ms)
+Total heating energy: 9080.0389972862813
+Total cooling energy: 1433.4937108500483
+Analysed an BP model (392 ms)
+ 
+start ../Non_orthogonal_designs/design_11
+Created an MS model (0 ms)
+Created an CF1 model (190 ms)
+Created an gram model (193 ms)
+Created an SD model (4 ms)
+Analyzed SD model: 38719659.57537391 (2 ms)
+Created an BP model (4 ms)
+Analyzed SD model: 38719659.57537391 (2 ms)
+Total heating energy: 14897.428625711
+Total cooling energy: 2616.5713861553404
+Analysed an BP model (1742 ms)
+ 
+start ../Non_orthogonal_designs/design_12
+Created an MS model (0 ms)
+Created an CF1 model (56 ms)
+Created an gram model (58 ms)
+Created an SD model (2 ms)
+Analyzed SD model: 183543945.94852355 (1 ms)
+Created an BP model (1 ms)
+Analyzed SD model: 183543945.94852355 (1 ms)
+Total heating energy: 8534.2307600361091
+Total cooling energy: 1459.6508980869189
+Analysed an BP model (206 ms)
+ 
+start ../Non_orthogonal_designs/design_13
+Created an MS model (0 ms)
+Created an CF1 model (8 ms)
+Created an gram model (8 ms)
+Created an SD model (0 ms)
+Analyzed SD model: 840617.37574988464 (0 ms)
+Created an BP model (0 ms)
+Analyzed SD model: 840617.37574988464 (0 ms)
+Total heating energy: 1357.9595855204411
+Total cooling energy: 196.6637197810939
+Analysed an BP model (8 ms)
+ 
+start ../Non_orthogonal_designs/design_14
+Created an MS model (0 ms)
+Created an CF1 model (21 ms)
+Created an gram model (22 ms)
+Created an SD model (0 ms)
+Analyzed SD model: 6644924.2293538973 (0 ms)
+Created an BP model (0 ms)
+Analyzed SD model: 6644924.2293538973 (0 ms)
+Total heating energy: 3404.1455740833921
+Total cooling energy: 569.1529418843395
+Analysed an BP model (25 ms)
+ 
+start ../Non_orthogonal_designs/design_15
+Created an MS model (0 ms)
+Created an CF1 model (90 ms)
+Created an gram model (92 ms)
+Created an SD model (2 ms)
+Analyzed SD model: 10386773.639898753 (1 ms)
+Created an BP model (3 ms)
+Analyzed SD model: 10386773.639898753 (1 ms)
+Total heating energy: 6242.9713439432016
+Total cooling energy: 1117.0394221487495
+Analysed an BP model (791 ms)
+ 
+start ../Non_orthogonal_designs/design_16
+Created an MS model (0 ms)
+Created an CF1 model (33 ms)
+Created an gram model (34 ms)
+Created an SD model (1 ms)
+Analyzed SD model: 170335010.17153859 (0 ms)
+Created an BP model (1 ms)
+Analyzed SD model: 170335010.17153859 (0 ms)
+Total heating energy: 10646.030277322745
+Total cooling energy: 1787.5327924717817
+Analysed an BP model (49 ms)
+ 
+start ../Non_orthogonal_designs/design_17
+Created an MS model (0 ms)
+Created an CF1 model (14 ms)
+Created an gram model (14 ms)
+Created an SD model (0 ms)
+Analyzed SD model: 34299.141664215269 (0 ms)
+Created an BP model (0 ms)
+Analyzed SD model: 34299.141664215269 (0 ms)
+Total heating energy: 424.44677928598867
+Total cooling energy: 57.936299708214882
+Analysed an BP model (19 ms)
+ 
+start ../Non_orthogonal_designs/design_18
+Created an MS model (0 ms)
+Created an CF1 model (61 ms)
+Created an gram model (62 ms)
+Created an SD model (2 ms)
+Analyzed SD model: 2130177.7196432278 (1 ms)
+Created an BP model (1 ms)
+Analyzed SD model: 2130177.7196432278 (1 ms)
+Total heating energy: 2163.8855209160188
+Total cooling energy: 347.46237520955941
+Analysed an BP model (122 ms)
+ 
+start ../Non_orthogonal_designs/design_19
+Created an MS model (0 ms)
+Created an CF1 model (11 ms)
+Created an gram model (12 ms)
+Created an SD model (0 ms)
+Analyzed SD model: 1320396.9211278323 (0 ms)
+Created an BP model (0 ms)
+Analyzed SD model: 1320396.9211278323 (0 ms)
+Total heating energy: 1974.8213268651639
+Total cooling energy: 332.1473839883684
+Analysed an BP model (9 ms)
+ 
+start ../Non_orthogonal_designs/design_20
+Created an MS model (0 ms)
+Created an CF1 model (10 ms)
+Created an gram model (10 ms)
+Created an SD model (0 ms)
+Analyzed SD model: 115969.83392461228 (0 ms)
+Created an BP model (0 ms)
+Analyzed SD model: 115969.83392461228 (0 ms)
+Total heating energy: 597.18445969742811
+Total cooling energy: 88.260954003667692
+Analysed an BP model (7 ms)
+  
+All models generated 
+There where 1 errors found during SD analysis
+../Non_orthogonal_designs/design_4
+
+When analyzing an unmeshed structural design model,
+failed to mesh the model, received the following exception:
+Could not sort points when initializing quadrilateral from initializer list.
+Received the following error: 
+When sorting the vertices of a quadrilateral,
+the quadrilateral is not convex.
+the following vertices were provided: 
+{38713.8,13000,0}; {38522.5,11833.3,0}; {38549.4,12000,0}; {38659.3,12666.7,0}
+
+(bso/utilities/geometry/quadrilateral.cpp)
+
+(bso/utilities/geometry/quadrilateral.cpp)
+
+(bso/structural_design/sd_model.cpp)
+
+ 
+ 
+ 
+ 
+ 
+There are 20 designs tested
+There where 0 errors found during MS generation
+There where 0 errors found during CF generation
+There where 0 errors found during gram generation
+There where 0 errors found during SD generation
+There where 1 errors found during SD analysis
+There where 0 errors found during BP generation
+There where 0 errors found during BP analysis
+Started with the visualization: 
+ 
+Skip SD model since the analysis went wrong and can therefore not be visualized.

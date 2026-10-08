@@ -12,6 +12,7 @@ In the first place, the toolbox has been developed to support building spatial d
 The toolbox itself does not contain any optimization methods, however, this repository will be extended with applications, and these will be related to optimization as well.
 The toolbox relates to research in two joint projects by the Department of the Built Environment of Eindhoven University of Technology, and the Leiden Institute of Advanced Computer Science (LIACS), both in The Netherlands.
 Key publications within these research projects are given below. These publications provide a lot of background information on the purpose and setup of the code in this repository:
+* Ezendam, T.; Hofmeyer, H.; van der Wal, S.; Perevendieva K.G.; and Emmerich, M. T. M.: "Handling Complex Building Geometries for Disciplinary Processing in Conceptual Building Design Simulation and Optimization". Computing in Civil Engineering, 2026, DOI: 10.1061/JCCEE5.CPENG-6922
 * Boonstra, S.; Van der Blom, K.; Hofmeyer, H.; Emmerich, M.T.M.: Hybridization of an evolutionary algorithm and simulations of co-evolutionary design processes for early-stage building spatial design optimization, Automation in Construction, Volume 124, Article 103522, pages 1-18, 2021
 * Claessens, D.P.H.; Boonstra, S.; Hofmeyer, H.: Spatial Zoning for Better Structural Topology Design and Performance, Advanced Engineering Informatics, Volume 46, 101162, pages 1-16, 2020
 * Boonstra, S.; Van der Blom, K.; Hofmeyer, H.; Emmerich, M.T.M.: Conceptual structural system layouts via design response grammars and evolutionary algorithms, Automation in Construction, Volume 116, Article 103009, pages 1-20, 2020
@@ -30,12 +31,13 @@ Although the first aim of the toolbox was related to research carried out at Ein
 ## How do I get it set up? ###
 
 ### Dependencies
-The toolbox is written in C++ and makes use of elements defined in the C++14 standard.
+The toolbox is written in C++ and makes use of elements defined in the C++17 standard.
 The toolbox is developed to be cross-platform, and has been compiled and tested for Linux (Ubuntu 22.04 LTS) and Windows 10 (22H2,19045.2486).
 
 Furthermore, the toolbox depends on the following external source and static/dynamic libraries:
 * For linear algebra, the [Eigen](http://eigen.tuxfamily.org) C++ library is used (Linux: last tested is v3.4.0).
 * Various utilities (e.g. [Odeint](https://www.odeint.com)) from the [Boost](https://www.boost.org/) C++ library (Linux: last tested is v1.80.0). Precompiling is not needed.
+* For constrained delaunay algorithm, the [FADE 2D](https://www.geom.at/) library (linux: last tested is v1.93) was used in this release. Further development did show that the library CGAL (version 6.1) could be used as well for this purpose. Alternatively, the FADE 2D v.2.13 worked as well.
 * Visualization is written in the OpenGL standard and makes use of freeglut (Linux: last tested is v2.8.1-6).   
 
 First, an elaborate Linux installation tutorial is given. It may be usefull to read this first, even if a Windows 10 installation is desired. Hereafter, the Windows 10 installation is explained.
@@ -107,7 +109,38 @@ $ sudo ./b2 install
 
 **NOTE.** Enter the above commands one by one. During Windows 10 installations, it appeared that the compiled parts of Boost are not needed in the toolbox so far, and so also for the Linux installation, precompilation may possibly be treated as an optional step.
 
-##### 4. Install visualization dependencies (GLUT)
+##### 4. Install FADE 2D v1.93
+The toolbox uses the FADE 2D library for constrained Delaunay triangulation. FADE 2D is a separate, licensed third-party dependency; it is not included in this repository. Obtain the Linux FADE 2D v1.93 package from [Geom Software](https://www.geom.at/) and check its license before use. The v1.93 package describes its student license as being for personal, non-commercial scientific research. Commercial use requires a commercial license. Publications using FADE should cite it, and project pages should link to it as required by its license.
+
+Install the GMP development package, a dependency required by FADE:
+```bash
+sudo apt install libgmp-dev
+```
+
+Extract the FADE 2D v1.93 package to a directory that you can keep in place, for example `~/Libraries/fadeRelease_v1.93` for later reference specifications in a 'make file'. Change to that directory in the therminal by using: 
+```bash
+cd ~/Libraries/fadeRelease_v1.93
+```
+
+The v1.93 package does not include a library build specifically for Ubuntu 22.04. Its readme advises choosing a similar Linux distribution when yours is not listed and says the shared libraries support a wide range of distributions. For 64-bit Ubuntu 22.04, use the nearest listed build, `lib_ubuntu21.04_x86_64`, and verify that it works on the target machine. Also, check if the required headers and shared library are present in ~/Libraries/fadeRelease_v1.93 with these following commands (which only work while being in the ~/Libraries/fadeRelease_v1.93 directory): 
+```bash
+test -f "$PWD/include_fade2d/Fade_2D.h" && echo "Header found" || echo "Header missing"
+test -f "$PWD/lib_ubuntu21.04_x86_64/libfade2d.so" && echo "Library found" || echo "Library missing"
+```
+
+FADE provides a shared library (`libfade2d.so`). Install that library in the standard local library directory and refresh the dynamic linker cache:
+```bash
+sudo install -D -m 755 "$FADE_DIR/lib_ubuntu21.04_x86_64/libfade2d.so" /usr/local/lib/libfade2d.so
+sudo ldconfig
+```
+
+Verify that Ubuntu can find the library:
+```bash
+ldconfig -p | grep libfade2d
+```
+The output should include `/usr/local/lib/libfade2d.so`.
+
+##### 5. Install visualization dependencies (GLUT)
 In this step the dependencies for the visualization in the toolbox are installed.
 THe visualization makes use of OpenGL which is enabled by the GL Utility Toolkit (GLUT)
 
@@ -116,7 +149,7 @@ Install the dependencies by typing in the terminal:
 $ sudo apt install freeglut3-dev
 ```
 
-##### 5. Install GIT
+##### 6. Install GIT
 In this step, the version control software GIT is installed, together with a GUI for GIT.
 
 To install GIT and an GUI type the following in the terminal:
@@ -124,7 +157,7 @@ To install GIT and an GUI type the following in the terminal:
 $ sudo apt install git git-gui
 ```
 
-##### 6. Clone the repository to your local machine
+##### 7. Clone the repository to your local machine
 In this step, the BSO toolbox is cloned to your local machine. This allows you to compile/develop/use the code in the toolbox on your local machine.
 
 In your terminal go to the directory where you would like the toolbox to be placed. For example by typing in the terminal:
@@ -149,80 +182,21 @@ $ git clone https://github.com/TUe-excellent-buildings/BSO-toolbox.git
 
 If the clone was successful, the BSO toolbox is now cloned onto your local machine, e.g. in the directory: `/usr/include/BSO-toolbox`.
 
-##### 7. Compile and run the example.
+##### 8. Compile and run the example.
 
-An example of how the toolbox can be used has been added to the repository as well (`../BSO-toolbox/example`).
-The source code of the example is as follows:
-
-```cpp
-#include <bso/spatial_design/ms_building.hpp>
-#include <bso/spatial_design/cf_building.hpp>
-#include <bso/structural_design/sd_model.hpp>
-#include <bso/building_physics/bp_model.hpp>
-#include <bso/grammar/grammar.hpp>
-#include <bso/visualization/visualization.hpp>
-
-int main(int argc, char* argv[])
-{
-	// initialize a movable sizable model named MS
-	bso::spatial_design::ms_building MS("ms_input_file.txt");
-	
-	// convert MS to a conformal model name CF
-	bso::spatial_design::cf_building CF(MS);
-	
-	// create an instance of the grammar base class named gram using CF
-	bso::grammar::grammar gram(CF);
-	
-	// use the default structural design grammar to create a structural
-	// design named SD, using settings defined in 
-	// settings/sd_settings.txt
-	bso::structural_design::sd_model SD = gram.sd_grammar<bso::grammar::DEFAULT_SD_GRAMMAR>(std::string("settings/sd_settings.txt"));
-	
-	// analyze the structural model
-	SD.analyze();
-
-	// output result of the analysis
-	std::cout << "Structural compliance: " << SD.getTotalResults().mTotalStrainEnergy << std::endl;
-	
-	// use the default building physics design grammar to create a
-	// building physics model named BP, using settings defined in 
-	// settings/bp_settings.txt
-	bso::building_physics::bp_model BP = gram.bp_grammar<bso::grammar::DEFAULT_BP_GRAMMAR>(std::string("settings/bp_settings.txt"));
-	
-	// simulate the periods defined in bp_settings.txt
-	// using the runge_kutta_dopri5 solver with both a
-	// relative and an absolute error of 1e-3
-	BP.simulatePeriods("runge_kutta_dopri5",1e-3,1e-3);
-	
-	// output result of the simulation
-	std::cout << "Total heating energy: " << BP.getTotalResults().mTotalHeatingEnergy << std::endl;
-	std::cout << "Total cooling energy: " << BP.getTotalResults().mTotalCoolingEnergy << std::endl;
-	
-	// visualize the different models
-	bso::visualization::initVisualization(argc, argv);
-	bso::visualization::visualize(MS);
-	bso::visualization::visualize(CF,"rectangle");
-	bso::visualization::visualize(CF,"cuboid");
-	bso::visualization::visualize(SD,"component");
-	bso::visualization::visualize(SD,"element");
-	bso::visualization::visualize(BP);
-	bso::visualization::endVisualization();
-	
-	return 0;
-}
-```
+Examples of how the toolbox can be used has been added to the repository as well (`../BSO-toolbox/examples`). Two examples are provided, each utilizing a diferent representation, either orthogonal or non-orthogonal.
 
 A make file has been added to the directory of the example, which can be used to compile the code.
-In the makefile, check if the dependencies (Eigen and Boost) are linked to the locations of your local machine.
-For instance, check if the line `BOOST = /usr/include/boost` is correctly linking to the Boost library on your local machine.
+In the makefile, check if the dependencies (Eigen, Boost, and if applied FADE 2D) are linked to the locations of your local machine.
+For instance, check if the line `BOOST = /usr/include/boost` is correctly linking to the Boost library on your local machine.  Also, if applied, set FADE_ROOT, in any supplied make file, to the extracted package directory containing both the `include_fade2d` and the `lib_ubuntu...` directories. For example: `FADE_ROOT=$(HOME)/Libraries/fadeRelease_v1.93`.
 
 The example can then be compiled by typing the following command in the terminal:
 
 ```bash
-$ make clean all
+$ make cls clean all
 ```
 
-Run the example by typing the following command in the terminal:
+Run the resulting 'example' executable by typing the following command in the terminal:
 
 ```bash
 $ ./example
@@ -269,10 +243,13 @@ Alternatively, also sub-parts of the toolbox can be tested. This can be achieved
 * `all` tests all unit tests
 * `ms_space` tests only the unit tests concerning the class ms_space (space in Movable Sizable representation)
 * `ms_building` tests only the unit tests concering the class ms_building (building in Movable Sizable representation)
+* `ms_N_building` tests only the unit tests concering the class ms_N_building (building in Movable Sizable representation)
 * `sc_building` tests only the unit tests concerning the class sc_building (building in SuperCube representation)
 * `conformal` tests only the unit tests concerning the cf_building class (conformal building model)
 * `trim_cast` tests only the unit tests concerning the trim and cast functions
-* `geometry` tests only the unit tests concerning the geometry utilities in the
+* `geometry` tests only the unit tests concerning the geometry in utilities
+* `delaunay` tests only the unit tests concerning the delaunay triangulations in utilities
+* `export` tests only the unit tests concerning the export of data in utilities
 * `building_physics` tests only the unit tests concerning the building physics simulation tools
 * `structural_design` tests only the unit tests concerning the structural design analysis tools
 * `grammar` tests only the unit tests concerning the design grammars
