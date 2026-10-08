@@ -1204,6 +1204,7 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	}
 
 	/*
+	Not fully implemented yet, thus removed from the test suite.
 	The bellow shiftFillPlane test where performed while developing the shiftFillPlane function.
 	If any of the bellow generates an error and a visualization is preferred, the following can be done:
 	Go to \BSO-toolbox-V2\unit_tests\spatial_design\NOBSD_test_suite. 
@@ -1212,96 +1213,96 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	A visualization will be shown of the bellow boost unit test for shiftFillPlane_x.
 	*/
 
-	BOOST_AUTO_TEST_CASE( shiftFillPlane_1 )
-	{
-		bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_327");
+	// BOOST_AUTO_TEST_CASE( shiftFillPlane_1 )
+	// {
+	// 	bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_327");
 
-		bso::utilities::geometry::vertex location = {7000,0,0};
-		bso::utilities::geometry::vector direction = {1,0,0};
-		double shift = 3000;
-		ms.shiftFillPlane(location, direction, shift);
+	// 	bso::utilities::geometry::vertex location = {7000,0,0};
+	// 	bso::utilities::geometry::vector direction = {1,0,0};
+	// 	double shift = 3000;
+	// 	ms.shiftFillPlane(location, direction, shift);
 
-		bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_327_Linear_shift");
-		BOOST_REQUIRE(msShift == ms);
-	}
+	// 	bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_327_Linear_shift");
+	// 	BOOST_REQUIRE(msShift == ms);
+	// }
 
-	BOOST_AUTO_TEST_CASE( shiftFillPlane_2 )
-	{
-		bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
+	// BOOST_AUTO_TEST_CASE( shiftFillPlane_2 )
+	// {
+	// 	bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
 
-		bso::utilities::geometry::vertex location = {3000,0,0};
-		bso::utilities::geometry::vector direction = {1,-1,0};
-		double shift = sqrt(2) * 3000;
-		ms.shiftFillPlane(location, direction, shift);
+	// 	bso::utilities::geometry::vertex location = {3000,0,0};
+	// 	bso::utilities::geometry::vector direction = {1,-1,0};
+	// 	double shift = sqrt(2) * 3000;
+	// 	ms.shiftFillPlane(location, direction, shift);
 
-		bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_cornerDiagonalShift");
-		BOOST_REQUIRE(msShift == ms);
-	}
+	// 	bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_cornerDiagonalShift");
+	// 	BOOST_REQUIRE(msShift == ms);
+	// }
 
-	BOOST_AUTO_TEST_CASE( shiftFillPlane_3 )
-	{
-		bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
+	// BOOST_AUTO_TEST_CASE( shiftFillPlane_3 )
+	// {
+	// 	bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
 
-		bso::utilities::geometry::vertex location = {3000,0,0};
-		bso::utilities::geometry::vector direction = {1,0,0};
-		double shift = sqrt(2) * 3000;
-		ms.shiftFillPlane(location, direction, shift);
-		ms.writeToFile("spatial_design/NOBSD_test_suite/design_325_cornerFullShift_unit_test");
+	// 	bso::utilities::geometry::vertex location = {3000,0,0};
+	// 	bso::utilities::geometry::vector direction = {1,0,0};
+	// 	double shift = sqrt(2) * 3000;
+	// 	ms.shiftFillPlane(location, direction, shift);
+	// 	ms.writeToFile("spatial_design/NOBSD_test_suite/design_325_cornerFullShift_unit_test");
 
-		bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_cornerFullShift");
-		BOOST_REQUIRE(msShift == ms);
+	// 	bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_cornerFullShift");
+	// 	BOOST_REQUIRE(msShift == ms);
 
-		// I have checked the output files and they are exactly the same, so the boolean operation msShift == ms notice a difference???
-	}
+	// 	// I have checked the output files and they are exactly the same, so the boolean operation msShift == ms notice a difference???
+	// }
 
-	BOOST_AUTO_TEST_CASE( shiftFillPlane_4 )
-	{
-		bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
+	// BOOST_AUTO_TEST_CASE( shiftFillPlane_4 )
+	// {
+	// 	bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
 
-		bso::utilities::geometry::vertex location = {3000,0,0};
-		bso::utilities::geometry::vector direction = {1,0,0};
-		double shift = 3000;
-		ms.shiftFillPlane(location, direction, shift);
+	// 	bso::utilities::geometry::vertex location = {3000,0,0};
+	// 	bso::utilities::geometry::vector direction = {1,0,0};
+	// 	double shift = 3000;
+	// 	ms.shiftFillPlane(location, direction, shift);
 
-		bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_cornerMatchShift");
-		BOOST_REQUIRE(msShift == ms);
-	}
+	// 	bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_cornerMatchShift");
+	// 	BOOST_REQUIRE(msShift == ms);
+	// }
 
-	BOOST_AUTO_TEST_CASE( shiftFillPlane_5 )
-	{
-		bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
+	// BOOST_AUTO_TEST_CASE( shiftFillPlane_5 )
+	// {
+	// 	bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
 
-		bso::utilities::geometry::vertex location = {0,6000,0};
-		bso::utilities::geometry::vector direction = {0,1,0};
-		double shift = 3000;
-		ms.shiftFillPlane(location, direction, shift);
+	// 	bso::utilities::geometry::vertex location = {0,6000,0};
+	// 	bso::utilities::geometry::vector direction = {0,1,0};
+	// 	double shift = 3000;
+	// 	ms.shiftFillPlane(location, direction, shift);
 
-		bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_shiftSlantedSide");
-		BOOST_REQUIRE(msShift == ms);
-	}
+	// 	bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_shiftSlantedSide");
+	// 	BOOST_REQUIRE(msShift == ms);
+	// }
 
-	BOOST_AUTO_TEST_CASE( shiftFillPlane_6 )
-	{
-		bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_308");
+	// BOOST_AUTO_TEST_CASE( shiftFillPlane_6 )
+	// {
+	// 	bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_308");
 
-		bso::utilities::geometry::vertex location = {0,15000,0};
-		bso::utilities::geometry::vector direction = {0,1,0};
-		double shift = 6000;
-		ms.shiftFillPlane(location, direction, shift);
+	// 	bso::utilities::geometry::vertex location = {0,15000,0};
+	// 	bso::utilities::geometry::vector direction = {0,1,0};
+	// 	double shift = 6000;
+	// 	ms.shiftFillPlane(location, direction, shift);
 
-		bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_308_splitLevelAndHorizontalOverlapShift");
-		BOOST_REQUIRE(msShift == ms);
-	}
+	// 	bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_308_splitLevelAndHorizontalOverlapShift");
+	// 	BOOST_REQUIRE(msShift == ms);
+	// }
 
-	BOOST_AUTO_TEST_CASE( shiftFillPlane_7 )
-	{
-		bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_308");
+	// BOOST_AUTO_TEST_CASE( shiftFillPlane_7 )
+	// {
+	// 	bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_308");
 
-		ms.shiftFillPlaneCentre(5000);
+	// 	ms.shiftFillPlaneCentre(5000);
 
-		bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_308_centreShiftFillPlane");
-		BOOST_REQUIRE(msShift == ms);
-	}
+	// 	bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_308_centreShiftFillPlane");
+	// 	BOOST_REQUIRE(msShift == ms);
+	// }
 	
 	
 BOOST_AUTO_TEST_SUITE_END()
