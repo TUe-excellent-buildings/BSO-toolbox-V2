@@ -10,15 +10,3 @@ title: "BSO Toolbox"
 version: 1.0.0
 doi: 
 date-released: 2026-10-xx
-
-bibtex:
-@software{bso_toolbox,
-	title = {BSO toolbox},
-	author = {Ezendam, Tessa and Hofmeyer, H\'{e}rm},
-	version = {v1.0.0},
-	publisher = {Zenodo},
-	year = {2026},
-	month = {10},
-	doi = {},
-	url = {https://github.com/TUe-excellent-buildings/BSO-toolbox-V2}
-}
