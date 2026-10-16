@@ -31,8 +31,7 @@ Although the first aim of the toolbox was related to research carried out at Ein
 ## How do I get it set up? ###
 
 ### Dependencies
-The toolbox is written in C++ and makes use of elements defined in the C++17 standard.
-The toolbox is developed to be cross-platform, and has been compiled and tested for Linux (Ubuntu 22.04 LTS) and Windows 10 (22H2,19045.2486).
+The toolbox is written in C++ and makes use of elements defined in the C++14 standard. The toolbox has been compiled and tested for Linux (Ubuntu 22.04 LTS), and although not included in this release, it is with some minor alterations explained later also compatible with Windows 10 (22H2,19045.2486).
 
 The toolbox depends on the following external source and static/dynamic libraries:
 * For linear algebra, the [Eigen](http://eigen.tuxfamily.org) C++ library is used (Linux: last tested is v3.4.0).
