@@ -32,7 +32,7 @@ Although the first aim of the toolbox was related to research carried out at Ein
 
 ### Dependencies
 The toolbox is written in C++ and makes use of elements defined in the C++17 standard.
-The toolbox is developed to be cross-platform, however, the lastest release has only been compiled and tested for Linux (Ubuntu 22.04 LTS). Previous release was compalied and tested for Windows 10 (22H2,19045.2486), with the main diverence is the inclusion of the new dependency libary FADE 2D, as will be described below.
+The toolbox is developed to be cross-platform, and has been compiled and tested for Linux (Ubuntu 22.04 LTS) and Windows 10 (22H2,19045.2486).
 
 The toolbox depends on the following external source and static/dynamic libraries:
 * For linear algebra, the [Eigen](http://eigen.tuxfamily.org) C++ library is used (Linux: last tested is v3.4.0).
@@ -40,7 +40,7 @@ The toolbox depends on the following external source and static/dynamic librarie
 * For constrained delaunay algorithm, the [FADE 2D](https://www.geom.at/) library (linux: last tested is v1.93) was used in this release. Further development did show that the open source library CGAL (version 6.1) could be used as well for this purpose. Alternatively, the FADE 2D v.2.13 worked as well.
 * Visualization is written in the OpenGL standard and makes use of freeglut (Linux: last tested is v2.8.1-6).   
 
-Hereafter, an elaborate Linux installation tutorial is given. 
+Hereafter, an elaborate Linux installation tutorial is given.
 
 ### Linux installation
 For Linux, a tutuorial for the installation of the dependencies and the toolbox is given in the following steps.
