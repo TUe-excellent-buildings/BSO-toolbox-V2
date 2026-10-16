@@ -32,7 +32,7 @@ Although the first aim of the toolbox was related to research carried out at Ein
 
 ### Dependencies
 The toolbox is written in C++ and makes use of elements defined in the C++17 standard.
-The toolbox is developed to be cross-platform, and has been compiled and tested for Linux (Ubuntu 22.04 LTS) and Windows 10 (22H2,19045.2486).
+The toolbox is developed to be cross-platform, however, this release has only been compiled and tested for Linux (Ubuntu 22.04 LTS) and the prior releases did work with Windows 10 (22H2,19045.2486). 
 
 Furthermore, the toolbox depends on the following external source and static/dynamic libraries:
 * For linear algebra, the [Eigen](http://eigen.tuxfamily.org) C++ library is used (Linux: last tested is v3.4.0).
@@ -40,7 +40,7 @@ Furthermore, the toolbox depends on the following external source and static/dyn
 * For constrained delaunay algorithm, the [FADE 2D](https://www.geom.at/) library (linux: last tested is v1.93) was used in this release. Further development did show that the library CGAL (version 6.1) could be used as well for this purpose. Alternatively, the FADE 2D v.2.13 worked as well.
 * Visualization is written in the OpenGL standard and makes use of freeglut (Linux: last tested is v2.8.1-6).   
 
-First, an elaborate Linux installation tutorial is given. It may be usefull to read this first, even if a Windows 10 installation is desired. Hereafter, the Windows 10 installation is explained.
+Here after, an elaborate Linux installation tutorial is given.
 
 ### Linux installation
 For Linux, a tutuorial for the installation of the dependencies and the toolbox is given in the following steps.
@@ -262,136 +262,6 @@ For example to test the geometry package of the toolbox type the following in th
 $ make clean cls geometry
 $ ./geometry_test
 ```
-### Windows 10 installation
-
-For this installation Code::Blocks has been used, but other strategies are possible as well.
-
-##### 1. Installing Code::Blocks and starting the project
-
-* Install codeblocks-20.03mingw-setup.exe, found via www.codeblocks.org
-
-All in Code::Blocks:
-
-* At Settings>Compiler>GNU GCC Compiler>Toolchain executables, check whether all "Programs Files" are indeed from C:\Program Files\CodeBlocks\MinGW. For instance, a previously installed Strawberry Perl may lead to other files and locations. The "Reset defaults" button may help in this case.
-
-* Create a new project by File>New>Project>Console application, select a "Folder to create project in:" you prefer, here "D:\" has been chosen, and if options arise, use default options throughout. Note that here project title BSO111 was used, for which Code:Blocks then creates directory D:\BSO111 for the project.
-
-##### 2. External libraries: eigen, boost, glut
-
-All in Windows 10:
-
-* Unzip eigen-3.4.0.zip, found via eigen.tuxfamily.org. In this example the resulting directory has been put in D:\BSO111, but it normally would make more sense to put it more closely to Code::Blocks or the compiler, e.g. in the conventional C:\Program Files\CodeBlocks\MinGW\lib.
-
-* Unzip boost_1_81_0.zip found via www.boost.org. Further, the same applies as above for eigen. 
-
-**NOTE** Windows 10 extraction can be quite slow, and using e.g. 7-Zip may be faster. Also, precompiling certain parts of boost is needed for certain functionalities, see www.boost.org, but not here.
-
-* Unzip freeglut-MinGW-3.0.0-1.mp.zip found via www.transmissionzero.co.uk. Further, the same applies as above for eigen.
-
-**NOTE** Different from possibly claimed elsewhere, the BSO toolbox (both for Linux and Windows 10) needs neither the OpenGL Shading Language (GLSL) nor the GNU Scientific (GSL) libraries.
-
-All in Code::Blocks:
-
-* In Settings>Compiler>Search directions>Compiler, add the above directories to enable the compiler to find header files, here these directories are:  
-D:\BSO111\eigen-3.4.0   
-D:\BSO111\boost_1_81_0   
-D:\BSO111\freeglut\include\GL  
-
-* In Settings>Compiler>Search directories>Linker, add the below directory to enable the linker to find libraries, in this example:  
-D:\toolbox\freeglut\lib\x64
-
-* In Settings>Compiler>Linker settings, add at "Other linker options" the following line to link the libraries below:  
--lfreeglut_static -lopengl32 -lwinmm -lgdi32 -Wl,--subsystem,console
-
-**NOTE** "--subsystem,console" is used so the terminal reponses correctly to cout.
-
-* In Settings>Compiler>Compiler settings>#defines, add:  
-FREEGLUT_STATIC  
-This is to statically link freeglut. Alternatively dynamical linking can be used, by leaving this define out, and linking -lfreeglut instead of -lfreeglut_static 
-
-* To save the above settings, save the project (File>Save Project), workspace (File>Save Workspace), and perspective (View>Perspectives>Save current). Probably one will do, but not sure which one.
-
-##### 3. Preparing the BSO-toolbox
-
-In Windows 10:
-
-* Unzip BSO-toolbox-v.1.1.1.zip found at github.com, and put the resulting directories bso, example, and unit_tests in the project folder, so here:  
-D:\BSO111\bso   
-D:\BSO111\example   
-D:\BSO111\unit_tests  
-
-All in Code::Blocks:
-
-* Within the project (at the Projects tab in the left "Management" column), remove the initial main.cpp. Right (or left for a left-handed mouse) click on the project within the Projects tab in the left "Management" column, Add files ..., and select D:\BSO111\example\main.cpp. Select Debug and Release options. 
-
-**NOTE** For editing and searching in the other hpp and cpp files, all other files in the folders bso, example, and unit_tests can be included (using Add files recursively). But then these files should be untagged "Compile file" and "Link file": If all directories are unfold, all files can be selected in one step, and Compile file and Link file can be switched off.
-
-* In Settings>Compiler>Search directions>Compiler, add the directory of the BSO-toolbox to enable the compiler to find the toolbox cpp and hpp files, in the particular example here, this is:  
-D:\BSO111
-
-In Code::Blocks or any text-editor: 
-
-* As a temporarily bugfix, add the following pre-compiler lines to D:\toolbox\BSO-toolbox-v.1.1.1/bso/utilities/geometry/vector.hpp. Here these three lines have been put after the first two lines (#ifndef VECTOR_HPP, #define VECTOR_HPP):  
-~~~
-#ifndef M_PI
-#define M_PI 3.141592653589793238463
-#endif // M_PI
-~~~
-
-**NOTE** This bug will be fixed in future versions.
-
-All in Code::Blocks:
-
-* In Settings>Compiler>Compiler settings>Compiler Flags, switch on:  
--std=c++17 (c++17 version)   
--m64 (64-bits executable)   
--Og (otherwise Debug executable too large)   
--O3 (optimised code)
-
-* Right (or left) click the project (in the left Management column), choose Properties. At tab "Build targets" select for the "Execution working dir:" the location of the main.cpp file, so for this example:  
-D:\BSO111\example    
-Use the absolute path, so not the relative option. And note that this is to be done for both the Debug and Release options (left column).
-
-##### 4. Build and run
-
-In Code::Blocks:
-
-* Build>Build and run
-
-##### 5. Unit tests
-
-All in Code::Blocks:
-
-* Delete the main.cpp file in the project, and add instead:  
-D:\BSO111\unit_tests\all_test.cpp   
-Select Debug and Release options.
-
-* Use for the "Execution working dir:" the following (see also above):  
-D:\BSO111\unit_tests
-
-* Build>Clean workspace
-
-* Build>Build and run
-
-##### 6. Running the executables outside Code::Blocks, i.e. in a console
-
-All in Windows 10:
-
-* Include the folder with neccessary dll's in the windows PATH:  
-C:\Program Files\CodeBlocks\MinGW\bin  
-This can be done by:
-Win-X, search, type “env”, and choose “Edit the system environment variables”; 
-Click the “Environment Variables…” button; 
-Under the “System Variables” section (the lower half), find the row with “Path” in the first column, and click edit, and add the location.
-
-* Move the executable file, now in:  
-D:\BSO111\bin\Debug   
-to the appropiate execution working directory as indicated above, i.e. for the unit tests in:  
-D:\BSO111\unit_tests  
-and for the example:  
-D:\BSO111\example  
-
-* Run the executable in a console.
 
 ## Contribution guidelines
 
