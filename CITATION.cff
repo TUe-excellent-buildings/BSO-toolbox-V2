@@ -1,24 +1,11 @@
-cff-version: 1.0.0
-message: If you use this software, please cite it as below.
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
 authors:
   - family-names: Ezendam
     given-names: Tessa
-    orcid: https://orcid.org/0009-0009-9401-6911
+    orcid: "https://orcid.org/0009-0009-9401-6911"
   - family-names: Hofmeyer
     given-names: Hèrm
 title: "BSO Toolbox"
-version: 1.0.0
-doi: 
-date-released: 2026-10-xx
-
-bibtex:
-@software{bso_toolbox,
-	title = {BSO toolbox},
-	author = {Ezendam, Tessa and Hofmeyer, H\'{e}rm},
-	version = {v1.0.0},
-	publisher = {Zenodo},
-	year = {2026},
-	month = {10},
-	doi = {},
-	url = {https://github.com/TUe-excellent-buildings/BSO-toolbox-V2}
-}
+version: "1.0.0"
+repository-code: "https://github.com/TUe-excellent-buildings/BSO-toolbox-V2"

@@ -2,7 +2,7 @@
 BOOST   = /usr/include/boost
 EIGEN   = /usr/include/eigen
 FADE	= /usr/include/fadeRelease_v1.93
-BSO 	= /usr/include/BSO-toolbox
+BSO 	= /usr/include/BSO-toolbox-V2
 ALL_LIB = -I$(BOOST) -I$(EIGEN) -I$(BSO)
 
 #compiler settings

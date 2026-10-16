@@ -32,25 +32,26 @@ Although the first aim of the toolbox was related to research carried out at Ein
 
 ### Dependencies
 The toolbox is written in C++ and makes use of elements defined in the C++17 standard.
-The toolbox is developed to be cross-platform, and has been compiled and tested for Linux (Ubuntu 22.04 LTS) and Windows 10 (22H2,19045.2486).
+The toolbox is developed to be cross-platform, however, the lastest release has only been compiled and tested for Linux (Ubuntu 22.04 LTS). Previous release was compalied and tested for Windows 10 (22H2,19045.2486), with the main diverence is the inclusion of the new dependency libary FADE 2D, as will be described below.
 
-Furthermore, the toolbox depends on the following external source and static/dynamic libraries:
+The toolbox depends on the following external source and static/dynamic libraries:
 * For linear algebra, the [Eigen](http://eigen.tuxfamily.org) C++ library is used (Linux: last tested is v3.4.0).
 * Various utilities (e.g. [Odeint](https://www.odeint.com)) from the [Boost](https://www.boost.org/) C++ library (Linux: last tested is v1.80.0). Precompiling is not needed.
-* For constrained delaunay algorithm, the [FADE 2D](https://www.geom.at/) library (linux: last tested is v1.93) was used in this release. Further development did show that the library CGAL (version 6.1) could be used as well for this purpose. Alternatively, the FADE 2D v.2.13 worked as well.
+* For constrained delaunay algorithm, the [FADE 2D](https://www.geom.at/) library (linux: last tested is v1.93) was used in this release. Further development did show that the open source library CGAL (version 6.1) could be used as well for this purpose. Alternatively, the FADE 2D v.2.13 worked as well.
 * Visualization is written in the OpenGL standard and makes use of freeglut (Linux: last tested is v2.8.1-6).   
 
-First, an elaborate Linux installation tutorial is given. It may be usefull to read this first, even if a Windows 10 installation is desired. Hereafter, the Windows 10 installation is explained.
+Hereafter, an elaborate Linux installation tutorial is given. 
 
 ### Linux installation
 For Linux, a tutuorial for the installation of the dependencies and the toolbox is given in the following steps.
 1. Install C++ compiler (GCC) and make
 2. Install the Eigen library.
 3. Install (and compile) the Boost library.
-4. Install visualization dependencies (GLUT)
-5. Install GIT
-6. Clone the repository to your local machine
-7. Compile and run the example code.
+4. Install FADE 2D
+5. Install visualization dependencies (GLUT)
+6. Install GIT
+7. Clone the repository to your local machine
+8. Compile and run the example code.
 
 ##### 1. Install C++ compiler (GCC) and make
 In this step, a compiler to compile the toolbox into executable code is installed.
@@ -109,7 +110,7 @@ $ sudo ./b2 install
 
 **NOTE.** Enter the above commands one by one. During Windows 10 installations, it appeared that the compiled parts of Boost are not needed in the toolbox so far, and so also for the Linux installation, precompilation may possibly be treated as an optional step.
 
-##### 4. Install FADE 2D v1.93
+##### 4. Install FADE 2D
 The toolbox uses the FADE 2D library for constrained Delaunay triangulation. FADE 2D is a separate, licensed third-party dependency; it is not included in this repository. Obtain the Linux FADE 2D v1.93 package from [Geom Software](https://www.geom.at/) and check its license before use. The v1.93 package describes its student license as being for personal, non-commercial scientific research. Commercial use requires a commercial license. Publications using FADE should cite it, and project pages should link to it as required by its license.
 
 Install the GMP development package, a dependency required by FADE:
@@ -138,11 +139,11 @@ Verify that Ubuntu can find the library:
 ```bash
 ldconfig -p | grep libfade2d
 ```
-The output should include `/usr/local/lib/libfade2d.so`.
+The output should include `/usr/local/lib/libfade2d.so`, then the instalation is sucsesfull.
 
 ##### 5. Install visualization dependencies (GLUT)
 In this step the dependencies for the visualization in the toolbox are installed.
-THe visualization makes use of OpenGL which is enabled by the GL Utility Toolkit (GLUT)
+The visualization makes use of OpenGL which is enabled by the GL Utility Toolkit (GLUT)
 
 Install the dependencies by typing in the terminal:
 ```bash
@@ -188,7 +189,7 @@ Examples of how the toolbox can be used has been added to the repository as well
 
 A make file has been added to the directory of the example, which can be used to compile the code.
 In the makefile, check if the dependencies (Eigen, Boost, and if applied FADE 2D) are linked to the locations of your local machine.
-For instance, check if the line `BOOST = /usr/include/boost` is correctly linking to the Boost library on your local machine.  Also, if applied, set FADE_ROOT, in any supplied make file, to the extracted package directory containing both the `include_fade2d` and the `lib_ubuntu...` directories. For example: `FADE_ROOT=$(HOME)/Libraries/fadeRelease_v1.93`.
+For instance, check if the line `BOOST = /usr/include/boost` is correctly linking to the Boost library on your local machine.  Also, set FADE_ROOT, in any supplied make file, to the extracted package directory containing both the `include_fade2d` and the `lib_ubuntu...` directories. For example: `FADE=$(HOME)/Libraries/fadeRelease_v1.93`.
 
 The example can then be compiled by typing the following command in the terminal:
 
@@ -223,20 +224,31 @@ $ cd /usr/include/BSO-toolbox/unit_tests
 ```
 
 The unit test directory contains a makefile with which the unit tests can be compiled.
-In the makefile, check if the dependencies (Eigen and Boost) are linked to the locations of your local machine.
-For instance, check if the line `BOOST = /usr/include/boost` is correctly linking to the Boost library on your local machine.
+In the makefile, check if the dependencies (Eigen, Boost, and FADE 2D) are linked to the locations of your local machine.
+For instance, check if the line `BOOST = /usr/include/boost` is correctly linking to the Boost library on your local machine. And for FADE, in any supplied make file, to the extracted package directory containing both the `include_fade2d` and the `lib_ubuntu...` directories. For example: `FADE=$(HOME)/Libraries/fadeRelease_v1.93`.
 
 To run all tests of the BSO toolbox, make sure the directory mentioned above is the working directory of your terminal and type in the terminal:
 ```bash
-$ make clean cls all
+$ make cls clean all
 ./all_test
 ```
 
 Possible output of running the unit tests successfully may look as follows:
 ```bash
-> Running 359 test cases...
-> 
-> *** No errors detected
+------------------------------------------------------------------
+* This software uses the Fade2D library under a student license. 
+  Commercial use requires a valid commercial license, please visit 
+  http://www.geom.at/licensing 
+
+  Geom Software, Bernhard Kornberger
+  C++ Freelancer, bkorn@geom.at
+  http://www.geom.at
+
+  (Fade2D serial no: 5303992d f08786e8)
+
+Running 470 test cases...
+
+*** No errors detected
 ```
 
 Alternatively, also sub-parts of the toolbox can be tested. This can be achieved by replacing the `all` argument in the `make` command above by any of the following arguments:
@@ -249,7 +261,6 @@ Alternatively, also sub-parts of the toolbox can be tested. This can be achieved
 * `trim_cast` tests only the unit tests concerning the trim and cast functions
 * `geometry` tests only the unit tests concerning the geometry in utilities
 * `delaunay` tests only the unit tests concerning the delaunay triangulations in utilities
-* `export` tests only the unit tests concerning the export of data in utilities
 * `building_physics` tests only the unit tests concerning the building physics simulation tools
 * `structural_design` tests only the unit tests concerning the structural design analysis tools
 * `grammar` tests only the unit tests concerning the design grammars
@@ -262,136 +273,6 @@ For example to test the geometry package of the toolbox type the following in th
 $ make clean cls geometry
 $ ./geometry_test
 ```
-### Windows 10 installation
-
-For this installation Code::Blocks has been used, but other strategies are possible as well.
-
-##### 1. Installing Code::Blocks and starting the project
-
-* Install codeblocks-20.03mingw-setup.exe, found via www.codeblocks.org
-
-All in Code::Blocks:
-
-* At Settings>Compiler>GNU GCC Compiler>Toolchain executables, check whether all "Programs Files" are indeed from C:\Program Files\CodeBlocks\MinGW. For instance, a previously installed Strawberry Perl may lead to other files and locations. The "Reset defaults" button may help in this case.
-
-* Create a new project by File>New>Project>Console application, select a "Folder to create project in:" you prefer, here "D:\" has been chosen, and if options arise, use default options throughout. Note that here project title BSO111 was used, for which Code:Blocks then creates directory D:\BSO111 for the project.
-
-##### 2. External libraries: eigen, boost, glut
-
-All in Windows 10:
-
-* Unzip eigen-3.4.0.zip, found via eigen.tuxfamily.org. In this example the resulting directory has been put in D:\BSO111, but it normally would make more sense to put it more closely to Code::Blocks or the compiler, e.g. in the conventional C:\Program Files\CodeBlocks\MinGW\lib.
-
-* Unzip boost_1_81_0.zip found via www.boost.org. Further, the same applies as above for eigen. 
-
-**NOTE** Windows 10 extraction can be quite slow, and using e.g. 7-Zip may be faster. Also, precompiling certain parts of boost is needed for certain functionalities, see www.boost.org, but not here.
-
-* Unzip freeglut-MinGW-3.0.0-1.mp.zip found via www.transmissionzero.co.uk. Further, the same applies as above for eigen.
-
-**NOTE** Different from possibly claimed elsewhere, the BSO toolbox (both for Linux and Windows 10) needs neither the OpenGL Shading Language (GLSL) nor the GNU Scientific (GSL) libraries.
-
-All in Code::Blocks:
-
-* In Settings>Compiler>Search directions>Compiler, add the above directories to enable the compiler to find header files, here these directories are:  
-D:\BSO111\eigen-3.4.0   
-D:\BSO111\boost_1_81_0   
-D:\BSO111\freeglut\include\GL  
-
-* In Settings>Compiler>Search directories>Linker, add the below directory to enable the linker to find libraries, in this example:  
-D:\toolbox\freeglut\lib\x64
-
-* In Settings>Compiler>Linker settings, add at "Other linker options" the following line to link the libraries below:  
--lfreeglut_static -lopengl32 -lwinmm -lgdi32 -Wl,--subsystem,console
-
-**NOTE** "--subsystem,console" is used so the terminal reponses correctly to cout.
-
-* In Settings>Compiler>Compiler settings>#defines, add:  
-FREEGLUT_STATIC  
-This is to statically link freeglut. Alternatively dynamical linking can be used, by leaving this define out, and linking -lfreeglut instead of -lfreeglut_static 
-
-* To save the above settings, save the project (File>Save Project), workspace (File>Save Workspace), and perspective (View>Perspectives>Save current). Probably one will do, but not sure which one.
-
-##### 3. Preparing the BSO-toolbox
-
-In Windows 10:
-
-* Unzip BSO-toolbox-v.1.1.1.zip found at github.com, and put the resulting directories bso, example, and unit_tests in the project folder, so here:  
-D:\BSO111\bso   
-D:\BSO111\example   
-D:\BSO111\unit_tests  
-
-All in Code::Blocks:
-
-* Within the project (at the Projects tab in the left "Management" column), remove the initial main.cpp. Right (or left for a left-handed mouse) click on the project within the Projects tab in the left "Management" column, Add files ..., and select D:\BSO111\example\main.cpp. Select Debug and Release options. 
-
-**NOTE** For editing and searching in the other hpp and cpp files, all other files in the folders bso, example, and unit_tests can be included (using Add files recursively). But then these files should be untagged "Compile file" and "Link file": If all directories are unfold, all files can be selected in one step, and Compile file and Link file can be switched off.
-
-* In Settings>Compiler>Search directions>Compiler, add the directory of the BSO-toolbox to enable the compiler to find the toolbox cpp and hpp files, in the particular example here, this is:  
-D:\BSO111
-
-In Code::Blocks or any text-editor: 
-
-* As a temporarily bugfix, add the following pre-compiler lines to D:\toolbox\BSO-toolbox-v.1.1.1/bso/utilities/geometry/vector.hpp. Here these three lines have been put after the first two lines (#ifndef VECTOR_HPP, #define VECTOR_HPP):  
-~~~
-#ifndef M_PI
-#define M_PI 3.141592653589793238463
-#endif // M_PI
-~~~
-
-**NOTE** This bug will be fixed in future versions.
-
-All in Code::Blocks:
-
-* In Settings>Compiler>Compiler settings>Compiler Flags, switch on:  
--std=c++17 (c++17 version)   
--m64 (64-bits executable)   
--Og (otherwise Debug executable too large)   
--O3 (optimised code)
-
-* Right (or left) click the project (in the left Management column), choose Properties. At tab "Build targets" select for the "Execution working dir:" the location of the main.cpp file, so for this example:  
-D:\BSO111\example    
-Use the absolute path, so not the relative option. And note that this is to be done for both the Debug and Release options (left column).
-
-##### 4. Build and run
-
-In Code::Blocks:
-
-* Build>Build and run
-
-##### 5. Unit tests
-
-All in Code::Blocks:
-
-* Delete the main.cpp file in the project, and add instead:  
-D:\BSO111\unit_tests\all_test.cpp   
-Select Debug and Release options.
-
-* Use for the "Execution working dir:" the following (see also above):  
-D:\BSO111\unit_tests
-
-* Build>Clean workspace
-
-* Build>Build and run
-
-##### 6. Running the executables outside Code::Blocks, i.e. in a console
-
-All in Windows 10:
-
-* Include the folder with neccessary dll's in the windows PATH:  
-C:\Program Files\CodeBlocks\MinGW\bin  
-This can be done by:
-Win-X, search, type “env”, and choose “Edit the system environment variables”; 
-Click the “Environment Variables…” button; 
-Under the “System Variables” section (the lower half), find the row with “Path” in the first column, and click edit, and add the location.
-
-* Move the executable file, now in:  
-D:\BSO111\bin\Debug   
-to the appropiate execution working directory as indicated above, i.e. for the unit tests in:  
-D:\BSO111\unit_tests  
-and for the example:  
-D:\BSO111\example  
-
-* Run the executable in a console.
 
 ## Contribution guidelines
 
@@ -433,16 +314,16 @@ For a description of the original work see this [paper] (https://onlinelibrary.w
 Dr. H.(Hèrm) Hofmeyer MSc (project leader Eindhoven University of Technology)  
 h.hofmeyer[at]tue.nl  
 
-Dr. S.(Sjonnie) Boonstra MSc (former PhD student Eindhoven)  
-s.boonstra[at]abt.eu
+T.(Tessa) Ezendam MSc (PhD student Eindhoven)  
+t.ezendam[at]tue.nl  
 
 ###### Other members of the projects:  
 
+Dr. S.(Sjonnie) Boonstra MSc (former PhD student Eindhoven)  
+s.boonstra[at]abt.eu
+
 Dr. M.T.M. (Michael) Emmerich MSc (project leader Leiden Institute of Advanced Computer Science (LIACS))  
 m.t.m.emmerich[at]liacs.leidenuniv.nl  
-
-T.(Tessa) Ezendam MSc (PhD student Eindhoven)  
-t.ezendam[at]tue.nl  
 
 K.G. Pereverdieva MSc (PhD student Leiden)  
 k.g.pereverdieva[at]liacs.leidenuniv.nl  

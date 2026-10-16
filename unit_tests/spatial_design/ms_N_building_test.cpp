@@ -594,69 +594,97 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		BOOST_REQUIRE_THROW(b2.deleteSpace(&s2), std::runtime_error);
 		BOOST_REQUIRE_THROW(b2.deleteSpace(s1), std::runtime_error);
 	}
-	
+
 	BOOST_AUTO_TEST_CASE( scale_1 )
 	{ // test of an orthogonal design for scaling
 		ms_N_building b1("spatial_design/ms_N_test_3.txt");
-				
+
 		b1.scale({{0,1.5},{1,2},{2,1.23}});
-		std::vector<bso::utilities::geometry::vertex> pVertexSpace1 = {{0,0,857.31},{4500,0,857.31},{0,6000,857.31},{4500,6000,857.31},{0,0,4547.31},{4500,0,4547.31},{0,6000,4547.31},{4500,6000,4547.31}};
-		std::vector<bso::utilities::geometry::vertex> pVertexSpace2 = {{0,0,6150},{4500,0,6150},{0,6000,6150},{4500,6000,6150},{0,0,9840},{4500,0,9840},{0,6000,9840},{4500,6000,9840}};
-		// Check space 1 & 2 is found within pVertexSpace1 & pVertexSpace2
-		for (int i = 0; i < 8; i++)
+
+		ms_space space1("N,1,	0,0,857.30999999999995,	4500,0,857.30999999999995,	0,6000,857.30999999999995,	4500,6000,857.30999999999995,   0,0,4547.3099999999995, 4500,0,4547.3099999999995,	0,6000,4547.3099999999995,	4500,6000,4547.3099999999995");
+		ms_space space2("N,2,    0,0,6150,       4500,0,6150,    0,6000,6150,    4500,6000,6150, 0,0,9840,       4500,0,9840,    0,6000,9840,    4500,6000,9840");
+
+		BOOST_REQUIRE(b1.getSpacePtrs().size() == 2);
+		
+		int count = 0;
+		for(auto& sp : b1)
 		{
-			bool found = false;
-			std::vector<bso::utilities::geometry::vertex> vertices = b1.getSpacePtrs()[0]->getVertices();
-			for (int j = 0; j < 8; j++)
+			if (count == 0)
 			{
-				if (vertices[i].isSameAs(pVertexSpace1[j], 0.001))
+				for(const auto& v : sp->getVertices())
 				{
-					found = true;
-					break;
+					bool isFound = false;
+					for(auto& v_ref : space1.getVertices())
+					{
+						if (v.isSameAs(v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
 				}
 			}
-			BOOST_REQUIRE(found);
-			found = false;
-			vertices = b1.getSpacePtrs()[1]->getVertices();
-			for (int j = 0; j < 8; j++)
+			else if (count == 1)
 			{
-				if (vertices[i].isSameAs(pVertexSpace2[j], 0.001))
+				for(const auto& v : sp->getVertices())
 				{
-					found = true;
-					break;
+					bool isFound = false;
+					for(auto& v_ref : space2.getVertices())
+					{
+						if (v.isSameAs(v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
 				}
 			}
-			BOOST_REQUIRE(found);
+			count++;
 		}
 
 		b1.scale();
-		pVertexSpace1 = {{0,0,857.31},{6363.96,0,857.31},{0,8485.28,857.31},{6363.96,8485.28,857.31},{0,0,4547.31},{6363.96,0,4547.31},{0,8485.28,4547.31},{6363.96,8485.28,4547.31}};
-		pVertexSpace2 = {{0,0,6150},{6363.96,0,6150},{0,8485.28,6150},{6363.96,8485.28,6150},{0,0,9840},{6363.96,0,9840},{0,8485.28,9840},{6363.96,8485.28,9840}};
-		// Check space 1 & 2 is found within pVertexSpace1 & pVertexSpace2
-		for (int i = 0; i < 8; i++)
+		
+		ms_space space3("N,1,      0,0,857.30999999999995, 6363.9610306789282,0,857.30999999999995,        0,8485.2813742385715,857.30999999999995,        6363.9610306789282,8485.2813742385715,857.30999999999995,       0,0,4547.3099999999995, 6363.9610306789282,0,4547.3099999999995,        0,8485.2813742385715,4547.3099999999995,        6363.9610306789282,8485.2813742385715,4547.3099999999995");
+		ms_space space4("N,2,    0,0,6150,       6363.9610306789282,0,6150,      0,8485.2813742385715,6150,      6363.9610306789282,8485.2813742385715,6150,     0,0,9840,       6363.9610306789282,0,9840,      0,8485.2813742385715,9840,      6363.9610306789282,8485.2813742385715,9840");
+
+		count = 0;
+		for(auto& sp : b1)
 		{
-			bool found = false;
-			std::vector<bso::utilities::geometry::vertex> vertices = b1.getSpacePtrs()[0]->getVertices();
-			for (int j = 0; j < 8; j++)
+			if (count == 0)
 			{
-				if (vertices[i].isSameAs(pVertexSpace1[j], 0.001))
+				for(const auto& v : sp->getVertices())
 				{
-					found = true;
-					break;
+					bool isFound = false;
+					for(auto& v_ref : space3.getVertices())
+					{
+						if (v.isSameAs(v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
 				}
 			}
-			BOOST_REQUIRE(found);
-			found = false;
-			vertices = b1.getSpacePtrs()[1]->getVertices();
-			for (int j = 0; j < 8; j++)
+			else if (count == 1)
 			{
-				if (vertices[i].isSameAs(pVertexSpace2[j], 0.001))
+				for(const auto& v : sp->getVertices())
 				{
-					found = true;
-					break;
+					bool isFound = false;
+					for(auto& v_ref : space4.getVertices())
+					{
+						if (v.isSameAs(v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
 				}
 			}
-			BOOST_REQUIRE(found);
+			count++;
 		}
 		
 		BOOST_REQUIRE_THROW(b1.scale({{3,1.5}}), std::invalid_argument);
@@ -666,22 +694,96 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 	BOOST_AUTO_TEST_CASE( scale_2 )
 	{ // test of an non-orthogonal design for scaling
 		ms_N_building b1("spatial_design/ms_N_test_9.txt");
-		std::stringstream sstr, check1, check2; 
 		
 		b1.scale({{0,1.5},{1,2},{2,1.98}});
-		sstr << b1;
-		check1 << "N,1,	0,0,0,	4500,0,0,	0,8000,0,	6000,8000,0,	0,0,5940,	4500,0,5940,	0,8000,5940,	6000,8000,5940" << std::endl
-					<< "N,2,	0,0,5940,	4500,-4000,5940,	0,6000,5940,	4500,6000,5940,	0,0,15840,	4500,-4000,15840,	0,6000,15840,	4500,6000,15840" ;
-		std::cout << sstr.str() << std::endl;
-		BOOST_REQUIRE(sstr.str() == check1.str());
-		sstr.str(std::string());
+
+		ms_space space1("N,1,	0,0,0,	4500,0,0,	0,8000,0,	6000,8000,0,	0,0,5940,	4500,0,5940,	0,8000,5940,	6000,8000,5940");
+		ms_space space2("N,2,	0,0,5940,	4500,-4000,5940,	0,6000,5940,	4500,6000,5940,	0,0,15840,	4500,-4000,15840,	0,6000,15840,	4500,6000,15840");
+
+		BOOST_REQUIRE(b1.getSpacePtrs().size() == 2);
+		
+		int count = 0;
+		for(auto& sp : b1)
+		{
+			if (count == 0)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space1.getVertices())
+					{
+						if (v.isSameAs(v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			else if (count == 1)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space2.getVertices())
+					{
+						if (v.isSameAs(v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			count++;
+		}
 
 		b1.scale();
-		sstr << b1;
-		check2 << "N,1,	0,0,0,	6363.96,0,0,	0,11313.7,0,	8485.28,11313.7,0,	0,0,5940,	6363.96,0,5940,	0,11313.7,5940,	8485.28,11313.7,5940" << std::endl
-					<< "N,2,	0,0,5940,	6363.96,-5656.85,5940,	0,8485.28,5940,	6363.96,8485.28,5940,	0,0,15840,	6363.96,-5656.85,15840,	0,8485.28,15840,	6363.96,8485.28,15840" ;
-		std::cout << sstr.str() << std::endl;
-		BOOST_REQUIRE(sstr.str() == check2.str());
+
+		ms_space space3("N,1,       0,0,0,  6363.9610306789282,0,0, 0,11313.708498984761,0, 8485.2813742385715,11313.708498984761,0,        0,0,5940,       6363.9610306789282,0,5940,      0,11313.708498984761,5940,      8485.2813742385715,11313.708498984761,5940");
+		ms_space space4("N,2,    0,0,5940,       6363.9610306789282,-5656.8542494923804,5940,    0,8485.2813742385715,5940,      6363.9610306789282,8485.2813742385715,5940,     0,0,15840,      6363.9610306789282,-5656.8542494923804,15840,   0,8485.2813742385715,15840,   6363.9610306789282,8485.2813742385715,15840");
+
+		BOOST_REQUIRE(b1.getSpacePtrs().size() == 2);
+		
+		count = 0;
+		for(auto& sp : b1)
+		{
+			if (count == 0)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space3.getVertices())
+					{
+						if (v.isSameAs(v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			else if (count == 1)
+			{
+				for(const auto& v : sp->getVertices())
+				{
+					bool isFound = false;
+					for(auto& v_ref : space4.getVertices())
+					{
+						if (v.isSameAs(v_ref, 0.0000001))
+						{
+							isFound = true;
+							break;
+						}
+					}
+					BOOST_REQUIRE(isFound);
+				}
+			}
+			count++;
+		}
 	}
 	
 	BOOST_AUTO_TEST_CASE( splitSpace_1a )
@@ -788,128 +890,6 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 					<< "N,9,	-187.5,0,0,	625,-500,0,	-250,-500,0,	500,-1000,0,	-187.5,0,2000,	625,-500,2000,	-250,-500,2000,	500,-1000,2000" ;
 
 		BOOST_REQUIRE(sstr.str() == check.str());
-	}
-
-	BOOST_AUTO_TEST_CASE( duplicateElevation_1 )
-	{
-		ms_N_building ms1;
-		ms1.addSpace(ms_space("N, 1 ,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
-		
-		ms1.duplicateElevation(1000,1000);
-		BOOST_REQUIRE(ms1.getSpacePtrs().size()==2);
-
-		std::vector<ms_space> checkSpaces;
-		checkSpaces.push_back(ms_space("N, 1 ,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
-		checkSpaces.push_back(ms_space("N,2,	0,0,1000,	0,0,2000,	1000,0,1000,	1000,0,2000,	1000,1000,1000,	1000,1000,2000,	0,1000,1000,	0,1000,2000"));
-		
-		bool checked = true;
-		int i=0;
-		for(const auto j: ms1)
-		{
-			if(checkSpaces[i] != *j){checked = false;}
-			i++;
-		}
-
-		BOOST_REQUIRE(checked);
-	}
-
-	BOOST_AUTO_TEST_CASE( duplicateElevation_2 )
-	{
-		ms_N_building ms1;
-		ms1.addSpace(ms_space("N, 1 ,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
-		
-		ms1.duplicateElevation(500,2000);
-		BOOST_REQUIRE(ms1.getSpacePtrs().size()==2);
-
-		std::vector<ms_space> checkSpaces;
-		checkSpaces.push_back(ms_space("N,1,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
-		checkSpaces.push_back(ms_space("N,2,	0,0,1000,	0,0,3000,	1000,0,1000,	1000,0,3000,	1000,1000,1000,	1000,1000,3000,	0,1000,1000,	0,1000,3000"));
-		
-		bool checked = true;
-		int i=0;
-		for(const auto j: ms1)
-		{
-			if(checkSpaces[i] != *j){checked = false;}
-			i++;
-		}
-
-		BOOST_REQUIRE(checked);
-	}
-
-	BOOST_AUTO_TEST_CASE( duplicateElevation_3 )
-	{
-		ms_N_building ms1;
-		ms1.addSpace(ms_space("N, 1 ,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
-		ms_N_building ms2;
-		ms2.addSpace(ms_space("N, 1 ,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
-		
-		ms1.duplicateElevation(0,2000);
-		BOOST_REQUIRE(ms1.getSpacePtrs().size()==2);
-		ms2.duplicateElevation(0,2000,false);
-		BOOST_REQUIRE(ms2.getSpacePtrs().size()==2);
-
-		std::vector<ms_space> checkSpaces;
-		checkSpaces.push_back(ms_space("N, 1 ,	0,0,2000,	1000,0,2000,	0,1000,2000,	1000,1000,2000,	0,0,3000,	1000,0,3000,	0,1000,3000,	1000,1000,3000"));
-		checkSpaces.push_back(ms_space("N,2,	0,0,0,	0,0,2000,	1000,0,0,	1000,0,2000,	1000,1000,0,	1000,1000,2000,	0,1000,0,	0,1000,2000"));
-		
-		bool checked1 = true;
-		bool checked2 = true;
-		int i=0;
-		for(const auto j: ms1)
-		{
-			if(checkSpaces[i] != *j){checked1 = false;}
-			i++;
-		}
-		i=0;
-		for(const auto j: ms2)
-		{
-			if(checkSpaces[i] != *j){checked2 = false;}
-			i++;
-		}
-
-		BOOST_REQUIRE(checked1);
-		BOOST_REQUIRE(checked2);
-	}
-
-	BOOST_AUTO_TEST_CASE( duplicateElevation_4 )
-	{
-		ms_N_building ms1;
-		ms1.addSpace(ms_space("N, 1 ,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
-		ms1.addSpace(ms_space("N, 2 ,	500,0,1000,	1000,0,1000,	500,1000,1000,	1000,1000,1000,	500,0,2000,	1000,0,2000,	500,1000,2000,	1000,1000,2000"));
-		ms_N_building ms2(ms1);
-		
-		ms1.duplicateElevation(1000,2000,true);
-		BOOST_REQUIRE(ms1.getSpacePtrs().size()==3);
-		ms2.duplicateElevation(1000,2000,false);
-		BOOST_REQUIRE(ms2.getSpacePtrs().size()==3);
-
-		std::vector<ms_space> checkSpaces1;
-		checkSpaces1.push_back(ms_space("N,1,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
-		checkSpaces1.push_back(ms_space("N,2,	500,0,3000,	1000,0,3000,	500,1000,3000,	1000,1000,3000,	500,0,4000,	1000,0,4000,	500,1000,4000,	1000,1000,4000"));
-		checkSpaces1.push_back(ms_space("N,3,	0,0,1000,	0,0,3000,	1000,0,1000,	1000,0,3000,	1000,1000,1000,	1000,1000,3000,	0,1000,1000,	0,1000,3000"));
-
-		std::vector<ms_space> checkSpaces2;
-		checkSpaces2.push_back(ms_space("N,1,	0,0,0,	1000,0,0,	0,1000,0,	1000,1000,0,	0,0,1000,	1000,0,1000,	0,1000,1000,	1000,1000,1000"));
-		checkSpaces2.push_back(ms_space("N,2,	500,0,3000,	1000,0,3000,	500,1000,3000,	1000,1000,3000,	500,0,4000,	1000,0,4000,	500,1000,4000,	1000,1000,4000"));
-		checkSpaces2.push_back(ms_space("N,3,	500,0,1000,	500,0,3000,	1000,0,1000,	1000,0,3000,	1000,1000,1000,	1000,1000,3000,	500,1000,1000,	500,1000,3000"));
-		
-		bool checked1 = true;
-		bool checked2 = true;
-		int i=0;
-		for(const auto j: ms1)
-		{
-			if(checkSpaces1[i] != *j){checked1 = false;}
-			i++;
-		}
-		i=0;
-		for(const auto j: ms2)
-		{
-			if(checkSpaces2[i] != *j){checked2 = false;}
-			i++;
-		}
-
-		BOOST_REQUIRE(checked1);
-		BOOST_REQUIRE(checked2);
 	}
 	
 	BOOST_AUTO_TEST_CASE( has_floating_spaces )
@@ -1202,107 +1182,6 @@ BOOST_AUTO_TEST_SUITE( building_N_functions )
 		}
 		BOOST_REQUIRE(!anyNotFound);
 	}
-
-	/*
-	Not fully implemented yet, thus removed from the test suite.
-	The bellow shiftFillPlane test where performed while developing the shiftFillPlane function.
-	If any of the bellow generates an error and a visualization is preferred, the following can be done:
-	Go to \BSO-toolbox-V2\unit_tests\spatial_design\NOBSD_test_suite. 
-	Here the make file and main.cpp file are there.
-	When you compile with 'make cls clean all', followed by running with ./main.
-	A visualization will be shown of the bellow boost unit test for shiftFillPlane_x.
-	*/
-
-	// BOOST_AUTO_TEST_CASE( shiftFillPlane_1 )
-	// {
-	// 	bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_327");
-
-	// 	bso::utilities::geometry::vertex location = {7000,0,0};
-	// 	bso::utilities::geometry::vector direction = {1,0,0};
-	// 	double shift = 3000;
-	// 	ms.shiftFillPlane(location, direction, shift);
-
-	// 	bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_327_Linear_shift");
-	// 	BOOST_REQUIRE(msShift == ms);
-	// }
-
-	// BOOST_AUTO_TEST_CASE( shiftFillPlane_2 )
-	// {
-	// 	bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
-
-	// 	bso::utilities::geometry::vertex location = {3000,0,0};
-	// 	bso::utilities::geometry::vector direction = {1,-1,0};
-	// 	double shift = sqrt(2) * 3000;
-	// 	ms.shiftFillPlane(location, direction, shift);
-
-	// 	bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_cornerDiagonalShift");
-	// 	BOOST_REQUIRE(msShift == ms);
-	// }
-
-	// BOOST_AUTO_TEST_CASE( shiftFillPlane_3 )
-	// {
-	// 	bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
-
-	// 	bso::utilities::geometry::vertex location = {3000,0,0};
-	// 	bso::utilities::geometry::vector direction = {1,0,0};
-	// 	double shift = sqrt(2) * 3000;
-	// 	ms.shiftFillPlane(location, direction, shift);
-	// 	ms.writeToFile("spatial_design/NOBSD_test_suite/design_325_cornerFullShift_unit_test");
-
-	// 	bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_cornerFullShift");
-	// 	BOOST_REQUIRE(msShift == ms);
-
-	// 	// I have checked the output files and they are exactly the same, so the boolean operation msShift == ms notice a difference???
-	// }
-
-	// BOOST_AUTO_TEST_CASE( shiftFillPlane_4 )
-	// {
-	// 	bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
-
-	// 	bso::utilities::geometry::vertex location = {3000,0,0};
-	// 	bso::utilities::geometry::vector direction = {1,0,0};
-	// 	double shift = 3000;
-	// 	ms.shiftFillPlane(location, direction, shift);
-
-	// 	bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_cornerMatchShift");
-	// 	BOOST_REQUIRE(msShift == ms);
-	// }
-
-	// BOOST_AUTO_TEST_CASE( shiftFillPlane_5 )
-	// {
-	// 	bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_325");
-
-	// 	bso::utilities::geometry::vertex location = {0,6000,0};
-	// 	bso::utilities::geometry::vector direction = {0,1,0};
-	// 	double shift = 3000;
-	// 	ms.shiftFillPlane(location, direction, shift);
-
-	// 	bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_325_shiftSlantedSide");
-	// 	BOOST_REQUIRE(msShift == ms);
-	// }
-
-	// BOOST_AUTO_TEST_CASE( shiftFillPlane_6 )
-	// {
-	// 	bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_308");
-
-	// 	bso::utilities::geometry::vertex location = {0,15000,0};
-	// 	bso::utilities::geometry::vector direction = {0,1,0};
-	// 	double shift = 6000;
-	// 	ms.shiftFillPlane(location, direction, shift);
-
-	// 	bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_308_splitLevelAndHorizontalOverlapShift");
-	// 	BOOST_REQUIRE(msShift == ms);
-	// }
-
-	// BOOST_AUTO_TEST_CASE( shiftFillPlane_7 )
-	// {
-	// 	bso::spatial_design::ms_N_building ms("spatial_design/NOBSD_test_suite/design_308");
-
-	// 	ms.shiftFillPlaneCentre(5000);
-
-	// 	bso::spatial_design::ms_N_building msShift("spatial_design/NOBSD_test_suite/design_308_centreShiftFillPlane");
-	// 	BOOST_REQUIRE(msShift == ms);
-	// }
 	
 	
 BOOST_AUTO_TEST_SUITE_END()

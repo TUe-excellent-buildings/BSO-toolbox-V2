@@ -8,8 +8,6 @@
 #include <vector>
 #include <map>
 #include <bso/utilities/geometry.hpp>
-#include <bso/utilities/geometry/polygon_non_convex.hpp>
-
 
 namespace bso { namespace utilities {
 
@@ -452,27 +450,29 @@ namespace bso { namespace utilities {
 		return allDelaunayTri;
 	} //delaunayMultipleZoned()
 	
-	
+
 	void splitLines(const std::vector<utilities::geometry::vertex>& intsecV, std::vector<utilities::geometry::line_segment>& intsecL, bool removeDuplicates /*= true*/, const double mTol)
-	{					
+	{							
 		// split lines in accordance to intersection points
-		for(long unsigned int k=0; k<intsecL.size(); k++)
+		int k = 0;
+		while(k<intsecL.size())
 		{
-			for(const auto& l :intsecV)
+			for(const auto l :intsecV)
 			{
 				if(intsecL[k].isOnLine(l, mTol))
 				{
 					utilities::geometry::line_segment one = {{(intsecL[k])[0]},{l}};
 					utilities::geometry::line_segment two = {{(intsecL[k])[1]},{l}};
 					
-					intsecL.push_back(one);
-					intsecL.push_back(two);
-
 					intsecL.erase(intsecL.begin() + k);
+					intsecL.push_back(one);
+					intsecL.push_back(two);	
 
-					k--; // Makes sure the for loop isn't snipping a constrain lines when one is erased.
+					k--;
+					break;
 				}
 			}
+			k++;
 		}
 		
 		if(removeDuplicates)
@@ -487,7 +487,7 @@ namespace bso { namespace utilities {
 			
 			
 			// remove duplicates which has switched vertexes in intsecL		
-			for(long unsigned int k=0; k<intsecL.size(); k++)
+			for(int k=0; k<intsecL.size(); k++)
 			{
 				for(auto m : intsecL)
 				{
@@ -495,8 +495,8 @@ namespace bso { namespace utilities {
 					if (m.isSameAs(intsecL[k], mTol)){intsecL.erase(intsecL.begin() + k);}
 				}
 			}
-		}	
-	}//splitLines
+		}
+	} // splitLines
 
 
 } // namespace utilities

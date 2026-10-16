@@ -34,16 +34,12 @@ public:
 	int getNrElevations(const double mTol = 1e-3) const;
 	double getAverageHorizontalRibSize() const;
 	double getSpaceVolumeRatio() const;
-	void getSpaceVolumeBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);
 	double getSpaceFloorAreaRatio() const;
-	std::vector<double> getSpaceFloorAreaBoxPlotValues(double& median, double& firstQuartile, double& thirdQuartile, double& average, std::vector<double>& outliers);
 	double getAverageRecDif() const;
 	bool hasFloatingSpaces(std::vector<ms_space*>& floatingSpaces, 
 		const double tol = 1e-3) const; 
 	bool isFragmented(std::vector<ms_space*>& spacesNonBiggestFragment, 
 		const double tol = 1e-3) const;
-	// bool areSpacesOverlapping(std::vector<ms_space*>& spacesNotOverlapping,
-	// 	const double tol = 1e-3) const;
 
 	// Get the NOBSD representation as a certain geometry:
 	void getNOBSDAtGround(std::vector<std::pair<bso::spatial_design::ms_space*, utilities::geometry::quad_hexahedron>>& spacePair, 
@@ -70,29 +66,6 @@ public:
 	void splitSpace(ms_space* spacePtr, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit); //split perpendicular to inserted line of space
 	void splitSpace(ms_space& space, int splitAmount, bso::utilities::geometry::line_segment& lineToSplit); //split perpendicular to inserted line of space
 	
-	// New functions:
-	//void splitBuilding(double minimumHeight, double minimumWidth, double minimumDepth); // under development
-	//void enforceSpaceSize(double minimumHeight, double minimumWidth, double minimumDepth);
-	void duplicateElevation(double atZFromGround = 0, double elevationHeight = 3000, bool duplicateBelowZLevel = true);
-	void shiftFillPlaneCentre(double shiftAmount, bool shiftInMostHeadingDirection = false, int amountOfHeadingCatagories = 6, const double& tol = 1e-3);
-	std::vector<bso::spatial_design::ms_space*> shiftFillPlane(const bso::utilities::geometry::vertex& location,
-		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3);
-	void extrude(std::vector<ms_space*> spacePtrs, const bso::utilities::geometry::vertex& location, 
-		const bso::utilities::geometry::vector& shiftDirection, double shiftAmount, const double& tol = 1e-3);
-	void enforceAverageSpaceSize(double minElevationHeight = 3000, const double& tol = 1e-3);
-	//void sweep(const bso::utilities::geometry::vertex& location,
-	//	const std::vector<std::pair<unsigned int, double> >& distances =
-	//	{{0,1.0},{1,0.0},{2,0.0}}, const double& tol = 1e-3);
-	//void cutOff(const bso::utilities::geometry::vertex& location,
-	//	const bso::utilities::geometry::vector& direction, const double& tol = 1e-3);
-	//void rotate();
-	//void rotate(bso::utilities::vector axis);
-	//void rotate(std::vector<ms_space*> mSpaces);
-	//void rotate(std::vector<ms_space*> mSpaces, bso::utilities::vector axis);
-	//void stretchAt();
-	//void replicateSplits(std::vector<ms_space*> spaces); // under development
-	//void recenterBuilding();
-
 	// Space selection functions:
 	std::vector<ms_space*> selectSpacesGeometrically(
 		const bso::utilities::geometry::vertex& location,

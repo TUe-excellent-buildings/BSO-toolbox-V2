@@ -1,7 +1,7 @@
 #libraries
 BOOST   = /usr/include/boost
 EIGEN   = /usr/include/eigen
-FADE	= /home/tessa/Libaries/fadeRelease_v1.93/fadeRelease_v1.93
+FADE	= /usr/include/Libaries/fadeRelease_v1.93/fadeRelease_v1.93
 BSO     = ..
 ALL_LIB = -I$(BOOST) -I$(EIGEN) -I$(BSO)
 
@@ -19,7 +19,6 @@ CONFORMAL 	= $(BSO)/unit_tests/spatial_design/conformal_test.cpp
 TRIM_CAST   = $(BSO)/unit_tests/utilities/trim_and_cast_test.cpp
 GEOMETRY	= $(BSO)/unit_tests/utilities/geometry_test.cpp
 DELAUNAY	= $(BSO)/unit_tests/utilities/delaunay_test.cpp
-EXPORT		= $(BSO)/unit_tests/utilities/data_export_test.cpp
 STRUCT_DES	= $(BSO)/unit_tests/structural_design/structural_design_test.cpp
 BUILD_PHYS  = $(BSO)/unit_tests/building_physics/building_physics_test.cpp
 VISUALIZE   = $(BSO)/unit_tests/visualization/visualization_test.cpp
@@ -53,8 +52,6 @@ geometry:
 	$(CPP) $(D_LIB) -o geometry_test $(ALL_LIB) $(GEOMETRY) $(FLAGS)
 delaunay:
 	$(CPP) $(D_LIB) -o delaunay_test $(ALL_LIB) $(DELAUNAY) $(FLAGS)
-plot:
-	$(CPP) $(D_LIB) -o data_plot_test $(ALL_LIB) $(EXPORT) $(FLAGS)
 structural_design:
 	$(CPP) $(D_LIB) -o sd_test $(ALL_LIB) $(STRUCT_DES) $(FLAGS)
 building_physics:
