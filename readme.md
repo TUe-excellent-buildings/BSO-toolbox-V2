@@ -177,14 +177,14 @@ $ git clone <link>
 The command line on the terminal should then look similar to the line below.
 
 ```bash
-$ git clone https://github.com/TUe-excellent-buildings/BSO-toolbox.git
+$ git clone https://github.com/TUe-excellent-buildings/BSO-toolbox-V2.git
 ```
 
-If the clone was successful, the BSO toolbox is now cloned onto your local machine, e.g. in the directory: `/usr/include/BSO-toolbox`.
+If the clone was successful, the BSO toolbox is now cloned onto your local machine, e.g. in the directory: `/usr/include/BSO-toolbox-V2`.
 
 ##### 8. Compile and run the example.
 
-Examples of how the toolbox can be used has been added to the repository as well (`../BSO-toolbox/examples`). Two examples are provided, each utilizing a diferent representation, either orthogonal or non-orthogonal.
+Examples of how the toolbox can be used has been added to the repository as well (`../BSO-toolbox-V2/examples`). Two examples are provided, each utilizing a diferent representation, either orthogonal or non-orthogonal.
 
 A make file has been added to the directory of the example, which can be used to compile the code.
 In the makefile, check if the dependencies (Eigen, Boost, and if applied FADE 2D) are linked to the locations of your local machine.
@@ -219,7 +219,7 @@ The unit tests are also included in the repository, and in case of developing/co
 Depending on the location of the repository on your local machine, moving to the unit test directory may be achieved as follows.
 
 ```bash
-$ cd /usr/include/BSO-toolbox/unit_tests
+$ cd /usr/include/BSO-toolbox-V2/unit_tests
 ```
 
 The unit test directory contains a makefile with which the unit tests can be compiled.
@@ -302,7 +302,7 @@ Parts of the code that are used in the BSO toolbox are based on codes that are o
 This section is used to clarify which parts of code in the BSO toolbox are based on other codes, and refers to the original work.
 
 #### Method of Moving Asymptotes
-The MMA.hpp and MMA.cpp files in the directiory `../BSO-toolbox/bso/structural_design/topology_optimization` are the translation of the MMA-code written in MATLAB by Krister Svanberg.
+The MMA.hpp and MMA.cpp files in the directiory `../BSO-toolbox-V2/bso/structural_design/topology_optimization` are the translation of the MMA-code written in MATLAB by Krister Svanberg.
 The original work can be downloaded from http://www.smoptit.se/ under de GNU General Public License.
 The user should refer to the academic work of Krister Svanberg when work will be published in which this code is used.
 For a description of the original work see this [paper] (https://onlinelibrary.wiley.com/doi/abs/10.1002/nme.1620240207).
