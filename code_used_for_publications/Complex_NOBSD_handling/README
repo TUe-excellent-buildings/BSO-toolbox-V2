@@ -5,8 +5,10 @@ Ezendam, T., van der, Hofmeyer, H., van der Wal, S., Perevendieva K.G., and Emme
 
 The remaining used code for this publication can be found at:
 - For the mesh convergence study comparing all three methods:
-    - Tying method convergence study source code and data: https://github.com/TUe-excellent-buildings/MSc_2022_Van_der_Wal in directory: /MSc_2022_Van_der_Wal/code_used_for_publication/Tying_method.
+    - Tying method convergence study source code and data: 
+      Ezendam, T., van der Wal, S., & Hofmeyer, H. (2026). BSO Toolbox: Tying method (Version 1.0.0) [Computer software]. https://doi.org/10.5281/zenodo.23476925
     - IP method convergence study source code and data: 
+      Ezendam, T., & Hofmeyer, H. BSO Toolbox (Version 1.0.0) [Computer software]. https://doi.org/10.5281/zenodo.23477078
 
 The following code is included in this directory:
 
@@ -16,6 +18,6 @@ The following code is included in this directory:
 
 Furthermore the following supplementary data is supplied:
 
-* the building spatial designs used for the each of the case studies
+* the building spatial designs used for the each of the case studies (All orthogonal designs are included in the executa~/Complex_NOBSD_handeling/Effectiveness_conformal_making)
 * the settings (structural and thermal design) used for the case studies
 * data_files for 
