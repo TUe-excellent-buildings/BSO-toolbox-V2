@@ -1,7 +1,7 @@
 #libraries
 BOOST   = /usr/include/boost
 EIGEN   = /usr/include/eigen
-FADE	= /usr/include/Libaries/fadeRelease_v1.93/fadeRelease_v1.93
+FADE	= /usr/include/Libaries/fadeRelease_v1.93
 BSO     = ..
 ALL_LIB = -I$(BOOST) -I$(EIGEN) -I$(BSO)
 
