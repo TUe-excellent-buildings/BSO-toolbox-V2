@@ -7,6 +7,6 @@ authors:
   - family-names: Hofmeyer
     given-names: Hèrm
 title: "BSO Toolbox"
-version: "1.0.0"
+version: "1.2.0"
 doi: 10.5281/zenodo.23530673
 repository-code: "https://github.com/TUe-excellent-buildings/BSO-toolbox-V2"
