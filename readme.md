@@ -31,7 +31,7 @@ Although the first aim of the toolbox was related to research carried out at Ein
 ## How do I get it set up? ###
 
 ### Dependencies
-The toolbox is written in C++ and makes use of elements defined in the C++14 standard. The toolbox has been compiled and tested for Linux (Ubuntu 22.04 LTS). Although not included in this release, it is with some minor alterations also compatible with Windows 10 (22H2,19045.2486).
+The toolbox is written in C++ and makes use of elements defined in the C++14 standard. The toolbox has been compiled and tested for Linux (Ubuntu 22.04 LTS). Although instal describtions not included in this release, it is with some minor alterations also compatible with Windows 10 (22H2,19045.2486).
 
 The toolbox depends on the following external source and static/dynamic libraries:
 * For linear algebra, the [Eigen](http://eigen.tuxfamily.org) C++ library is used (Linux: last tested is v3.4.0).
@@ -184,22 +184,22 @@ If the clone was successful, the BSO toolbox is now cloned onto your local machi
 
 ##### 8. Compile and run the example.
 
-Examples of how the toolbox can be used has been added to the repository as well (`../BSO-toolbox-V2/examples`). Two examples are provided, each utilizing a diferent representation, either orthogonal or non-orthogonal.
+Examples of how the toolbox can be used has been added to the repository as well (`../BSO-toolbox-V2/examples`). Two examples are provided, each utilizing a diferent representation, either orthogonal or non-orthogonal buildings.
 
-A make file has been added to the directory of the example, which can be used to compile the code.
+A make file has been added to each example directory, which can be used to compile the code.
 In the makefile, check if the dependencies (Eigen, Boost, and if applied FADE 2D) are linked to the locations of your local machine.
-For instance, check if the line `BOOST = /usr/include/boost` is correctly linking to the Boost library on your local machine.  Also, set FADE_ROOT, in any supplied make file, to the extracted package directory containing both the `include_fade2d` and the `lib_ubuntu...` directories. For example: `FADE=$(HOME)/Libraries/fadeRelease_v1.93`.
+For instance, check if the line `BOOST = /usr/include/boost` is correctly linking to the Boost library on your local machine.  Also, set FADE, in any supplied make file, to the extracted package directory containing both the `include_fade2d` and the `lib_ubuntu...` directories. For example: `FADE=$(HOME)/Libraries/fadeRelease_v1.93`.
 
-The example can then be compiled by typing the following command in the terminal:
+Either example can then be compiled by typing the following command in the terminal:
 
 ```bash
 $ make cls clean all
 ```
 
-Run the resulting 'example' executable by typing the following command in the terminal:
+Run the resulting 'main' executable by typing the following command in the terminal:
 
 ```bash
-$ ./example
+$ ./main
 ```
 
 The output should then look as follows.
