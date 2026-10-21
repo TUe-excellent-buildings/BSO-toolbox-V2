@@ -1,0 +1,19 @@
+# Code used for complex non-orthogonal building handling; generating conformal geometry and applying it the the application of mesh generation
+This directory contains a part of the code used in following publication:
+
+Ezendam, T., van der, Hofmeyer, H., van der Wal, S., Perevendieva K.G., and Emmerich, M. T. M. "Handling Complex Building Geometries for Disciplinary Processing in Conceptual Building Design Simulation and Optimization". In: Computing in Civil Engineering (2026). DOI: 10.1061/JCCEE5.CPENG-6922 
+
+In this publication, three methods to handle complex geometry were tested and compared. 
+In this directory, all the code and obtained data for the Triangular Partitioning (TP) method can be found. 
+The remaining code and data for the other two methods can be found at:
+    - Tying method convergence study source code and data: 
+      Ezendam, T., van der Wal, S., & Hofmeyer, H. (2026). BSO Toolbox: Tying method (Version 1.0.0) [Computer software]. https://doi.org/10.5281/zenodo.23476925
+    - Iterative Partitioning (IP) method convergence study source code and data: 
+      Ezendam, T., & Hofmeyer, H. BSO Toolbox (Version 1.0.0) [Computer software]. https://doi.org/10.5281/zenodo.23477078
+
+The following code and data is included in this directory:
+
+* an executable to test the IP and TP method on their effectiveness of generating a conformal geometry (~/Complex_NOBSD_handeling/Effectiveness_conformal_making)
+* an executable to compare the mesh quality of the IP and TP method to a benchmark case and a mesh quality test for a set of Non-orthogonal designs (~/Complex_NOBSD_handling/Mesh_Quality_study_IP_TP_methods)
+* an executable to perform a mesh convergenge study for the TP method and the data files and reference to the source code for the IP and Tying method (~/Complex_NOBSD_handling//Mesh_convergence_study_IP_TP_Tying_methods_Rectangular_BSO)
+* All the 20 non-orthogonal building designs where the IP and TP methods has been tested on for making conformal geometry and in the mesh convergence study (~/Complex_NOBSD_handling/Non_orthogonal_designs)

@@ -1,13 +1,12 @@
-cff-version: 1.1.1
-message: If you use this software, please cite it as below.
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
 authors:
-  - family-names: Boonstra
-    given-names: Sjonnie
-    orcid: https://orcid.org/0000-0001-9911-4507
+  - family-names: Ezendam
+    given-names: Tessa
+    orcid: "https://orcid.org/0009-0009-9401-6911"
   - family-names: Hofmeyer
     given-names: Hèrm
 title: "BSO Toolbox"
-version: 1.1.1
-doi: 10.5281/zenodo.3823893
-date-released: 2022-12-15
-url: "https://github.com/TUe-excellent-buildings/BSO-toolbox"
+version: "1.2.0"
+doi: 10.5281/zenodo.23530673
+repository-code: "https://github.com/TUe-excellent-buildings/BSO-toolbox-V2"
