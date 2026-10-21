@@ -1,0 +1,5 @@
+# This directory describes the location of data for the Mesh convergence comparison study of the IP, TP, and Tying method used for the paper:
+
+Ezendam, T., van der, Hofmeyer, H., van der Wal, S., Perevendieva K.G., and Emmerich, M. T. M. "Handling Complex Building Geometries for Disciplinary Processing in Conceptual Building Design Simulation and Optimization". In: Computing in Civil Engineering (2026). DOI: 10.1061/JCCEE5.CPENG-6922 
+
+This directory contains only the source code, setting, designs and makefile for the TP method and the data files obtained for the IP and Tying method. In the /BSO-toolbox-V2/code_used_for_publications/Complex_NOBSD_handling/README file are references specified for the source code, setting, designs and makefile for the Tying and the IP method. The reasoning behind this is that the TP method is further implemented in the rest of the code, whereas the Tying and IP method were removed as they are not further implemented and/or developed. This code version is thus the recommended version for continued development of the BSO toolbox utilizing the TP method.
