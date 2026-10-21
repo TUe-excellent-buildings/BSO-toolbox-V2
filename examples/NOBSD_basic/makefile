@@ -1,7 +1,7 @@
 # specify location of libraries
 BOOST   = /usr/include/boost
 EIGEN   = /usr/include/eigen
-FADE	= /usr/include/Libaries/fadeRelease_v1.93/fadeRelease_v1.93
+FADE	= /usr/include/Libaries/fadeRelease_v1.93
 BSO 	= /usr/include/BSO-toolbox-V2
 ALL_LIB = -I$(BOOST) -I$(EIGEN) -I$(BSO)
 
